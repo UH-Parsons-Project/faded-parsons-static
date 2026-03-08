@@ -1,5 +1,8 @@
 problem_name: MoviePurchase
 
+task_instructions: |
+  In this exercise you will practice working with Python classes.
+
 problem_description: |
   <p>The <code>MoviePurchase</code> class represents movie purchases on YouTube,
     tracking the title and cost of each movie bought,

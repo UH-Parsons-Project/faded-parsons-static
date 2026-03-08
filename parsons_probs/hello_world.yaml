@@ -1,5 +1,8 @@
 problem_name: hello_world
 
+task_instructions: |
+  In this exercise you will practice working with if-statements and comparison operators.
+
 problem_description: |
   <code>hello_world</code>
     returns the translation of "Hello, World" into the language

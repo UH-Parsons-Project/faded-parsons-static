@@ -1,5 +1,8 @@
 problem_name: greater_num
 
+task_instructions: |
+  In this exercise you will practice working with Python comparison operators.
+
 problem_description: |
   <code>greater_num</code>
     returns whichever number is highest of the two supplied numbers.

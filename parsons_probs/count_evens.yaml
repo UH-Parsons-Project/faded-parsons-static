@@ -1,5 +1,8 @@
 problem_name: count_evens
 
+task_instructions: |
+  In this exercise you will practice mathematical checks with Python.
+
 problem_description: |
   <code>count_evens</code>
     counts the number of even numbers between a given start number and given end number.

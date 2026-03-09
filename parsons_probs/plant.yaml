@@ -1,5 +1,8 @@
 problem_name: Plant
 
+task_instructions: |
+  In this exercise you will practice defining a Python class.
+
 problem_description: |
   <p>The <code>Plant</code> class is used by a plant nursery
   to track what plants they have in inventory

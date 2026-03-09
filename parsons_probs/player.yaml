@@ -1,5 +1,8 @@
 problem_name: Player
 
+task_instructions: |
+  In this exercise you will practice working with Python classes.
+
 problem_description: |
   <p>The <code>Player</code> class represents a player in a video game.
   </p>

@@ -128,8 +128,7 @@
       const meta = document.createElement('div');
       meta.className = 'task-list-meta';
       meta.innerHTML = `
-        <i class="fas fa-code"></i> ${escapeHtml(task.task_type)}
-        • <i class="far fa-calendar"></i> ${formatDate(task.created_at)}
+        <i class="far fa-calendar"></i> ${formatDate(task.created_at)}
         • <i class="fas fa-chart-line"></i> View Statistics
       `;
 
@@ -172,6 +171,10 @@
     function createStudentItem(student) {
       const item = document.createElement('div');
       item.className = 'student-item';
+      item.style.cursor = 'pointer';
+      item.onclick = () => {
+        window.location.href = `/student_attempts?student=${encodeURIComponent(student.username)}&list_id=${listId}`;
+      };
 
       const name = document.createElement('div');
       name.className = 'student-name';
@@ -187,6 +190,10 @@
         <div class="student-meta-item">
           <i class="fas fa-clock"></i>
           <span>Last activity: ${formatDateTime(student.last_activity_at)}</span>
+        </div>
+        <div class="student-meta-item">
+          <i class="fas fa-tasks"></i>
+          <span>Tasks attempted: ${student.tasks_attempted}</span>
         </div>
         <div class="student-meta-item">
           <i class="fas fa-clipboard-list"></i>

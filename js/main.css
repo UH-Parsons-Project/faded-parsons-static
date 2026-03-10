@@ -285,3 +285,14 @@
 .student-meta-item i {
   color: #007bff;
 }
+
+/* Student Attempts Page */
+.student-item {
+  cursor: pointer;
+}
+
+.student-item:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+  transform: translateY(-2px);
+}

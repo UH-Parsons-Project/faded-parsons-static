@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Attempts - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="#" id="back-btn"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to task list
+      </a>
+
+      <span class="text-dark">
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+      </span>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <div id="page-header" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading student attempts...</p>
+    </div>
+
+    <div id="attempts-container" style="display: none;">
+      <h3 class="mb-3">Tasks Attempted</h3>
+      <div id="attempts-list"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const studentUsername = params.get('student');
+    const listId = params.get('list_id');
+
+    if (!studentUsername || !listId) {
+      window.location.href = '/task_list_selector';
+    }
+
+    // Set up back button
+    document.getElementById('back-btn').href = `/task_list_statistics?list_id=${listId}`;
+
+    // Load username
+    const userNameEl = document.getElementById('user-name');
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      userNameEl.textContent = storedUsername;
+    } else {
+      fetch('/api/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data?.username) {
+            userNameEl.textContent = data.username;
+            localStorage.setItem('username', data.username);
+          }
+        })
+        .catch(() => { userNameEl.textContent = ''; });
+    }
+
+    function formatDateTime(isoString) {
+      if (!isoString) return 'N/A';
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderHeader(username) {
+      const container = document.getElementById('page-header');
+      container.className = 'mb-4';
+      container.innerHTML = `
+        <h2>Student: ${escapeHtml(username)}</h2>
+        <p class="text-muted">All tasks attempted by this student in this task list</p>
+      `;
+    }
+
+    function createAttemptItem(attempt) {
+      const item = document.createElement('div');
+      item.className = 'task-list-item';
+
+      const title = document.createElement('div');
+      title.className = 'task-list-title';
+      title.textContent = attempt.task_title;
+
+      const meta = document.createElement('div');
+      meta.className = 'task-list-meta';
+
+      const statusIcon = attempt.success_count > 0
+        ? '<i class="fas fa-check-circle" style="color: #28a745;"></i><span style="margin-right: 0.5rem;"> Success</span>'
+        : '<i class="fas fa-times-circle" style="color: #dc3545;"></i><span style="margin-right: 0.5rem;"> Failed</span>';
+
+      meta.innerHTML = `
+        ${statusIcon}
+        <span style="margin-right: 1rem;">Total Attempts: ${attempt.attempts}</span>
+        <i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}
+      `;
+
+      item.appendChild(title);
+      item.appendChild(meta);
+
+      return item;
+    }
+
+    function renderAttempts(attempts) {
+      const attemptsContainer = document.getElementById('attempts-container');
+      const attemptsList = document.getElementById('attempts-list');
+
+      if (attempts.length === 0) {
+        attemptsList.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-clipboard"></i>
+            <h4>No Attempts Found</h4>
+            <p>This student hasn't attempted any tasks in this list yet.</p>
+          </div>
+        `;
+      } else {
+        attemptsList.innerHTML = '';
+        attempts.forEach(attempt => {
+          attemptsList.appendChild(createAttemptItem(attempt));
+        });
+      }
+
+      attemptsContainer.style.display = 'block';
+    }
+
+    function showError(message) {
+      const container = document.getElementById('page-header');
+      container.className = 'empty-state';
+      container.innerHTML = `
+        <i class="fas fa-exclamation-triangle text-danger"></i>
+        <h4>Error Loading Data</h4>
+        <p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
+        <a href="/task_list_selector" class="btn btn-primary mt-3">Back to Task Lists</a>
+      `;
+    }
+
+    // Load student attempts
+    fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?list_id=${listId}`, {
+      credentials: 'include'
+    })
+      .then(r => {
+        if (!r.ok) {
+          if (r.status === 401) {
+            window.location.href = '/index.html';
+            return;
+          }
+          throw new Error('Failed to load student attempts');
+        }
+        return r.json();
+      })
+      .then(attempts => {
+        renderHeader(studentUsername);
+        renderAttempts(attempts);
+      })
+      .catch(err => {
+        console.error('Error loading attempts:', err);
+        if (err.message && err.message.includes('401')) {
+          window.location.href = '/index.html';
+        } else {
+          showError(err.message);
+        }
+      });
+  </script>
+
+</body>
+</html>

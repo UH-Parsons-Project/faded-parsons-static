@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import Integer, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -106,6 +106,16 @@ class StudentInTaskListResponse(BaseModel):
     started_at: str
     last_activity_at: str
     total_attempts: int
+    tasks_attempted: int
+
+
+class StudentTaskAttemptResponse(BaseModel):
+    task_id: int
+    task_title: str
+    task_type: str
+    attempts: int
+    success_count: int
+    last_attempt_at: str
 
 
 class SubmitTestResultRequest(BaseModel):
@@ -346,6 +356,21 @@ async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_
 
     stats_path = BASE_DIR / "templates" / "task_list_statistics.html"
     response = FileResponse(stats_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/student_attempts", response_class=HTMLResponse)
+async def student_attempts_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    attempts_path = BASE_DIR / "templates" / "student_attempts.html"
+    response = FileResponse(attempts_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -690,7 +715,8 @@ async def get_problemset_students(
             StudentSession.username,
             StudentSession.started_at,
             StudentSession.last_activity_at,
-            func.count(TaskAttempt.id).label('total_attempts')
+            func.count(TaskAttempt.id).label('total_attempts'),
+            func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
         )
         .join(TaskAttempt, TaskAttempt.student_session_id == StudentSession.id)
         .where(TaskAttempt.task_id.in_(task_ids))
@@ -707,9 +733,79 @@ async def get_problemset_students(
             username=student.username,
             started_at=student.started_at.isoformat(),
             last_activity_at=student.last_activity_at.isoformat(),
-            total_attempts=student.total_attempts
+            total_attempts=student.total_attempts,
+            tasks_attempted=student.tasks_attempted
         )
         for student in students
+    ]
+
+
+@app.get("/api/students/{student_username}/attempts", response_model=list[StudentTaskAttemptResponse])
+async def get_student_attempts(
+    student_username: str,
+    list_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all tasks attempted by a specific student in a task list."""
+    from sqlalchemy import func
+    
+    # Verify task list exists and belongs to current user
+    stmt = select(TaskList).where(TaskList.id == list_id)
+    result = await db.execute(stmt)
+    task_list = result.scalar_one_or_none()
+    
+    if not task_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task list with id {list_id} not found"
+        )
+    
+    if task_list.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to view this task list"
+        )
+    
+    # Get all tasks in this task list
+    task_ids_stmt = select(TaskListItem.task_id).where(TaskListItem.task_list_id == list_id)
+    task_ids_result = await db.execute(task_ids_stmt)
+    task_ids = [row[0] for row in task_ids_result.all()]
+    
+    if not task_ids:
+        return []
+    
+    # Get student's attempts grouped by task
+    stmt = (
+        select(
+            Parsons.id,
+            Parsons.title,
+            Parsons.task_type,
+            func.count(TaskAttempt.id).label('attempts'),
+            func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
+            func.max(TaskAttempt.completed_at).label('last_attempt_at')
+        )
+        .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
+        .join(StudentSession, StudentSession.id == TaskAttempt.student_session_id)
+        .where(StudentSession.username == student_username)
+        .where(Parsons.id.in_(task_ids))
+        .group_by(Parsons.id, Parsons.title, Parsons.task_type)
+        .order_by(func.max(TaskAttempt.completed_at).desc())
+    )
+    
+    result = await db.execute(stmt)
+    attempts = result.all()
+    
+    return [
+        StudentTaskAttemptResponse(
+            task_id=attempt.id,
+            task_title=attempt.title,
+            task_type=attempt.task_type,
+            attempts=attempt.attempts,
+            success_count=attempt.success_count or 0,
+            last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else ""
+        )
+        for attempt in attempts
     ]
 
 

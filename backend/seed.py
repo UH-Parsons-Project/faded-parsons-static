@@ -2,10 +2,12 @@
 Database seeding - creates initial data for development.
 """
 
+import uuid
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskList, TaskListItem, Teacher
+from .models import Parsons, TaskList, TaskListItem, Teacher, StudentSession, TaskAttempt
 from .migrate_tasks import migrate_tasks
 
 
@@ -20,7 +22,7 @@ async def seed_db():
             select(Teacher).where(Teacher.username == "Matti Ruotsalainen")
         )
         existing_teacher = result.scalar_one_or_none()
-        
+
         if existing_teacher is None:
             # Create default test teacher
             test = Teacher(
@@ -28,7 +30,7 @@ async def seed_db():
                 email="matti.ruotsalainen@example.com"
             )
             test.set_password("test1234")  # Change in production!
-            
+
             session.add(test)
             try:
                 await session.commit()
@@ -39,7 +41,7 @@ async def seed_db():
                 print("Test teacher already exists (created by another instance), skipping seed")
         else:
             print("Test teacher already exists, skipping seed")
-    
+
     # Migrate tasks from parsons_probs/ directory
     print("\nMigrating tasks from parsons_probs/...")
     await migrate_tasks()

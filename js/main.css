@@ -296,3 +296,167 @@
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
   transform: translateY(-2px);
 }
+
+/* Student Task Statistics Page */
+.attempts-column {
+  flex: 1;
+  order: 1;
+}
+
+.statistics-column {
+  width: 400px;
+  flex-shrink: 0;
+  order: 2;
+}
+
+.statistics-sticky {
+  position: sticky;
+  top: 1rem;
+}
+
+.attempts-header {
+  cursor: pointer;
+  padding: 1rem 1.25rem;
+  background-color: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 0.35rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.attempts-header:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.attempts-header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attempts-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.expand-icon {
+  transition: transform 0.2s ease;
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.attempts-list {
+  display: none;
+  margin-top: 0.5rem;
+}
+
+.attempts-list.expanded {
+  display: block;
+}
+
+.attempt-item {
+  border: 2px solid #dee2e6;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: #fff;
+  border-radius: 0.35rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.attempt-item.success {
+  border-left: 4px solid #28a745;
+}
+
+.attempt-item.failure {
+  border-left: 4px solid #dc3545;
+}
+
+.attempt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.attempt-number {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.attempt-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.attempt-badge.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.attempt-badge.failure {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.attempt-meta {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.attempt-code {
+  background-color: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 1px solid #dee2e6;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.stat-box {
+  background-color: #f8f9fa;
+  border: 2px solid #dee2e6;
+  border-radius: 0.35rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.stat-box h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #333;
+}

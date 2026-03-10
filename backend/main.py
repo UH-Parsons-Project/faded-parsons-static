@@ -118,6 +118,17 @@ class StudentTaskAttemptResponse(BaseModel):
     last_attempt_at: str
 
 
+class StudentTaskStatisticsResponse(BaseModel):
+    task_name: str
+    student_username: str
+    total_attempts: int
+    successful_attempts: int
+    failed_attempts: int
+    time_to_first_success: dict | None
+    time_to_first_fail: dict | None
+    attempts_detail: list[dict]
+
+
 class SubmitTestResultRequest(BaseModel):
     task_id: int
     success: bool
@@ -371,6 +382,21 @@ async def student_attempts_page(request: Request, db: AsyncSession = Depends(get
 
     attempts_path = BASE_DIR / "templates" / "student_attempts.html"
     response = FileResponse(attempts_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/student_task_statistics", response_class=HTMLResponse)
+async def student_task_statistics_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    stats_path = BASE_DIR / "templates" / "student_task_statistics.html"
+    response = FileResponse(stats_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -807,6 +833,110 @@ async def get_student_attempts(
         )
         for attempt in attempts
     ]
+
+
+@app.get("/api/students/{student_username}/tasks/{task_id}/statistics", response_model=StudentTaskStatisticsResponse)
+async def get_student_task_statistics(
+    student_username: str,
+    task_id: int,
+    list_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get statistics for a specific student's attempts on a specific task."""
+    from sqlalchemy import func
+    
+    # Verify task list exists and belongs to current user
+    stmt = select(TaskList).where(TaskList.id == list_id)
+    result = await db.execute(stmt)
+    task_list = result.scalar_one_or_none()
+    
+    if not task_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task list with id {list_id} not found"
+        )
+    
+    if task_list.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to view this task list"
+        )
+    
+    # Verify task exists
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+    
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {task_id} not found"
+        )
+    
+    # Get all attempts by this student for this task
+    stmt = (
+        select(TaskAttempt)
+        .join(StudentSession, StudentSession.id == TaskAttempt.student_session_id)
+        .where(StudentSession.username == student_username)
+        .where(TaskAttempt.task_id == task_id)
+        .order_by(TaskAttempt.completed_at.asc())
+    )
+    
+    result = await db.execute(stmt)
+    attempts = result.scalars().all()
+    
+    if not attempts:
+        return StudentTaskStatisticsResponse(
+            task_name=task.title,
+            student_username=student_username,
+            total_attempts=0,
+            successful_attempts=0,
+            failed_attempts=0,
+            time_to_first_success=None,
+            time_to_first_fail=None,
+            attempts_detail=[]
+        )
+    
+    # Calculate statistics
+    successful_attempts = sum(1 for a in attempts if a.success)
+    failed_attempts = sum(1 for a in attempts if not a.success)
+    
+    # Time to first success
+    first_success = next((a for a in attempts if a.success), None)
+    time_to_first_success = None
+    if first_success and first_success.task_started_at and first_success.completed_at:
+        seconds = (first_success.completed_at - first_success.task_started_at).total_seconds()
+        time_to_first_success = {"seconds": seconds}
+    
+    # Time to first fail
+    first_fail = next((a for a in attempts if not a.success), None)
+    time_to_first_fail = None
+    if first_fail and first_fail.task_started_at and first_fail.completed_at:
+        seconds = (first_fail.completed_at - first_fail.task_started_at).total_seconds()
+        time_to_first_fail = {"seconds": seconds}
+    
+    # Attempts detail
+    attempts_detail = []
+    for i, attempt in enumerate(attempts, 1):
+        detail = {
+            "attempt_number": i,
+            "success": attempt.success,
+            "completed_at": attempt.completed_at.isoformat() if attempt.completed_at else None,
+            "time_taken": (attempt.completed_at - attempt.task_started_at).total_seconds() if attempt.task_started_at and attempt.completed_at else None,
+            "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None
+        }
+        attempts_detail.append(detail)
+    
+    return StudentTaskStatisticsResponse(
+        task_name=task.title,
+        student_username=student_username,
+        total_attempts=len(attempts),
+        successful_attempts=successful_attempts,
+        failed_attempts=failed_attempts,
+        time_to_first_success=time_to_first_success,
+        time_to_first_fail=time_to_first_fail,
+        attempts_detail=attempts_detail
+    )
 
 
 @app.post("/api/tasks/{task_id}/submit-result")

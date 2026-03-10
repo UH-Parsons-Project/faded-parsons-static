@@ -16,63 +16,30 @@
 
 <body class="body">
 
-  <nav class="navbar">
-    <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
-  </nav>
-  <main class="container main-nickname">
-    <div class="card card-soft nickname-card p-4">
-      <h2 class="section-title mb-3">Welcome, Student!</h2>
-      <form id="nicknameForm">
-        <div class="form-group">
-          <label for="nickname"></label>
-          <input type="text" class="form-control" id="nickname" placeholder="Your nickname" maxlength="20" required>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Continue</button>
-      </form>
-    </div>
-  </main>
+	<nav class="navbar">
+		<a href="index.html">
+			<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+		</a>
+		<div class="ml-auto" id="auth-section">
+			<form class="form-inline" id="login-form">
+				<div id="error-message" class="text-danger mr-2" style="display: none;"></div>
+				<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username" required>
+				<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
+				<button class="login" id="login-btn" type="submit">Login</button>
+				<button class="register" id="register-btn" type="button">Register</button>
+			</form>
+			<div id="user-info" class="text-dark" style="display: none;">
+				<a class="btn btn-outline-dark btn-sm mr-2" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
+				<span class="mr-3">Welcome, <span id="user-name"></span>!</span>
+				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
+			</div>
+		</div>
+	</nav>
 
-  <script>
-    document.getElementById('nicknameForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const nickname = document.getElementById('nickname').value;
-      
-      try {
-        // Get unique link code from URL
-        const pathParts = window.location.pathname.split('/');
-        const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}
-        
-        // Validate nickname with backend
-        const response = await fetch('/api/validate-nickname', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            nickname: nickname,
-            unique_link_code: uniqueLinkCode 
-          }),
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          alert('Error: ' + errorData.detail);
-          return;
-        }
-        
-        // If validation passes, store nickname and redirect
-        // Store nickname in localStorage
-        localStorage.setItem('nickname', nickname);
-        
-        if (uniqueLinkCode) {
-          window.location.href = `/set/${uniqueLinkCode}/tasks`;
-        }
-      } catch (error) {
-        alert('An error occurred: ' + error.message);
-      }
-    });
-  </script>
+  <div class="container text-center mt-5">
+    <h1 class="display-4 font-weight-bold">Welcome to Parsons Code Lab!</h1>
+    <h2 class="h5 text-muted">Login to join the exercise packet</h2>
+  </div>
 
 </body>
 </html>

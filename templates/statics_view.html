@@ -21,9 +21,9 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/exerciselist"
+      <a href="/task_list_selector"
          class="btn btn-outline-dark btn-sm mr-3">
-        Back to exercise list
+        Back to task lists
       </a>
 
       <span class="text-dark">
@@ -57,7 +57,7 @@
         <div class="card card-soft">
           <div class="card-body d-flex align-items-center justify-content-center">
             <div class="stat-single">
-              <div class="label">Students attempted / completed</div>
+              <div class="label">Students completed / attempted</div>
               <div id="students-stats" class="value">—</div>
             </div>
           </div>
@@ -206,7 +206,7 @@
           document.getElementById('exercise-name').textContent = data.task_name || '—';
           document.getElementById('total-completions').textContent = data.total_completions ?? 0;
           document.getElementById('students-stats').textContent =
-            `${data.students_attempted ?? 0} / ${data.students_completed ?? 0}`;
+            `${data.students_completed ?? 0} / ${data.students_attempted ?? 0}`;
           document.getElementById('avg-tries').textContent = data.avg_tries ?? 0;
 
           if (data.time_to_first_fail) setStatGroup('tff-avg', 'tff-min', 'tff-max', data.time_to_first_fail);

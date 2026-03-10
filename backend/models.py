@@ -101,7 +101,7 @@ class Student(Base):
     __tablename__ = "student"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     student_created_at: Mapped[datetime] = mapped_column(

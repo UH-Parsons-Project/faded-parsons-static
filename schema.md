@@ -37,7 +37,7 @@ CREATE TABLE task_list_items (
 
 CREATE TABLE student (
 	id SERIAL PRIMARY KEY,
-	username VARCHAR(20),
+	username VARCHAR(20) UNIQUE NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
 	email VARCHAR(100) UNIQUE NOT NULL,
 	student_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

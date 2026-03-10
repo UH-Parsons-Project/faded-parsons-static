@@ -101,6 +101,13 @@ class NicknameRequest(BaseModel):
     unique_link_code: str
 
 
+class StudentInTaskListResponse(BaseModel):
+    username: str
+    started_at: str
+    last_activity_at: str
+    total_attempts: int
+
+
 class SubmitTestResultRequest(BaseModel):
     task_id: int
     success: bool
@@ -309,6 +316,36 @@ async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
 
     statics_path = BASE_DIR / "templates" / "statics_view.html"
     response = FileResponse(statics_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/task_list_selector", response_class=HTMLResponse)
+async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    selector_path = BASE_DIR / "templates" / "task_list_selector.html"
+    response = FileResponse(selector_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/task_list_statistics", response_class=HTMLResponse)
+async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    stats_path = BASE_DIR / "templates" / "task_list_statistics.html"
+    response = FileResponse(stats_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -533,6 +570,25 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
 
     return {"status": "success", "id": teacher.id}
 
+@app.get("/api/problemsets", response_model=list[ProblemSetResponse])
+async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    """List all task lists for the current teacher."""
+    stmt = select(TaskList).where(TaskList.teacher_id == current_user.id).order_by(TaskList.created_at.desc())
+    result = await db.execute(stmt)
+    problemsets = result.scalars().all()
+
+    return [
+        ProblemSetResponse(
+            id=ps.id,
+            title=ps.title,
+            unique_link_code=ps.unique_link_code,
+            teacher_id=ps.teacher_id,
+            created_at=ps.created_at.isoformat(),
+            expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
+        )
+        for ps in problemsets
+    ]
+
 @app.get("/api/problemsets/{problemset_id}", response_model=ProblemSetResponse)
 async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db)):
     stmt = select(TaskList).where(TaskList.id == problemset_id)
@@ -591,6 +647,69 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
             created_at=task.created_at.isoformat(),
         )
         for task in tasks
+    ]
+
+
+@app.get("/api/problemsets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
+async def get_problemset_students(
+    problemset_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all students who have attempted at least one task in this task list."""
+    from sqlalchemy import func, distinct
+    
+    # Verify task list exists and belongs to current user
+    stmt = select(TaskList).where(TaskList.id == problemset_id)
+    result = await db.execute(stmt)
+    task_list = result.scalar_one_or_none()
+    
+    if not task_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task list with id {problemset_id} not found"
+        )
+    
+    if task_list.teacher_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to view this task list"
+        )
+    
+    # Get all tasks in this task list
+    task_ids_stmt = select(TaskListItem.task_id).where(TaskListItem.task_list_id == problemset_id)
+    task_ids_result = await db.execute(task_ids_stmt)
+    task_ids = [row[0] for row in task_ids_result.all()]
+    
+    if not task_ids:
+        return []
+    
+    # Get student sessions with attempts, grouped by session
+    stmt = (
+        select(
+            StudentSession.username,
+            StudentSession.started_at,
+            StudentSession.last_activity_at,
+            func.count(TaskAttempt.id).label('total_attempts')
+        )
+        .join(TaskAttempt, TaskAttempt.student_session_id == StudentSession.id)
+        .where(TaskAttempt.task_id.in_(task_ids))
+        .where(StudentSession.username.isnot(None))
+        .group_by(StudentSession.id, StudentSession.username, StudentSession.started_at, StudentSession.last_activity_at)
+        .order_by(StudentSession.last_activity_at.desc())
+    )
+    
+    result = await db.execute(stmt)
+    students = result.all()
+    
+    return [
+        StudentInTaskListResponse(
+            username=student.username,
+            started_at=student.started_at.isoformat(),
+            last_activity_at=student.last_activity_at.isoformat(),
+            total_attempts=student.total_attempts
+        )
+        for student in students
     ]
 
 

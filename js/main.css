@@ -115,3 +115,173 @@
   color: #212529;
   white-space: pre;
 }
+
+/* Task List Selector Styles */
+.task-list-selector-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.task-lists-column {
+  flex: 1;
+  order: 1;
+}
+
+.add-button-column {
+  width: 300px;
+  flex-shrink: 0;
+  order: 2;
+}
+
+.task-list-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #dee2e6;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  background-color: #fff;
+  border-radius: 0.35rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.task-list-item:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.task-list-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.task-list-code {
+  font-family: 'Courier New', monospace;
+  background-color: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  display: inline-block;
+  border: 1px solid #dee2e6;
+}
+
+.task-list-meta {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 0.5rem;
+}
+
+.create-new-card {
+  border: 2px dashed #28a745;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0.35rem;
+  text-align: center;
+  padding: 2rem;
+  color: #28a745;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.create-new-card:hover {
+  border-color: #28a745;
+  border-style: solid;
+  background-color: #e9f7ef;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+  transform: translateY(-2px);
+}
+
+.create-new-card i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 3rem;
+}
+
+/* Task List Statistics - Two Column Layout */
+.statistics-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.tasks-column {
+  flex: 1;
+  order: 1;
+}
+
+.students-column {
+  width: 400px;
+  flex-shrink: 0;
+  order: 2;
+}
+
+/* Task List Statistics - Students Section */
+.students-section {
+  position: sticky;
+  top: 1rem;
+}
+
+.students-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.student-item {
+  border: 2px solid #dee2e6;
+  padding: 1rem 1.25rem;
+  background-color: #fff;
+  border-radius: 0.35rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: all 0.2s ease;
+}
+
+.student-item:hover {
+  border-color: #6c757d;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.student-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.student-meta {
+  font-size: 0.875rem;
+  color: #6c757d;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.student-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.student-meta-item i {
+  color: #007bff;
+}

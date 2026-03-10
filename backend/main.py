@@ -319,6 +319,11 @@ async def register_page():
     register_path = BASE_DIR / "templates" / "register.html"
     return FileResponse(register_path)
 
+@app.get("/student_register", response_class=HTMLResponse)
+async def student_register_page():
+    """Serve a simple student registration page."""
+    register_path = BASE_DIR / "templates" / "student_register.html"
+    return FileResponse(register_path)
 
 # Authentication endpoints
 @app.post("/api/login/access-token", response_model=Token)
@@ -532,6 +537,79 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     await db.refresh(teacher)
 
     return {"status": "success", "id": teacher.id}
+
+@app.post("/api/student_register")
+async def api_student_register(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    """Register a new student with username, password and email."""
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        ) from exc
+
+    username = str(payload.get("username", "")).strip()
+    password = payload.get("password", "")
+    password_confirm = payload.get("password_confirm", "")
+    email = str(payload.get("email", "")).strip()
+
+    if not username or not password or not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username, password and email are required",
+        )
+
+    if password != password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
+
+    # Basic length checks consistent with model limits
+    if len(username) > 50 or len(email) > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username or email too long",
+        )
+
+    if len(username) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username must have a minimum length of 5 characters",
+        )
+
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="password must have a minimum length of 8 characters",
+        )
+
+    # Check uniqueness
+    stmt = select(Student).where((Student.username == username) | (Student.email == email))
+    result = await db.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already exists",
+        )
+
+    student = Student(username=username, email=email)
+    student.set_password(password)
+
+    db.add(student)
+    await db.commit()
+    await db.refresh(student)
+
+    # Set a persistent student session cookie so the student is logged in after registering
+    try:
+        set_session_cookie(response, student.id)
+    except Exception:
+        # Don't fail the registration if cookie setting somehow fails
+        pass
+
+    return {"status": "success", "id": student.id}
 
 @app.get("/api/problemsets/{problemset_id}", response_model=ProblemSetResponse)
 async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db)):

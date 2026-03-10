@@ -12,15 +12,13 @@ Uses shared fixtures from conftest.py:
 SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
-import uuid
 from datetime import datetime
 
 import pytest
 from sqlalchemy import select
 
 from backend.auth import create_access_token
-from backend.main import app
-from backend.models import Parsons, StudentSession, TaskAttempt, TaskList, TaskListItem
+from backend.models import Parsons, Student, TaskAttempt, TaskList
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +51,7 @@ async def _add_attempt(db_session, ss_id: int, task_id: int, *,
     start = start or datetime(2026, 1, 1, 0, 0, 0)
     end = end or datetime(2026, 1, 1, 0, 1, 0)
     a = TaskAttempt(
-        student_session_id=ss_id,
+        student_id=ss_id,
         task_id=task_id,
         task_started_at=start,
         completed_at=end,
@@ -137,7 +135,7 @@ class TestProblemsetPages:
         assert r.status_code == 200
 
     async def test_active_session_redirects_to_tasks(self, client, problemset, student_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         r = await client.get(f"/set/{problemset.unique_link_code}", follow_redirects=False)
         client.cookies.clear()
         assert r.status_code == 303
@@ -337,7 +335,7 @@ class TestRegister:
 
 @pytest.mark.asyncio
 class TestValidateNickname:
-    async def test_valid_nickname_returns_session_id(self, client, problemset):
+    async def test_valid_nickname_returns_student_id(self, client, problemset):
         r = await client.post("/api/validate-nickname",
                                json={"nickname": "Alice",
                                      "unique_link_code": problemset.unique_link_code})
@@ -345,7 +343,7 @@ class TestValidateNickname:
         body = r.json()
         assert body["status"] == "valid"
         assert body["nickname"] == "Alice"
-        assert "session_id" in body
+        assert "student_id" in body
 
     async def test_nickname_is_trimmed(self, client, problemset):
         r = await client.post("/api/validate-nickname",
@@ -532,7 +530,7 @@ class TestSubmitResult:
         assert r.status_code == 401
 
     async def test_success_with_iso_start_time(self, client, task, student_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
                                json=_submit(task.id, success=True,
                                             start_time="2026-03-01T10:00:00"))
@@ -541,28 +539,28 @@ class TestSubmitResult:
         assert r.json()["status"] == "success"
 
     async def test_success_with_z_suffix_timestamp(self, client, task, student_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
                                json=_submit(task.id, start_time="2026-03-01T10:00:00Z"))
         client.cookies.clear()
         assert r.status_code == 200
 
     async def test_invalid_start_time_falls_back_to_now(self, client, task, student_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
                                json=_submit(task.id, start_time="not-a-date"))
         client.cookies.clear()
         assert r.status_code == 200
 
     async def test_missing_start_time_uses_now(self, client, task, student_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
                                json=_submit(task.id, start_time=None))
         client.cookies.clear()
         assert r.status_code == 200
 
     async def test_attempt_persisted_in_db(self, client, task, student_session, db_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         await client.post(f"/api/tasks/{task.id}/submit-result",
                           json=_submit(task.id, success=True, code="my_answer",
                                        start_time="2026-01-01T00:00:00"))
@@ -575,7 +573,7 @@ class TestSubmitResult:
         assert attempt.submitted_inputs["code"] == "my_answer"
 
     async def test_failure_attempt_persisted(self, client, task, student_session, db_session):
-        client.cookies.set("student_session", str(student_session.session_id))
+        client.cookies.set("student_session", str(student_session.id))
         await client.post(f"/api/tasks/{task.id}/submit-result",
                           json=_submit(task.id, success=False, code="wrong",
                                        start_time="2026-01-01T00:00:00"))
@@ -664,9 +662,12 @@ class TestStatistics:
         self, client, task, problemset, test_teacher, db_session
     ):
         for i in range(3):
-            ss = StudentSession(
-                session_id=uuid.uuid4(), task_list_id=problemset.id, username=f"S{i}"
+            ss = Student(
+                task_list_id=problemset.id,
+                username=f"S{i}",
+                email=f"s{i}@example.com",
             )
+            ss.set_password("studentpass123")
             db_session.add(ss)
             await db_session.commit()
             await db_session.refresh(ss)
@@ -708,7 +709,7 @@ class TestStatistics:
         self, client, task, student_session, test_teacher, db_session
     ):
         a = TaskAttempt(
-            student_session_id=student_session.id, task_id=task.id,
+            student_id=student_session.id, task_id=task.id,
             task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs={},   # no "code" key
         )
@@ -722,7 +723,7 @@ class TestStatistics:
         self, client, task, student_session, test_teacher, db_session
     ):
         a = TaskAttempt(
-            student_session_id=student_session.id, task_id=task.id,
+            student_id=student_session.id, task_id=task.id,
             task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs=None,
         )
@@ -742,7 +743,8 @@ class TestStatistics:
         db_session.add(ps2)
         await db_session.commit()
         await db_session.refresh(ps2)
-        ss2 = StudentSession(session_id=uuid.uuid4(), task_list_id=ps2.id, username="Other")
+        ss2 = Student(task_list_id=ps2.id, username="Other", email="other@example.com")
+        ss2.set_password("studentpass123")
         db_session.add(ss2)
         await db_session.commit()
         await db_session.refresh(ss2)

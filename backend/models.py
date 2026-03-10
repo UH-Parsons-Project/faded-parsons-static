@@ -3,10 +3,9 @@ Database models for the application.
 """
 
 from datetime import datetime, timezone
-from uuid import UUID
 
 import bcrypt
-from sqlalchemy import JSON,Boolean, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -96,21 +95,41 @@ class TaskListItem(Base):
     )
 
 
-class StudentSession(Base):
-    """Student session model."""
+class Student(Base):
+    """Student user model."""
 
-    __tablename__ = "student_sessions"
+    __tablename__ = "student"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    session_id: Mapped[UUID] = mapped_column(Uuid, unique=True, nullable=False)
+    username: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    student_created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    student_updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     task_list_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("task_lists.id", ondelete="SET NULL"), nullable=True
     )
-    username: Mapped[str | None] = mapped_column(String(20), nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     last_activity_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+    def set_password(self, password: str) -> None:
+        """Hash and set the password."""
+        self.password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+    def verify_password(self, password: str) -> bool:
+        """Verify a password against the stored hash."""
+        return bcrypt.checkpw(
+            password.encode("utf-8"), self.password_hash.encode("utf-8")
+        )
 
 
 class TaskAttempt(Base):
@@ -119,8 +138,8 @@ class TaskAttempt(Base):
     __tablename__ = "task_attempts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    student_session_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("student_sessions.id", ondelete="CASCADE"), nullable=False
+    student_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
     )
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False

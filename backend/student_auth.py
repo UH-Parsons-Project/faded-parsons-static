@@ -2,16 +2,15 @@
 Student session management utilities.
 """
 
-import os
-import uuid
-from datetime import datetime, timezone, timedelta
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import Cookie, HTTPException, status, Response, Depends
+from fastapi import Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import get_db
-from .models import StudentSession, TaskList
+from .models import Student
 
 STUDENT_SESSION_EXPIRE_HOURS = 8
 
@@ -19,10 +18,10 @@ async def create_student_session(
     task_list_id: int,
     nickname: str,
     db: AsyncSession
-) -> StudentSession:
+) -> Student:
     """
-    Create a new student session when they enter a nickname.
-    Returns the StudentSession object with a unique session_id.
+    Create a new student record for nickname-based entry.
+    Returns the Student object persisted in the database.
 
     Args:
         task_list_id: ID of the task list the student is working on
@@ -30,23 +29,23 @@ async def create_student_session(
         db: Database session
 
     Returns:
-        StudentSession: The created session object
+        Student: The created student object
     """
-    session_id = uuid.uuid4()
-
-    student_session = StudentSession(
-        session_id=session_id,
+    student = Student(
         task_list_id=task_list_id,
         username=nickname,
+        email=f"guest-{secrets.token_hex(12)}@local.student",
         started_at=datetime.now(timezone.utc),
         last_activity_at=datetime.now(timezone.utc)
     )
+    # Set a random password hash for nickname-based guest records.
+    student.set_password(secrets.token_urlsafe(24))
 
-    db.add(student_session)
+    db.add(student)
     await db.commit()
-    await db.refresh(student_session)
+    await db.refresh(student)
 
-    return student_session
+    return student
 
 
 async def get_student_session(
@@ -54,30 +53,30 @@ async def get_student_session(
     db: AsyncSession,
     check_expiry: bool = True,
     update_activity: bool = True
-) -> Optional[StudentSession]:
+) -> Optional[Student]:
     """
-    Retrieve a student session by token from cookie.
+    Retrieve a student from cookie token.
     Returns None if session not found or expired.
 
     Args:
-        session_token: The UUID token from the cookie
+        session_token: The student id token from the cookie
         db: Database session
         check_expiry: Whether to validate session hasn't expired (default: True)
         update_activity: Whether to update last_activity_at timestamp (default: True)
 
     Returns:
-        StudentSession or None: The session if valid, None otherwise
+        Student or None: The student if valid, None otherwise
     """
     if not session_token:
         return None
 
     try:
-        session_uuid = uuid.UUID(session_token)
+        student_id = int(session_token)
     except ValueError:
         return None
 
     result = await db.execute(
-        select(StudentSession).where(StudentSession.session_id == session_uuid)
+        select(Student).where(Student.id == student_id)
     )
     session = result.scalar_one_or_none()
 
@@ -105,7 +104,7 @@ async def get_student_session(
 
 def set_session_cookie(
     response: Response,
-    session_id: uuid.UUID,
+    student_id: int,
     max_age_hours: Optional[int] = None
 ) -> None:
     """
@@ -114,7 +113,7 @@ def set_session_cookie(
 
     Args:
         response: FastAPI Response object
-        session_id: UUID of the student session
+        student_id: Primary key of the student
         max_age_hours: Cookie lifetime in hours (default: from STUDENT_SESSION_EXPIRE_HOURS)
     """
     if max_age_hours is None:
@@ -124,7 +123,7 @@ def set_session_cookie(
 
     response.set_cookie(
         key="student_session",
-        value=str(session_id),
+        value=str(student_id),
         path="/",           # Cookie available for entire site
         httponly=True,      # Prevents JavaScript access (XSS protection)
         secure=False,       # Set to True in production with HTTPS
@@ -136,7 +135,7 @@ def set_session_cookie(
 async def get_current_student_session(
     student_session: Optional[str] = Cookie(None, alias="student_session"),
     db: AsyncSession = Depends(get_db)
-) -> Optional[StudentSession]:
+) -> Optional[Student]:
     """
     Dependency to get the current student session if it exists.
     Returns None if no valid session found (does not raise exception).
@@ -150,7 +149,7 @@ async def get_current_student_session(
 async def get_current_student_session_no_update(
     student_session: Optional[str] = Cookie(None, alias="student_session"),
     db: AsyncSession = Depends(get_db)
-) -> Optional[StudentSession]:
+) -> Optional[Student]:
     """
     Dependency to get the current student session if it exists.
     Returns None if no valid session found (does not raise exception).
@@ -164,7 +163,7 @@ async def get_current_student_session_no_update(
 async def require_student_session(
     student_session: Optional[str] = Cookie(None, alias="student_session"),
     db: AsyncSession = Depends(get_db)
-) -> StudentSession:
+) -> Student:
     """
     Dependency to require a valid student session.
     Raises HTTPException if session is invalid or not found.

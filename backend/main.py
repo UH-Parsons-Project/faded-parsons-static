@@ -25,7 +25,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, TaskList, TaskListItem, Teacher, TaskAttempt, StudentSession
+from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, Teacher
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -406,12 +406,12 @@ async def validate_nickname(
         db=db
     )
 
-    set_session_cookie(response, student_session.session_id)
+    set_session_cookie(response, student_session.id)
 
     return {
         "status": "valid",
         "nickname": nickname,
-        "session_id": str(student_session.session_id)
+        "student_id": student_session.id
     }
 
 
@@ -472,11 +472,11 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid JSON payload",
-        )
+        ) from exc
 
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
@@ -599,7 +599,7 @@ async def submit_test_result(
     task_id: int,
     result: SubmitTestResultRequest,
     db: AsyncSession = Depends(get_db),
-    student_session: StudentSession | None = Depends(get_current_student_session)
+    student_session: Student | None = Depends(get_current_student_session)
 ):
     if not student_session:
         raise HTTPException(
@@ -616,7 +616,7 @@ async def submit_test_result(
         task_started_at = datetime.now(timezone.utc)
 
     new_attempt = TaskAttempt(
-        student_session_id=student_session.id,
+        student_id=student_session.id,
         task_id=task_id,
         task_started_at=task_started_at,
         completed_at=datetime.now(timezone.utc),
@@ -632,7 +632,7 @@ async def submit_test_result(
 @app.get("/api/tasks/{task_id}/statistics")
 async def get_task_statistics(
     task_id: int,
-    current_user: CurrentUser,
+    _current_user: CurrentUser,
     problemset_code: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -658,10 +658,10 @@ async def get_task_statistics(
         if problemset:
             attempts_query = (
                 select(TaskAttempt)
-                .join(StudentSession, TaskAttempt.student_session_id == StudentSession.id)
+                .join(Student, TaskAttempt.student_id == Student.id)
                 .where(
                     TaskAttempt.task_id == task_id,
-                    StudentSession.task_list_id == problemset.id
+                    Student.task_list_id == problemset.id
                 )
             )
 
@@ -685,13 +685,13 @@ async def get_task_statistics(
     successful_attempts = [a for a in attempts if a.success]
     failed_attempts = [a for a in attempts if not a.success]
 
-    students_attempted = len(set(a.student_session_id for a in attempts))
-    students_completed = len(set(a.student_session_id for a in successful_attempts))
+    students_attempted = len(set(a.student_id for a in attempts))
+    students_completed = len(set(a.student_id for a in successful_attempts))
 
     # Average tries before first success (per student)
     student_attempts: dict = {}
     for attempt in attempts:
-        student_attempts.setdefault(attempt.student_session_id, []).append(attempt)
+        student_attempts.setdefault(attempt.student_id, []).append(attempt)
 
     tries_before_success = []
     for session_attempts in student_attempts.values():

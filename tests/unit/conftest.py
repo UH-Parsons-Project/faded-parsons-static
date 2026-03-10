@@ -2,7 +2,6 @@
 Pytest configuration and fixtures for unit tests.
 """
 
-import uuid
 import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
@@ -19,7 +18,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
-from backend.models import Parsons, StudentSession, TaskList, TaskListItem, Teacher
+from backend.models import Parsons, Student, TaskList, TaskListItem, Teacher
 
 
 @pytest_asyncio.fixture
@@ -180,13 +179,14 @@ async def problemset_with_task(db_session, problemset, task) -> tuple[TaskList, 
 
 
 @pytest_asyncio.fixture
-async def student_session(db_session, problemset) -> StudentSession:
-    """A student session associated with *problemset*."""
-    ss = StudentSession(
-        session_id=uuid.uuid4(),
+async def student_session(db_session, problemset) -> Student:
+    """A student account associated with *problemset*."""
+    ss = Student(
         task_list_id=problemset.id,
         username="student1",
+        email="student1@example.com",
     )
+    ss.set_password("studentpass123")
     db_session.add(ss)
     await db_session.commit()
     await db_session.refresh(ss)

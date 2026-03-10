@@ -2,7 +2,6 @@
 Unit tests for student_auth.py - Student session management utilities.
 """
 
-import uuid
 import pytest
 from datetime import datetime, timezone, timedelta
 from fastapi import status, HTTPException
@@ -18,7 +17,7 @@ from backend.student_auth import (
     require_student_session,
     STUDENT_SESSION_EXPIRE_HOURS,
 )
-from backend.models import StudentSession, TaskList
+from backend.models import Student, TaskList
 
 
 class TestCreateStudentSession:
@@ -46,17 +45,17 @@ class TestCreateStudentSession:
         )
 
         assert session.id is not None
-        assert session.session_id is not None
-        assert isinstance(session.session_id, uuid.UUID)
+        assert session.id is not None
         assert session.task_list_id == task_list.id
         assert session.username == "TestStudent"
+        assert session.email.endswith("@local.student")
         assert session.started_at is not None
         assert session.last_activity_at is not None
 
-    async def test_create_student_session_generates_unique_session_ids(
+    async def test_create_student_session_generates_unique_ids(
         self, db_session, test_teacher
     ):
-        """Test that each call generates a unique session_id."""
+        """Test that each call generates a unique id."""
         task_list = TaskList(
             title="Test List",
             unique_link_code="CREATE02",
@@ -77,7 +76,7 @@ class TestCreateStudentSession:
             db=db_session,
         )
 
-        assert session1.session_id != session2.session_id
+        assert session1.id != session2.id
 
     async def test_create_student_session_persists_to_database(
         self, db_session, test_teacher
@@ -92,7 +91,6 @@ class TestCreateStudentSession:
         await db_session.commit()
         await db_session.refresh(task_list)
 
-        session_id = uuid.uuid4()
         session = await create_student_session(
             task_list_id=task_list.id,
             nickname="PersistTest",
@@ -101,12 +99,12 @@ class TestCreateStudentSession:
 
         # Query the database to verify it was saved
         result = await db_session.execute(
-            select(StudentSession).where(StudentSession.session_id == session.session_id)
+            select(Student).where(Student.id == session.id)
         )
         retrieved_session = result.scalar_one_or_none()
 
         assert retrieved_session is not None
-        assert retrieved_session.session_id == session.session_id
+        assert retrieved_session.id == session.id
         assert retrieved_session.username == "PersistTest"
 
 
@@ -123,17 +121,16 @@ class TestGetStudentSession:
         result = await get_student_session("", db_session)
         assert result is None
 
-    async def test_get_student_session_with_invalid_uuid_returns_none(self, db_session):
-        """Test that invalid UUID string returns None."""
-        result = await get_student_session("not-a-uuid", db_session)
+    async def test_get_student_session_with_invalid_id_returns_none(self, db_session):
+        """Test that invalid id token returns None."""
+        result = await get_student_session("not-an-id", db_session)
         assert result is None
 
     async def test_get_student_session_with_nonexistent_session_returns_none(
         self, db_session
     ):
         """Test that non-existent session token returns None."""
-        fake_uuid = str(uuid.uuid4())
-        result = await get_student_session(fake_uuid, db_session)
+        result = await get_student_session("999999", db_session)
         assert result is None
 
     async def test_get_student_session_retrieves_existing_session(
@@ -158,11 +155,11 @@ class TestGetStudentSession:
 
         # Retrieve the session
         retrieved_session = await get_student_session(
-            str(created_session.session_id), db_session, check_expiry=False
+            str(created_session.id), db_session, check_expiry=False
         )
 
         assert retrieved_session is not None
-        assert retrieved_session.session_id == created_session.session_id
+        assert retrieved_session.id == created_session.id
         assert retrieved_session.username == "RetrieveTest"
 
     async def test_get_student_session_with_expiry_check_returns_none_if_expired(
@@ -194,7 +191,7 @@ class TestGetStudentSession:
 
         # Try to retrieve with expiry check
         result = await get_student_session(
-            str(session.session_id), db_session, check_expiry=True
+            str(session.id), db_session, check_expiry=True
         )
 
         assert result is None
@@ -225,11 +222,11 @@ class TestGetStudentSession:
 
         # Try to retrieve with expiry check
         result = await get_student_session(
-            str(session.session_id), db_session, check_expiry=True
+            str(session.id), db_session, check_expiry=True
         )
 
         assert result is not None
-        assert result.session_id == session.session_id
+        assert result.id == session.id
 
     async def test_get_student_session_updates_last_activity_when_requested(
         self, db_session, test_teacher
@@ -261,7 +258,7 @@ class TestGetStudentSession:
 
         before_update = datetime.now(timezone.utc)
         retrieved = await get_student_session(
-            str(session.session_id), db_session, update_activity=True
+            str(session.id), db_session, update_activity=True
         )
         after_update = datetime.now(timezone.utc)
 
@@ -299,7 +296,7 @@ class TestGetStudentSession:
         time.sleep(0.1)
 
         retrieved = await get_student_session(
-            str(session.session_id), db_session, check_expiry=False, update_activity=False
+            str(session.id), db_session, check_expiry=False, update_activity=False
         )
 
         # Activity time should not change (within reasonable tolerance)
@@ -312,15 +309,15 @@ class TestSetSessionCookie:
     def test_set_session_cookie_sets_cookie_with_defaults(self):
         """Test that set_session_cookie sets a cookie with correct default values."""
         response = MagicMock()
-        session_id = uuid.uuid4()
+        student_id = 42
 
-        set_session_cookie(response, session_id)
+        set_session_cookie(response, student_id)
 
         response.set_cookie.assert_called_once()
         call_args = response.set_cookie.call_args
 
         assert call_args.kwargs["key"] == "student_session"
-        assert call_args.kwargs["value"] == str(session_id)
+        assert call_args.kwargs["value"] == str(student_id)
         assert call_args.kwargs["path"] == "/"
         assert call_args.kwargs["httponly"] is True
         assert call_args.kwargs["secure"] is False
@@ -330,23 +327,23 @@ class TestSetSessionCookie:
     def test_set_session_cookie_with_custom_max_age_hours(self):
         """Test that set_session_cookie respects custom max_age_hours."""
         response = MagicMock()
-        session_id = uuid.uuid4()
+        student_id = 123
         custom_hours = 24
 
-        set_session_cookie(response, session_id, max_age_hours=custom_hours)
+        set_session_cookie(response, student_id, max_age_hours=custom_hours)
 
         call_args = response.set_cookie.call_args
         assert call_args.kwargs["max_age"] == custom_hours * 3600
 
-    def test_set_session_cookie_converts_session_id_to_string(self):
-        """Test that session_id UUID is converted to string."""
+    def test_set_session_cookie_converts_student_id_to_string(self):
+        """Test that student_id is converted to string."""
         response = MagicMock()
-        session_id = uuid.uuid4()
+        student_id = 99
 
-        set_session_cookie(response, session_id)
+        set_session_cookie(response, student_id)
 
         call_args = response.set_cookie.call_args
-        assert call_args.kwargs["value"] == str(session_id)
+        assert call_args.kwargs["value"] == str(student_id)
         assert isinstance(call_args.kwargs["value"], str)
 
 
@@ -380,11 +377,11 @@ class TestGetCurrentStudentSessionDependency:
         )
 
         result = await get_current_student_session(
-            student_session=str(session.session_id), db=db_session
+            student_session=str(session.id), db=db_session
         )
 
         assert result is not None
-        assert result.session_id == session.session_id
+        assert result.id == session.id
 
     async def test_get_current_student_session_updates_activity(
         self, db_session, test_teacher
@@ -412,7 +409,7 @@ class TestGetCurrentStudentSessionDependency:
 
         before_call = datetime.now(timezone.utc)
         result = await get_current_student_session(
-            student_session=str(session.session_id), db=db_session
+            student_session=str(session.id), db=db_session
         )
         after_call = datetime.now(timezone.utc)
 
@@ -461,11 +458,11 @@ class TestGetCurrentStudentSessionNoUpdateDependency:
         )
 
         result = await get_current_student_session_no_update(
-            student_session=str(session.session_id), db=db_session
+            student_session=str(session.id), db=db_session
         )
 
         assert result is not None
-        assert result.session_id == session.session_id
+        assert result.id == session.id
 
     async def test_get_current_student_session_no_update_does_not_update_activity(
         self, db_session, test_teacher
@@ -492,7 +489,7 @@ class TestGetCurrentStudentSessionNoUpdateDependency:
         time.sleep(0.1)
 
         result = await get_current_student_session_no_update(
-            student_session=str(session.session_id), db=db_session
+            student_session=str(session.id), db=db_session
         )
 
         # Activity time should not change
@@ -538,7 +535,7 @@ class TestRequireStudentSessionDependency:
 
         with pytest.raises(HTTPException) as exc_info:
             await require_student_session(
-                student_session=str(session.session_id), db=db_session
+                student_session=str(session.id), db=db_session
             )
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
@@ -563,17 +560,17 @@ class TestRequireStudentSessionDependency:
         )
 
         result = await require_student_session(
-            student_session=str(session.session_id), db=db_session
+            student_session=str(session.id), db=db_session
         )
 
         assert result is not None
-        assert result.session_id == session.session_id
+        assert result.id == session.id
         assert result.username == "ValidRequireTest"
 
-    async def test_require_student_session_raises_with_invalid_uuid(self, db_session):
-        """Test that dependency raises HTTPException with invalid UUID."""
+    async def test_require_student_session_raises_with_invalid_id(self, db_session):
+        """Test that dependency raises HTTPException with invalid token."""
         with pytest.raises(HTTPException) as exc_info:
-            await require_student_session(student_session="not-a-uuid", db=db_session)
+            await require_student_session(student_session="not-an-id", db=db_session)
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -607,7 +604,7 @@ class TestSessionExpiryEdgeCases:
 
         # This should not raise an error even though last_activity_at is naive
         result = await get_student_session(
-            str(session.session_id), db=db_session, check_expiry=True
+            str(session.id), db=db_session, check_expiry=True
         )
 
         assert result is not None
@@ -638,7 +635,7 @@ class TestSessionExpiryEdgeCases:
         await db_session.commit()
 
         result = await get_student_session(
-            str(session.session_id), db=db_session, check_expiry=True
+            str(session.id), db=db_session, check_expiry=True
         )
 
         # Just before the boundary, session should still be valid (not expired)

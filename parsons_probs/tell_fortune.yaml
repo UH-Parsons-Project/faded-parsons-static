@@ -1,5 +1,8 @@
 problem_name: tell_fortune
 
+task_instructions: |
+  In this exercise you will practice working with Python functions.
+
 problem_description: |
   <code>tell_fortune</code>
     returns a fortune of the form:

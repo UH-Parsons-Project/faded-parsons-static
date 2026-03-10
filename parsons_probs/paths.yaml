@@ -1,5 +1,8 @@
 problem_name: paths
 
+task_instructions: |
+  In this exercise you will practice working with recursive functions.
+
 problem_description: |
   <code>paths</code> calculates the number of paths
   from the top left corner of a square grid to the bottom right corner.

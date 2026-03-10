@@ -1,5 +1,8 @@
 problem_name: contains_15row
 
+task_instructions: |
+  In this exercise you will practice working with lists.
+
 problem_description: |
   <code>contains_15row</code>
     takes an input of a 2-dimensional list of numbers

@@ -1,5 +1,8 @@
 problem_name: seconds_between
 
+task_instructions: |
+  In this exercise you will practice working with Python's mathematical operators.
+
 problem_description: |
   <code>seconds_between</code>
     returns the number of seconds between two years

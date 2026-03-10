@@ -1,5 +1,8 @@
 problem_name: concatenator
 
+task_instructions: |
+  In this exercise you will practice working with Python string values.
+
 problem_description: |
   <code>concatenator</code>
     returns a string with all the contents of the list concatenated together.

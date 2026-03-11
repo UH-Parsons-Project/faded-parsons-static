@@ -30,7 +30,7 @@
 					<form id="register-form">
 						<div class="form-group">
 							<label for="username">Username</label>
-							<input type="text" class="form-control" id="username" name="username" maxlength="100" required />
+					<input type="text" class="form-control" id="username" name="username" maxlength="20" required />
 						</div>
 
 						<div class="form-group">
@@ -52,9 +52,15 @@
 					</form>
 
 					<hr />
-					<p>
-						Already have an account? <a href="/set/{unique_link_code}">Login</a>
-					</p>
+					<p id="login-link-container"></p>
+					<script>
+						const _params = new URLSearchParams(window.location.search);
+						const _code = _params.get('code');
+						if (_code) {
+							document.getElementById('login-link-container').innerHTML =
+								'Already have an account? <a href="/set/' + _code + '">Login</a>';
+						}
+					</script>
 				</div>
 			</div>
 		</main>
@@ -103,6 +109,11 @@
 
 					showAlert('Registration successful.', 'success');
 					form.reset();
+					const params = new URLSearchParams(window.location.search);
+					const code = params.get('code');
+					if (code) {
+						setTimeout(() => { window.location.href = '/set/' + code; }, 1000);
+					}
 				} catch (err) {
 					showAlert('Network error');
 				}

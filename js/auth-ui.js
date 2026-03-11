@@ -93,9 +93,11 @@ export function initLoginPage() {
 				const response = await fetch('/api/student_login', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ username, password })
+					body: JSON.stringify({ username, password, unique_link_code: code })
 				});
 				if (response.ok) {
+					// Keep navbar greeting consistent on student pages.
+					localStorage.setItem('nickname', username);
 					// Student session cookie set by backend; redirect to tasks
 					window.location.href = `/set/${code}/tasks`;
 					return;
@@ -164,8 +166,13 @@ export function initLoginPage() {
 	// Handle logout
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function() {
-			// Call logout endpoint to clear cookie
-			await fetch('/api/logout', { method: 'POST' });
+			const isStudentPage = window.location.pathname.startsWith('/set/');
+			if (isStudentPage) {
+				await fetch('/api/student_logout', { method: 'POST' });
+				localStorage.removeItem('nickname');
+			} else {
+				await fetch('/api/logout', { method: 'POST' });
+			}
 			clearAuth();
 			showLoginForm();
 		});

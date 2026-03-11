@@ -29,6 +29,7 @@ from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, Teach
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
+    authenticate_student,
     create_student_session,
     set_session_cookie,
     get_current_student_session,
@@ -99,6 +100,12 @@ class ProblemSetTaskResponse(BaseModel):
 class NicknameRequest(BaseModel):
     nickname: str
     unique_link_code: str
+
+
+class StudentLoginRequest(BaseModel):
+    username: str
+    password: str
+    unique_link_code: str | None = None
 
 
 class SubmitTestResultRequest(BaseModel):
@@ -373,6 +380,40 @@ async def logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
+@app.post("/api/student_login")
+async def student_login(
+    request: StudentLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate a registered student and set a session cookie."""
+    student = await authenticate_student(request.username, request.password, db)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect username or password",
+        )
+
+    # Optionally associate the student with the task list they are accessing
+    if request.unique_link_code:
+        stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
+        result = await db.execute(stmt)
+        task_list = result.scalar_one_or_none()
+        if task_list:
+            student.task_list_id = task_list.id
+            await db.commit()
+
+    set_session_cookie(response, student.id)
+    return {"status": "success", "student_id": student.id}
+
+
+@app.post("/api/student_logout")
+async def student_logout(response: Response):
+    """Clear the student session cookie."""
+    response.delete_cookie(key="student_session", path="/")
+    return {"message": "Successfully logged out"}
+
+
 @app.post("/api/validate-nickname")
 async def validate_nickname(
     request: NicknameRequest,
@@ -539,7 +580,7 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     return {"status": "success", "id": teacher.id}
 
 @app.post("/api/student_register")
-async def api_student_register(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+async def api_student_register(request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new student with username, password and email."""
     try:
         payload = await request.json()
@@ -567,7 +608,7 @@ async def api_student_register(request: Request, response: Response, db: AsyncSe
         )
 
     # Basic length checks consistent with model limits
-    if len(username) > 50 or len(email) > 100:
+    if len(username) > 20 or len(email) > 100:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="username or email too long",
@@ -601,13 +642,6 @@ async def api_student_register(request: Request, response: Response, db: AsyncSe
     db.add(student)
     await db.commit()
     await db.refresh(student)
-
-    # Set a persistent student session cookie so the student is logged in after registering
-    try:
-        set_session_cookie(response, student.id)
-    except Exception:
-        # Don't fail the registration if cookie setting somehow fails
-        pass
 
     return {"status": "success", "id": student.id}
 

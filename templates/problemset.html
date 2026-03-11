@@ -22,7 +22,8 @@
 		  <nav class="navbar">
     		<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
 			<div class="ml-auto">
-				<span class="text-black">Welcome, <span id="user-name"></span>!</span>
+				<span class="text-black mr-3">Welcome, <span id="user-name"></span>!</span>
+				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
 			</div>
 		</nav>
 		<div class="container">
@@ -38,6 +39,15 @@
 			if (nickname) {
 				document.getElementById('user-name').textContent = nickname;
 			}
+
+			// Logout button
+			document.getElementById('logout-btn').addEventListener('click', async () => {
+				await fetch('/api/student_logout', { method: 'POST' });
+				localStorage.removeItem('nickname');
+				const pathParts = window.location.pathname.split('/');
+				const uniqueLinkCode = pathParts[2];
+				window.location.href = `/set/${uniqueLinkCode}`;
+			});
 
 			// Load problem list for this problemset
 			const container = document.getElementById('problems-list');

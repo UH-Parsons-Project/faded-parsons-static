@@ -130,6 +130,7 @@ class StudentTaskStatisticsResponse(BaseModel):
     total_attempts: int
     successful_attempts: int
     failed_attempts: int
+    empty_attempts: int
     time_to_first_success: dict | None
     time_to_first_fail: dict | None
     attempts_detail: list[dict]
@@ -143,6 +144,42 @@ class SubmitTestResultRequest(BaseModel):
     repr_code: str
     start_time: str | None = None  # ISO format timestamp from localStorage
 
+
+def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool:
+    """
+    Check if submitted code has user-added content beyond just the given blocks.
+    
+    An "empty" submission is one that only contains the pre-filled (given) blocks
+    with no other blocks added and no blanks filled in.
+    """
+    if not submitted_code.strip():
+        return False
+    
+    blocks = task_code_blocks.get("blocks", [])
+    submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
+    
+    # Get all "given" (pre-filled) blocks - these are the ones shown by default
+    given_blocks = [block for block in blocks if block.get("given", False)]
+    
+    # If submission has more lines than given blocks, user added something
+    if len(submitted_lines) > len(given_blocks):
+        return True
+    
+    # If submission has fewer lines than given blocks, it's incomplete/empty
+    if len(submitted_lines) < len(given_blocks):
+        return False
+    
+    # Same number of lines - check if they match the given blocks with empty blanks
+    for submitted_line, given_block in zip(submitted_lines, given_blocks):
+        # Reconstruct what this given block looks like with empty blanks
+        expected_empty = given_block["code"].replace("___", "").strip()
+        submitted_clean = submitted_line.replace(" ", "")
+        expected_clean = expected_empty.replace(" ", "")
+        
+        if submitted_clean != expected_clean:
+            return True
+    
+    return False
 
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"
@@ -995,6 +1032,28 @@ async def get_student_task_statistics(
     result = await db.execute(stmt)
     attempts = result.scalars().all()
 
+    # Filter out empty attempts (those with no user-added code)
+    empty_attempts_count = 0
+    filtered_attempts = []
+    for attempt in attempts:
+        # Keep attempts that don't have code field (e.g., old data, missing field)
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+            filtered_attempts.append(attempt)
+            continue
+        
+        code = attempt.submitted_inputs.get("code", "")
+        if not code:
+            # No code at all - keep it (might be old attempt format)
+            filtered_attempts.append(attempt)
+        elif has_user_added_own_code(code, task.code_blocks):
+            # Has user-added code - keep it
+            filtered_attempts.append(attempt)
+        else:
+            # Has code but it's empty template - count it
+            empty_attempts_count += 1
+    
+    attempts = filtered_attempts
+
     if not attempts:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -1003,6 +1062,7 @@ async def get_student_task_statistics(
             total_attempts=0,
             successful_attempts=0,
             failed_attempts=0,
+            empty_attempts=0,
             time_to_first_success=None,
             time_to_first_fail=None,
             attempts_detail=[]
@@ -1045,6 +1105,7 @@ async def get_student_task_statistics(
         total_attempts=len(attempts),
         successful_attempts=successful_attempts,
         failed_attempts=failed_attempts,
+        empty_attempts=empty_attempts_count,
         time_to_first_success=time_to_first_success,
         time_to_first_fail=time_to_first_fail,
         attempts_detail=attempts_detail
@@ -1124,6 +1185,21 @@ async def get_task_statistics(
 
     attempts_result = await db.execute(attempts_query)
     attempts = attempts_result.scalars().all()
+
+    # Filter out empty attempts (those with no user-added code)
+    filtered_attempts = []
+    for attempt in attempts:
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+            filtered_attempts.append(attempt)
+            continue
+
+        code = attempt.submitted_inputs.get("code", "")
+        if not code:
+            filtered_attempts.append(attempt)
+        elif has_user_added_own_code(code, task.code_blocks):
+            filtered_attempts.append(attempt)
+
+    attempts = filtered_attempts
 
     if not attempts:
         return {

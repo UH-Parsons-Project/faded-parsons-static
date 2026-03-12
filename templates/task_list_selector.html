@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Select Task List - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/exerciselist"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to exercise list
+      </a>
+
+      <span class="text-dark">
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+      </span>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <h2 class="mb-4">Select a Task List</h2>
+    <p class="text-muted mb-4">Choose a task list to view its statistics and analytics</p>
+
+    <div id="task-lists-container" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading task lists...</p>
+    </div>
+
+  </div>
+
+  <script>
+    // Load username
+    const userNameEl = document.getElementById('user-name');
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      userNameEl.textContent = storedUsername;
+    } else {
+      fetch('/api/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data?.username) {
+            userNameEl.textContent = data.username;
+            localStorage.setItem('username', data.username);
+          }
+        })
+        .catch(() => { userNameEl.textContent = ''; });
+    }
+
+    function formatDate(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function createTaskListItem(taskList) {
+      const item = document.createElement('div');
+      item.className = 'task-list-item';
+      item.onclick = () => {
+        window.location.href = `/task_list_statistics?list_id=${taskList.id}`;
+      };
+
+      const title = document.createElement('div');
+      title.className = 'task-list-title';
+      title.textContent = taskList.title;
+
+      const code = document.createElement('div');
+      code.className = 'mb-2';
+      const codeSpan = document.createElement('span');
+      codeSpan.className = 'task-list-code';
+      codeSpan.textContent = taskList.unique_link_code;
+      code.appendChild(codeSpan);
+
+      const meta = document.createElement('div');
+      meta.className = 'task-list-meta';
+      meta.innerHTML = `
+        <i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
+        ${taskList.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
+      `;
+
+      item.appendChild(title);
+      item.appendChild(code);
+      item.appendChild(meta);
+
+      return item;
+    }
+
+    function createAddButton() {
+      const button = document.createElement('div');
+      button.className = 'create-new-card';
+      button.onclick = () => {
+        alert('Task list creation functionality coming soon!');
+        // TODO: Implement task list creation
+        // window.location.href = '/create_task_list';
+      };
+
+      button.innerHTML = `
+        <i class="fas fa-plus-circle"></i>
+        <div class="task-list-title">Create New Task List</div>
+        <p class="mb-0" style="font-size: 0.875rem;">Add a new task list</p>
+      `;
+
+      return button;
+    }
+
+    function renderTaskLists(taskLists) {
+      const container = document.getElementById('task-lists-container');
+      container.className = '';
+      container.innerHTML = '';
+
+      if (taskLists.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h4>No Task Lists Yet</h4>
+            <p>Create your first task list to get started with organizing exercises and viewing statistics.</p>
+          </div>
+        `;
+        const buttonWrapper = document.createElement('div');
+        buttonWrapper.style.maxWidth = '300px';
+        buttonWrapper.style.margin = '0 auto';
+        buttonWrapper.appendChild(createAddButton());
+        container.appendChild(buttonWrapper);
+      } else {
+        const layout = document.createElement('div');
+        layout.className = 'task-list-selector-layout';
+
+        // Left column: task lists
+        const listsColumn = document.createElement('div');
+        listsColumn.className = 'task-lists-column';
+
+        taskLists.forEach(taskList => {
+          listsColumn.appendChild(createTaskListItem(taskList));
+        });
+
+        // Right column: add button
+        const addColumn = document.createElement('div');
+        addColumn.className = 'add-button-column';
+        addColumn.appendChild(createAddButton());
+
+        layout.appendChild(listsColumn);
+        layout.appendChild(addColumn);
+        container.appendChild(layout);
+      }
+    }
+
+    function showError(message) {
+      const container = document.getElementById('task-lists-container');
+      container.className = 'empty-state';
+      container.innerHTML = `
+        <i class="fas fa-exclamation-triangle text-danger"></i>
+        <h4>Error Loading Task Lists</h4>
+        <p>${escapeHtml(message || 'An unexpected error occurred. Please try again later.')}</p>
+      `;
+    }
+
+    // Load task lists
+    fetch('/api/problemsets', { credentials: 'include' })
+      .then(r => {
+        if (!r.ok) {
+          if (r.status === 401) {
+            window.location.href = '/index.html';
+            return;
+          }
+          throw new Error('Failed to load task lists');
+        }
+        return r.json();
+      })
+      .then(data => {
+        renderTaskLists(data);
+      })
+      .catch(err => {
+        console.error('Error loading task lists:', err);
+        showError(err.message);
+      });
+  </script>
+
+</body>
+</html>

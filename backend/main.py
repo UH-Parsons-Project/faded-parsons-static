@@ -125,6 +125,7 @@ class StudentTaskAttemptResponse(BaseModel):
 
 class StudentTaskStatisticsResponse(BaseModel):
     task_name: str
+    task_description: str | None
     student_username: str
     total_attempts: int
     successful_attempts: int
@@ -818,32 +819,32 @@ async def get_problemset_students(
 ):
     """Get all students who have attempted at least one task in this task list."""
     from sqlalchemy import func, distinct
-    
+
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == problemset_id)
     result = await db.execute(stmt)
     task_list = result.scalar_one_or_none()
-    
+
     if not task_list:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task list with id {problemset_id} not found"
         )
-    
+
     if task_list.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
         )
-    
+
     # Get all tasks in this task list
     task_ids_stmt = select(TaskListItem.task_id).where(TaskListItem.task_list_id == problemset_id)
     task_ids_result = await db.execute(task_ids_stmt)
     task_ids = [row[0] for row in task_ids_result.all()]
-    
+
     if not task_ids:
         return []
-    
+
     # Get student sessions with attempts, grouped by session
     stmt = (
         select(
@@ -859,10 +860,10 @@ async def get_problemset_students(
         .group_by(StudentSession.id, StudentSession.username, StudentSession.started_at, StudentSession.last_activity_at)
         .order_by(StudentSession.last_activity_at.desc())
     )
-    
+
     result = await db.execute(stmt)
     students = result.all()
-    
+
     return [
         StudentInTaskListResponse(
             username=student.username,
@@ -884,32 +885,32 @@ async def get_student_attempts(
 ):
     """Get all tasks attempted by a specific student in a task list."""
     from sqlalchemy import func
-    
+
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)
     result = await db.execute(stmt)
     task_list = result.scalar_one_or_none()
-    
+
     if not task_list:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task list with id {list_id} not found"
         )
-    
+
     if task_list.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
         )
-    
+
     # Get all tasks in this task list
     task_ids_stmt = select(TaskListItem.task_id).where(TaskListItem.task_list_id == list_id)
     task_ids_result = await db.execute(task_ids_stmt)
     task_ids = [row[0] for row in task_ids_result.all()]
-    
+
     if not task_ids:
         return []
-    
+
     # Get student's attempts grouped by task
     stmt = (
         select(
@@ -927,10 +928,10 @@ async def get_student_attempts(
         .group_by(Parsons.id, Parsons.title, Parsons.task_type)
         .order_by(func.max(TaskAttempt.completed_at).desc())
     )
-    
+
     result = await db.execute(stmt)
     attempts = result.all()
-    
+
     return [
         StudentTaskAttemptResponse(
             task_id=attempt.id,
@@ -954,34 +955,34 @@ async def get_student_task_statistics(
 ):
     """Get statistics for a specific student's attempts on a specific task."""
     from sqlalchemy import func
-    
+
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)
     result = await db.execute(stmt)
     task_list = result.scalar_one_or_none()
-    
+
     if not task_list:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task list with id {list_id} not found"
         )
-    
+
     if task_list.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
         )
-    
+
     # Verify task exists
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
-    
+
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found"
         )
-    
+
     # Get all attempts by this student for this task
     stmt = (
         select(TaskAttempt)
@@ -990,13 +991,14 @@ async def get_student_task_statistics(
         .where(TaskAttempt.task_id == task_id)
         .order_by(TaskAttempt.completed_at.asc())
     )
-    
+
     result = await db.execute(stmt)
     attempts = result.scalars().all()
-    
+
     if not attempts:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
+            task_description=task.description,
             student_username=student_username,
             total_attempts=0,
             successful_attempts=0,
@@ -1005,25 +1007,25 @@ async def get_student_task_statistics(
             time_to_first_fail=None,
             attempts_detail=[]
         )
-    
+
     # Calculate statistics
     successful_attempts = sum(1 for a in attempts if a.success)
     failed_attempts = sum(1 for a in attempts if not a.success)
-    
+
     # Time to first success
     first_success = next((a for a in attempts if a.success), None)
     time_to_first_success = None
     if first_success and first_success.task_started_at and first_success.completed_at:
         seconds = (first_success.completed_at - first_success.task_started_at).total_seconds()
         time_to_first_success = {"seconds": seconds}
-    
+
     # Time to first fail
     first_fail = next((a for a in attempts if not a.success), None)
     time_to_first_fail = None
     if first_fail and first_fail.task_started_at and first_fail.completed_at:
         seconds = (first_fail.completed_at - first_fail.task_started_at).total_seconds()
         time_to_first_fail = {"seconds": seconds}
-    
+
     # Attempts detail
     attempts_detail = []
     for i, attempt in enumerate(attempts, 1):
@@ -1035,9 +1037,10 @@ async def get_student_task_statistics(
             "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None
         }
         attempts_detail.append(detail)
-    
+
     return StudentTaskStatisticsResponse(
         task_name=task.title,
+        task_description=task.description,
         student_username=student_username,
         total_attempts=len(attempts),
         successful_attempts=successful_attempts,

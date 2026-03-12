@@ -25,10 +25,11 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, TaskList, TaskListItem, Teacher, TaskAttempt, StudentSession
+from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, Teacher
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
+    authenticate_student,
     create_student_session,
     set_session_cookie,
     get_current_student_session,
@@ -101,6 +102,10 @@ class NicknameRequest(BaseModel):
     unique_link_code: str
 
 
+class StudentLoginRequest(BaseModel):
+    username: str
+    password: str
+    unique_link_code: str | None = None
 class StudentInTaskListResponse(BaseModel):
     username: str
     started_at: str
@@ -407,6 +412,11 @@ async def register_page():
     register_path = BASE_DIR / "templates" / "register.html"
     return FileResponse(register_path)
 
+@app.get("/student_register", response_class=HTMLResponse)
+async def student_register_page():
+    """Serve a simple student registration page."""
+    register_path = BASE_DIR / "templates" / "student_register.html"
+    return FileResponse(register_path)
 
 # Authentication endpoints
 @app.post("/api/login/access-token", response_model=Token)
@@ -456,6 +466,40 @@ async def logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
+@app.post("/api/student_login")
+async def student_login(
+    request: StudentLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Authenticate a registered student and set a session cookie."""
+    student = await authenticate_student(request.username, request.password, db)
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect username or password",
+        )
+
+    # Optionally associate the student with the task list they are accessing
+    if request.unique_link_code:
+        stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
+        result = await db.execute(stmt)
+        task_list = result.scalar_one_or_none()
+        if task_list:
+            student.task_list_id = task_list.id
+            await db.commit()
+
+    set_session_cookie(response, student.id)
+    return {"status": "success", "student_id": student.id}
+
+
+@app.post("/api/student_logout")
+async def student_logout(response: Response):
+    """Clear the student session cookie."""
+    response.delete_cookie(key="student_session", path="/")
+    return {"message": "Successfully logged out"}
+
+
 @app.post("/api/validate-nickname")
 async def validate_nickname(
     request: NicknameRequest,
@@ -494,12 +538,12 @@ async def validate_nickname(
         db=db
     )
 
-    set_session_cookie(response, student_session.session_id)
+    set_session_cookie(response, student_session.id)
 
     return {
         "status": "valid",
         "nickname": nickname,
-        "session_id": str(student_session.session_id)
+        "student_id": student_session.id
     }
 
 
@@ -560,11 +604,11 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid JSON payload",
-        )
+        ) from exc
 
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
@@ -621,6 +665,71 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
 
     return {"status": "success", "id": teacher.id}
 
+@app.post("/api/student_register")
+async def api_student_register(request: Request, db: AsyncSession = Depends(get_db)):
+    """Register a new student with username, password and email."""
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        ) from exc
+
+    username = str(payload.get("username", "")).strip()
+    password = payload.get("password", "")
+    password_confirm = payload.get("password_confirm", "")
+    email = str(payload.get("email", "")).strip()
+
+    if not username or not password or not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username, password and email are required",
+        )
+
+    if password != password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
+
+    # Basic length checks consistent with model limits
+    if len(username) > 20 or len(email) > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username or email too long",
+        )
+
+    if len(username) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="username must have a minimum length of 5 characters",
+        )
+
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="password must have a minimum length of 8 characters",
+        )
+
+    # Check uniqueness
+    stmt = select(Student).where((Student.username == username) | (Student.email == email))
+    result = await db.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already exists",
+        )
+
+    student = Student(username=username, email=email)
+    student.set_password(password)
+
+    db.add(student)
+    await db.commit()
+    await db.refresh(student)
+
+    return {"status": "success", "id": student.id}
 @app.get("/api/problemsets", response_model=list[ProblemSetResponse])
 async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     """List all task lists for the current teacher."""
@@ -944,7 +1053,7 @@ async def submit_test_result(
     task_id: int,
     result: SubmitTestResultRequest,
     db: AsyncSession = Depends(get_db),
-    student_session: StudentSession | None = Depends(get_current_student_session)
+    student_session: Student | None = Depends(get_current_student_session)
 ):
     if not student_session:
         raise HTTPException(
@@ -961,7 +1070,7 @@ async def submit_test_result(
         task_started_at = datetime.now(timezone.utc)
 
     new_attempt = TaskAttempt(
-        student_session_id=student_session.id,
+        student_id=student_session.id,
         task_id=task_id,
         task_started_at=task_started_at,
         completed_at=datetime.now(timezone.utc),
@@ -977,7 +1086,7 @@ async def submit_test_result(
 @app.get("/api/tasks/{task_id}/statistics")
 async def get_task_statistics(
     task_id: int,
-    current_user: CurrentUser,
+    _current_user: CurrentUser,
     problemset_code: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -1003,10 +1112,10 @@ async def get_task_statistics(
         if problemset:
             attempts_query = (
                 select(TaskAttempt)
-                .join(StudentSession, TaskAttempt.student_session_id == StudentSession.id)
+                .join(Student, TaskAttempt.student_id == Student.id)
                 .where(
                     TaskAttempt.task_id == task_id,
-                    StudentSession.task_list_id == problemset.id
+                    Student.task_list_id == problemset.id
                 )
             )
 
@@ -1030,13 +1139,13 @@ async def get_task_statistics(
     successful_attempts = [a for a in attempts if a.success]
     failed_attempts = [a for a in attempts if not a.success]
 
-    students_attempted = len(set(a.student_session_id for a in attempts))
-    students_completed = len(set(a.student_session_id for a in successful_attempts))
+    students_attempted = len(set(a.student_id for a in attempts))
+    students_completed = len(set(a.student_id for a in successful_attempts))
 
     # Average tries before first success (per student)
     student_attempts: dict = {}
     for attempt in attempts:
-        student_attempts.setdefault(attempt.student_session_id, []).append(attempt)
+        student_attempts.setdefault(attempt.student_id, []).append(attempt)
 
     tries_before_success = []
     for session_attempts in student_attempts.values():

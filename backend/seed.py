@@ -2,12 +2,10 @@
 Database seeding - creates initial data for development.
 """
 
-import uuid
-from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskList, TaskListItem, Teacher, StudentSession, TaskAttempt
+from .models import Parsons, TaskList, TaskListItem, Teacher
 from .migrate_tasks import migrate_tasks
 
 

@@ -86,7 +86,29 @@ export function initLoginPage() {
 		}
 		
 		try {
-			// OAuth2 expects form data, not JSON
+			// If we're on a problemset page (/set/<code>) use student login
+			const pathMatch = window.location.pathname.match(/^\/set\/([^\/]+)/);
+			if (pathMatch) {
+				const code = pathMatch[1];
+				const response = await fetch('/api/student_login', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username, password, unique_link_code: code })
+				});
+				if (response.ok) {
+					// Keep navbar greeting consistent on student pages.
+					localStorage.setItem('nickname', username);
+					// Student session cookie set by backend; redirect to tasks
+					window.location.href = `/set/${code}/tasks`;
+					return;
+				} else {
+					const err = await response.json();
+					showError(err.detail || 'Login failed');
+					return;
+				}
+			}
+			
+			// Fallback to teacher OAuth2 login for other pages
 			const formData = new URLSearchParams();
 			formData.append('username', username);
 			formData.append('password', password);
@@ -144,8 +166,13 @@ export function initLoginPage() {
 	// Handle logout
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function() {
-			// Call logout endpoint to clear cookie
-			await fetch('/api/logout', { method: 'POST' });
+			const isStudentPage = window.location.pathname.startsWith('/set/');
+			if (isStudentPage) {
+				await fetch('/api/student_logout', { method: 'POST' });
+				localStorage.removeItem('nickname');
+			} else {
+				await fetch('/api/logout', { method: 'POST' });
+			}
 			clearAuth();
 			showLoginForm();
 		});

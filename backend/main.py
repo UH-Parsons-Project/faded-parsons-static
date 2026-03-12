@@ -173,6 +173,7 @@ async def logo_image():
 
 # Test-only endpoint
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
 
 @app.post("/test/reset-db")
 async def reset_test_db():
@@ -191,6 +192,60 @@ async def reset_test_db():
             status_code=500,
             detail=f"Failed to reset database: {str(e)}"
         ) from e
+
+
+@app.post("/api/reset-db")
+async def reset_database():
+    """Reset the database (requires DEVELOPMENT_MODE env variable)."""
+    if not DEVELOPMENT_MODE:
+        raise HTTPException(
+            status_code=403,
+            detail="Database reset is only available in development mode"
+        )
+    try:
+        await reset_db()
+        return {"status": "success", "message": "Database reset complete"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset database: {str(e)}"
+        ) from e
+
+
+@app.post("/api/seed-db")
+async def seed_database():
+    """Seed the database with initial data (requires DEVELOPMENT_MODE env variable)."""
+    if not DEVELOPMENT_MODE:
+        raise HTTPException(
+            status_code=403,
+            detail="Database seeding is only available in development mode"
+        )
+    try:
+        await seed_db()
+        return {"status": "success", "message": "Database seeded successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to seed database: {str(e)}"
+        ) from e
+
+
+@app.get("/dev/db", response_class=HTMLResponse)
+async def db_operations_page():
+    """Serve a page with database management buttons (requires DEVELOPMENT_MODE env variable)."""
+    if not DEVELOPMENT_MODE:
+        raise HTTPException(
+            status_code=403,
+            detail="Database management is only available in development mode"
+        )
+    
+    html_content = """
+    <h1>DB Management</h1>
+    <button onclick="fetch('/api/reset-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Reset DB</button>
+    <button onclick="fetch('/api/seed-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Seed DB</button>
+    """
+    
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/", response_class=HTMLResponse)

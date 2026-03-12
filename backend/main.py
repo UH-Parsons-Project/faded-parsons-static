@@ -848,17 +848,17 @@ async def get_problemset_students(
     # Get student sessions with attempts, grouped by session
     stmt = (
         select(
-            StudentSession.username,
-            StudentSession.started_at,
-            StudentSession.last_activity_at,
+            Student.username,
+            Student.started_at,
+            Student.last_activity_at,
             func.count(TaskAttempt.id).label('total_attempts'),
             func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
         )
-        .join(TaskAttempt, TaskAttempt.student_session_id == StudentSession.id)
+        .join(TaskAttempt, TaskAttempt.student_id == Student.id)
         .where(TaskAttempt.task_id.in_(task_ids))
-        .where(StudentSession.username.isnot(None))
-        .group_by(StudentSession.id, StudentSession.username, StudentSession.started_at, StudentSession.last_activity_at)
-        .order_by(StudentSession.last_activity_at.desc())
+        .where(Student.username.isnot(None))
+        .group_by(Student.id, Student.username, Student.started_at, Student.last_activity_at)
+        .order_by(Student.last_activity_at.desc())
     )
 
     result = await db.execute(stmt)
@@ -922,8 +922,8 @@ async def get_student_attempts(
             func.max(TaskAttempt.completed_at).label('last_attempt_at')
         )
         .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
-        .join(StudentSession, StudentSession.id == TaskAttempt.student_session_id)
-        .where(StudentSession.username == student_username)
+        .join(Student, Student.id == TaskAttempt.student_id)
+        .where(Student.username == student_username)
         .where(Parsons.id.in_(task_ids))
         .group_by(Parsons.id, Parsons.title, Parsons.task_type)
         .order_by(func.max(TaskAttempt.completed_at).desc())
@@ -986,8 +986,8 @@ async def get_student_task_statistics(
     # Get all attempts by this student for this task
     stmt = (
         select(TaskAttempt)
-        .join(StudentSession, StudentSession.id == TaskAttempt.student_session_id)
-        .where(StudentSession.username == student_username)
+        .join(Student, Student.id == TaskAttempt.student_id)
+        .where(Student.username == student_username)
         .where(TaskAttempt.task_id == task_id)
         .order_by(TaskAttempt.completed_at.asc())
     )

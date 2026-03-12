@@ -181,6 +181,10 @@
       console.log('Task description received:', taskDescription);
       const box = document.getElementById('task-instructions-box');
       const content = document.getElementById('task-instructions-content');
+
+      if (!taskDescription || !taskDescription.trim()) {
+        box.style.display = 'none';
+        return;
       }
 
       // Parse JSON description

@@ -151,15 +151,26 @@ def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool
     
     An "empty" submission is one that only contains the pre-filled (given) blocks
     with no other blocks added and no blanks filled in.
+    
+    Handles both old format (blocks as list of strings) and new format (blocks as list of dicts).
     """
     if not submitted_code.strip():
         return False
     
     blocks = task_code_blocks.get("blocks", [])
+    if not blocks:
+        # No blocks defined, so any submission has user-added code
+        return True
+    
+    # Handle old format where blocks is a list of strings
+    if isinstance(blocks[0], str):
+        # Old format - assume any non-empty submission is user-added
+        return True
+    
     submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
     
     # Get all "given" (pre-filled) blocks - these are the ones shown by default
-    given_blocks = [block for block in blocks if block.get("given", False)]
+    given_blocks = [block for block in blocks if isinstance(block, dict) and block.get("given", False)]
     
     # If submission has more lines than given blocks, user added something
     if len(submitted_lines) > len(given_blocks):
@@ -172,7 +183,7 @@ def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool
     # Same number of lines - check if they match the given blocks with empty blanks
     for submitted_line, given_block in zip(submitted_lines, given_blocks):
         # Reconstruct what this given block looks like with empty blanks
-        expected_empty = given_block["code"].replace("___", "").strip()
+        expected_empty = given_block.get("code", "").replace("___", "").strip()
         submitted_clean = submitted_line.replace(" ", "")
         expected_clean = expected_empty.replace(" ", "")
         

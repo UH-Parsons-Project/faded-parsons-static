@@ -1,9 +1,9 @@
 problem_name: can_be_president
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with boolean values.
 
-problem_description: |
+task_instructions: |
   <code>can_be_president</code>
     returns whether someone can be US president based on age and residency.
     According to the US constitution, a presidential candidate must be at least

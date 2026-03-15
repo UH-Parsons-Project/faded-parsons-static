@@ -72,8 +72,8 @@ class UserInfo(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     title: str
+    task_instructions: str 
     description: str
-    task_instructions: str | None
     task_type: str
     code_blocks: dict
     correct_solution: dict
@@ -618,8 +618,8 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     return TaskResponse(
         id=task.id,
         title=task.title,
-        description=task.description,
         task_instructions=task.task_instructions,
+        description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,
@@ -638,8 +638,8 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
     task_list = []
     for task in tasks:
         try:
-            description_data = json.loads(task.description)
-            description_text = description_data.get("description", "")
+            instructions_data = json.loads(task.task_instructions)
+            instructions_text = instructions_data.get("task_instructions", "")
         except (json.JSONDecodeError, AttributeError):
             description_text = ""
 
@@ -647,7 +647,7 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
             {
                 "id": task.id,
                 "title": task.title,
-                "description": description_text,
+                "task_instructions": instructions_text,
                 "task_type": task.task_type,
                 "created_at": task.created_at.isoformat(),
             }

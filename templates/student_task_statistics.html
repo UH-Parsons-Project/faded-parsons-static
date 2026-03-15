@@ -177,39 +177,39 @@
       `;
     }
 
-    function renderTaskInstructions(taskDescription) {
-      console.log('Task description received:', taskDescription);
+    function renderTaskInstructions(taskInstructions) {
+      console.log('Task instructions received:', taskInstructions);
       const box = document.getElementById('task-instructions-box');
       const content = document.getElementById('task-instructions-content');
 
-      if (!taskDescription || !taskDescription.trim()) {
+      if (!taskInstructions || !taskInstructions.trim()) {
         box.style.display = 'none';
         return;
       }
 
       // Parse JSON description
-      let parsedDescription = {};
+      let parsedInstructions = {};
       try {
-        parsedDescription = typeof taskDescription === 'string'
-          ? JSON.parse(taskDescription)
-          : taskDescription;
+        parsedInstructions = typeof taskInstructions === 'string'
+          ? JSON.parse(taskInstructions)
+          : taskInstructions;
       } catch (e) {
         // If not JSON, display as-is
-        content.innerHTML = taskDescription;
+        content.innerHTML = taskInstructions;
         box.style.display = 'block';
         return;
       }
 
       // Build HTML from parsed description
       let html = '';
-      if (parsedDescription.function_name) {
-        html += `<strong>${escapeHtml(parsedDescription.function_name)}</strong>`;
+      if (parsedInstructions.function_name) {
+        html += `<strong>${escapeHtml(parsedInstructions.function_name)}</strong>`;
       }
-      if (parsedDescription.description) {
-        html += ` ${escapeHtml(parsedDescription.description)}`;
+      if (parsedInstructions.task_instructions) {
+        html += ` ${escapeHtml(parsedInstructions.task_instructions)}`;
       }
-      if (parsedDescription.examples) {
-        html += `<br><pre><code>${escapeHtml(parsedDescription.examples)}</code></pre>`;
+      if (parsedInstructions.examples) {
+        html += `<br><pre><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
       }
 
       content.innerHTML = html;
@@ -332,7 +332,7 @@
       })
       .then(data => {
         renderHeader(data);
-        renderTaskInstructions(data.task_description);
+        renderTaskInstructions(data.task_instructions);
         renderAttempts(data.attempts_detail);
         renderStatistics(data);
         document.getElementById('content-container').style.display = 'block';

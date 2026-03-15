@@ -1,9 +1,9 @@
 problem_name: Player
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with Python classes.
 
-problem_description: |
+task_instructions: |
   <p>The <code>Player</code> class represents a player in a video game.
   </p>
   <p>Each <code>Player</code> instance should have two instance variables:

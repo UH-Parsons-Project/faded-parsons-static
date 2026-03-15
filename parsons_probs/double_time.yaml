@@ -1,9 +1,9 @@
 problem_name: double_time
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with lists.
 
-problem_description: |
+task_instructions: |
   <code>double_time</code>
     doubles each element in the provided list.
 

@@ -17,7 +17,7 @@ async def seed_db():
     async with async_session() as session:
         # Check if test teacher already exists
         result = await session.execute(
-            select(Teacher).where(Teacher.username == "Matti Ruotsalainen")
+            select(Teacher).where(Teacher.username == "mattiruotsalainen")
         )
         existing_teacher = result.scalar_one_or_none()
 

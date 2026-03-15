@@ -1,9 +1,9 @@
 problem_name: tell_fortune
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with Python functions.
 
-problem_description: |
+task_instructions: |
   <code>tell_fortune</code>
     returns a fortune of the form:
      'You will be a [job] in [place] living with [partner].'

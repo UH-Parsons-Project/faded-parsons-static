@@ -1,9 +1,9 @@
 problem_name: greater_num
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with Python comparison operators.
 
-problem_description: |
+task_instructions: |
   <code>greater_num</code>
     returns whichever number is highest of the two supplied numbers.
 

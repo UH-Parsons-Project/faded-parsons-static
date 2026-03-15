@@ -54,8 +54,8 @@ class Parsons(Base):
         Integer, ForeignKey("teachers.id"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    task_instructions: Mapped[str] = mapped_column(String(None), nullable=False)
     description: Mapped[str] = mapped_column(String(None), nullable=False)
-    task_instructions: Mapped[str] = mapped_column(String(None), nullable=True)
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)
     code_blocks: Mapped[dict] = mapped_column(JSON, nullable=False)
     correct_solution: Mapped[dict] = mapped_column(JSON, nullable=False)

@@ -194,7 +194,7 @@ async def require_student_session(
     if not session:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Valid student session required. Please enter your nickname again."
+            detail="Sign in required to access this resource"
         )
 
     return session

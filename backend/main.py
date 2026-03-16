@@ -345,7 +345,11 @@ async def problemset_page(
 
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
-async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+async def problemset_tasks_page(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -355,6 +359,9 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "problemset.html"
     response = FileResponse(tasks_path)
@@ -363,7 +370,12 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
-async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -373,6 +385,9 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
@@ -382,7 +397,12 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_description_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -392,6 +412,9 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     description_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(description_path)
@@ -401,7 +424,12 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
-async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_start_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -411,6 +439,9 @@ async def problemset_task_start_page(unique_link_code: str, task_id: int, db: As
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     start_path = BASE_DIR / "templates" / "student_start_page.html"
     response = FileResponse(start_path)
@@ -584,6 +615,12 @@ async def student_login(
             detail="Incorrect username or password",
         )
 
+    # Refresh session activity so previously inactive accounts can access student pages.
+    now = datetime.now(timezone.utc)
+    student.last_activity_at = now
+    if not student.started_at:
+        student.started_at = now
+
     # Optionally associate the student with the task list they are accessing
     if request.unique_link_code:
         stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
@@ -591,7 +628,8 @@ async def student_login(
         task_list = result.scalar_one_or_none()
         if task_list:
             student.task_list_id = task_list.id
-            await db.commit()
+
+    await db.commit()
 
     set_session_cookie(response, student.id)
     return {"status": "success", "student_id": student.id}

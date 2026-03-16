@@ -1503,11 +1503,11 @@ async def get_task_statistics(
     # Filter out empty attempts (those with no user-added code)
     filtered_attempts = []
     for attempt in attempts:
-        if not (attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict)):
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
             filtered_attempts.append(attempt)
             continue
 
-        code = attempt.submitted.inputs.get("code", "")
+        code = attempt.submitted_inputs.get("code", "")
         if not code:
             filtered_attempts.append(attempt)
         elif has_user_added_own_code(code, task.code_blocks):

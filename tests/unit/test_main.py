@@ -272,7 +272,11 @@ class TestGetMe:
     async def test_authenticated_returns_user_info(self, client, test_teacher):
         r = await client.get("/api/me", headers=_auth(test_teacher.username))
         assert r.status_code == 200
-        assert r.json() == {"username": "testteacher", "email": "test@example.com"}
+        assert r.json() == {
+            "username": "testteacher",
+            "email": "test@example.com",
+            "has_data_access": False,
+        }
 
     async def test_unauthenticated_returns_401(self, client):
         assert (await client.get("/api/me")).status_code == 401

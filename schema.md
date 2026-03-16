@@ -26,6 +26,8 @@ CREATE TABLE task_lists (
 	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
 	title VARCHAR(255) NOT NULL,
 	unique_link_code VARCHAR(50) NOT NULL UNIQUE,
+	student_description TEXT,
+	teacher_description TEXT,
 	created_at TIMESTAMP,
 	expires_at TIMESTAMP
 );

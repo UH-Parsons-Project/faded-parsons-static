@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Task List - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/task_list_selector"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to task lists
+      </a>
+
+      <span class="text-dark">
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+      </span>
+    </div>
+  </nav>
+
+  <div class="create-task-list-container">
+    <h1 class="mb-4">Create New Task List</h1>
+
+    <div id="error-container"></div>
+
+    <form id="create-task-list-form" class="task-list-form">
+      <!-- Basic Information -->
+      <div class="form-section">
+        <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+
+        <div class="form-group">
+          <label for="task-list-title">Task List Title</label>
+          <input type="text" class="form-control" id="task-list-title"
+                 placeholder="e.g., Python Basics - Week 1"
+                 required>
+          <small class="form-text text-muted">Give your task list a name</small>
+        </div>
+
+        <div class="form-group">
+          <label for="student-description">
+            <i class="fas fa-graduation-cap"></i> Student Description
+          </label>
+          <textarea class="form-control" id="student-description"
+                    rows="3"
+                    placeholder="What students will see when they start the task list"></textarea>
+          <small class="form-text text-muted">This is shown to students on the start page</small>
+        </div>
+
+        <div class="form-group">
+          <label for="teacher-description">
+            <i class="fas fa-chalkboard-user"></i> Teacher Description
+          </label>
+          <textarea class="form-control" id="teacher-description"
+                    rows="3"
+                    placeholder="Internal notes for you and other teachers"></textarea>
+          <small class="form-text text-muted">This is only visible to teachers</small>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-custom">
+            <input type="checkbox" id="set-expiration" class="form-check-input">
+            <label for="set-expiration" class="form-check-label">
+              Set expiration date (optional)
+            </label>
+          </div>
+        </div>
+
+        <div id="expiration-group" style="display: none;">
+          <div class="form-group">
+            <label for="expiration-date">Expiration Date</label>
+            <input type="datetime-local" class="form-control" id="expiration-date">
+            <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Selection -->
+      <div class="form-section">
+        <h5><i class="fas fa-list"></i> Select Tasks</h5>
+
+        <div class="search-box">
+          <input type="text" class="form-control" id="task-search"
+                 placeholder="Search tasks by title...">
+        </div>
+
+        <div id="tasks-loading" class="loading-spinner" style="display: none;">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p>Loading available tasks...</p>
+        </div>
+
+        <div class="task-selector" id="task-selector">
+          <!-- Tasks will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Selected Tasks with Ordering -->
+      <div class="form-section">
+        <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
+        <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
+        <div class="selected-tasks-list" id="selected-tasks-list">
+          <div class="empty-selected">No tasks selected yet</div>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="button-group">
+        <button type="submit" class="btn btn-submit">
+          <i class="fas fa-save"></i> Create Task List
+        </button>
+        <a href="/task_list_selector" class="btn btn-cancel">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+
+
+
+  <script>
+    let allTasks = [];
+    let selectedTaskIds = [];  // Changed to array to preserve order
+    let draggedElement = null;
+
+    // Load username
+    const userNameEl = document.getElementById('user-name');
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      userNameEl.textContent = storedUsername;
+    } else {
+      fetch('/api/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data?.username) {
+            userNameEl.textContent = data.username;
+            localStorage.setItem('username', data.username);
+          }
+        })
+        .catch(() => { userNameEl.textContent = ''; });
+    }
+
+    // Toggle expiration date input
+    document.getElementById('set-expiration').addEventListener('change', (e) => {
+      document.getElementById('expiration-group').style.display = e.target.checked ? 'block' : 'none';
+      if (!e.target.checked) {
+        document.getElementById('expiration-date').value = '';
+      }
+    });
+
+    // Load tasks
+    async function loadTasks() {
+      const loadingEl = document.getElementById('tasks-loading');
+      loadingEl.style.display = 'flex';
+
+      try {
+        const response = await fetch('/api/tasks', { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to load tasks');
+        allTasks = await response.json();
+        renderTasks(allTasks);
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        showError('Failed to load tasks. Please try again.');
+      } finally {
+        loadingEl.style.display = 'none';
+      }
+    }
+
+    // Render available tasks
+    function renderTasks(tasks) {
+      const selector = document.getElementById('task-selector');
+      selector.innerHTML = '';
+
+      if (tasks.length === 0) {
+        selector.innerHTML = '<p class="text-muted">No tasks available</p>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const taskEl = document.createElement('div');
+        taskEl.className = 'task-item';
+        if (selectedTaskIds.includes(task.id)) {
+          taskEl.classList.add('selected');
+        }
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selectedTaskIds.includes(task.id);
+        checkbox.addEventListener('change', (e) => {
+          handleTaskSelection(task.id, e.target.checked);
+        });
+
+        const content = document.createElement('div');
+        content.className = 'task-item-content';
+
+        const title = document.createElement('div');
+        title.className = 'task-item-title';
+        title.textContent = task.title;
+
+        const type = document.createElement('div');
+        type.className = 'task-item-type';
+        type.textContent = `Type: ${task.task_type}`;
+
+        content.appendChild(title);
+        content.appendChild(type);
+
+        const actions = document.createElement('div');
+        actions.className = 'task-item-actions';
+
+        const previewBtn = document.createElement('button');
+        previewBtn.type = 'button';
+        previewBtn.className = 'preview-btn';
+        previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+        previewBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openTaskPreview(task);
+        });
+
+        actions.appendChild(previewBtn);
+
+        taskEl.appendChild(checkbox);
+        taskEl.appendChild(content);
+        taskEl.appendChild(actions);
+
+        taskEl.addEventListener('click', (e) => {
+          if (e.target !== checkbox && !e.target.closest('.task-item-actions')) {
+            checkbox.checked = !checkbox.checked;
+            handleTaskSelection(task.id, checkbox.checked);
+          }
+        });
+
+        selector.appendChild(taskEl);
+      });
+    }
+
+    // Handle task selection
+    function handleTaskSelection(taskId, isSelected) {
+      if (isSelected) {
+        if (!selectedTaskIds.includes(taskId)) {
+          selectedTaskIds.push(taskId);
+        }
+      } else {
+        selectedTaskIds = selectedTaskIds.filter(id => id !== taskId);
+      }
+      updateSelectedTasksPreview();
+      renderTasks(allTasks); // Re-render to update checked state
+    }
+
+    // Update selected tasks preview
+    function updateSelectedTasksPreview() {
+      const listEl = document.getElementById('selected-tasks-list');
+      const countEl = document.getElementById('selected-count');
+
+      countEl.textContent = selectedTaskIds.length;
+
+      if (selectedTaskIds.length === 0) {
+        listEl.innerHTML = '<div class="empty-selected">No tasks selected yet</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      selectedTaskIds.forEach((taskId, index) => {
+        const task = allTasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'selected-task-item';
+        itemEl.draggable = true;
+        itemEl.dataset.taskId = taskId;
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = '<i class="fas fa-bars"></i>';
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'selected-task-item-content';
+
+        const positionEl = document.createElement('div');
+        positionEl.style.fontSize = '0.75rem';
+        positionEl.style.color = '#6c757d';
+        positionEl.style.marginBottom = '0.25rem';
+        positionEl.textContent = `#${index + 1}`;
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'selected-task-item-title';
+        titleEl.textContent = task.title;
+
+        const typeEl = document.createElement('div');
+        typeEl.className = 'selected-task-item-type';
+        typeEl.textContent = task.task_type;
+
+        contentEl.appendChild(positionEl);
+        contentEl.appendChild(titleEl);
+        contentEl.appendChild(typeEl);
+
+        const controlsEl = document.createElement('div');
+        controlsEl.className = 'selected-task-item-controls';
+
+        const previewBtn = document.createElement('button');
+        previewBtn.type = 'button';
+        previewBtn.className = 'preview-btn';
+        previewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+        previewBtn.title = 'Preview task';
+        previewBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openTaskPreview(task);
+        });
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-task-btn';
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        removeBtn.title = 'Remove task';
+        removeBtn.addEventListener('click', () => {
+          handleTaskSelection(taskId, false);
+        });
+
+        controlsEl.appendChild(previewBtn);
+        controlsEl.appendChild(removeBtn);
+
+        itemEl.appendChild(dragHandle);
+        itemEl.appendChild(contentEl);
+        itemEl.appendChild(controlsEl);
+
+        // Drag event handlers
+        itemEl.addEventListener('dragstart', (e) => {
+          draggedElement = itemEl;
+          itemEl.classList.add('dragging');
+        });
+
+        itemEl.addEventListener('dragend', () => {
+          itemEl.classList.remove('dragging');
+          draggedElement = null;
+        });
+
+        itemEl.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (draggedElement && draggedElement !== itemEl) {
+            itemEl.classList.add('drag-over');
+          }
+        });
+
+        itemEl.addEventListener('dragleave', () => {
+          itemEl.classList.remove('drag-over');
+        });
+
+        itemEl.addEventListener('drop', (e) => {
+          e.preventDefault();
+          itemEl.classList.remove('drag-over');
+
+          if (draggedElement && draggedElement !== itemEl) {
+            const draggedIndex = selectedTaskIds.findIndex(
+              id => id === parseInt(draggedElement.dataset.taskId)
+            );
+            const targetIndex = selectedTaskIds.findIndex(
+              id => id === parseInt(itemEl.dataset.taskId)
+            );
+
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+              const temp = selectedTaskIds[draggedIndex];
+              selectedTaskIds[draggedIndex] = selectedTaskIds[targetIndex];
+              selectedTaskIds[targetIndex] = temp;
+              updateSelectedTasksPreview();
+            }
+          }
+        });
+
+        listEl.appendChild(itemEl);
+      });
+    }
+
+    // Open task preview (which is the task attempt page)
+    function openTaskPreview(task) {
+      const previewWindow = window.open(`/problem.html?id=${task.id}`, '_blank', 'width=1000,height=800,resizable=yes,scrollbars=yes');
+      previewWindow.focus();
+    }
+
+
+
+    // Search tasks
+    document.getElementById('task-search').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = allTasks.filter(task =>
+        task.title.toLowerCase().includes(query)
+      );
+      renderTasks(filtered);
+    });
+
+    // Show error message
+    function showError(message) {
+      const container = document.getElementById('error-container');
+      container.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-circle"></i> ${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    // Show success message
+    function showSuccess(message) {
+      const container = document.getElementById('error-container');
+      container.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> ${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 3000);
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Submit form
+    document.getElementById('create-task-list-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('task-list-title').value.trim();
+      const studentDescription = document.getElementById('student-description').value.trim();
+      const teacherDescription = document.getElementById('teacher-description').value.trim();
+      const expirationDate = document.getElementById('set-expiration').checked
+        ? document.getElementById('expiration-date').value
+        : null;
+
+      if (!title) {
+        showError('Please enter a task list title');
+        return;
+      }
+
+      if (selectedTaskIds.length === 0) {
+        showError('Please select at least one task');
+        return;
+      }
+
+      const submitBtn = document.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+      try {
+        // Create task list
+        const createResponse = await fetch('/api/task_lists', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title,
+            student_description: studentDescription || null,
+            teacher_description: teacherDescription || null,
+            expires_at: expirationDate ? new Date(expirationDate).toISOString() : null,
+            task_ids: selectedTaskIds
+          })
+        });
+
+        if (!createResponse.ok) {
+          const error = await createResponse.json();
+          throw new Error(error.detail || 'Failed to create task list');
+        }
+
+        const createdList = await createResponse.json();
+        showSuccess('Task list created successfully!');
+
+        setTimeout(() => {
+          window.location.href = `/task_list_selector`;
+        }, 1500);
+      } catch (error) {
+        console.error('Error creating task list:', error);
+        showError(error.message || 'Failed to create task list');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task List';
+      }
+    });
+
+    // Load tasks on page load
+    loadTasks();
+  </script>
+
+</body>
+</html>

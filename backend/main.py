@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
+import re
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -125,6 +126,8 @@ class ProblemSetResponse(BaseModel):
     title: str
     unique_link_code: str
     teacher_id: int
+    student_description: str | None
+    teacher_description: str | None
     created_at: str
     expires_at: str | None
 
@@ -184,51 +187,94 @@ class SubmitTestResultRequest(BaseModel):
     start_time: str | None = None  # ISO format timestamp from localStorage
 
 
+class CreateTaskListRequest(BaseModel):
+    title: str
+    student_description: str | None = None
+    teacher_description: str | None = None
+    expires_at: str | None = None
+    task_ids: list[int]
+
+
+class TaskListResponse(BaseModel):
+    id: int
+    title: str
+    unique_link_code: str
+    teacher_id: int
+    student_description: str | None
+    teacher_description: str | None
+    created_at: str
+    expires_at: str | None
+
+
+def generate_slug(text: str) -> str:
+    """
+    Generate a URL-friendly slug from text.
+    Converts to lowercase, replaces spaces with hyphens, removes special characters.
+
+    Args:
+        text: The text to convert to a slug
+
+    Returns:
+        A slug-friendly string
+    """
+    # Convert to lowercase
+    slug = text.lower()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r'[\s_]+', '-', slug)
+    # Remove any character that's not alphanumeric or hyphen
+    slug = re.sub(r'[^a-z0-9-]', '', slug)
+    # Remove multiple consecutive hyphens
+    slug = re.sub(r'-+', '-', slug)
+    # Strip hyphens from start and end
+    slug = slug.strip('-')
+    return slug
+
+
 def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool:
     """
     Check if submitted code has user-added content beyond just the given blocks.
-    
+
     An "empty" submission is one that only contains the pre-filled (given) blocks
     with no other blocks added and no blanks filled in.
-    
+
     Handles both old format (blocks as list of strings) and new format (blocks as list of dicts).
     """
     if not submitted_code.strip():
         return False
-    
+
     blocks = task_code_blocks.get("blocks", [])
     if not blocks:
         # No blocks defined, so any submission has user-added code
         return True
-    
+
     # Handle old format where blocks is a list of strings
     if isinstance(blocks[0], str):
         # Old format - assume any non-empty submission is user-added
         return True
-    
+
     submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
-    
+
     # Get all "given" (pre-filled) blocks - these are the ones shown by default
     given_blocks = [block for block in blocks if isinstance(block, dict) and block.get("given", False)]
-    
+
     # If submission has more lines than given blocks, user added something
     if len(submitted_lines) > len(given_blocks):
         return True
-    
+
     # If submission has fewer lines than given blocks, it's incomplete/empty
     if len(submitted_lines) < len(given_blocks):
         return False
-    
+
     # Same number of lines - check if they match the given blocks with empty blanks
     for submitted_line, given_block in zip(submitted_lines, given_blocks):
         # Reconstruct what this given block looks like with empty blanks
         expected_empty = given_block.get("code", "").replace("___", "").strip()
         submitted_clean = submitted_line.replace(" ", "")
         expected_clean = expected_empty.replace(" ", "")
-        
+
         if submitted_clean != expected_clean:
             return True
-    
+
     return False
 
 # Mount static directories (only if they exist)
@@ -325,13 +371,13 @@ async def db_operations_page():
             status_code=403,
             detail="Database management is only available in development mode"
         )
-    
+
     html_content = """
     <h1>DB Management</h1>
     <button onclick="fetch('/api/reset-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Reset DB</button>
     <button onclick="fetch('/api/seed-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Seed DB</button>
     """
-    
+
     return HTMLResponse(content=html_content)
 
 
@@ -531,6 +577,21 @@ async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db
 
     selector_path = BASE_DIR / "templates" / "task_list_selector.html"
     response = FileResponse(selector_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/create_task_list", response_class=HTMLResponse)
+async def create_task_list_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task_list.html"
+    response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -953,6 +1014,8 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
             title=ps.title,
             unique_link_code=ps.unique_link_code,
             teacher_id=ps.teacher_id,
+            student_description=ps.student_description,
+            teacher_description=ps.teacher_description,
             created_at=ps.created_at.isoformat(),
             expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
         )
@@ -976,6 +1039,8 @@ async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db))
         title=problemset.title,
         unique_link_code=problemset.unique_link_code,
         teacher_id=problemset.teacher_id,
+        student_description=problemset.student_description,
+        teacher_description=problemset.teacher_description,
         created_at=problemset.created_at.isoformat(),
         expires_at=problemset.expires_at.isoformat() if problemset.expires_at else None,
     )
@@ -1018,6 +1083,83 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
         )
         for task in tasks
     ]
+
+
+@app.post("/api/task_lists", response_model=TaskListResponse)
+async def create_task_list(
+    request: CreateTaskListRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify all tasks exist and belong to the current user
+    if request.task_ids:
+        task_ids_tuple = tuple(request.task_ids)
+        stmt = select(Parsons).where(Parsons.id.in_(task_ids_tuple))
+        result = await db.execute(stmt)
+        tasks = result.scalars().all()
+
+        if len(tasks) != len(request.task_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more tasks not found"
+            )
+
+    # Check if title is unique in the entire database
+    stmt = select(TaskList).where(TaskList.title == request.title)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A task list with the title '{request.title}' already exists in the database. Please use a different title."
+        )
+
+    # Parse expiration date if provided
+    expires_at = None
+    if request.expires_at:
+        try:
+            expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid expiration date format"
+            )
+
+    unique_link_code = generate_slug(request.title)
+
+    # Create the task list
+    task_list = TaskList(
+        teacher_id=current_user.id,
+        title=request.title,
+        student_description=request.student_description,
+        teacher_description=request.teacher_description,
+        unique_link_code=unique_link_code,
+        expires_at=expires_at
+    )
+
+    db.add(task_list)
+    await db.flush()  # Get the ID without committing
+
+    # Add tasks to the task list
+    for task_id in request.task_ids:
+        task_list_item = TaskListItem(
+            task_list_id=task_list.id,
+            task_id=task_id
+        )
+        db.add(task_list_item)
+
+    await db.commit()
+    await db.refresh(task_list)
+
+    return TaskListResponse(
+        id=task_list.id,
+        title=task_list.title,
+        unique_link_code=task_list.unique_link_code,
+        teacher_id=task_list.teacher_id,
+        student_description=task_list.student_description,
+        teacher_description=task_list.teacher_description,
+        created_at=task_list.created_at.isoformat(),
+        expires_at=task_list.expires_at.isoformat() if task_list.expires_at else None
+    )
 
 
 @app.get("/api/problemsets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
@@ -1212,7 +1354,7 @@ async def get_student_task_statistics(
         if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
             filtered_attempts.append(attempt)
             continue
-        
+
         code = attempt.submitted_inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
@@ -1223,7 +1365,7 @@ async def get_student_task_statistics(
         else:
             # Has code but it's empty template - count it
             empty_attempts_count += 1
-    
+
     attempts = filtered_attempts
 
     if not attempts:

@@ -37,6 +37,10 @@
     <h2 class="mb-4">Select a Task List</h2>
     <p class="text-muted mb-4">Choose a task list to view its statistics and analytics</p>
 
+    <div id="all-sets-button-container" style="display: none; margin-bottom: 1rem;">
+        <a href="/all-problemsets" class="btn btn-primary">View All Problem Sets</a>
+    </div>
+
     <div id="task-lists-container" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>
@@ -47,22 +51,25 @@
   </div>
 
   <script>
-    // Load username
+    // Load user info
     const userNameEl = document.getElementById('user-name');
-    const storedUsername = localStorage.getItem('username');
-    if (storedUsername) {
-      userNameEl.textContent = storedUsername;
-    } else {
-      fetch('/api/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : Promise.reject())
+    const allSetsButtonContainer = document.getElementById('all-sets-button-container');
+
+    fetch('/api/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch user data'))
         .then(data => {
-          if (data?.username) {
-            userNameEl.textContent = data.username;
-            localStorage.setItem('username', data.username);
-          }
+            if (data?.username) {
+                userNameEl.textContent = data.username;
+                localStorage.setItem('username', data.username);
+            }
+            if (data?.has_data_access) {
+                allSetsButtonContainer.style.display = 'block';
+            }
         })
-        .catch(() => { userNameEl.textContent = ''; });
-    }
+        .catch(error => {
+            console.error(error);
+            userNameEl.textContent = '';
+        });
 
     function formatDate(isoString) {
       const date = new Date(isoString);

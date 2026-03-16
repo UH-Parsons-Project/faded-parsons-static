@@ -105,6 +105,7 @@ class Token(BaseModel):
 class UserInfo(BaseModel):
     username: str
     email: str
+    has_data_access: bool
 
 
 class TaskResponse(BaseModel):
@@ -630,7 +631,11 @@ async def login_access_token(
 
 @app.get("/api/me", response_model=UserInfo)
 async def get_current_user_info(current_user: CurrentUser):
-    return UserInfo(username=current_user.username, email=current_user.email)
+    return UserInfo(
+        username=current_user.username,
+        email=current_user.email,
+        has_data_access=current_user.has_data_access,
+    )
 
 
 @app.post("/api/logout")

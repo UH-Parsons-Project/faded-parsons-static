@@ -1580,8 +1580,8 @@ async def get_task_statistics(
     # Common mistakes (top 5 most frequent failed submissions)
     mistake_counts: dict = {}
     for attempt in failed_attempts:
-        if attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict):
-            code = attempt.submitted.inputs.get("code", "")
+        if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
+            code = attempt.submitted_inputs.get("code", "")
             if code:
                 normalized_code = _clean_mistake_code(code)
                 if not normalized_code:

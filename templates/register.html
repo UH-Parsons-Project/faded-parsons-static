@@ -50,6 +50,11 @@
 							<input type="password" class="form-control" id="password_confirm" name="password_confirm" required />
 						</div>
 
+						<div class="form-group">
+							<label for="registration_token">Registration Token</label>
+							<input type="password" class="form-control" id="registration_token" name="registration_token" required />
+						</div>
+
 						<button type="submit" class="btn btn-primary">Register</button>
 					</form>
 
@@ -82,6 +87,7 @@
 					email: document.getElementById('email').value,
 					password: document.getElementById('password').value,
 					password_confirm: document.getElementById('password_confirm').value,
+					registration_token: document.getElementById('registration_token').value,
 				};
 
 				// Client-side confirmation check

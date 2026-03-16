@@ -806,10 +806,19 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
+    REGISTRATION_TOKEN = "test_token"
+
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
+    registration_token = payload.get("registration_token", "")
+
+    if registration_token != REGISTRATION_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid registration token",
+        )
 
     if not username or not password or not email:
         raise HTTPException(

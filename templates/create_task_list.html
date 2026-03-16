@@ -90,7 +90,7 @@
 
         <div class="form-group">
           <label for="student-description">
-            <i class="fas fa-graduation-cap"></i> Student Description
+            <i class="fas fa-graduation-cap"></i> Student Description (optional)
           </label>
           <textarea class="form-control" id="student-description"
                     rows="3"
@@ -100,11 +100,11 @@
 
         <div class="form-group">
           <label for="teacher-description">
-            <i class="fas fa-chalkboard-user"></i> Teacher Description
+            <i class="fas fa-chalkboard-user"></i> Teacher Description (optional)
           </label>
           <textarea class="form-control" id="teacher-description"
                     rows="3"
-                    placeholder="Internal notes for you and other teachers"></textarea>
+                    placeholder="Notes for the teacher"></textarea>
           <small class="form-text text-muted">This is only visible to teachers</small>
         </div>
 
@@ -404,14 +404,24 @@
             const draggedIndex = selectedTaskIds.findIndex(
               id => id === parseInt(draggedElement.dataset.taskId)
             );
-            const targetIndex = selectedTaskIds.findIndex(
-              id => id === parseInt(itemEl.dataset.taskId)
-            );
+            const targetTaskId = parseInt(itemEl.dataset.taskId);
 
-            if (draggedIndex !== -1 && targetIndex !== -1) {
-              const temp = selectedTaskIds[draggedIndex];
-              selectedTaskIds[draggedIndex] = selectedTaskIds[targetIndex];
-              selectedTaskIds[targetIndex] = temp;
+            if (draggedIndex !== -1) {
+              // Remove the dragged item from its current position
+              const draggedTaskId = selectedTaskIds[draggedIndex];
+              selectedTaskIds.splice(draggedIndex, 1);
+              
+              // Find the target item's new index after removal
+              const newTargetIndex = selectedTaskIds.findIndex(id => id === targetTaskId);
+              
+              // Insert the dragged item before the target item
+              if (newTargetIndex !== -1) {
+                selectedTaskIds.splice(newTargetIndex, 0, draggedTaskId);
+              } else {
+                // If target not found, append to end
+                selectedTaskIds.push(draggedTaskId);
+              }
+              
               updateSelectedTasksPreview();
             }
           }

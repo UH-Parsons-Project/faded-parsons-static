@@ -216,8 +216,11 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         html_instructions = yaml_data.get("task_instructions", "")
         parsed_instructions = parse_problem_instructions(html_instructions)
 
-        # separate task description (HTML or plain text)
-        description = yaml_data.get("description", "")
+        # Store the original YAML problem_description text as task description.
+        # Keep a fallback to legacy "description" for older files.
+        description = yaml_data.get("problem_description", yaml_data.get("description", ""))
+        if description is None:
+            description = ""
 
         # Parse code lines into blocks
         code_lines = yaml_data.get("code_lines", "")

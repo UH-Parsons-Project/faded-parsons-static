@@ -30,6 +30,7 @@ class Teacher(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    has_data_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""

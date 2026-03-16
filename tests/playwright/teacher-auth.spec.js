@@ -8,7 +8,6 @@ async function registerTeacher(
   password = 'password123',
   registrationToken = 'test_token'
 ) {
-async function registerTeacher(page, username, email, password = 'password123') {
   await page.goto('/register');
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);

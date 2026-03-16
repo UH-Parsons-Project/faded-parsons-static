@@ -1182,7 +1182,7 @@ async def get_problemset_students(
             detail=f"Task list with id {problemset_id} not found"
         )
 
-    if task_list.teacher_id != current_user.id:
+    if not (task_list.teacher_id == current_user.id or current_user.has_data_access):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
@@ -1351,11 +1351,11 @@ async def get_student_task_statistics(
     filtered_attempts = []
     for attempt in attempts:
         # Keep attempts that don't have code field (e.g., old data, missing field)
-        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+        if not (attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict)):
             filtered_attempts.append(attempt)
             continue
 
-        code = attempt.submitted_inputs.get("code", "")
+        code = attempt.submitted.inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
             filtered_attempts.append(attempt)
@@ -1408,7 +1408,7 @@ async def get_student_task_statistics(
             "success": attempt.success,
             "completed_at": attempt.completed_at.isoformat() if attempt.completed_at else None,
             "time_taken": (attempt.completed_at - attempt.task_started_at).total_seconds() if attempt.task_started_at and attempt.completed_at else None,
-            "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None
+            "code": attempt.submitted.inputs.get("code") if attempt.submitted.inputs else None
         }
         attempts_detail.append(detail)
 
@@ -1453,7 +1453,7 @@ async def submit_test_result(
         task_started_at=task_started_at,
         completed_at=datetime.now(timezone.utc),
         success=result.success,
-        submitted_inputs={"code": result.submitted_code}
+        submitted.inputs={"code": result.submitted_code}
     )
     db.add(new_attempt)
     await db.commit()
@@ -1503,11 +1503,11 @@ async def get_task_statistics(
     # Filter out empty attempts (those with no user-added code)
     filtered_attempts = []
     for attempt in attempts:
-        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+        if not (attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict)):
             filtered_attempts.append(attempt)
             continue
 
-        code = attempt.submitted_inputs.get("code", "")
+        code = attempt.submitted.inputs.get("code", "")
         if not code:
             filtered_attempts.append(attempt)
         elif has_user_added_own_code(code, task.code_blocks):
@@ -1580,8 +1580,8 @@ async def get_task_statistics(
     # Common mistakes (top 5 most frequent failed submissions)
     mistake_counts: dict = {}
     for attempt in failed_attempts:
-        if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
-            code = attempt.submitted_inputs.get("code", "")
+        if attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict):
+            code = attempt.submitted.inputs.get("code", "")
             if code:
                 normalized_code = _clean_mistake_code(code)
                 if not normalized_code:

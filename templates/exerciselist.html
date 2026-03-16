@@ -12,8 +12,6 @@
 		<link
 			rel="stylesheet"
 			href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
-			integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/"
-			crossorigin="anonymous"
 		/>
 		<link rel="stylesheet" href="/js-parsons/parsons.css" />
 		<link rel="stylesheet" href="/js/main.css" />
@@ -37,7 +35,7 @@
 					href="/task_list_selector"
 					>Statistics</a
 				>
-				<span class="text-dark mr-3">Welcome, <span id="user-name"></span>!</span>
+				<span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
 				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
 			</div>
 		</nav>
@@ -50,13 +48,9 @@
 
 		<script type="module">
 			import {clearAuth} from '/js/auth-utils.js';
-			import {initNavbarExercisesButton} from '/js/auth-ui.js';
+			import {initNavbarExercisesButton, initSignedInAs} from '/js/auth-ui.js';
 
-			// Display username if available
-			const username = localStorage.getItem('username');
-			if (username) {
-				document.getElementById('user-name').textContent = username;
-			}
+			initSignedInAs();
 
 			initNavbarExercisesButton();
 

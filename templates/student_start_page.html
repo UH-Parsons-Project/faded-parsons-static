@@ -23,6 +23,9 @@
          class="btn btn-outline-dark btn-sm mr-3">
         Back to exercise list
       </a>
+      <span class="text-dark">
+        <i class="fas fa-user"></i> <span id="user-name"></span>
+      </span>
     </div>
   </nav>
   <main class="container main-nickname">
@@ -36,7 +39,11 @@
 	</div>
   </main>
 
-  <script>
+  <script type="module">
+    import { initSignedInAs } from '/js/auth-ui.js';
+
+    initSignedInAs({ preferNickname: true });
+
     // Extract unique_link_code and task_id from URL path
     // Path: /set/{unique_link_code}/tasks/{task_id}/start
     const pathParts = window.location.pathname.split('/').filter(p => p);

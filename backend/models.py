@@ -75,8 +75,10 @@ class TaskList(Base):
     teacher_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
     )
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(255),unique=True, nullable=False)
     unique_link_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    student_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
+    teacher_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

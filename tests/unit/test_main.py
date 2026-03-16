@@ -755,6 +755,38 @@ class TestStatistics:
                                   headers=_auth(test_teacher.username))).json()
         assert len(body["common_mistakes"]) <= 5
 
+    async def test_common_mistakes_group_whitespace_only_variants(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="print(1)")
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="\nprint(1)   \n")
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="print( 1 )")
+
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+
+        mistakes = body["common_mistakes"]
+        assert mistakes[0]["count"] == 3
+        assert mistakes[0]["code"] in {"print(1)", "print( 1 )"}
+
+    async def test_common_mistakes_keep_string_whitespace_distinct(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code='print("a b")')
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code='print("ab")')
+
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+
+        mistakes = body["common_mistakes"]
+        assert len(mistakes) == 2
+        assert {mistake["code"] for mistake in mistakes} == {'print("a b")', 'print("ab")'}
+
     async def test_attempt_missing_code_key_not_a_mistake(
         self, client, task, student_session, test_teacher, db_session
     ):

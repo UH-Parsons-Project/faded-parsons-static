@@ -3,7 +3,10 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
+import io
 import os
+import token
+import tokenize
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -56,6 +59,41 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _clean_mistake_code(code: str) -> str:
+    """Return a display-friendly version of submitted code."""
+    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+
+    while normalized_lines and not normalized_lines[0].strip():
+        normalized_lines.pop(0)
+    while normalized_lines and not normalized_lines[-1].strip():
+        normalized_lines.pop()
+
+    return "\n".join(normalized_lines)
+
+
+def _mistake_code_fingerprint(code: str) -> tuple:
+    """Build a grouping key that ignores whitespace-only differences."""
+    cleaned_code = _clean_mistake_code(code)
+    if not cleaned_code:
+        return tuple()
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
+        return tuple(
+            (current_token.type, current_token.string)
+            for current_token in tokens
+            if current_token.type not in {
+                token.INDENT,
+                token.DEDENT,
+                token.NEWLINE,
+                tokenize.NL,
+                tokenize.ENDMARKER,
+            }
+        )
+    except (IndentationError, SyntaxError, tokenize.TokenError):
+        return tuple(cleaned_code.split())
 
 
 # Pydantic models for request/response
@@ -1389,11 +1427,21 @@ async def get_task_statistics(
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
             code = attempt.submitted_inputs.get("code", "")
             if code:
-                mistake_counts[code] = mistake_counts.get(code, 0) + 1
+                normalized_code = _clean_mistake_code(code)
+                if not normalized_code:
+                    continue
+
+                fingerprint = _mistake_code_fingerprint(normalized_code)
+                if fingerprint not in mistake_counts:
+                    mistake_counts[fingerprint] = {"code": normalized_code, "count": 0}
+
+                mistake_counts[fingerprint]["count"] += 1
+                if len(normalized_code) < len(mistake_counts[fingerprint]["code"]):
+                    mistake_counts[fingerprint]["code"] = normalized_code
 
     common_mistakes = [
-        {"code": code, "count": count}
-        for code, count in sorted(mistake_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        {"code": mistake["code"], "count": mistake["count"]}
+        for mistake in sorted(mistake_counts.values(), key=lambda item: item["count"], reverse=True)[:5]
     ]
 
     return {

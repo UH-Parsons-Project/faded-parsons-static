@@ -1453,7 +1453,7 @@ async def submit_test_result(
         task_started_at=task_started_at,
         completed_at=datetime.now(timezone.utc),
         success=result.success,
-        submitted.inputs={"code": result.submitted_code}
+        submitted_inputs={"code": result.submitted_code}
     )
     db.add(new_attempt)
     await db.commit()
@@ -1633,6 +1633,8 @@ async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Dep
             title=ps.title,
             unique_link_code=ps.unique_link_code,
             teacher_id=ps.teacher_id,
+            student_description=ps.student_description,
+            teacher_description=ps.teacher_description,
             created_at=ps.created_at.isoformat(),
             expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
         )

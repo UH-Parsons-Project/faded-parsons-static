@@ -3,7 +3,10 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
+import io
 import os
+import token
+import tokenize
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -57,6 +60,41 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _clean_mistake_code(code: str) -> str:
+    """Return a display-friendly version of submitted code."""
+    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+
+    while normalized_lines and not normalized_lines[0].strip():
+        normalized_lines.pop(0)
+    while normalized_lines and not normalized_lines[-1].strip():
+        normalized_lines.pop()
+
+    return "\n".join(normalized_lines)
+
+
+def _mistake_code_fingerprint(code: str) -> tuple:
+    """Build a grouping key that ignores whitespace-only differences."""
+    cleaned_code = _clean_mistake_code(code)
+    if not cleaned_code:
+        return tuple()
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
+        return tuple(
+            (current_token.type, current_token.string)
+            for current_token in tokens
+            if current_token.type not in {
+                token.INDENT,
+                token.DEDENT,
+                token.NEWLINE,
+                tokenize.NL,
+                tokenize.ENDMARKER,
+            }
+        )
+    except (IndentationError, SyntaxError, tokenize.TokenError):
+        return tuple(cleaned_code.split())
 
 
 # Pydantic models for request/response
@@ -391,7 +429,11 @@ async def problemset_page(
 
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
-async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+async def problemset_tasks_page(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -401,6 +443,9 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "problemset.html"
     response = FileResponse(tasks_path)
@@ -409,7 +454,12 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
-async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -419,6 +469,9 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
@@ -428,7 +481,12 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_description_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -438,6 +496,9 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     description_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(description_path)
@@ -447,7 +508,12 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
-async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_start_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -457,6 +523,9 @@ async def problemset_task_start_page(unique_link_code: str, task_id: int, db: As
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     start_path = BASE_DIR / "templates" / "student_start_page.html"
     response = FileResponse(start_path)
@@ -645,6 +714,12 @@ async def student_login(
             detail="Incorrect username or password",
         )
 
+    # Refresh session activity so previously inactive accounts can access student pages.
+    now = datetime.now(timezone.utc)
+    student.last_activity_at = now
+    if not student.started_at:
+        student.started_at = now
+
     # Optionally associate the student with the task list they are accessing
     if request.unique_link_code:
         stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
@@ -652,7 +727,8 @@ async def student_login(
         task_list = result.scalar_one_or_none()
         if task_list:
             student.task_list_id = task_list.id
-            await db.commit()
+
+    await db.commit()
 
     set_session_cookie(response, student.id)
     return {"status": "success", "student_id": student.id}
@@ -775,10 +851,19 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
+    REGISTRATION_TOKEN = "test_token"
+
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
+    registration_token = payload.get("registration_token", "")
+
+    if registration_token != REGISTRATION_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid registration token",
+        )
 
     if not username or not password or not email:
         raise HTTPException(
@@ -1477,11 +1562,21 @@ async def get_task_statistics(
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
             code = attempt.submitted_inputs.get("code", "")
             if code:
-                mistake_counts[code] = mistake_counts.get(code, 0) + 1
+                normalized_code = _clean_mistake_code(code)
+                if not normalized_code:
+                    continue
+
+                fingerprint = _mistake_code_fingerprint(normalized_code)
+                if fingerprint not in mistake_counts:
+                    mistake_counts[fingerprint] = {"code": normalized_code, "count": 0}
+
+                mistake_counts[fingerprint]["count"] += 1
+                if len(normalized_code) < len(mistake_counts[fingerprint]["code"]):
+                    mistake_counts[fingerprint]["code"] = normalized_code
 
     common_mistakes = [
-        {"code": code, "count": count}
-        for code, count in sorted(mistake_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        {"code": mistake["code"], "count": mistake["count"]}
+        for mistake in sorted(mistake_counts.values(), key=lambda item: item["count"], reverse=True)[:5]
     ]
 
     return {

@@ -144,26 +144,76 @@ class TestProblemsetPages:
     async def test_tasks_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks")).status_code == 404
 
-    async def test_tasks_page_returns_200(self, client, problemset):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks")).status_code == 200
+    async def test_tasks_page_redirects_without_session(self, client, problemset):
+        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_tasks_page_returns_200_with_session(self, client, problemset, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_task_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}")).status_code == 200
+    async def test_task_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_task_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_description_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/description")).status_code == 404
 
-    async def test_description_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/description")).status_code == 200
+    async def test_description_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_description_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/start")).status_code == 200
+    async def test_start_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_start_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
 
 # ---------------------------------------------------------------------------
@@ -767,3 +817,53 @@ class TestStatistics:
             headers=_auth(test_teacher.username),
         )).json()
         assert body["total_completions"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Protected Pages (require authentication)
+# ---------------------------------------------------------------------------
+
+class TestProtectedPages:
+    async def test_task_list_selector_unauthenticated(self, client):
+        """Should redirect to /index.html when not authenticated"""
+        r = await client.get("/task_list_selector", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/index.html"
+
+    async def test_task_list_selector_authenticated(self, client, test_teacher):
+        """Should return 200 when authenticated"""
+        r = await client.get("/task_list_selector", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_task_list_statistics_unauthenticated(self, client):
+        """Should redirect to /index.html when not authenticated"""
+        r = await client.get("/task_list_statistics", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/index.html"
+
+    async def test_task_list_statistics_authenticated(self, client, test_teacher):
+        """Should return 200 when authenticated"""
+        r = await client.get("/task_list_statistics", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_student_attempts_unauthenticated(self, client):
+        """Should redirect to /index.html when not authenticated"""
+        r = await client.get("/student_attempts", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/index.html"
+
+    async def test_student_attempts_authenticated(self, client, test_teacher):
+        """Should return 200 when authenticated"""
+        r = await client.get("/student_attempts", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_student_task_statistics_unauthenticated(self, client):
+        """Should redirect to /index.html when not authenticated"""
+        r = await client.get("/student_task_statistics", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/index.html"
+
+    async def test_student_task_statistics_authenticated(self, client, test_teacher):
+        """Should return 200 when authenticated"""
+        r = await client.get("/student_task_statistics", headers=_auth(test_teacher.username))
+        assert r.status_code == 200

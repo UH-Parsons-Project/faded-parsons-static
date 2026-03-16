@@ -66,6 +66,10 @@
                 <span class="stat-label">Total Attempts</span>
                 <span class="stat-value" id="stat-total">0</span>
               </div>
+              <div class="stat-item" id="empty-attempts-item" style="display: none;">
+                <span class="stat-label">Empty Attempts (filtered)</span>
+                <span class="stat-value text-muted" id="stat-empty">0</span>
+              </div>
               <div class="stat-item">
                 <span class="stat-label">Successful</span>
                 <span class="stat-value" style="color: #28a745;" id="stat-success">0</span>
@@ -281,6 +285,11 @@
       document.getElementById('stat-total').textContent = data.total_attempts;
       document.getElementById('stat-success').textContent = data.successful_attempts;
       document.getElementById('stat-failed').textContent = data.failed_attempts;
+
+      if (data.empty_attempts && data.empty_attempts > 0) {
+        document.getElementById('empty-attempts-item').style.display = 'flex';
+        document.getElementById('stat-empty').textContent = data.empty_attempts;
+      }
 
       if (data.time_to_first_success) {
         document.getElementById('time-to-success-box').style.display = 'block';

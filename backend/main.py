@@ -130,6 +130,7 @@ class StudentTaskStatisticsResponse(BaseModel):
     total_attempts: int
     successful_attempts: int
     failed_attempts: int
+    empty_attempts: int
     time_to_first_success: dict | None
     time_to_first_fail: dict | None
     attempts_detail: list[dict]
@@ -143,6 +144,53 @@ class SubmitTestResultRequest(BaseModel):
     repr_code: str
     start_time: str | None = None  # ISO format timestamp from localStorage
 
+
+def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool:
+    """
+    Check if submitted code has user-added content beyond just the given blocks.
+    
+    An "empty" submission is one that only contains the pre-filled (given) blocks
+    with no other blocks added and no blanks filled in.
+    
+    Handles both old format (blocks as list of strings) and new format (blocks as list of dicts).
+    """
+    if not submitted_code.strip():
+        return False
+    
+    blocks = task_code_blocks.get("blocks", [])
+    if not blocks:
+        # No blocks defined, so any submission has user-added code
+        return True
+    
+    # Handle old format where blocks is a list of strings
+    if isinstance(blocks[0], str):
+        # Old format - assume any non-empty submission is user-added
+        return True
+    
+    submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
+    
+    # Get all "given" (pre-filled) blocks - these are the ones shown by default
+    given_blocks = [block for block in blocks if isinstance(block, dict) and block.get("given", False)]
+    
+    # If submission has more lines than given blocks, user added something
+    if len(submitted_lines) > len(given_blocks):
+        return True
+    
+    # If submission has fewer lines than given blocks, it's incomplete/empty
+    if len(submitted_lines) < len(given_blocks):
+        return False
+    
+    # Same number of lines - check if they match the given blocks with empty blanks
+    for submitted_line, given_block in zip(submitted_lines, given_blocks):
+        # Reconstruct what this given block looks like with empty blanks
+        expected_empty = given_block.get("code", "").replace("___", "").strip()
+        submitted_clean = submitted_line.replace(" ", "")
+        expected_clean = expected_empty.replace(" ", "")
+        
+        if submitted_clean != expected_clean:
+            return True
+    
+    return False
 
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"
@@ -297,7 +345,11 @@ async def problemset_page(
 
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
-async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+async def problemset_tasks_page(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -307,6 +359,9 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "problemset.html"
     response = FileResponse(tasks_path)
@@ -315,7 +370,12 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
-async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -325,6 +385,9 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
@@ -334,7 +397,12 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_description_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -344,6 +412,9 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     description_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(description_path)
@@ -353,7 +424,12 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
-async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_start_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -363,6 +439,9 @@ async def problemset_task_start_page(unique_link_code: str, task_id: int, db: As
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     start_path = BASE_DIR / "templates" / "student_start_page.html"
     response = FileResponse(start_path)
@@ -536,6 +615,12 @@ async def student_login(
             detail="Incorrect username or password",
         )
 
+    # Refresh session activity so previously inactive accounts can access student pages.
+    now = datetime.now(timezone.utc)
+    student.last_activity_at = now
+    if not student.started_at:
+        student.started_at = now
+
     # Optionally associate the student with the task list they are accessing
     if request.unique_link_code:
         stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
@@ -543,7 +628,8 @@ async def student_login(
         task_list = result.scalar_one_or_none()
         if task_list:
             student.task_list_id = task_list.id
-            await db.commit()
+
+    await db.commit()
 
     set_session_cookie(response, student.id)
     return {"status": "success", "student_id": student.id}
@@ -1050,6 +1136,28 @@ async def get_student_task_statistics(
     result = await db.execute(stmt)
     attempts = result.scalars().all()
 
+    # Filter out empty attempts (those with no user-added code)
+    empty_attempts_count = 0
+    filtered_attempts = []
+    for attempt in attempts:
+        # Keep attempts that don't have code field (e.g., old data, missing field)
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+            filtered_attempts.append(attempt)
+            continue
+        
+        code = attempt.submitted_inputs.get("code", "")
+        if not code:
+            # No code at all - keep it (might be old attempt format)
+            filtered_attempts.append(attempt)
+        elif has_user_added_own_code(code, task.code_blocks):
+            # Has user-added code - keep it
+            filtered_attempts.append(attempt)
+        else:
+            # Has code but it's empty template - count it
+            empty_attempts_count += 1
+    
+    attempts = filtered_attempts
+
     if not attempts:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -1058,6 +1166,7 @@ async def get_student_task_statistics(
             total_attempts=0,
             successful_attempts=0,
             failed_attempts=0,
+            empty_attempts=0,
             time_to_first_success=None,
             time_to_first_fail=None,
             attempts_detail=[]
@@ -1100,6 +1209,7 @@ async def get_student_task_statistics(
         total_attempts=len(attempts),
         successful_attempts=successful_attempts,
         failed_attempts=failed_attempts,
+        empty_attempts=empty_attempts_count,
         time_to_first_success=time_to_first_success,
         time_to_first_fail=time_to_first_fail,
         attempts_detail=attempts_detail
@@ -1179,6 +1289,21 @@ async def get_task_statistics(
 
     attempts_result = await db.execute(attempts_query)
     attempts = attempts_result.scalars().all()
+
+    # Filter out empty attempts (those with no user-added code)
+    filtered_attempts = []
+    for attempt in attempts:
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+            filtered_attempts.append(attempt)
+            continue
+
+        code = attempt.submitted_inputs.get("code", "")
+        if not code:
+            filtered_attempts.append(attempt)
+        elif has_user_added_own_code(code, task.code_blocks):
+            filtered_attempts.append(attempt)
+
+    attempts = filtered_attempts
 
     if not attempts:
         return {

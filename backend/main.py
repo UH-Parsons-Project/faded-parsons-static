@@ -112,8 +112,8 @@ class UserInfo(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     title: str
-    description: str
-    task_instructions: str | None
+    task_instructions: str 
+    description: str | None
     task_type: str
     code_blocks: dict
     correct_solution: dict
@@ -808,8 +808,8 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     return TaskResponse(
         id=task.id,
         title=task.title,
-        description=task.description,
         task_instructions=task.task_instructions,
+        description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,
@@ -827,16 +827,32 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
 
     task_list = []
     for task in tasks:
+        instructions_text = ""
         try:
-            description_data = json.loads(task.description)
-            description_text = description_data.get("description", "")
+            instructions_data = json.loads(task.task_instructions)
+            if isinstance(instructions_data, dict):
+                instructions_text = instructions_data.get("task_instructions", "")
+            else:
+                instructions_text = str(instructions_data or "")
         except (json.JSONDecodeError, AttributeError):
-            description_text = ""
+            instructions_text = ""
+
+        description_text = ""
+        if isinstance(task.description, str):
+            try:
+                description_data = json.loads(task.description)
+                if isinstance(description_data, dict):
+                    description_text = description_data.get("description", task.description)
+                else:
+                    description_text = str(description_data or "")
+            except (json.JSONDecodeError, TypeError):
+                description_text = task.description
 
         task_list.append(
             {
                 "id": task.id,
                 "title": task.title,
+                "task_instructions": instructions_text,
                 "description": description_text,
                 "task_type": task.task_type,
                 "created_at": task.created_at.isoformat(),

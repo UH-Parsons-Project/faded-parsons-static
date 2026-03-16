@@ -143,7 +143,8 @@ async def private_task(db_session, test_teacher) -> Parsons:
     t = Parsons(
         created_by_teacher_id=test_teacher.id,
         title="Private Task",
-        description='{"description": "Internal only."}',
+        task_instructions='{"description": "Internal only."}',
+        description="Arrange the blocks for an internal task.",
         task_type="python",
         code_blocks={"blocks": []},
         correct_solution={"solution": []},

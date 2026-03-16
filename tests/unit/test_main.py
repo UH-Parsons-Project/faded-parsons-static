@@ -472,17 +472,17 @@ class TestGetTask:
         assert body["task_instructions"] == "Arrange the blocks to print 'Hello, World!'"
         assert body["task_type"] == "python"
 
-    async def test_task_without_instructions_returns_null(self, client, db_session, test_teacher):
+    async def test_task_without_description_returns_null(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="NoInstr", task_type="python",
-            description='{}', code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         await db_session.refresh(t)
         r = await client.get(f"/api/tasks/{t.id}")
         assert r.status_code == 200
-        assert r.json()["task_instructions"] is None
+        assert r.json()["description"] is None
 
     async def test_nonexistent_task_returns_404(self, client):
         assert (await client.get("/api/tasks/99999")).status_code == 404
@@ -506,27 +506,27 @@ class TestListTasks:
         found = next(t for t in r.json() if t["id"] == task.id)
         assert found["description"] == "Print hello world."
 
-    async def test_invalid_json_description_returns_empty_string(self, client, db_session, test_teacher):
+    async def test_invalid_json_instructions_returns_empty_string(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="BadJson", task_type="python",
-            description="not-json", code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions="not-json", description='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         r = await client.get("/api/tasks")
         found = next(t for t in r.json() if t["title"] == "BadJson")
-        assert found["description"] == ""
+        assert found["task_instructions"] == ""
 
-    async def test_empty_description_string_returns_empty(self, client, db_session, test_teacher):
+    async def test_empty_instructions_string_returns_empty(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="EmptyStr", task_type="python",
-            description="", code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions="", description='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         r = await client.get("/api/tasks")
         found = next(t for t in r.json() if t["title"] == "EmptyStr")
-        assert found["description"] == ""
+        assert found["task_instructions"] == ""
 
 
 # ---------------------------------------------------------------------------

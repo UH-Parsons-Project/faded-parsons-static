@@ -1,9 +1,9 @@
 problem_name: calculate_dog_age
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice Python syntax for mathematical operations.
 
-problem_description: |
+task_instructions: |
   <code>calculate_dog_age</code>
     returns a dog's age based on a conversion rate of
     1 human year to 7 dog years.

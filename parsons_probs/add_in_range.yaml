@@ -1,9 +1,9 @@
 problem_name: add_in_range
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice creating a simple while loop.
 
-problem_description: |
+task_instructions: |
   <code>add_in_range</code> returns the sum of all integers between start and
   stop (inclusive)<br>
   <pre><code>

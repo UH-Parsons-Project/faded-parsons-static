@@ -49,32 +49,32 @@ export async function initWidget() {
 
 		const task = await response.json();
 
-		// Parse description JSON
-		let parsedDescription = {};
+		// Parse task instructions JSON
+		let parsedInstructions = {};
 		try {
-			parsedDescription =
-				typeof task.description === 'string'
-					? JSON.parse(task.description)
-					: task.description;
+			parsedInstructions =
+				typeof task.task_instructions === 'string'
+					? JSON.parse(task.task_instructions)
+					: task.task_instructions;
 		} catch (e) {
-			// Fallback if description is not valid JSON
-			parsedDescription = {
+			// Fallback if task_instructions is not valid JSON
+			parsedInstructions = {
 				function_name: '',
-				description: task.description || '',
+				task_instructions: task.task_instructions || '',
 				examples: '',
 			};
 		}
 
 		// Build HTML problem statement from structured parts
 		let problemStatementHTML = '';
-		if (parsedDescription.function_name) {
-			problemStatementHTML += `<strong>${parsedDescription.function_name}</strong>`;
+		if (parsedInstructions.function_name) {
+			problemStatementHTML += `<strong>${parsedInstructions.function_name}</strong>`;
 		}
-		if (parsedDescription.description) {
-			problemStatementHTML += ` ${parsedDescription.description}`;
+		if (parsedInstructions.task_instructions) {
+			problemStatementHTML += ` ${parsedInstructions.task_instructions}`;
 		}
-		if (parsedDescription.examples) {
-			problemStatementHTML += `<br><pre><code>${parsedDescription.examples}</code></pre>`;
+		if (parsedInstructions.examples) {
+			problemStatementHTML += `<br><pre><code>${parsedInstructions.examples}</code></pre>`;
 		}
 
 		const codeBlocksData = task.code_blocks;
@@ -103,8 +103,8 @@ export async function initWidget() {
 
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
-		probEl.setAttribute('description', problemStatementHTML);
-		probEl.setAttribute('taskInstructions', task.task_instructions || '');
+		probEl.setAttribute('taskInstructions', problemStatementHTML);
+		probEl.setAttribute('description', task.description);
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');

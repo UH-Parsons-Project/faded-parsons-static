@@ -1,9 +1,9 @@
 problem_name: assign_grade
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice creating if-elif-else statements.
 
-problem_description: |
+task_instructions: |
   <code>assign_grade</code>
     returns a letter grade for the numeric score based on the grade bins of:
      "A" (90-100), "B" (80-89), "C" (70-79), "D" (65-69), or "F" (0-64)

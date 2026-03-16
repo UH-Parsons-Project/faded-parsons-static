@@ -66,7 +66,7 @@ test_fn: my_new_task
 Required/important fields:
 
 - `problem_name`: task name
-- `problem_description`: shown in UI (HTML format used in existing tasks)
+- `task_instructions`: shown in UI (HTML format used in existing tasks)
 - `code_lines`: one code line per row
 - `test_fn`: function name to test
 

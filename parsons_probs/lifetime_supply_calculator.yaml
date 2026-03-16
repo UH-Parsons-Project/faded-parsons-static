@@ -1,9 +1,9 @@
 problem_name: lifetime_supply_calculator
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice doing mathematical operations in Python.
 
-problem_description: |
+task_instructions: |
   <code>lifetime_supply_calculator</code>
     returns the amount of items consumed over a lifetime
     (with a max age of 100 assumed) based on the current age

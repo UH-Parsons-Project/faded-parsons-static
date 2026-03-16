@@ -22,12 +22,12 @@ export function initLoginPage() {
 	const userInfo = document.getElementById('user-info');
 	const errorMessage = document.getElementById('error-message');
 	const loginBtn = document.getElementById('login-btn');
-	
+
 	if (!loginForm) {
 		console.error('Login form not found');
 		return;
 	}
-	
+
 	// Check if user is already logged in
 	async function checkAuth() {
 		const userData = await verifyAuth();
@@ -37,7 +37,7 @@ export function initLoginPage() {
 			showLoginForm();
 		}
 	}
-	
+
 	function showUserInfo(username) {
 		loginForm.style.display = 'none';
 		if (userInfo) {
@@ -49,7 +49,7 @@ export function initLoginPage() {
 		}
 		setExercisesButtonVisible(true);
 	}
-	
+
 	function showLoginForm() {
 		loginForm.style.display = 'flex';
 		if (userInfo) {
@@ -57,7 +57,7 @@ export function initLoginPage() {
 		}
 		setExercisesButtonVisible(false);
 	}
-	
+
 	function showError(message) {
 		if (errorMessage) {
 			errorMessage.textContent = message;
@@ -67,24 +67,24 @@ export function initLoginPage() {
 			}, 5000);
 		}
 	}
-	
+
 	// Handle login form submission
 	loginForm.addEventListener('submit', async function(e) {
 		e.preventDefault();
 		const username = document.getElementById('username').value.trim();
 		const password = document.getElementById('password').value;
-		
+
 		if (!username || !password) {
 			showError('Please enter username and password');
 			return;
 		}
-		
+
 		// Disable button during request
 		if (loginBtn) {
 			loginBtn.disabled = true;
 			loginBtn.textContent = 'Logging in...';
 		}
-		
+
 		try {
 			// If we're on a problemset page (/set/<code>) use student login
 			const pathMatch = window.location.pathname.match(/^\/set\/([^\/]+)/);
@@ -107,12 +107,12 @@ export function initLoginPage() {
 					return;
 				}
 			}
-			
+
 			// Fallback to teacher OAuth2 login for other pages
 			const formData = new URLSearchParams();
 			formData.append('username', username);
 			formData.append('password', password);
-			
+
 			const response = await fetch('/api/login/access-token', {
 				method: 'POST',
 				headers: {
@@ -120,31 +120,31 @@ export function initLoginPage() {
 				},
 				body: formData
 			});
-			
+
 			if (response.ok) {
 				const data = await response.json();
-				
+
 				// Get user info using the token
 				const userResponse = await fetch('/api/me', {
 					headers: {
 						'Authorization': `Bearer ${data.access_token}`
 					}
 				});
-				
+
 				if (userResponse.ok) {
 					const userData = await userResponse.json();
 					// Store token and username
 					setAuth(data.access_token, userData.username);
-					
+
 					// Clear form
 					document.getElementById('username').value = '';
 					document.getElementById('password').value = '';
-					
+
 					// Show user info
 					showUserInfo(userData.username);
-					
+
 					// Redirect to exercise list
-					window.location.href = '/exerciselist';
+					window.location.href = '/task_list_selector';
 				} else {
 					showError('Failed to get user information');
 				}
@@ -162,7 +162,7 @@ export function initLoginPage() {
 			}
 		}
 	});
-	
+
 	// Handle logout
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function() {
@@ -177,7 +177,7 @@ export function initLoginPage() {
 			showLoginForm();
 		});
 	}
-	
+
 	// Handle register button
 	const registerBtn = document.getElementById('register-btn');
 	// console.log('Register button found:', registerBtn); // Debug log
@@ -187,7 +187,7 @@ export function initLoginPage() {
 			window.location.href = '/register';
 		});
 	}
-	
+
 	// Check authentication on page load
 	checkAuth();
 }
@@ -208,13 +208,13 @@ export async function initNavbarExercisesButton() {
 export async function initProtectedPage(loginPageUrl = '/index.html') {
 	const token = getAuthToken();
 	const username = getUsername();
-	
+
 	// If no token or username, redirect immediately
 	if (!token || !username) {
 		window.location.href = loginPageUrl;
 		return;
 	}
-	
+
 	// Verify token with backend
 	const userData = await verifyAuth();
 	if (!userData) {
@@ -222,13 +222,13 @@ export async function initProtectedPage(loginPageUrl = '/index.html') {
 		window.location.href = loginPageUrl;
 		return;
 	}
-	
+
 	// Update username in nav if element exists
 	const userNameElement = document.getElementById('user-name');
 	if (userNameElement) {
 		userNameElement.textContent = userData.username;
 	}
-	
+
 	// Handle logout button
 	const logoutBtn = document.getElementById('logout-btn');
 	if (logoutBtn) {
@@ -247,23 +247,23 @@ export async function initProtectedPage(loginPageUrl = '/index.html') {
  */
 export async function displayAuthStatus() {
 	const userData = await verifyAuth();
-	
+
 	if (userData) {
 		const userNameElement = document.getElementById('user-name');
 		if (userNameElement) {
 			userNameElement.textContent = userData.username;
 		}
-		
+
 		const userInfo = document.getElementById('user-info');
 		const loginForm = document.getElementById('login-form');
-		
+
 		if (userInfo) userInfo.style.display = 'block';
 		if (loginForm) loginForm.style.display = 'none';
 		setExercisesButtonVisible(true);
 	} else {
 		setExercisesButtonVisible(false);
 	}
-	
+
 	// Setup logout handler
 	const logoutBtn = document.getElementById('logout-btn');
 	if (logoutBtn) {

@@ -115,6 +115,21 @@
       item.appendChild(code);
       item.appendChild(meta);
 
+      if (taskList.teacher_description) {
+        const description = document.createElement('div');
+        description.className = 'task-list-description';
+        
+        // Truncate to 100 characters and add ellipsis if longer
+        let displayText = taskList.teacher_description;
+        if (displayText.length > 100) {
+          displayText = displayText.substring(0, 100) + '...';
+        }
+        description.textContent = displayText;
+        description.title = taskList.teacher_description; // Show full text on hover
+        
+        item.appendChild(description);
+      }
+
       return item;
     }
 

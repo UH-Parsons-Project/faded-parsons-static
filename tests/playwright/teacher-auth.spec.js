@@ -119,7 +119,6 @@ test('registration fails with wrong access token and user cannot login', async (
   await expect(page.locator('#error-message')).toContainText('Incorrect username or password');
 });
 
-
 test('login shows error with wrong password', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_wrongpw_${unique}`;

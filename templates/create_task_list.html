@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Task List - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+
+  <!-- jQuery and Bootstrap JS for modal functionality -->
+  <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+  <!-- Task list creation form module -->
+  <script src="/js/create-task-list.js"></script>
+
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/task_list_selector"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to task lists
+      </a>
+
+      <span class="text-dark">
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+      </span>
+    </div>
+  </nav>
+
+  <div class="create-task-list-container">
+    <h1 class="mb-4">Create New Task List</h1>
+
+    <div id="error-container"></div>
+
+    <!-- Modal for Duplicate Title Error -->
+    <div id="duplicate-title-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="duplicateTitleLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header border-bottom-2" style="border-color: #dc3545;">
+            <h5 class="modal-title" id="duplicateTitleLabel">
+              <i class="fas fa-exclamation-triangle text-danger"></i> Task List Title Already Exists
+            </h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeDuplicateTitleModal()">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p id="duplicate-error-message"></p>
+            <div class="alert alert-warning" role="alert">
+              <strong>Try one of these options:</strong>
+              <ul class="mb-0 mt-2">
+                <li>Add a date or semester identifier (e.g., "Python Basics - Fall 2024")</li>
+                <li>Include a class or section number (e.g., "Python Basics - Section A")</li>
+                <li>Add a version number (e.g., "Python Basics v2")</li>
+                <li>Use a more specific title that describes the course content</li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeDuplicateTitleModal()">
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form id="create-task-list-form" class="task-list-form">
+      <!-- Basic Information -->
+      <div class="form-section">
+        <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+
+        <div class="form-group">
+          <label for="task-list-title">Task List Title</label>
+          <input type="text" class="form-control" id="task-list-title"
+                 placeholder="e.g., Python Basics - Week 1"
+                 required>
+          <small class="form-text text-muted">Give your task list a name</small>
+        </div>
+
+        <div class="form-group">
+          <label for="student-description">
+            <i class="fas fa-graduation-cap"></i> Student Description (optional)
+          </label>
+          <textarea class="form-control" id="student-description"
+                    rows="3"
+                    placeholder="What students will see when they start the task list"></textarea>
+          <small class="form-text text-muted">This is shown to students on the start page</small>
+        </div>
+
+        <div class="form-group">
+          <label for="teacher-description">
+            <i class="fas fa-chalkboard-user"></i> Teacher Description (optional)
+          </label>
+          <textarea class="form-control" id="teacher-description"
+                    rows="3"
+                    placeholder="Notes for the teacher"></textarea>
+          <small class="form-text text-muted">This is only visible to teachers</small>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-custom">
+            <input type="checkbox" id="set-expiration" class="form-check-input">
+            <label for="set-expiration" class="form-check-label">
+              Set expiration date (optional)
+            </label>
+          </div>
+        </div>
+
+        <div id="expiration-group" style="display: none;">
+          <div class="form-group">
+            <label for="expiration-date">Expiration Date</label>
+            <input type="datetime-local" class="form-control" id="expiration-date">
+            <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Selection -->
+      <div class="form-section">
+        <h5><i class="fas fa-list"></i> Select Tasks</h5>
+
+        <div class="search-box">
+          <input type="text" class="form-control" id="task-search"
+                 placeholder="Search tasks by title...">
+        </div>
+
+        <div id="tasks-loading" class="loading-spinner" style="display: none;">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p>Loading available tasks...</p>
+        </div>
+
+        <div class="task-selector" id="task-selector">
+          <!-- Tasks will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Selected Tasks with Ordering -->
+      <div class="form-section">
+        <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
+        <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
+        <div class="selected-tasks-list" id="selected-tasks-list">
+          <div class="empty-selected">No tasks selected yet</div>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="button-group">
+        <button type="submit" class="btn btn-submit">
+          <i class="fas fa-save"></i> Create Task List
+        </button>
+        <a href="/task_list_selector" class="btn btn-cancel">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+
+</body>
+</html>

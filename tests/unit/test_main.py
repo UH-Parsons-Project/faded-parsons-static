@@ -301,6 +301,7 @@ class TestRegister:
         "password": "password123",
         "password_confirm": "password123",
         "email": "new@example.com",
+        "registration_token": "test_token",
     }
 
     async def test_valid_registration_succeeds(self, client):
@@ -377,6 +378,24 @@ class TestRegister:
     async def test_whitespace_email_treated_as_empty(self, client):
         r = await client.post("/api/register", json={**self._valid, "email": "   "})
         assert r.status_code == 400
+
+    async def test_missing_token_returns_403(self, client):
+        payload = {k: v for k, v in self._valid.items() if k != "registration_token"}
+        r = await client.post("/api/register", json=payload)
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
+
+    async def test_wrong_token_returns_403(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "registration_token": "wrong_token"})
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
+
+    async def test_empty_token_returns_403(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "registration_token": ""})
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
 
 
 # ---------------------------------------------------------------------------

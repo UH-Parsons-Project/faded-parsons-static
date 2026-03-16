@@ -25,7 +25,8 @@ async def seed_db():
             # Create default test teacher
             test = Teacher(
                 username="mattiruotsalainen",
-                email="matti.ruotsalainen@example.com"
+                email="matti.ruotsalainen@example.com",
+                has_data_access=True
             )
             test.set_password("test1234")  # Change in production!
 

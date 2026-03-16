@@ -29,6 +29,7 @@
 		"lint": "npm run lint:lit-analyzer && npm run lint:eslint",
 		"lint:eslint": "eslint 'js/*.js' 'js-parsons/*.js'",
 		"lint:lit-analyzer": "lit-analyzer js/*-element.js",
+		"test:all": "./scripts/run-all-tests.sh",
 		"format": "prettier \"**/*.{js,json}\" --ignore-path ./.eslintignore --write",
 		"build": "rollup -c",
 		"watch": "rollup -c -w",

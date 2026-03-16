@@ -1,13 +1,19 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-async function registerTeacher(page, username, email, password = 'password123') {
+async function registerTeacher(
+  page,
+  username,
+  email,
+  password = 'password123',
+  registrationToken = 'test_token'
+) {
   await page.goto('/register');
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
   await page.locator('#password_confirm').fill(password);
-  await page.locator('#registration_token').fill('test_token');
+  await page.locator('#registration_token').fill(registrationToken);
   await page.locator('#register-form button[type="submit"]').click();
 }
 
@@ -90,6 +96,32 @@ test('registration shows error for duplicate username', async ({ page }) => {
   );
 });
 
+test('registration shows error for invalid token', async ({ page }) => {
+  const unique = Date.now();
+  const username = `teacher_badtoken_${unique}`;
+  const email = `teacher_badtoken_${unique}@example.com`;
+
+  await registerTeacher(page, username, email, 'password123', 'wrong_token');
+
+  await expect(page.locator('#alert-placeholder .alert-danger')).toContainText(
+    'Invalid registration token'
+  );
+});
+
+test('registration fails with wrong access token and user cannot login', async ({ page }) => {
+  const unique = Date.now();
+  const username = `teacher_wrong_access_${unique}`;
+  const email = `teacher_wrong_access_${unique}@example.com`;
+  const password = 'password123';
+
+  await registerTeacher(page, username, email, password, 'wrong_access_token');
+  await expect(page.locator('#alert-placeholder .alert-danger')).toContainText(
+    'Invalid registration token'
+  );
+
+  await loginTeacher(page, username, password);
+  await expect(page.locator('#error-message')).toContainText('Incorrect username or password');
+});
 
 test('login shows error with wrong password', async ({ page }) => {
   const unique = Date.now();

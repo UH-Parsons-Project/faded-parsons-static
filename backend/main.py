@@ -1392,3 +1392,48 @@ async def get_task_statistics(
         "number_of_moves": None, # Not yet tracked — requires move_events table
         "common_mistakes": common_mistakes,
     }
+
+
+@app.get("/api/all-problemsets", response_model=list[ProblemSetResponse])
+async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    """List all task lists from all teachers if the user has data access."""
+    if not current_user.has_data_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this resource.",
+        )
+
+    stmt = select(TaskList).order_by(TaskList.created_at.desc())
+    result = await db.execute(stmt)
+    problemsets = result.scalars().all()
+
+    return [
+        ProblemSetResponse(
+            id=ps.id,
+            title=ps.title,
+            unique_link_code=ps.unique_link_code,
+            teacher_id=ps.teacher_id,
+            created_at=ps.created_at.isoformat(),
+            expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
+        )
+        for ps in problemsets
+    ]
+
+
+@app.get("/all-problemsets", response_class=HTMLResponse)
+async def all_problemsets_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the page for viewing all problem sets (requires data access)."""
+    try:
+        current_user = await get_current_user(request, db)
+        if not current_user.has_data_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    all_problemsets_path = BASE_DIR / "templates" / "all_problemsets.html"
+    response = FileResponse(all_problemsets_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response

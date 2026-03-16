@@ -43,6 +43,7 @@ test('teacher can register and then login from the main page', async ({ page }) 
   await page.locator('#registration_token').fill('test_token');
   await page.locator('#register-form button[type="submit"]').click();
 
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
     'Registration successful.'
   );
@@ -53,7 +54,7 @@ test('teacher can register and then login from the main page', async ({ page }) 
   await page.locator('#password').fill(password);
   await page.locator('#login-btn').click();
 
-  await expect(page).toHaveURL(/\/exerciselist$/);
+  await expect(page).toHaveURL(/\/task_list_selector$/);
 });
 
 test('teacher can logout after successful login', async ({ page }) => {
@@ -63,12 +64,13 @@ test('teacher can logout after successful login', async ({ page }) => {
   const password = 'password123';
 
   await registerTeacher(page, username, email, password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
     'Registration successful.'
   );
 
   await loginTeacher(page, username, password);
-  await expect(page).toHaveURL(/\/exerciselist$/);
+  await expect(page).toHaveURL(/\/task_list_selector$/);
 
   await page.locator('#logout-btn').click();
   await expect(page).toHaveURL(/\/index\.html$/);
@@ -82,11 +84,13 @@ test('registration shows error for duplicate username', async ({ page }) => {
   const email2 = `teacher_dup_${unique}_2@example.com`;
 
   await registerTeacher(page, username, email1);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
     'Registration successful.'
   );
 
   await registerTeacher(page, username, email2);
+  await page.waitForSelector('#alert-placeholder .alert-danger', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-danger')).toContainText(
     'Username or email already exists'
   );
@@ -126,6 +130,7 @@ test('login shows error with wrong password', async ({ page }) => {
   const password = 'password123';
 
   await registerTeacher(page, username, email, password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
     'Registration successful.'
   );

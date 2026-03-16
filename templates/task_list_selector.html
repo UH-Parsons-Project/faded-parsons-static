@@ -29,6 +29,10 @@
         <i class="fas fa-user"></i>
         signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
       </span>
+
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
+        Logout
+      </button>
     </div>
   </nav>
 
@@ -70,6 +74,22 @@
             console.error(error);
             userNameEl.textContent = '';
         });
+
+    // Handle logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await fetch('/api/logout', { method: 'POST' });
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('username');
+          window.location.href = '/index.html';
+        } catch (error) {
+          console.error('Logout error:', error);
+          window.location.href = '/index.html';
+        }
+      });
+    }
 
     function formatDate(isoString) {
       const date = new Date(isoString);

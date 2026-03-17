@@ -81,3 +81,8 @@ Instructor:
 - Telegram
 - Discord
 - Meeting up on campus
+
+## Logo
+
+Project logo made by Victoria Khoreva:
+![Parsons code lab logo](ohtuproj_logo.png)

@@ -1,6 +1,4 @@
-"""
-Authentication utilities for JWT token management.
-"""
+"""Authentication utilities for JWT token management."""
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -29,7 +27,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -37,10 +35,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 async def get_current_user(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Teacher:
-    """
-    Dependency to get the current authenticated user from JWT token.
+    """Dependency to get the current authenticated user from JWT token.
+
     Checks cookies first (for browser navigation), then Authorization header (for API calls).
     Raises HTTPException if token is invalid or user not found.
     """
@@ -49,19 +47,19 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     # Try to get token from cookie first (for browser page navigation)
     token = request.cookies.get("access_token")
-    
+
     # Fallback to Authorization header (for API calls)
     if not token:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
-    
+
     if not token:
         raise credentials_exception
-    
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -69,35 +67,31 @@ async def get_current_user(
             raise credentials_exception
     except jwt.InvalidTokenError:
         raise credentials_exception
-    
+
     # Fetch user from database
-    result = await db.execute(
-        select(Teacher).where(Teacher.username == username)
-    )
+    result = await db.execute(select(Teacher).where(Teacher.username == username))
     user = result.scalar_one_or_none()
-    
+
     if user is None or not user.is_active:
         raise credentials_exception
-    
+
     return user
 
 
 async def authenticate_user(username: str, password: str, db: AsyncSession) -> Optional[Teacher]:
-    """
-    Authenticate a user by username and password.
+    """Authenticate a user by username and password.
+
     Returns the Teacher object if valid, None otherwise.
     """
-    result = await db.execute(
-        select(Teacher).where(Teacher.username == username)
-    )
+    result = await db.execute(select(Teacher).where(Teacher.username == username))
     user = result.scalar_one_or_none()
-    
+
     if not user or not user.is_active:
         return None
-    
+
     if not user.verify_password(password):
         return None
-    
+
     return user
 
 

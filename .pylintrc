@@ -1,0 +1,13 @@
+[MASTER]
+init-hook='import sys; sys.path.append(".")'
+ignore=venv
+
+[MESSAGES CONTROL]
+disable=C0114,C0115,C0116,import-error
+
+[FORMAT]
+max-line-length=100
+
+[REPORTS]
+output-format=colorized
+score=no

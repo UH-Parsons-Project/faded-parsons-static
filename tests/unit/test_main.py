@@ -13,11 +13,13 @@ SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
 from datetime import datetime
+from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy import select
 
 from backend.auth import create_access_token
+import backend.main as main_module
 from backend.models import Parsons, Student, TaskAttempt, TaskList
 
 
@@ -922,3 +924,272 @@ class TestProtectedPages:
         """Should return 200 when authenticated"""
         r = await client.get("/student_task_statistics", headers=_auth(test_teacher.username))
         assert r.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Utility helpers in main.py
+# ---------------------------------------------------------------------------
+
+class TestMainHelpers:
+    def test_clean_mistake_code_normalizes_and_trims_empty_edges(self):
+        raw = "\r\n   \r\nprint(1)  \r\nprint(2)\r\n\r\n"
+        assert main_module._clean_mistake_code(raw) == "print(1)\nprint(2)"
+
+    def test_mistake_code_fingerprint_empty_code_returns_empty_tuple(self):
+        assert main_module._mistake_code_fingerprint("\n\n  \n") == tuple()
+
+    def test_mistake_code_fingerprint_fallback_on_token_error(self, monkeypatch):
+        def _raise_token_error(_):
+            raise main_module.tokenize.TokenError("boom")
+
+        monkeypatch.setattr(main_module.tokenize, "generate_tokens", _raise_token_error)
+        fingerprint = main_module._mistake_code_fingerprint("a   b")
+        assert fingerprint == ("a", "b")
+
+    def test_generate_slug_strips_specials_and_collapses_separators(self):
+        assert main_module.generate_slug("  Hello__World! 2026  ") == "hello-world-2026"
+
+    @pytest.mark.parametrize(
+        "submitted_code,blocks,expected",
+        [
+            ("", {"blocks": []}, False),
+            ("print(1)", {"blocks": []}, True),
+            ("print(1)", {"blocks": ["print(1)"]}, True),
+            (
+                "x = 1",
+                {"blocks": [{"code": "x = ___", "given": True}, {"code": "print(x)", "given": True}]},
+                False,
+            ),
+            (
+                "x = 1\nprint(x)",
+                {"blocks": [{"code": "x = ___", "given": True}, {"code": "print(x)", "given": True}]},
+                True,
+            ),
+        ],
+    )
+    def test_has_user_added_own_code_branches(self, submitted_code, blocks, expected):
+        assert main_module.has_user_added_own_code(submitted_code, blocks) is expected
+
+
+# ---------------------------------------------------------------------------
+# Additional endpoint branch coverage
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestDevAndMaintenanceEndpoints:
+    async def test_reset_test_db_success_in_test_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "TEST_MODE", True)
+        reset_mock = AsyncMock()
+        seed_mock = AsyncMock()
+        monkeypatch.setattr(main_module, "reset_db", reset_mock)
+        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+
+        r = await client.post("/test/reset-db")
+
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+        reset_mock.assert_awaited_once()
+        seed_mock.assert_awaited_once()
+
+    async def test_reset_test_db_returns_500_on_error(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "TEST_MODE", True)
+
+        async def boom():
+            raise RuntimeError("reset failed")
+
+        monkeypatch.setattr(main_module, "reset_db", boom)
+
+        r = await client.post("/test/reset-db")
+
+        assert r.status_code == 500
+        assert "Failed to reset database" in r.json()["detail"]
+
+    async def test_reset_database_forbidden_without_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        r = await client.post("/api/reset-db")
+        assert r.status_code == 403
+
+    async def test_seed_database_forbidden_without_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        r = await client.post("/api/seed-db")
+        assert r.status_code == 403
+
+    async def test_dev_db_page_forbidden_without_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        r = await client.get("/dev/db")
+        assert r.status_code == 403
+
+    async def test_reset_database_success_in_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        reset_mock = AsyncMock()
+        monkeypatch.setattr(main_module, "reset_db", reset_mock)
+
+        r = await client.post("/api/reset-db")
+
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+        reset_mock.assert_awaited_once()
+
+    async def test_seed_database_success_in_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        seed_mock = AsyncMock()
+        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+
+        r = await client.post("/api/seed-db")
+
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+        seed_mock.assert_awaited_once()
+
+    async def test_dev_db_page_returns_html_in_development_mode(self, client, monkeypatch):
+        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        r = await client.get("/dev/db")
+        assert r.status_code == 200
+        assert "DB Management" in r.text
+
+
+@pytest.mark.asyncio
+class TestAdditionalMainPagesAndStudentAuth:
+    async def test_create_task_list_page_requires_authentication(self, client):
+        r = await client.get("/create_task_list", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/index.html"
+
+    async def test_create_task_list_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create_task_list", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_student_register_page_returns_200(self, client):
+        r = await client.get("/student_register")
+        assert r.status_code == 200
+
+    async def test_student_login_invalid_credentials_returns_400(self, client):
+        r = await client.post(
+            "/api/student_login",
+            json={"username": "ghost", "password": "wrong", "unique_link_code": None},
+        )
+        assert r.status_code == 400
+        assert "Incorrect" in r.json()["detail"]
+
+    async def test_student_login_sets_cookie_and_can_rebind_task_list(
+        self, client, student_session, db_session, problemset
+    ):
+        other_list = TaskList(
+            teacher_id=problemset.teacher_id,
+            title="Week 2 Exercises",
+            unique_link_code="WEEK2",
+        )
+        db_session.add(other_list)
+        await db_session.commit()
+        await db_session.refresh(other_list)
+
+        r = await client.post(
+            "/api/student_login",
+            json={
+                "username": student_session.username,
+                "password": "studentpass123",
+                "unique_link_code": "WEEK2",
+            },
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+        assert "student_session" in r.cookies
+
+        refreshed = await db_session.get(Student, student_session.id)
+        assert refreshed.task_list_id == other_list.id
+
+    async def test_student_logout_clears_cookie(self, client):
+        r = await client.post("/api/student_logout")
+        assert r.status_code == 200
+        assert "logged out" in r.json()["message"].lower()
+
+
+@pytest.mark.asyncio
+class TestAdditionalProblemsetAndTaskListApis:
+    async def test_list_problemsets_requires_authentication(self, client):
+        r = await client.get("/api/problemsets")
+        assert r.status_code == 401
+
+    async def test_list_problemsets_returns_current_teacher_problemsets(
+        self, client, test_teacher, problemset, db_session
+    ):
+        other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
+        other_teacher.set_password("testpassword123")
+        db_session.add(other_teacher)
+        await db_session.commit()
+        await db_session.refresh(other_teacher)
+
+        db_session.add(
+            TaskList(
+                teacher_id=other_teacher.id,
+                title="Other Teacher List",
+                unique_link_code="OTHER1",
+            )
+        )
+        await db_session.commit()
+
+        r = await client.get("/api/problemsets", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        assert {item["unique_link_code"] for item in r.json()} == {problemset.unique_link_code}
+
+    async def test_student_register_success_and_duplicate_rejected(self, client):
+        payload = {
+            "username": "studentx",
+            "password": "studentpass123",
+            "password_confirm": "studentpass123",
+            "email": "studentx@example.com",
+        }
+        first = await client.post("/api/student_register", json=payload)
+        assert first.status_code == 200
+        assert first.json()["status"] == "success"
+
+        dup = await client.post("/api/student_register", json=payload)
+        assert dup.status_code == 400
+        assert "already exists" in dup.json()["detail"]
+
+    async def test_create_task_list_rejects_unknown_task_id(self, client, test_teacher):
+        r = await client.post(
+            "/api/task_lists",
+            headers=_auth(test_teacher.username),
+            json={"title": "My New Set", "task_ids": [999999]},
+        )
+        assert r.status_code == 404
+
+    async def test_create_task_list_rejects_invalid_expiration(self, client, test_teacher):
+        r = await client.post(
+            "/api/task_lists",
+            headers=_auth(test_teacher.username),
+            json={"title": "Date Test Set", "expires_at": "invalid-date", "task_ids": []},
+        )
+        assert r.status_code == 400
+        assert "Invalid expiration date format" in r.json()["detail"]
+
+    async def test_create_task_list_success_with_tasks(self, client, test_teacher, task, db_session):
+        second = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Hello Again",
+            description='{"description": "Two"}',
+            task_instructions='{"task_instructions": "Arrange me"}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=True,
+        )
+        db_session.add(second)
+        await db_session.commit()
+        await db_session.refresh(second)
+
+        payload = {
+            "title": "Brand New Task List",
+            "student_description": "Student-facing",
+            "teacher_description": "Teacher-facing",
+            "expires_at": "2027-01-01T00:00:00Z",
+            "task_ids": [task.id, second.id],
+        }
+        r = await client.post("/api/task_lists", headers=_auth(test_teacher.username), json=payload)
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body["title"] == "Brand New Task List"
+        assert body["unique_link_code"] == "brand-new-task-list"
+        assert body["expires_at"] is not None

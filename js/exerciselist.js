@@ -1,11 +1,7 @@
 import {clearAuth} from '/js/auth-utils.js';
-import {initNavbarExercisesButton} from '/js/auth-ui.js';
+import {initNavbarExercisesButton, initSignedInAs} from '/js/auth-ui.js';
 
-// Display username if available
-const username = localStorage.getItem('username');
-if (username) {
-	document.getElementById('user-name').textContent = username;
-}
+initSignedInAs();
 
 initNavbarExercisesButton();
 

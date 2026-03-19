@@ -87,7 +87,7 @@ export function initLoginPage() {
 
 		try {
 			// If we're on a problemset page (/set/<code>) use student login
-			const pathMatch = window.location.pathname.match(/^\/set\/([^\/]+)/);
+			const pathMatch = window.location.pathname.match(/^\/set\/([^/]+)/);
 			if (pathMatch) {
 				const code = pathMatch[1];
 				const response = await fetch('/api/student_login', {
@@ -182,10 +182,17 @@ export function initLoginPage() {
 	const registerBtn = document.getElementById('register-btn');
 	// console.log('Register button found:', registerBtn); // Debug log
 	if (registerBtn) {
-		registerBtn.addEventListener('click', function(e) {
+		registerBtn.addEventListener('click', function() {
 			// console.log('Register button clicked'); // Debug log
 			window.location.href = '/register';
 		});
+	}
+
+	// If redirected from registration, focus username field
+	const usernameInput = document.getElementById('username');
+	const params = new URLSearchParams(window.location.search);
+	if (params.get('focus') === 'username' && usernameInput) {
+		usernameInput.focus();
 	}
 
 	// Check authentication on page load
@@ -273,5 +280,65 @@ export async function displayAuthStatus() {
 			clearAuth();
 			window.location.reload();
 		});
+	}
+}
+
+/**
+ * Initialize user name display on student pages
+ * @param {string} userNameId - ID of the user name element
+ * @param {string} userInfoId - ID of the user info element
+ * @param {boolean} preferNickname - Whether to prefer nickname over username
+ */
+export async function initSignedInAs({
+	userNameId = 'user-name',
+	userInfoId = 'user-info',
+	preferNickname = false
+} = {}) {
+	const userNameEl = document.getElementById(userNameId);
+	const userInfoEl = document.getElementById(userInfoId);
+
+	if (!userNameEl) return;
+
+	let name = null;
+
+	// Student pages can prefer nickname
+	if (preferNickname) {
+		// Prefer student nickname, but fall back to stored username.
+		name = localStorage.getItem('nickname') || localStorage.getItem('username');
+	} else {
+		// Teacher flow
+		name = localStorage.getItem('username');
+	}
+
+	// Safe backend fallback (already existing helper)
+	if (!name) {
+		const userData = await verifyAuth();
+		if (userData?.username) {
+			name = userData.username;
+			localStorage.setItem('username', name);
+		}
+	}
+
+	// Cookie-session fallback for pages that don't have localStorage token.
+	if (!name) {
+		try {
+			const response = await fetch('/api/me', { credentials: 'include' });
+			if (response.ok) {
+				const userData = await response.json();
+				if (userData?.username) {
+					name = userData.username;
+					localStorage.setItem('username', name);
+				}
+			}
+		} catch (error) {
+			console.error('Signed-in name fallback failed:', error);
+		}
+	}
+
+	if (name) {
+		userNameEl.textContent = name;
+		if (userInfoEl) userInfoEl.style.display = 'block';
+	} else {
+		if (userInfoEl) userInfoEl.style.display = 'none';
 	}
 }

@@ -26,8 +26,7 @@
       </a>
 
       <span class="text-dark">
-        <i class="fas fa-user"></i>
-        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span></span>
       </span>
 
       <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
@@ -54,7 +53,9 @@
 
   </div>
 
-  <script>
+  <script type="module">
+    import { initSignedInAs } from '/js/auth-ui.js';
+
     // Load user info
     const userNameEl = document.getElementById('user-name');
     const allSetsButtonContainer = document.getElementById('all-sets-button-container');
@@ -90,6 +91,7 @@
         }
       });
     }
+
 
     function formatDate(isoString) {
       const date = new Date(isoString);
@@ -239,7 +241,12 @@
         console.error('Error loading task lists:', err);
         showError(err.message);
       });
+
+
+    initSignedInAs();
   </script>
+
+  
 
 </body>
 </html>

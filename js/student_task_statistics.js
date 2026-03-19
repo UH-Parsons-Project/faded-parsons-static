@@ -51,7 +51,7 @@ function renderTaskInstructions(taskInstructions) {
       ? JSON.parse(taskInstructions)
       : taskInstructions;
   } catch (e) {
-    content.innerHTML = taskInstructions;
+    content.textContent = taskInstructions;
     box.style.display = 'block';
     return;
   }

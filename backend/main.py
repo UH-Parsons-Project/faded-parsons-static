@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 import re
+import json
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import Integer, select
+from sqlalchemy import Integer, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -639,7 +640,7 @@ async def login_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
-    elif not user.is_active:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
@@ -745,7 +746,7 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/tasks")
 async def list_tasks(db: AsyncSession = Depends(get_db)):
-    import json
+    # `json` imported at module top
 
     result = await db.execute(select(Parsons).where(Parsons.is_public))
     tasks = result.scalars().all()
@@ -1037,7 +1038,7 @@ async def create_task_list(
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A task list with the title '{request.title}' already exists in the database. Please use a different title."
+            detail=f"A task list with the title '{request.title}' already exists in database. Use a different title."
         )
 
     # Parse expiration date if provided
@@ -1045,11 +1046,11 @@ async def create_task_list(
     if request.expires_at:
         try:
             expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid expiration date format"
-            )
+                detail="Invalid expiration date format",
+            ) from exc
 
     unique_link_code = generate_slug(request.title)
 
@@ -1096,7 +1097,7 @@ async def get_problemset_students(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all students who have attempted at least one task in this task list."""
-    from sqlalchemy import func, distinct
+    # moved `func` to module-level imports; `distinct` is unused here
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == problemset_id)
@@ -1164,7 +1165,7 @@ async def get_student_attempts(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all tasks attempted by a specific student in a task list."""
-    from sqlalchemy import func
+    # `func` imported at module top
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)
@@ -1234,7 +1235,7 @@ async def get_student_task_statistics(
     db: AsyncSession = Depends(get_db)
 ):
     """Get statistics for a specific student's attempts on a specific task."""
-    from sqlalchemy import func
+    # `func` imported at module top
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)

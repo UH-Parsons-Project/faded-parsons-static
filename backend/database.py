@@ -21,7 +21,6 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 class Base(DeclarativeBase):
     """Base class for all database models. All models inherit from this to share the same metadata."""
-    pass
 
 async def get_db():
     """

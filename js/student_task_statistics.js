@@ -37,7 +37,6 @@ function renderHeader(data) {
 }
 
 function renderTaskInstructions(taskInstructions) {
-  console.log('Task instructions received:', taskInstructions);
   const box = document.getElementById('task-instructions-box');
   const content = document.getElementById('task-instructions-content');
 

@@ -1182,7 +1182,8 @@ async def get_problemset_students(
             detail=f"Task list with id {problemset_id} not found"
         )
 
-    if not (task_list.teacher_id == current_user.id or current_user.has_data_access):
+    # Only allow viewing if user is the teacher of this list or has data access
+    if task_list.teacher_id != current_user.id and not current_user.has_data_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
@@ -1197,6 +1198,7 @@ async def get_problemset_students(
         return []
 
     # Get student sessions with attempts, grouped by session
+    # Only include students who accessed this specific task list
     stmt = (
         select(
             Student.username,
@@ -1206,7 +1208,7 @@ async def get_problemset_students(
             func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
         )
         .join(TaskAttempt, TaskAttempt.student_id == Student.id)
-        .where(TaskAttempt.task_id.in_(task_ids))
+        .where(Student.task_list_id == problemset_id)
         .where(Student.username.isnot(None))
         .group_by(Student.id, Student.username, Student.started_at, Student.last_activity_at)
         .order_by(Student.last_activity_at.desc())

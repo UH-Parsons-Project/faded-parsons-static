@@ -79,7 +79,7 @@
       })
       .then((task) => {
         if (instructionsEl) {
-          instructionsEl.textContent = task.task_instructions || 'No instructions available for this task.';
+          instructionsEl.textContent = task.description || 'No instructions available for this task.';
         }
       })
       .catch((error) => {

@@ -1,9 +1,9 @@
 problem_name: is_safe_to_eat
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with Python's logical operators.
 
-problem_description: |
+task_instructions: |
   <code>is_safe_to_eat</code>
     returns true if the seafood is safe to eat:
     either the type is "mollusk" or it's been frozen for at least 7 days.

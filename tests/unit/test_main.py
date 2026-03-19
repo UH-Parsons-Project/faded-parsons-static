@@ -144,26 +144,76 @@ class TestProblemsetPages:
     async def test_tasks_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks")).status_code == 404
 
-    async def test_tasks_page_returns_200(self, client, problemset):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks")).status_code == 200
+    async def test_tasks_page_redirects_without_session(self, client, problemset):
+        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_tasks_page_returns_200_with_session(self, client, problemset, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_task_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}")).status_code == 200
+    async def test_task_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_task_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_description_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/description")).status_code == 404
 
-    async def test_description_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/description")).status_code == 200
+    async def test_description_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_description_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_returns_200(self, client, problemset, task):
-        assert (await client.get(f"/set/{problemset.unique_link_code}/tasks/{task.id}/start")).status_code == 200
+    async def test_start_page_redirects_without_session(self, client, problemset, task):
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            follow_redirects=False,
+        )
+        assert r.status_code == 303
+        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+
+    async def test_start_page_returns_200_with_session(self, client, problemset, task, student_session):
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 200
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +272,11 @@ class TestGetMe:
     async def test_authenticated_returns_user_info(self, client, test_teacher):
         r = await client.get("/api/me", headers=_auth(test_teacher.username))
         assert r.status_code == 200
-        assert r.json() == {"username": "testteacher", "email": "test@example.com"}
+        assert r.json() == {
+            "username": "testteacher",
+            "email": "test@example.com",
+            "has_data_access": False,
+        }
 
     async def test_unauthenticated_returns_401(self, client):
         assert (await client.get("/api/me")).status_code == 401
@@ -251,6 +305,7 @@ class TestRegister:
         "password": "password123",
         "password_confirm": "password123",
         "email": "new@example.com",
+        "registration_token": "test_token",
     }
 
     async def test_valid_registration_succeeds(self, client):
@@ -328,6 +383,24 @@ class TestRegister:
         r = await client.post("/api/register", json={**self._valid, "email": "   "})
         assert r.status_code == 400
 
+    async def test_missing_token_returns_403(self, client):
+        payload = {k: v for k, v in self._valid.items() if k != "registration_token"}
+        r = await client.post("/api/register", json=payload)
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
+
+    async def test_wrong_token_returns_403(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "registration_token": "wrong_token"})
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
+
+    async def test_empty_token_returns_403(self, client):
+        r = await client.post("/api/register",
+                               json={**self._valid, "registration_token": ""})
+        assert r.status_code == 403
+        assert "Invalid registration token" in r.json()["detail"]
+
 
 # ---------------------------------------------------------------------------
 # POST /api/validate-nickname
@@ -399,17 +472,17 @@ class TestGetTask:
         assert body["task_instructions"] == "Arrange the blocks to print 'Hello, World!'"
         assert body["task_type"] == "python"
 
-    async def test_task_without_instructions_returns_null(self, client, db_session, test_teacher):
+    async def test_task_without_description_returns_null(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="NoInstr", task_type="python",
-            description='{}', code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         await db_session.refresh(t)
         r = await client.get(f"/api/tasks/{t.id}")
         assert r.status_code == 200
-        assert r.json()["task_instructions"] is None
+        assert r.json()["description"] is None
 
     async def test_nonexistent_task_returns_404(self, client):
         assert (await client.get("/api/tasks/99999")).status_code == 404
@@ -433,27 +506,27 @@ class TestListTasks:
         found = next(t for t in r.json() if t["id"] == task.id)
         assert found["description"] == "Print hello world."
 
-    async def test_invalid_json_description_returns_empty_string(self, client, db_session, test_teacher):
+    async def test_invalid_json_instructions_returns_empty_string(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="BadJson", task_type="python",
-            description="not-json", code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions="not-json", description='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         r = await client.get("/api/tasks")
         found = next(t for t in r.json() if t["title"] == "BadJson")
-        assert found["description"] == ""
+        assert found["task_instructions"] == ""
 
-    async def test_empty_description_string_returns_empty(self, client, db_session, test_teacher):
+    async def test_empty_instructions_string_returns_empty(self, client, db_session, test_teacher):
         t = Parsons(
             created_by_teacher_id=test_teacher.id, title="EmptyStr", task_type="python",
-            description="", code_blocks={}, correct_solution={}, is_public=True,
+            task_instructions="", description='{}', code_blocks={}, correct_solution={}, is_public=True,
         )
         db_session.add(t)
         await db_session.commit()
         r = await client.get("/api/tasks")
         found = next(t for t in r.json() if t["title"] == "EmptyStr")
-        assert found["description"] == ""
+        assert found["task_instructions"] == ""
 
 
 # ---------------------------------------------------------------------------
@@ -704,6 +777,38 @@ class TestStatistics:
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
         assert len(body["common_mistakes"]) <= 5
+
+    async def test_common_mistakes_group_whitespace_only_variants(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="print(1)")
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="\nprint(1)   \n")
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code="print( 1 )")
+
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+
+        mistakes = body["common_mistakes"]
+        assert mistakes[0]["count"] == 3
+        assert mistakes[0]["code"] in {"print(1)", "print( 1 )"}
+
+    async def test_common_mistakes_keep_string_whitespace_distinct(
+        self, client, task, student_session, test_teacher, db_session
+    ):
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code='print("a b")')
+        await _add_attempt(db_session, student_session.id, task.id, success=False,
+                            code='print("ab")')
+
+        body = (await client.get(f"/api/tasks/{task.id}/statistics",
+                                  headers=_auth(test_teacher.username))).json()
+
+        mistakes = body["common_mistakes"]
+        assert len(mistakes) == 2
+        assert {mistake["code"] for mistake in mistakes} == {'print("a b")', 'print("ab")'}
 
     async def test_attempt_missing_code_key_not_a_mistake(
         self, client, task, student_session, test_teacher, db_session

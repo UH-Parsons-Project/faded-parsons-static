@@ -5,7 +5,8 @@ CREATE TABLE teachers (
 	email VARCHAR(100) UNIQUE NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	is_active BOOLEAN DEFAULT TRUE
+	is_active BOOLEAN DEFAULT TRUE,
+	has_data_access BOOLEAN DEFAULT FALSE NOT NULL
 );
 
 CREATE TABLE parsons (
@@ -25,6 +26,8 @@ CREATE TABLE task_lists (
 	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
 	title VARCHAR(255) NOT NULL,
 	unique_link_code VARCHAR(50) NOT NULL UNIQUE,
+	student_description TEXT,
+	teacher_description TEXT,
 	created_at TIMESTAMP,
 	expires_at TIMESTAMP
 );

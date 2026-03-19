@@ -13,16 +13,16 @@ from backend import migrate_tasks
 class TestParsingHelpers:
     """Tests for parsing helper functions."""
 
-    def test_parse_problem_description_extracts_fields(self):
+    def test_parse_problem_instructions_extracts_fields(self):
         html = (
             "<p>Write <code>add_in_range</code> function.</p>"
             "<pre><code>add_in_range(1, 3) == 6\nadd_in_range(2, 2) == 2</code></pre>"
         )
 
-        result = migrate_tasks.parse_problem_description(html)
+        result = migrate_tasks.parse_problem_instructions(html)
 
         assert result["function_name"] == "add_in_range"
-        assert result["description"] == "Write function."
+        assert result["task_instructions"] == "Write function."
         assert "add_in_range(1, 3) == 6" in result["examples"]
 
     def test_parse_code_lines_handles_indent_given_and_faded(self):

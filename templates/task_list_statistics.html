@@ -88,16 +88,37 @@
     function renderListHeader(taskList) {
       const container = document.getElementById('list-header');
       container.className = 'mb-4';
-      container.innerHTML = `
-        <h2>${escapeHtml(taskList.title)}</h2>
+      
+      let headerHTML = `
+        <h2 style="margin: 0 0 1rem 0;">${escapeHtml(taskList.title)}</h2>
         <div class="mb-2">
           <span class="task-list-code">${escapeHtml(taskList.unique_link_code)}</span>
         </div>
-        <div class="text-muted" style="font-size: 0.875rem;">
+        <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
           <i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
           ${taskList.expires_at ? ` • <i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
         </div>
       `;
+      
+      if (taskList.teacher_description) {
+        headerHTML += `
+        <div class="task-list-description">
+          <strong>Teacher Notes:</strong><br>
+          ${escapeHtml(taskList.teacher_description)}
+        </div>
+        `;
+      }
+      
+      if (taskList.student_description) {
+        headerHTML += `
+        <div class="alert alert-info mt-3 mb-3" role="alert" style="border-left: 4px solid #17a2b8;">
+          <strong>Student Instructions:</strong><br>
+          ${escapeHtml(taskList.student_description)}
+        </div>
+        `;
+      }
+      
+      container.innerHTML = headerHTML;
     }
 
     function createTaskItem(task, taskList) {

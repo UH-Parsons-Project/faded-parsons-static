@@ -505,7 +505,7 @@ class TestRequireStudentSessionDependency:
             await require_student_session(student_session=None, db=db_session)
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "session required" in exc_info.value.detail.lower()
+        assert "sign in required" in exc_info.value.detail.lower()
 
     async def test_require_student_session_raises_when_session_expired(
         self, db_session, test_teacher

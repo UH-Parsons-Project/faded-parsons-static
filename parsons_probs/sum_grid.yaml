@@ -1,9 +1,9 @@
 problem_name: sum_grid
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with 2-D arrays in Python.
 
-problem_description: |
+task_instructions: |
   <code>sum_grid</code>
     returns the sum of all the numbers in the given grid, a 2-D list of numbers.
 

@@ -30,6 +30,7 @@ class Teacher(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    has_data_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
@@ -54,8 +55,8 @@ class Parsons(Base):
         Integer, ForeignKey("teachers.id"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(String(None), nullable=False)
-    task_instructions: Mapped[str] = mapped_column(String(None), nullable=True)
+    task_instructions: Mapped[str] = mapped_column(String(None), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)
     code_blocks: Mapped[dict] = mapped_column(JSON, nullable=False)
     correct_solution: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -75,8 +76,10 @@ class TaskList(Base):
     teacher_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
     )
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(255),unique=True, nullable=False)
     unique_link_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    student_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
+    teacher_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

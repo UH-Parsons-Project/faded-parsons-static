@@ -18,8 +18,8 @@ import './test-results-element.js';
 export class ProblemElement extends LitElement {
 	static properties = {
 		name: {type: String},
-		description: {type: String},
 		taskInstructions: {type: String},
+		description: {type: String},
 		codeLines: {type: String},
 		codeHeader: {type: String},
 		isLoading: {type: Boolean},
@@ -72,7 +72,7 @@ export class ProblemElement extends LitElement {
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
-						<div class="card-body">${unsafeHTML(this.description)}</div>
+						<div class="card-body">${unsafeHTML(this.taskInstructions)}</div>
 					</div>
 				</div>
 			</div>

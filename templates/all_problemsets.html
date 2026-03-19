@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Select Task List - Parsons Code Lab</title>
+  <title>All Task Lists - Parsons Code Lab</title>
 
   <link rel="stylesheet"
         href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
@@ -26,23 +26,16 @@
       </a>
 
       <span class="text-dark">
-        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+        <i class="fas fa-user"></i>
+        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
       </span>
-
-      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
-        Logout
-      </button>
     </div>
   </nav>
 
   <div class="container py-4">
 
-    <h2 class="mb-4">Select a Task List</h2>
-    <p class="text-muted mb-4">Choose a task list to view its statistics and analytics</p>
-
-    <div id="all-sets-button-container" style="display: none; margin-bottom: 1rem;">
-        <a href="/all-problemsets" class="btn btn-primary">View All Problem Sets</a>
-    </div>
+    <h2 class="mb-4">All Task Lists</h2>
+    <p class="text-muted mb-4">Showing all task lists from all teachers.</p>
 
     <div id="task-lists-container" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
@@ -54,44 +47,22 @@
   </div>
 
   <script>
-    import { initSignedInAs } from '/js/auth-ui.js';
-
-    // Load user info
+    // Load username
     const userNameEl = document.getElementById('user-name');
-    const allSetsButtonContainer = document.getElementById('all-sets-button-container');
-
-    fetch('/api/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : Promise.reject('Failed to fetch user data'))
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      userNameEl.textContent = storedUsername;
+    } else {
+      fetch('/api/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => {
-            if (data?.username) {
-                userNameEl.textContent = data.username;
-                localStorage.setItem('username', data.username);
-            }
-            if (data?.has_data_access) {
-                allSetsButtonContainer.style.display = 'block';
-            }
+          if (data?.username) {
+            userNameEl.textContent = data.username;
+            localStorage.setItem('username', data.username);
+          }
         })
-        .catch(error => {
-            console.error(error);
-            userNameEl.textContent = '';
-        });
-
-    // Handle logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        try {
-          await fetch('/api/logout', { method: 'POST' });
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('username');
-          window.location.href = '/index.html';
-        } catch (error) {
-          console.error('Logout error:', error);
-          window.location.href = '/index.html';
-        }
-      });
+        .catch(() => { userNameEl.textContent = ''; });
     }
-
 
     function formatDate(isoString) {
       const date = new Date(isoString);
@@ -129,6 +100,7 @@
       const meta = document.createElement('div');
       meta.className = 'task-list-meta';
       meta.innerHTML = `
+        <i class="far fa-user"></i> Teacher ID: ${taskList.teacher_id}<br>
         <i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
         ${taskList.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
       `;
@@ -137,38 +109,7 @@
       item.appendChild(code);
       item.appendChild(meta);
 
-      if (taskList.teacher_description) {
-        const description = document.createElement('div');
-        description.className = 'task-list-description';
-        
-        // Truncate to 100 characters and add ellipsis if longer
-        let displayText = taskList.teacher_description;
-        if (displayText.length > 100) {
-          displayText = displayText.substring(0, 100) + '...';
-        }
-        description.textContent = displayText;
-        description.title = taskList.teacher_description; // Show full text on hover
-        
-        item.appendChild(description);
-      }
-
       return item;
-    }
-
-    function createAddButton() {
-      const button = document.createElement('div');
-      button.className = 'create-new-card';
-      button.onclick = () => {
-        window.location.href = '/create_task_list';
-      };
-
-      button.innerHTML = `
-        <i class="fas fa-plus-circle"></i>
-        <div class="task-list-title">Create New Task List</div>
-        <p class="mb-0" style="font-size: 0.875rem;">Add a new task list</p>
-      `;
-
-      return button;
     }
 
     function renderTaskLists(taskLists) {
@@ -180,35 +121,19 @@
         container.innerHTML = `
           <div class="empty-state">
             <i class="fas fa-folder-open"></i>
-            <h4>No Task Lists Yet</h4>
-            <p>Create your first task list to get started with organizing exercises and viewing statistics.</p>
+            <h4>No Task Lists Found</h4>
+            <p>There are no task lists in the system yet.</p>
           </div>
         `;
-        const buttonWrapper = document.createElement('div');
-        buttonWrapper.style.maxWidth = '300px';
-        buttonWrapper.style.margin = '0 auto';
-        buttonWrapper.appendChild(createAddButton());
-        container.appendChild(buttonWrapper);
       } else {
-        const layout = document.createElement('div');
-        layout.className = 'task-list-selector-layout';
-
-        // Left column: task lists
         const listsColumn = document.createElement('div');
         listsColumn.className = 'task-lists-column';
 
         taskLists.forEach(taskList => {
           listsColumn.appendChild(createTaskListItem(taskList));
         });
-
-        // Right column: add button
-        const addColumn = document.createElement('div');
-        addColumn.className = 'add-button-column';
-        addColumn.appendChild(createAddButton());
-
-        layout.appendChild(listsColumn);
-        layout.appendChild(addColumn);
-        container.appendChild(layout);
+        
+        container.appendChild(listsColumn);
       }
     }
 
@@ -218,15 +143,15 @@
       container.innerHTML = `
         <i class="fas fa-exclamation-triangle text-danger"></i>
         <h4>Error Loading Task Lists</h4>
-        <p>${escapeHtml(message || 'An unexpected error occurred. Please try again later.')}</p>
+        <p>${escapeHtml(message || 'An unexpected error occurred. You might not have permission to view this page.')}</p>
       `;
     }
 
     // Load task lists
-    fetch('/api/problemsets', { credentials: 'include' })
+    fetch('/api/all-problemsets', { credentials: 'include' })
       .then(r => {
         if (!r.ok) {
-          if (r.status === 401) {
+          if (r.status === 401 || r.status === 403) {
             window.location.href = '/index.html';
             return;
           }
@@ -235,18 +160,15 @@
         return r.json();
       })
       .then(data => {
-        renderTaskLists(data);
+        if (data) {
+            renderTaskLists(data);
+        }
       })
       .catch(err => {
         console.error('Error loading task lists:', err);
         showError(err.message);
       });
-
-
-    initSignedInAs();
   </script>
-
-  
 
 </body>
 </html>

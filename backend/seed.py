@@ -17,7 +17,7 @@ async def seed_db():
     async with async_session() as session:
         # Check if test teacher already exists
         result = await session.execute(
-            select(Teacher).where(Teacher.username == "Matti Ruotsalainen")
+            select(Teacher).where(Teacher.username == "mattiruotsalainen")
         )
         existing_teacher = result.scalar_one_or_none()
 
@@ -25,7 +25,8 @@ async def seed_db():
             # Create default test teacher
             test = Teacher(
                 username="mattiruotsalainen",
-                email="matti.ruotsalainen@example.com"
+                email="matti.ruotsalainen@example.com",
+                has_data_access=True
             )
             test.set_password("test1234")  # Change in production!
 

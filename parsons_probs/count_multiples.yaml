@@ -1,9 +1,9 @@
 problem_name: count_multiples
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with while loops.
 
-problem_description: |
+task_instructions: |
   <code>count_multiples</code>
     counts the number of multiples of divisor between the start and end numbers.
     It should include the start or end if they are a multiple.

@@ -25,45 +25,45 @@ from backend.models import Parsons, Teacher
 PARSONS_PROBS_DIR = Path(__file__).parent.parent / "parsons_probs"
 
 
-def parse_problem_description(html_description: str) -> Dict[str, str]:
+def parse_problem_instructions(html_instructions: str) -> Dict[str, str]:
     """
-    Parse HTML problem description into structured parts.
+    Parse HTML problem instructions into structured parts.
 
     Extracts:
     - function_name: The function name from first <code> tag
-    - description: Text description without code tags and without function name
+    - task_instructions: Text instructions without code tags and without function name
     - examples: The <pre><code> block with examples
 
     Args:
-        html_description: HTML formatted problem description
+        html_instructions: HTML formatted problem instructions
 
     Returns:
-        Dictionary with 'function_name', 'description', 'examples' keys
+        Dictionary with 'function_name', 'task_instructions', 'examples' keys
     """
-    result = {"function_name": "", "description": "", "examples": ""}
+    result = {"function_name": "", "task_instructions": "", "examples": ""}
 
     # Extract function name from first <code> tag (inline code only, not in <pre>)
-    code_match = re.search(r"<code>(\w+)</code>", html_description)
+    code_match = re.search(r"<code>(\w+)</code>", html_instructions)
     if code_match:
         result["function_name"] = code_match.group(1)
 
     # Extract examples from <pre><code>...</code></pre>
-    pre_match = re.search(r"<pre><code>(.*?)</code></pre>", html_description, re.DOTALL)
+    pre_match = re.search(r"<pre><code>(.*?)</code></pre>", html_instructions, re.DOTALL)
     if pre_match:
         result["examples"] = pre_match.group(1).strip()
 
-    # Extract description text (everything except function name and examples)
+    # Extract instruction text (everything except function name and examples)
     # Remove <pre><code>...</code></pre> (examples) block entirely
-    description = re.sub(
-        r"<pre><code>.*?</code></pre>", "", html_description, flags=re.DOTALL
+    task_instructions = re.sub(
+        r"<pre><code>.*?</code></pre>", "", html_instructions, flags=re.DOTALL
     )
     # Remove inline <code>...</code> tags entirely (including the function name inside)
-    description = re.sub(r"<code>.*?</code>", "", description)
+    task_instructions = re.sub(r"<code>.*?</code>", "", task_instructions)
     # Remove HTML tags: <p>, <br>, </p>, </div>, <div>, etc.
-    description = re.sub(r"</?[^>]+>", " ", description)
+    task_instructions = re.sub(r"</?[^>]+>", " ", task_instructions)
     # Clean up whitespace
-    description = " ".join(description.split())
-    result["description"] = description.strip()
+    task_instructions = " ".join(task_instructions.split())
+    result["task_instructions"] = task_instructions.strip()
 
     return result
 
@@ -212,12 +212,15 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             function_file_content = f.read()
         function_header = extract_function_signature(function_file_content)
 
-        # Parse problem description into structured parts
-        html_description = yaml_data.get("problem_description", "")
-        parsed_description = parse_problem_description(html_description)
+        # Parse task instructions into structured parts
+        html_instructions = yaml_data.get("task_instructions", "")
+        parsed_instructions = parse_problem_instructions(html_instructions)
 
-        # Optional separate task instructions (HTML or plain text)
-        task_instructions = yaml_data.get("task_instructions", "")
+        # Store the original YAML problem_description text as task description.
+        # Keep a fallback to legacy "description" for older files.
+        description = yaml_data.get("problem_description", yaml_data.get("description", ""))
+        if description is None:
+            description = ""
 
         # Parse code lines into blocks
         code_lines = yaml_data.get("code_lines", "")
@@ -234,8 +237,8 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
 
         return {
             "title": task_name,
-            "description": json.dumps(parsed_description),
-            "task_instructions": task_instructions,
+            "task_instructions": json.dumps(parsed_instructions),
+            "description": description,
             "task_type": task_type,
             "code_blocks": {"blocks": blocks, "function_header": function_header},
             "correct_solution": {
@@ -346,8 +349,8 @@ async def migrate_tasks():
             task = Parsons(
                 created_by_teacher_id=teacher.id,
                 title=task_data["title"],
-                description=task_data["description"],
                 task_instructions=task_data["task_instructions"],
+                description=task_data["description"],
                 task_type=task_data["task_type"],
                 code_blocks=task_data["code_blocks"],
                 correct_solution=task_data["correct_solution"],

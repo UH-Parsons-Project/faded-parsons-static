@@ -3,11 +3,15 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
+import io
 import os
+import token
+import tokenize
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
+import re
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,6 +62,41 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _clean_mistake_code(code: str) -> str:
+    """Return a display-friendly version of submitted code."""
+    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+
+    while normalized_lines and not normalized_lines[0].strip():
+        normalized_lines.pop(0)
+    while normalized_lines and not normalized_lines[-1].strip():
+        normalized_lines.pop()
+
+    return "\n".join(normalized_lines)
+
+
+def _mistake_code_fingerprint(code: str) -> tuple:
+    """Build a grouping key that ignores whitespace-only differences."""
+    cleaned_code = _clean_mistake_code(code)
+    if not cleaned_code:
+        return tuple()
+
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
+        return tuple(
+            (current_token.type, current_token.string)
+            for current_token in tokens
+            if current_token.type not in {
+                token.INDENT,
+                token.DEDENT,
+                token.NEWLINE,
+                tokenize.NL,
+                tokenize.ENDMARKER,
+            }
+        )
+    except (IndentationError, SyntaxError, tokenize.TokenError):
+        return tuple(cleaned_code.split())
+
+
 # Pydantic models for request/response
 class Token(BaseModel):
     access_token: str
@@ -67,13 +106,14 @@ class Token(BaseModel):
 class UserInfo(BaseModel):
     username: str
     email: str
+    has_data_access: bool
 
 
 class TaskResponse(BaseModel):
     id: int
     title: str
-    description: str
-    task_instructions: str | None
+    task_instructions: str 
+    description: str | None
     task_type: str
     code_blocks: dict
     correct_solution: dict
@@ -86,6 +126,8 @@ class ProblemSetResponse(BaseModel):
     title: str
     unique_link_code: str
     teacher_id: int
+    student_description: str | None
+    teacher_description: str | None
     created_at: str
     expires_at: str | None
 
@@ -145,51 +187,94 @@ class SubmitTestResultRequest(BaseModel):
     start_time: str | None = None  # ISO format timestamp from localStorage
 
 
+class CreateTaskListRequest(BaseModel):
+    title: str
+    student_description: str | None = None
+    teacher_description: str | None = None
+    expires_at: str | None = None
+    task_ids: list[int]
+
+
+class TaskListResponse(BaseModel):
+    id: int
+    title: str
+    unique_link_code: str
+    teacher_id: int
+    student_description: str | None
+    teacher_description: str | None
+    created_at: str
+    expires_at: str | None
+
+
+def generate_slug(text: str) -> str:
+    """
+    Generate a URL-friendly slug from text.
+    Converts to lowercase, replaces spaces with hyphens, removes special characters.
+
+    Args:
+        text: The text to convert to a slug
+
+    Returns:
+        A slug-friendly string
+    """
+    # Convert to lowercase
+    slug = text.lower()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r'[\s_]+', '-', slug)
+    # Remove any character that's not alphanumeric or hyphen
+    slug = re.sub(r'[^a-z0-9-]', '', slug)
+    # Remove multiple consecutive hyphens
+    slug = re.sub(r'-+', '-', slug)
+    # Strip hyphens from start and end
+    slug = slug.strip('-')
+    return slug
+
+
 def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool:
     """
     Check if submitted code has user-added content beyond just the given blocks.
-    
+
     An "empty" submission is one that only contains the pre-filled (given) blocks
     with no other blocks added and no blanks filled in.
-    
+
     Handles both old format (blocks as list of strings) and new format (blocks as list of dicts).
     """
     if not submitted_code.strip():
         return False
-    
+
     blocks = task_code_blocks.get("blocks", [])
     if not blocks:
         # No blocks defined, so any submission has user-added code
         return True
-    
+
     # Handle old format where blocks is a list of strings
     if isinstance(blocks[0], str):
         # Old format - assume any non-empty submission is user-added
         return True
-    
+
     submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
-    
+
     # Get all "given" (pre-filled) blocks - these are the ones shown by default
     given_blocks = [block for block in blocks if isinstance(block, dict) and block.get("given", False)]
-    
+
     # If submission has more lines than given blocks, user added something
     if len(submitted_lines) > len(given_blocks):
         return True
-    
+
     # If submission has fewer lines than given blocks, it's incomplete/empty
     if len(submitted_lines) < len(given_blocks):
         return False
-    
+
     # Same number of lines - check if they match the given blocks with empty blanks
     for submitted_line, given_block in zip(submitted_lines, given_blocks):
         # Reconstruct what this given block looks like with empty blanks
         expected_empty = given_block.get("code", "").replace("___", "").strip()
         submitted_clean = submitted_line.replace(" ", "")
         expected_clean = expected_empty.replace(" ", "")
-        
+
         if submitted_clean != expected_clean:
             return True
-    
+
     return False
 
 # Mount static directories (only if they exist)
@@ -286,13 +371,13 @@ async def db_operations_page():
             status_code=403,
             detail="Database management is only available in development mode"
         )
-    
+
     html_content = """
     <h1>DB Management</h1>
     <button onclick="fetch('/api/reset-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Reset DB</button>
     <button onclick="fetch('/api/seed-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Seed DB</button>
     """
-    
+
     return HTMLResponse(content=html_content)
 
 
@@ -345,7 +430,11 @@ async def problemset_page(
 
 
 @app.get("/set/{unique_link_code}/tasks", response_class=HTMLResponse)
-async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depends(get_db)):
+async def problemset_tasks_page(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -355,6 +444,9 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "problemset.html"
     response = FileResponse(tasks_path)
@@ -363,7 +455,12 @@ async def problemset_tasks_page(unique_link_code: str, db: AsyncSession = Depend
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=HTMLResponse)
-async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -373,6 +470,9 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
@@ -382,7 +482,12 @@ async def problemset_task_page(unique_link_code: str, task_id: int, db: AsyncSes
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_description_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -392,6 +497,9 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     description_path = BASE_DIR / "templates" / "problem.html"
     response = FileResponse(description_path)
@@ -401,7 +509,12 @@ async def problemset_task_description_page(unique_link_code: str, task_id: int, 
 
 
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
-async def problemset_task_start_page(unique_link_code: str, task_id: int, db: AsyncSession = Depends(get_db)):
+async def problemset_task_start_page(
+    unique_link_code: str,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
     stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
     problemset = result.scalar_one_or_none()
@@ -411,6 +524,9 @@ async def problemset_task_start_page(unique_link_code: str, task_id: int, db: As
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
         )
+
+    if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     start_path = BASE_DIR / "templates" / "student_start_page.html"
     response = FileResponse(start_path)
@@ -461,6 +577,21 @@ async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db
 
     selector_path = BASE_DIR / "templates" / "task_list_selector.html"
     response = FileResponse(selector_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+@app.get("/create_task_list", response_class=HTMLResponse)
+async def create_task_list_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task_list.html"
+    response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
@@ -561,7 +692,11 @@ async def login_access_token(
 
 @app.get("/api/me", response_model=UserInfo)
 async def get_current_user_info(current_user: CurrentUser):
-    return UserInfo(username=current_user.username, email=current_user.email)
+    return UserInfo(
+        username=current_user.username,
+        email=current_user.email,
+        has_data_access=current_user.has_data_access,
+    )
 
 
 @app.post("/api/logout")
@@ -584,6 +719,12 @@ async def student_login(
             detail="Incorrect username or password",
         )
 
+    # Refresh session activity so previously inactive accounts can access student pages.
+    now = datetime.now(timezone.utc)
+    student.last_activity_at = now
+    if not student.started_at:
+        student.started_at = now
+
     # Optionally associate the student with the task list they are accessing
     if request.unique_link_code:
         stmt = select(TaskList).where(TaskList.unique_link_code == request.unique_link_code)
@@ -591,7 +732,8 @@ async def student_login(
         task_list = result.scalar_one_or_none()
         if task_list:
             student.task_list_id = task_list.id
-            await db.commit()
+
+    await db.commit()
 
     set_session_cookie(response, student.id)
     return {"status": "success", "student_id": student.id}
@@ -666,8 +808,8 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     return TaskResponse(
         id=task.id,
         title=task.title,
-        description=task.description,
         task_instructions=task.task_instructions,
+        description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,
@@ -685,16 +827,32 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
 
     task_list = []
     for task in tasks:
+        instructions_text = ""
         try:
-            description_data = json.loads(task.description)
-            description_text = description_data.get("description", "")
+            instructions_data = json.loads(task.task_instructions)
+            if isinstance(instructions_data, dict):
+                instructions_text = instructions_data.get("task_instructions", "")
+            else:
+                instructions_text = str(instructions_data or "")
         except (json.JSONDecodeError, AttributeError):
-            description_text = ""
+            instructions_text = ""
+
+        description_text = ""
+        if isinstance(task.description, str):
+            try:
+                description_data = json.loads(task.description)
+                if isinstance(description_data, dict):
+                    description_text = description_data.get("description", task.description)
+                else:
+                    description_text = str(description_data or "")
+            except (json.JSONDecodeError, TypeError):
+                description_text = task.description
 
         task_list.append(
             {
                 "id": task.id,
                 "title": task.title,
+                "task_instructions": instructions_text,
                 "description": description_text,
                 "task_type": task.task_type,
                 "created_at": task.created_at.isoformat(),
@@ -714,10 +872,19 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
+    REGISTRATION_TOKEN = "test_token"
+
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
+    registration_token = payload.get("registration_token", "")
+
+    if registration_token != REGISTRATION_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid registration token",
+        )
 
     if not username or not password or not email:
         raise HTTPException(
@@ -847,6 +1014,8 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
             title=ps.title,
             unique_link_code=ps.unique_link_code,
             teacher_id=ps.teacher_id,
+            student_description=ps.student_description,
+            teacher_description=ps.teacher_description,
             created_at=ps.created_at.isoformat(),
             expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
         )
@@ -870,6 +1039,8 @@ async def get_problemset(problemset_id: int, db: AsyncSession = Depends(get_db))
         title=problemset.title,
         unique_link_code=problemset.unique_link_code,
         teacher_id=problemset.teacher_id,
+        student_description=problemset.student_description,
+        teacher_description=problemset.teacher_description,
         created_at=problemset.created_at.isoformat(),
         expires_at=problemset.expires_at.isoformat() if problemset.expires_at else None,
     )
@@ -914,6 +1085,83 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     ]
 
 
+@app.post("/api/task_lists", response_model=TaskListResponse)
+async def create_task_list(
+    request: CreateTaskListRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify all tasks exist and belong to the current user
+    if request.task_ids:
+        task_ids_tuple = tuple(request.task_ids)
+        stmt = select(Parsons).where(Parsons.id.in_(task_ids_tuple))
+        result = await db.execute(stmt)
+        tasks = result.scalars().all()
+
+        if len(tasks) != len(request.task_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more tasks not found"
+            )
+
+    # Check if title is unique in the entire database
+    stmt = select(TaskList).where(TaskList.title == request.title)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A task list with the title '{request.title}' already exists in the database. Please use a different title."
+        )
+
+    # Parse expiration date if provided
+    expires_at = None
+    if request.expires_at:
+        try:
+            expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid expiration date format"
+            )
+
+    unique_link_code = generate_slug(request.title)
+
+    # Create the task list
+    task_list = TaskList(
+        teacher_id=current_user.id,
+        title=request.title,
+        student_description=request.student_description,
+        teacher_description=request.teacher_description,
+        unique_link_code=unique_link_code,
+        expires_at=expires_at
+    )
+
+    db.add(task_list)
+    await db.flush()  # Get the ID without committing
+
+    # Add tasks to the task list
+    for task_id in request.task_ids:
+        task_list_item = TaskListItem(
+            task_list_id=task_list.id,
+            task_id=task_id
+        )
+        db.add(task_list_item)
+
+    await db.commit()
+    await db.refresh(task_list)
+
+    return TaskListResponse(
+        id=task_list.id,
+        title=task_list.title,
+        unique_link_code=task_list.unique_link_code,
+        teacher_id=task_list.teacher_id,
+        student_description=task_list.student_description,
+        teacher_description=task_list.teacher_description,
+        created_at=task_list.created_at.isoformat(),
+        expires_at=task_list.expires_at.isoformat() if task_list.expires_at else None
+    )
+
+
 @app.get("/api/problemsets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
 async def get_problemset_students(
     problemset_id: int,
@@ -934,7 +1182,7 @@ async def get_problemset_students(
             detail=f"Task list with id {problemset_id} not found"
         )
 
-    if task_list.teacher_id != current_user.id:
+    if not (task_list.teacher_id == current_user.id or current_user.has_data_access):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
@@ -1103,10 +1351,12 @@ async def get_student_task_statistics(
     filtered_attempts = []
     for attempt in attempts:
         # Keep attempts that don't have code field (e.g., old data, missing field)
-        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+        if not (
+            attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
+        ):
             filtered_attempts.append(attempt)
             continue
-        
+
         code = attempt.submitted_inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
@@ -1117,7 +1367,7 @@ async def get_student_task_statistics(
         else:
             # Has code but it's empty template - count it
             empty_attempts_count += 1
-    
+
     attempts = filtered_attempts
 
     if not attempts:
@@ -1335,11 +1585,21 @@ async def get_task_statistics(
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
             code = attempt.submitted_inputs.get("code", "")
             if code:
-                mistake_counts[code] = mistake_counts.get(code, 0) + 1
+                normalized_code = _clean_mistake_code(code)
+                if not normalized_code:
+                    continue
+
+                fingerprint = _mistake_code_fingerprint(normalized_code)
+                if fingerprint not in mistake_counts:
+                    mistake_counts[fingerprint] = {"code": normalized_code, "count": 0}
+
+                mistake_counts[fingerprint]["count"] += 1
+                if len(normalized_code) < len(mistake_counts[fingerprint]["code"]):
+                    mistake_counts[fingerprint]["code"] = normalized_code
 
     common_mistakes = [
-        {"code": code, "count": count}
-        for code, count in sorted(mistake_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        {"code": mistake["code"], "count": mistake["count"]}
+        for mistake in sorted(mistake_counts.values(), key=lambda item: item["count"], reverse=True)[:5]
     ]
 
     return {
@@ -1354,3 +1614,50 @@ async def get_task_statistics(
         "number_of_moves": None, # Not yet tracked — requires move_events table
         "common_mistakes": common_mistakes,
     }
+
+
+@app.get("/api/all-problemsets", response_model=list[ProblemSetResponse])
+async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    """List all task lists from all teachers if the user has data access."""
+    if not current_user.has_data_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this resource.",
+        )
+
+    stmt = select(TaskList).order_by(TaskList.created_at.desc())
+    result = await db.execute(stmt)
+    problemsets = result.scalars().all()
+
+    return [
+        ProblemSetResponse(
+            id=ps.id,
+            title=ps.title,
+            unique_link_code=ps.unique_link_code,
+            teacher_id=ps.teacher_id,
+            student_description=ps.student_description,
+            teacher_description=ps.teacher_description,
+            created_at=ps.created_at.isoformat(),
+            expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
+        )
+        for ps in problemsets
+    ]
+
+
+@app.get("/all-problemsets", response_class=HTMLResponse)
+async def all_problemsets_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the page for viewing all problem sets (requires data access)."""
+    try:
+        current_user = await get_current_user(request, db)
+        if not current_user.has_data_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    all_problemsets_path = BASE_DIR / "templates" / "all_problemsets.html"
+    response = FileResponse(all_problemsets_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response

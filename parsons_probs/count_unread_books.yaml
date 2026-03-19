@@ -1,9 +1,9 @@
 problem_name: count_unread_books
 
-task_instructions: |
+problem_description: |
   In this exercise you will practice working with dictionaries.
 
-problem_description: |
+task_instructions: |
   <code>count_unread_books</code>
     accepts a list of dicts describing books
     and returns the number of unread books in the list.

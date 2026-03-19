@@ -27,8 +27,7 @@
       </a>
 
       <span class="text-dark">
-        <i class="fas fa-user"></i>
-        signed in as <strong id="signed-in-as"><span id="user-name"></span></strong>
+        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span></span>
       </span>
     </div>
   </nav>
@@ -152,27 +151,14 @@
 
   </div>
 
-  <script>
+  <script type="module">
+    import { initSignedInAs } from '/js/auth-ui.js';
+
     const params = new URLSearchParams(window.location.search);
     const taskId = params.get('id');
     const problemsetCode = params.get('problemset');
 
-    // Load username
-    const userNameEl = document.getElementById('user-name');
-    const storedUsername = localStorage.getItem('username');
-    if (storedUsername) {
-      userNameEl.textContent = storedUsername;
-    } else {
-      fetch('/api/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => {
-          if (data?.username) {
-            userNameEl.textContent = data.username;
-            localStorage.setItem('username', data.username);
-          }
-        })
-        .catch(() => { userNameEl.textContent = ''; });
-    }
+    initSignedInAs();
 
     function formatTime(seconds) {
       if (!seconds) return '0s';

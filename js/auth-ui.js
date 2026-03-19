@@ -275,3 +275,63 @@ export async function displayAuthStatus() {
 		});
 	}
 }
+
+/**
+ * Initialize user name display on student pages
+ * @param {string} userNameId - ID of the user name element
+ * @param {string} userInfoId - ID of the user info element
+ * @param {boolean} preferNickname - Whether to prefer nickname over username
+ */
+export async function initSignedInAs({
+	userNameId = 'user-name',
+	userInfoId = 'user-info',
+	preferNickname = false
+} = {}) {
+	const userNameEl = document.getElementById(userNameId);
+	const userInfoEl = document.getElementById(userInfoId);
+
+	if (!userNameEl) return;
+
+	let name = null;
+
+	// Student pages can prefer nickname
+	if (preferNickname) {
+		// Prefer student nickname, but fall back to stored username.
+		name = localStorage.getItem('nickname') || localStorage.getItem('username');
+	} else {
+		// Teacher flow
+		name = localStorage.getItem('username');
+	}
+
+	// Safe backend fallback (already existing helper)
+	if (!name) {
+		const userData = await verifyAuth();
+		if (userData?.username) {
+			name = userData.username;
+			localStorage.setItem('username', name);
+		}
+	}
+
+	// Cookie-session fallback for pages that don't have localStorage token.
+	if (!name) {
+		try {
+			const response = await fetch('/api/me', { credentials: 'include' });
+			if (response.ok) {
+				const userData = await response.json();
+				if (userData?.username) {
+					name = userData.username;
+					localStorage.setItem('username', name);
+				}
+			}
+		} catch (error) {
+			console.error('Signed-in name fallback failed:', error);
+		}
+	}
+
+	if (name) {
+		userNameEl.textContent = name;
+		if (userInfoEl) userInfoEl.style.display = 'block';
+	} else {
+		if (userInfoEl) userInfoEl.style.display = 'none';
+	}
+}

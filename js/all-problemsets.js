@@ -1,4 +1,4 @@
-import { loadUsername, formatDate, escapeHtml, showError } from './utils.js';
+import { loadUsername, formatDate, showError } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadUsername('user-name');

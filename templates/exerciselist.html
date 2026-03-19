@@ -39,63 +39,16 @@
 				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
 			</div>
 		</nav>
-		<div class="container">
-			<h1>Exercise List</h1>
-			<div id="problems-list">
-				<p>Loading exercises…</p>
+		<div class="container py-4">
+			<h2 class="mb-4">Exercise List</h2>
+			<p class="text-muted mb-4">Select an exercise to view its global analytics.</p>
+			<div id="problems-list" class="loading-spinner">
+				<div class="spinner-border text-primary" role="status">
+					<span class="sr-only">Loading...</span>
+				</div>
+				<p class="mt-2">Loading exercises...</p>
 			</div>
 		</div>
-
-		<script type="module">
-			import {clearAuth} from '/js/auth-utils.js';
-			import {initNavbarExercisesButton, initSignedInAs} from '/js/auth-ui.js';
-
-			initSignedInAs();
-
-			initNavbarExercisesButton();
-
-			// Set up logout button
-			document
-				.getElementById('logout-btn')
-				.addEventListener('click', async function () {
-					// Call logout endpoint to clear cookie
-					await fetch('/api/logout', {method: 'POST'});
-					clearAuth();
-					window.location.href = '/index.html';
-				});
-
-			// Load exercise list
-			const container = document.getElementById('problems-list');
-
-			function render(list) {
-				const ul = document.createElement('ul');
-				list.forEach(function (item) {
-					const li = document.createElement('li');
-					const a = document.createElement('a');
-					a.href = '/problem.html?id=' + encodeURIComponent(item.id);
-					a.textContent = item.title;
-					li.appendChild(a);
-					if (item.category) {
-						li.appendChild(document.createTextNode(' (' + item.category + ')'));
-					}
-					ul.appendChild(li);
-				});
-				container.innerHTML = '';
-				container.appendChild(ul);
-			}
-
-	// Fetch problems list
-	fetch('/api/tasks')
-		.then(function (resp) {
-			if (!resp.ok) throw new Error('Network response not ok');
-			return resp.json();
-		})
-		.then(function (json) {
-			render(json);
-		})
-		.catch(function (error) {
-			container.innerHTML = '<p>Unable to load exercise list.</p>';
-		});
-	</script>
+		<script type="module" src="/js/exerciselist.js"></script>
 </body>
 </html>

@@ -87,7 +87,7 @@ export function initLoginPage() {
 
 		try {
 			// If we're on a problemset page (/set/<code>) use student login
-			const pathMatch = window.location.pathname.match(/^\/set\/([^\/]+)/);
+			const pathMatch = window.location.pathname.match(/^\/set\/([^/]+)/);
 			if (pathMatch) {
 				const code = pathMatch[1];
 				const response = await fetch('/api/student_login', {
@@ -182,10 +182,17 @@ export function initLoginPage() {
 	const registerBtn = document.getElementById('register-btn');
 	// console.log('Register button found:', registerBtn); // Debug log
 	if (registerBtn) {
-		registerBtn.addEventListener('click', function(e) {
+		registerBtn.addEventListener('click', function() {
 			// console.log('Register button clicked'); // Debug log
 			window.location.href = '/register';
 		});
+	}
+
+	// If redirected from registration, focus username field
+	const usernameInput = document.getElementById('username');
+	const params = new URLSearchParams(window.location.search);
+	if (params.get('focus') === 'username' && usernameInput) {
+		usernameInput.focus();
 	}
 
 	// Check authentication on page load

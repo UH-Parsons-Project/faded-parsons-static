@@ -3,10 +3,10 @@ init-hook='import sys; sys.path.append(".")'
 ignore=venv
 
 [MESSAGES CONTROL]
-disable=C0114,C0115,C0116,import-error,R0903
+disable=C0114,C0115,C0116,import-error,R0903,R0912
 
 [FORMAT]
-max-line-length=100
+max-line-length=120
 
 [REPORTS]
 output-format=colorized

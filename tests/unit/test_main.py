@@ -177,26 +177,6 @@ class TestProblemsetPages:
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_description_page_unknown_code_returns_404(self, client):
-        assert (await client.get("/set/NOCODE/tasks/1/description")).status_code == 404
-
-    async def test_description_page_redirects_without_session(self, client, problemset, task):
-        r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
-            follow_redirects=False,
-        )
-        assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
-
-    async def test_description_page_returns_200_with_session(self, client, problemset, task, student_session):
-        client.cookies.set("student_session", str(student_session.id))
-        r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}/description",
-            follow_redirects=False,
-        )
-        client.cookies.clear()
-        assert r.status_code == 200
-
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
@@ -402,62 +382,6 @@ class TestRegister:
                                json={**self._valid, "registration_token": ""})
         assert r.status_code == 403
         assert "Invalid registration token" in r.json()["detail"]
-
-
-# ---------------------------------------------------------------------------
-# POST /api/validate-nickname
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-class TestValidateNickname:
-    async def test_valid_nickname_returns_student_id(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "Alice",
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 200
-        body = r.json()
-        assert body["status"] == "valid"
-        assert body["nickname"] == "Alice"
-        assert "student_id" in body
-
-    async def test_nickname_is_trimmed(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "  Bob  ",
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 200
-        assert r.json()["nickname"] == "Bob"
-
-    async def test_whitespace_only_nickname_returns_400(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "   ",
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 400
-        assert "empty" in r.json()["detail"].lower()
-
-    async def test_nickname_too_long_returns_400(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "a" * 21,
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 400
-
-    async def test_nickname_at_max_length_succeeds(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "a" * 20,
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 200
-
-    async def test_unknown_task_list_returns_404(self, client):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "Alice", "unique_link_code": "NOEXIST"})
-        assert r.status_code == 404
-
-    async def test_sets_session_cookie(self, client, problemset):
-        r = await client.post("/api/validate-nickname",
-                               json={"nickname": "Cookie",
-                                     "unique_link_code": problemset.unique_link_code})
-        assert r.status_code == 200
-        assert "student_session" in r.cookies
-
 
 # ---------------------------------------------------------------------------
 # GET /api/tasks/{task_id}

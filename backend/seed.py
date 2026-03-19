@@ -64,8 +64,10 @@ async def seed_db():
         if existing_list is None:
             default_list = TaskList(
                 teacher_id=test_teacher.id,
-                title="Starter Task List",
+                title="Starter List",
                 unique_link_code="starter-list",
+                teacher_description="This is a starter set list that has two basic tasks. It is created for the Helsinki University project.",
+                student_description="Complete all exercises in this list. Each exercise includes instructions and starter code. You can run the code as many times as needed",
             )
             session.add(default_list)
             try:

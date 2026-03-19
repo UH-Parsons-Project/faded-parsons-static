@@ -88,18 +88,25 @@
     function renderListHeader(taskList) {
       const container = document.getElementById('list-header');
       container.className = 'mb-4';
-      
+
       let headerHTML = `
         <h2 style="margin: 0 0 1rem 0;">${escapeHtml(taskList.title)}</h2>
         <div class="mb-2">
-          <span class="task-list-code">${escapeHtml(taskList.unique_link_code)}</span>
+          <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.25rem;">
+            <span id="link-code" style="font-family: monospace; font-size: 0.875rem; font-weight: normal;">
+              ${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskList.unique_link_code)}
+            </span>
+            <button id="copy-btn" type="button" style="background: none; border: none; cursor: pointer; color: #6c757d; padding: 0; flex-shrink: 0;" title="Copy URL">
+              <i class="fas fa-copy" style="font-size: 0.9rem;"></i>
+            </button>
+          </div>
         </div>
         <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
           <i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
           ${taskList.expires_at ? ` • <i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
         </div>
       `;
-      
+
       if (taskList.teacher_description) {
         headerHTML += `
         <div class="task-list-description">
@@ -108,7 +115,7 @@
         </div>
         `;
       }
-      
+
       if (taskList.student_description) {
         headerHTML += `
         <div class="alert alert-info mt-3 mb-3" role="alert" style="border-left: 4px solid #17a2b8;">
@@ -117,8 +124,29 @@
         </div>
         `;
       }
-      
+
       container.innerHTML = headerHTML;
+
+      // Add copy functionality
+      const copyBtn = document.getElementById('copy-btn');
+      const linkCode = document.getElementById('link-code');
+
+      if (copyBtn && linkCode) {
+        copyBtn.addEventListener('click', () => {
+          const text = linkCode.textContent.trim();
+          navigator.clipboard.writeText(text).then(() => {
+            const originalIcon = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            copyBtn.style.color = '#28a745';
+            setTimeout(() => {
+              copyBtn.innerHTML = originalIcon;
+              copyBtn.style.color = '#6c757d';
+            }, 2000);
+          }).catch(() => {
+            alert('Failed to copy URL');
+          });
+        });
+      }
     }
 
     function createTaskItem(task, taskList) {

@@ -119,13 +119,6 @@
       title.className = 'task-list-title';
       title.textContent = taskList.title;
 
-      const code = document.createElement('div');
-      code.className = 'mb-2';
-      const codeSpan = document.createElement('span');
-      codeSpan.className = 'task-list-code';
-      codeSpan.textContent = taskList.unique_link_code;
-      code.appendChild(codeSpan);
-
       const meta = document.createElement('div');
       meta.className = 'task-list-meta';
       meta.innerHTML = `
@@ -134,13 +127,12 @@
       `;
 
       item.appendChild(title);
-      item.appendChild(code);
       item.appendChild(meta);
 
       if (taskList.teacher_description) {
         const description = document.createElement('div');
         description.className = 'task-list-description';
-        
+
         // Truncate to 100 characters and add ellipsis if longer
         let displayText = taskList.teacher_description;
         if (displayText.length > 100) {
@@ -148,7 +140,7 @@
         }
         description.textContent = displayText;
         description.title = taskList.teacher_description; // Show full text on hover
-        
+
         item.appendChild(description);
       }
 
@@ -246,7 +238,7 @@
     initSignedInAs();
   </script>
 
-  
+
 
 </body>
 </html>

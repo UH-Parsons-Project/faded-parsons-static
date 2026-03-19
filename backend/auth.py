@@ -65,8 +65,8 @@ async def get_current_user(
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except jwt.InvalidTokenError:
-        raise credentials_exception
+    except jwt.InvalidTokenError as exc:
+        raise credentials_exception from exc
 
     # Fetch user from database
     result = await db.execute(select(Teacher).where(Teacher.username == username))

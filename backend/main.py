@@ -34,7 +34,6 @@ from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
     authenticate_student,
-    create_student_session,
     set_session_cookie,
     get_current_student_session,
     get_current_student_session_no_update,
@@ -112,7 +111,7 @@ class UserInfo(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     title: str
-    task_instructions: str 
+    task_instructions: str
     description: str | None
     task_type: str
     code_blocks: dict
@@ -481,33 +480,6 @@ async def problemset_task_page(
     return response
 
 
-@app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    description_path = BASE_DIR / "templates" / "problem.html"
-    response = FileResponse(description_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
 async def problemset_task_start_page(
     unique_link_code: str,
@@ -641,7 +613,7 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/register", response_class=HTMLResponse)
+@app.get("/register", response_class=HTMLResponse) #  FIX THIS TO teacher_register !!!!!!!!
 async def register_page():
     """Serve a simple registration page."""
     register_path = BASE_DIR / "templates" / "register.html"
@@ -744,53 +716,6 @@ async def student_logout(response: Response):
     """Clear the student session cookie."""
     response.delete_cookie(key="student_session", path="/")
     return {"message": "Successfully logged out"}
-
-
-@app.post("/api/validate-nickname")
-async def validate_nickname(
-    request: NicknameRequest,
-    response: Response,
-    db: AsyncSession = Depends(get_db)
-):
-    """Validate nickname and create student session. Must be less than 21 characters (max 20)."""
-    nickname = request.nickname.strip()
-    unique_link_code = request.unique_link_code.strip()
-
-    if not nickname:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nickname cannot be empty",
-        )
-
-    if len(nickname) > 20:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nickname must be less than 21 characters",
-        )
-
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_list = result.scalar_one_or_none()
-
-    if not task_list:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with code {unique_link_code} not found",
-        )
-
-    student_session = await create_student_session(
-        task_list_id=task_list.id,
-        nickname=nickname,
-        db=db
-    )
-
-    set_session_cookie(response, student_session.id)
-
-    return {
-        "status": "valid",
-        "nickname": nickname,
-        "student_id": student_session.id
-    }
 
 
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
@@ -1001,6 +926,8 @@ async def api_student_register(request: Request, db: AsyncSession = Depends(get_
     await db.refresh(student)
 
     return {"status": "success", "id": student.id}
+
+
 @app.get("/api/problemsets", response_model=list[ProblemSetResponse])
 async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     """List all task lists for the current teacher."""

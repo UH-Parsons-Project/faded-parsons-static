@@ -3,10 +3,34 @@ init-hook='import sys; sys.path.append(".")'
 ignore=venv
 
 [MESSAGES CONTROL]
-disable=C0114,C0115,C0116,import-error,R0903,R0912
+disable=C0114,
+		C0115,
+		C0116,
+		import-error,
+		R0903,
+		R0912,
+		C0103,
+		W1309,
+		W0718,
+		raw-checker-failed,
+        bad-inline-option,
+        locally-disabled,
+        file-ignored,
+        suppressed-message,
+        useless-suppression,
+        deprecated-pragma,
+        use-symbolic-message-instead,
+        missing-module-docstring,
+        missing-function-docstring,
+        missing-class-docstring,
+        too-few-public-methods,
+        too-many-instance-attributes
 
 [FORMAT]
 max-line-length=120
+max-statements=50
+max-locals=30
+max-returns=10
 
 [REPORTS]
 output-format=colorized

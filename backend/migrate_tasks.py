@@ -17,7 +17,6 @@ from typing import Any, Dict, List
 
 import yaml
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
 
 from backend.database import async_session
 from backend.models import Parsons, Teacher
@@ -245,7 +244,7 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             },
         }
 
-    except (OSError, yaml.YAMLError, UnicodeError) as e:
+    except Exception as e:
         print(f"Error loading task {task_name}: {e}")
         return None
 
@@ -360,7 +359,7 @@ async def migrate_tasks():
                 await session.flush()  # Get the ID
                 print(f"✓ MIGRATED (id={task.id}, type={task.task_type})")
                 migrated += 1
-            except SQLAlchemyError as e:
+            except Exception as e:
                 print(f"FAILED ({e})")
                 failed += 1
                 await session.rollback()
@@ -369,7 +368,7 @@ async def migrate_tasks():
         # Commit all at once
         try:
             await session.commit()
-        except SQLAlchemyError as e:
+        except Exception as e:
             print(f"\n✗ Failed to commit: {e}")
             return
 

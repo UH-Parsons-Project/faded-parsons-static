@@ -23,6 +23,9 @@
          class="btn btn-outline-dark btn-sm mr-3">
         Back to exercise list
       </a>
+      <span class="text-dark">
+        <i class="fas fa-user"></i> <span id="user-name"></span>
+      </span>
     </div>
   </nav>
   <main class="container main-nickname">
@@ -36,11 +39,17 @@
 	</div>
   </main>
 
-  <script>
-  const pathParts = window.location.pathname.split('/').filter(p => p);
-  const uniqueLinkCode = pathParts[1];
-  const taskId = pathParts[3];
-  const instructionsEl = document.getElementById('task-instructions');
+  <script type="module">
+    import { initSignedInAs } from '/js/auth-ui.js';
+
+    initSignedInAs({ preferNickname: true });
+
+    // Extract unique_link_code and task_id from URL path
+    // Path: /set/{unique_link_code}/tasks/{task_id}/start
+    const pathParts = window.location.pathname.split('/').filter(p => p);
+    const uniqueLinkCode = pathParts[1]; // set/starter-list/tasks/1/start -> starter-list
+    const taskId = pathParts[3]; // set/starter-list/tasks/1/start -> 1
+    const instructionsEl = document.getElementById('task-instructions');
 
   // If the user already started this task, redirect them to it
   const existingStartTime = localStorage.getItem(`task-${taskId}-start-time`);

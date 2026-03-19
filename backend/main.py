@@ -1405,12 +1405,14 @@ async def get_student_task_statistics(
     # Attempts detail
     attempts_detail = []
     for i, attempt in enumerate(attempts, 1):
+        time_taken = (attempt.completed_at - attempt.task_started_at).total_seconds() \
+            if attempt.task_started_at and attempt.completed_at else None
         detail = {
             "attempt_number": i,
             "success": attempt.success,
             "completed_at": attempt.completed_at.isoformat() if attempt.completed_at else None,
-            "time_taken": (attempt.completed_at - attempt.task_started_at).total_seconds() if attempt.task_started_at and attempt.completed_at else None,
-            "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None
+            "time_taken": time_taken,
+            "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None,
         }
         attempts_detail.append(detail)
 

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 import re
+import json
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import Integer, select
+from sqlalchemy import Integer, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -34,7 +35,6 @@ from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
     authenticate_student,
-    create_student_session,
     set_session_cookie,
     get_current_student_session,
     get_current_student_session_no_update,
@@ -112,7 +112,7 @@ class UserInfo(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     title: str
-    task_instructions: str 
+    task_instructions: str
     description: str | None
     task_type: str
     code_blocks: dict
@@ -481,33 +481,6 @@ async def problemset_task_page(
     return response
 
 
-@app.get("/set/{unique_link_code}/tasks/{task_id:int}/description", response_class=HTMLResponse)
-async def problemset_task_description_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    description_path = BASE_DIR / "templates" / "problem.html"
-    response = FileResponse(description_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
 @app.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=HTMLResponse)
 async def problemset_task_start_page(
     unique_link_code: str,
@@ -641,7 +614,7 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/register", response_class=HTMLResponse)
+@app.get("/register", response_class=HTMLResponse) #  FIX THIS TO teacher_register !!!!!!!!
 async def register_page():
     """Serve a simple registration page."""
     register_path = BASE_DIR / "templates" / "register.html"
@@ -667,7 +640,7 @@ async def login_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
-    elif not user.is_active:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
@@ -746,53 +719,6 @@ async def student_logout(response: Response):
     return {"message": "Successfully logged out"}
 
 
-@app.post("/api/validate-nickname")
-async def validate_nickname(
-    request: NicknameRequest,
-    response: Response,
-    db: AsyncSession = Depends(get_db)
-):
-    """Validate nickname and create student session. Must be less than 21 characters (max 20)."""
-    nickname = request.nickname.strip()
-    unique_link_code = request.unique_link_code.strip()
-
-    if not nickname:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nickname cannot be empty",
-        )
-
-    if len(nickname) > 20:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nickname must be less than 21 characters",
-        )
-
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_list = result.scalar_one_or_none()
-
-    if not task_list:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with code {unique_link_code} not found",
-        )
-
-    student_session = await create_student_session(
-        task_list_id=task_list.id,
-        nickname=nickname,
-        db=db
-    )
-
-    set_session_cookie(response, student_session.id)
-
-    return {
-        "status": "valid",
-        "nickname": nickname,
-        "student_id": student_session.id
-    }
-
-
 @app.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     stmt = select(Parsons).where(Parsons.id == task_id)
@@ -820,7 +746,7 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.get("/api/tasks")
 async def list_tasks(db: AsyncSession = Depends(get_db)):
-    import json
+    # `json` imported at module top
 
     result = await db.execute(select(Parsons).where(Parsons.is_public))
     tasks = result.scalars().all()
@@ -1001,6 +927,8 @@ async def api_student_register(request: Request, db: AsyncSession = Depends(get_
     await db.refresh(student)
 
     return {"status": "success", "id": student.id}
+
+
 @app.get("/api/problemsets", response_model=list[ProblemSetResponse])
 async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     """List all task lists for the current teacher."""
@@ -1110,7 +1038,7 @@ async def create_task_list(
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A task list with the title '{request.title}' already exists in the database. Please use a different title."
+            detail=f"A task list with the title '{request.title}' already exists in database. Use a different title."
         )
 
     # Parse expiration date if provided
@@ -1118,11 +1046,11 @@ async def create_task_list(
     if request.expires_at:
         try:
             expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid expiration date format"
-            )
+                detail="Invalid expiration date format",
+            ) from exc
 
     unique_link_code = generate_slug(request.title)
 
@@ -1169,7 +1097,7 @@ async def get_problemset_students(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all students who have attempted at least one task in this task list."""
-    from sqlalchemy import func, distinct
+    # moved `func` to module-level imports; `distinct` is unused here
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == problemset_id)
@@ -1182,7 +1110,8 @@ async def get_problemset_students(
             detail=f"Task list with id {problemset_id} not found"
         )
 
-    if not (task_list.teacher_id == current_user.id or current_user.has_data_access):
+    # Only allow viewing if user is the teacher of this list or has data access
+    if task_list.teacher_id != current_user.id and not current_user.has_data_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task list"
@@ -1197,6 +1126,7 @@ async def get_problemset_students(
         return []
 
     # Get student sessions with attempts, grouped by session
+    # Only include students who accessed this specific task list
     stmt = (
         select(
             Student.username,
@@ -1206,7 +1136,7 @@ async def get_problemset_students(
             func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
         )
         .join(TaskAttempt, TaskAttempt.student_id == Student.id)
-        .where(TaskAttempt.task_id.in_(task_ids))
+        .where(Student.task_list_id == problemset_id)
         .where(Student.username.isnot(None))
         .group_by(Student.id, Student.username, Student.started_at, Student.last_activity_at)
         .order_by(Student.last_activity_at.desc())
@@ -1235,7 +1165,7 @@ async def get_student_attempts(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all tasks attempted by a specific student in a task list."""
-    from sqlalchemy import func
+    # `func` imported at module top
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)
@@ -1305,7 +1235,7 @@ async def get_student_task_statistics(
     db: AsyncSession = Depends(get_db)
 ):
     """Get statistics for a specific student's attempts on a specific task."""
-    from sqlalchemy import func
+    # `func` imported at module top
 
     # Verify task list exists and belongs to current user
     stmt = select(TaskList).where(TaskList.id == list_id)

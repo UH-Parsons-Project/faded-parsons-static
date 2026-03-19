@@ -39,13 +39,16 @@
 				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
 			</div>
 		</nav>
-		<div class="container">
-			<h1>Exercise List</h1>
-			<div id="problems-list">
-				<p>Loading exercises…</p>
+		<div class="container py-4">
+			<h2 class="mb-4">Exercise List</h2>
+			<p class="text-muted mb-4">Select an exercise to view its global analytics.</p>
+			<div id="problems-list" class="loading-spinner">
+				<div class="spinner-border text-primary" role="status">
+					<span class="sr-only">Loading...</span>
+				</div>
+				<p class="mt-2">Loading exercises...</p>
 			</div>
 		</div>
-
 		<script type="module" src="/js/exerciselist.js"></script>
-	</body>
+</body>
 </html>

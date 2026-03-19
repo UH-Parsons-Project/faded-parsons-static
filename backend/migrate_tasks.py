@@ -68,15 +68,12 @@ def parse_problem_instructions(html_instructions: str) -> Dict[str, str]:
     return result
 
 
-def parse_code_lines(
-    code_lines: str, faded_markers: bool = False
-) -> tuple[List[Dict[str, Any]], bool]:
+def parse_code_lines(code_lines: str) -> tuple[List[Dict[str, Any]], bool]:
     """
     Convert code_lines string into structured blocks.
 
     Args:
         code_lines: Multi-line string with code
-        faded_markers: Whether the code contains !BLANK markers (indicating Faded type)
 
     Returns:
         tuple of (blocks list, has_faded boolean)
@@ -204,11 +201,11 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
 
     try:
         # Load YAML
-        with open(yaml_path, "r") as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             yaml_data = yaml.safe_load(f)
 
         # Load Python file and extract the function definition (including docstring)
-        with open(py_path, "r") as f:
+        with open(py_path, "r", encoding="utf-8") as f:
             function_file_content = f.read()
         function_header = extract_function_signature(function_file_content)
 
@@ -387,11 +384,7 @@ async def migrate_tasks():
 
 async def main():
     """Entry point for the migration script."""
-    try:
-        await migrate_tasks()
-    except Exception as e:
-        print(f"Fatal error: {e}")
-        raise
+    await migrate_tasks()
 
 
 if __name__ == "__main__":

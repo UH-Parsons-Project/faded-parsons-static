@@ -1,7 +1,8 @@
 import { initWidget } from "/dist/bundle.js";
-import { initNavbarExercisesButton } from "/js/auth-ui.js";
+import { initNavbarExercisesButton, initSignedInAs } from "/js/auth-ui.js";
 // Initializes initWidget
 initWidget();
+initSignedInAs({ preferNickname: true });
 initNavbarExercisesButton();
 
 // Set the back button to return to the task list

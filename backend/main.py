@@ -1351,11 +1351,13 @@ async def get_student_task_statistics(
     filtered_attempts = []
     for attempt in attempts:
         # Keep attempts that don't have code field (e.g., old data, missing field)
-        if not (attempt.submitted.inputs and isinstance(attempt.submitted.inputs, dict)):
+        if not (
+            attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
+        ):
             filtered_attempts.append(attempt)
             continue
 
-        code = attempt.submitted.inputs.get("code", "")
+        code = attempt.submitted_inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
             filtered_attempts.append(attempt)
@@ -1403,12 +1405,14 @@ async def get_student_task_statistics(
     # Attempts detail
     attempts_detail = []
     for i, attempt in enumerate(attempts, 1):
+        time_taken = (attempt.completed_at - attempt.task_started_at).total_seconds() \
+            if attempt.task_started_at and attempt.completed_at else None
         detail = {
             "attempt_number": i,
             "success": attempt.success,
             "completed_at": attempt.completed_at.isoformat() if attempt.completed_at else None,
-            "time_taken": (attempt.completed_at - attempt.task_started_at).total_seconds() if attempt.task_started_at and attempt.completed_at else None,
-            "code": attempt.submitted.inputs.get("code") if attempt.submitted.inputs else None
+            "time_taken": time_taken,
+            "code": attempt.submitted_inputs.get("code") if attempt.submitted_inputs else None,
         }
         attempts_detail.append(detail)
 

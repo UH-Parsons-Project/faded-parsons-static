@@ -141,11 +141,23 @@
 
     </div>
 
-    <!-- Most common mistakes -->
-    <div class="card card-soft mb-4">
-      <div class="card-body">
-        <strong>Most common mistakes and inputs</strong>
-        <div id="input-logs" class="text-muted mt-2">Loading...</div>
+    <div class="row">
+      <div class="col-lg-6 mb-4">
+        <div class="card card-soft h-100">
+          <div class="card-body">
+            <strong>Most common mistakes and inputs</strong>
+            <div id="input-logs" class="text-muted mt-2">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6 mb-4" id="model-answer-box" style="display: none;">
+        <div class="card card-soft model-answer-sticky">
+          <div class="card-body">
+            <strong>Model answer</strong>
+            <pre class="model-answer-code mt-2 mb-0"><code id="model-answer-code"></code></pre>
+          </div>
+        </div>
       </div>
     </div>
 

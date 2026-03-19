@@ -42,6 +42,11 @@ form.addEventListener('submit', async (e) => {
 
         showAlert('Registration successful.', 'success');
         form.reset();
+
+        // Redirect to login page after a short delay so the user can log in immediately
+        setTimeout(() => {
+            window.location.href = '/index.html?focus=username';
+        }, 1500);
     } catch (err) {
         showAlert('Network error');
     }

@@ -434,6 +434,28 @@
   overflow-y: auto;
 }
 
+.model-answer-code {
+  background-color: #eaf8ee;
+  border: 1px solid #9ed6ac;
+  border-left: 4px solid #28a745;
+}
+
+.model-answer-code code {
+  color: #155724;
+}
+
+@media (min-width: 992px) {
+  .model-answer-sticky {
+    position: sticky;
+    top: 1rem;
+  }
+
+  .model-answer-sticky .model-answer-code {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
 .stat-box {
   background-color: #f8f9fa;
   border: 2px solid #dee2e6;

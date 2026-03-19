@@ -45,6 +45,11 @@
         <div id="task-instructions-content" class="mt-2"></div>
       </div>
 
+      <div class="stat-box mb-3" id="model-answer-box" style="display: none;">
+        <h5>Model Answer</h5>
+        <pre class="attempt-code model-answer-code mb-0"><code id="model-answer-content"></code></pre>
+      </div>
+
       <div class="statistics-layout">
         <div class="attempts-column">
           <div class="attempts-header" id="attempts-header">
@@ -205,6 +210,19 @@
       box.style.display = 'block';
     }
 
+    function renderModelAnswer(modelAnswer) {
+      const box = document.getElementById('model-answer-box');
+      const content = document.getElementById('model-answer-content');
+
+      if (!modelAnswer || !modelAnswer.trim()) {
+        box.style.display = 'none';
+        return;
+      }
+
+      content.textContent = modelAnswer;
+      box.style.display = 'block';
+    }
+
     function createAttemptItem(attempt) {
       const item = document.createElement('div');
       item.className = `attempt-item ${attempt.success ? 'success' : 'failure'}`;
@@ -327,6 +345,7 @@
       .then(data => {
         renderHeader(data);
         renderTaskInstructions(data.task_instructions);
+        renderModelAnswer(data.model_answer);
         renderAttempts(data.attempts_detail);
         renderStatistics(data);
         document.getElementById('content-container').style.display = 'block';

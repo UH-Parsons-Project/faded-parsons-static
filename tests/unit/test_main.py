@@ -12,6 +12,7 @@ Uses shared fixtures from conftest.py:
 SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
+import os
 from datetime import datetime
 from unittest.mock import AsyncMock
 
@@ -283,13 +284,16 @@ class TestLogout:
 
 @pytest.mark.asyncio
 class TestRegister:
-    _valid = {
-        "username": "newteacher",
-        "password": "password123",
-        "password_confirm": "password123",
-        "email": "new@example.com",
-        "registration_token": "test_token",
-    }
+    def setup_method(self):
+        """Set up test data with registration token from environment."""
+        registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
+        self._valid = {
+            "username": "newteacher",
+            "password": "password123",
+            "password_confirm": "password123",
+            "email": "new@example.com",
+            "registration_token": registration_token,
+        }
 
     async def test_valid_registration_succeeds(self, client):
         r = await client.post("/api/register", json=self._valid)

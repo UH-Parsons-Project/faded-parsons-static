@@ -5,7 +5,7 @@ Database models for the application.
 from datetime import datetime, timezone
 
 import bcrypt
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -82,6 +82,21 @@ class TaskList(Base):
     teacher_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class TaskListViewer(Base):
+    """Teachers who can view a task list."""
+
+    __tablename__ = "task_list_viewers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_list_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    )
+    teacher_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class TaskListItem(Base):

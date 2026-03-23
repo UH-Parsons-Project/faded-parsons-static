@@ -111,6 +111,24 @@
         </div>
 
         <div class="form-group">
+          <label for="viewer-identifiers">
+            <i class="fas fa-user-plus"></i> Share viewing rights (optional)
+          </label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="viewer-identifiers"
+                   placeholder="Username or email">
+            <div class="input-group-append">
+              <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                <i class="fas fa-user-plus"></i> Add
+              </button>
+            </div>
+          </div>
+          <small class="form-text text-muted">Add teachers who can view this task list.</small>
+          <div id="viewer-errors" class="mt-2"></div>
+          <div id="viewer-list" class="mt-2"></div>
+        </div>
+
+        <div class="form-group">
           <div class="checkbox-custom">
             <input type="checkbox" id="set-expiration" class="form-check-input">
             <label for="set-expiration" class="form-check-label">

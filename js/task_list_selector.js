@@ -1,10 +1,12 @@
 // Load user info
 const userNameEl = document.getElementById('user-name');
 const allSetsButtonContainer = document.getElementById('all-sets-button-container');
+let currentUserId = null;
 
 fetch('/api/me', { credentials: 'include' })
 	.then(r => r.ok ? r.json() : Promise.reject('Failed to fetch user data'))
 	.then(data => {
+		currentUserId = data?.id ?? null;
 		if (data?.username) {
 			userNameEl.textContent = data.username;
 			localStorage.setItem('username', data.username);
@@ -71,6 +73,14 @@ function createTaskListItem(taskList) {
 	item.appendChild(title);
 	item.appendChild(meta);
 
+	if (currentUserId && taskList.teacher_id !== currentUserId && taskList.owner_username) {
+		const sharedLabel = document.createElement('div');
+		sharedLabel.className = 'text-muted';
+		sharedLabel.style.fontSize = '0.8rem';
+		sharedLabel.textContent = `Shared by ${taskList.owner_username}`;
+		item.appendChild(sharedLabel);
+	}
+
 	if (taskList.teacher_description) {
 	const description = document.createElement('div');
 	description.className = 'task-list-description';
@@ -127,15 +137,47 @@ function renderTaskLists(taskLists) {
 	const layout = document.createElement('div');
 	layout.className = 'task-list-selector-layout';
 
-	// Left column: task lists
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-lists-column';
 
-	taskLists.forEach(taskList => {
-		listsColumn.appendChild(createTaskListItem(taskList));
-	});
+	const ownedLists = currentUserId
+		? taskLists.filter(taskList => taskList.teacher_id === currentUserId)
+		: taskLists;
+	const sharedLists = currentUserId
+		? taskLists.filter(taskList => taskList.teacher_id !== currentUserId)
+		: [];
 
-	// Right column: add button
+	const ownedSection = document.createElement('div');
+	ownedSection.className = 'task-list-section';
+	ownedSection.innerHTML = '<h4 class="mb-3">Your Task Lists</h4>';
+
+	const ownedContainer = document.createElement('div');
+	if (ownedLists.length === 0) {
+		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task lists yet.</div>';
+	} else {
+		ownedLists.forEach(taskList => {
+			ownedContainer.appendChild(createTaskListItem(taskList));
+		});
+	}
+	ownedSection.appendChild(ownedContainer);
+
+	const sharedSection = document.createElement('div');
+	sharedSection.className = 'task-list-section mt-4';
+	sharedSection.innerHTML = '<h4 class="mb-3">Shared With You</h4>';
+
+	const sharedContainer = document.createElement('div');
+	if (sharedLists.length === 0) {
+		sharedContainer.innerHTML = '<div class="text-muted">No shared task lists.</div>';
+	} else {
+		sharedLists.forEach(taskList => {
+			sharedContainer.appendChild(createTaskListItem(taskList));
+		});
+	}
+	sharedSection.appendChild(sharedContainer);
+
+	listsColumn.appendChild(ownedSection);
+	listsColumn.appendChild(sharedSection);
+
 	const addColumn = document.createElement('div');
 	addColumn.className = 'add-button-column';
 	addColumn.appendChild(createAddButton());

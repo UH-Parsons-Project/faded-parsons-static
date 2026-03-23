@@ -52,5 +52,8 @@ test('teacher can create a new task list by clicking "Create New Task List"', as
   // Wait for success message or redirect back to task list selector
   await page.waitForURL(/\/task_list_selector$/, { timeout: 10000 });
   await expect(page).toHaveURL(/\/task_list_selector$/);
+
+  // Verify the newly created task list is visible on the page
+  await expect(page.locator('.task-list-title', { hasText: taskListTitle })).toBeVisible();
 });
 

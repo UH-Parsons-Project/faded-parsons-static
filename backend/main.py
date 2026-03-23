@@ -61,6 +61,24 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+HARDCODED_MODEL_ANSWERS = {
+    "add_in_range": "def add_in_range(start, stop):\n"
+    "    total = 0\n"
+    "    while start <= stop:\n"
+    "        total += start\n"
+    "        start += 1\n"
+    "    return total",
+}
+
+
+def _get_model_answer_for_task(task: Parsons) -> str | None:
+    """Return a teacher-facing hard-coded model answer for known exercises."""
+    if task.id == 1:
+        return HARDCODED_MODEL_ANSWERS["add_in_range"]
+
+    task_title = (task.title or "").strip().lower()
+    return HARDCODED_MODEL_ANSWERS.get(task_title)
+
 
 def _clean_mistake_code(code: str) -> str:
     """Return a display-friendly version of submitted code."""
@@ -170,6 +188,7 @@ class StudentTaskAttemptResponse(BaseModel):
 class StudentTaskStatisticsResponse(BaseModel):
     task_name: str
     task_description: str | None
+    model_answer: str | None = None
     student_username: str
     total_attempts: int
     successful_attempts: int
@@ -1600,6 +1619,7 @@ async def get_student_task_statistics(
         return StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
+            model_answer=_get_model_answer_for_task(task),
             student_username=student_username,
             total_attempts=0,
             successful_attempts=0,
@@ -1645,6 +1665,7 @@ async def get_student_task_statistics(
     return StudentTaskStatisticsResponse(
         task_name=task.title,
         task_description=task.description,
+        model_answer=_get_model_answer_for_task(task),
         student_username=student_username,
         total_attempts=len(attempts),
         successful_attempts=successful_attempts,
@@ -1755,6 +1776,7 @@ async def get_task_statistics(
     if not attempts:
         return {
             "task_name": task.title,
+            "model_answer": _get_model_answer_for_task(task),
             "total_completions": 0,
             "students_attempted": 0,
             "students_completed": 0,
@@ -1839,6 +1861,7 @@ async def get_task_statistics(
 
     return {
         "task_name": task.title,
+        "model_answer": _get_model_answer_for_task(task),
         "total_completions": len(attempts),
         "students_attempted": students_attempted,
         "students_completed": students_completed,

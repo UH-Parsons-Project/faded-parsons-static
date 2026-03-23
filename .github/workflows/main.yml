@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create .env file with secrets
+        run: |
+          echo "TEACHER_REGISTRATION_TOKEN=${{ secrets.TEACHER_REGISTRATION_TOKEN }}" > .env
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

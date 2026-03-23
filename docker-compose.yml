@@ -50,10 +50,11 @@ services:
       - "8001:8000"
     volumes:
       - .:/usr/src/app
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
       TEST_MODE: "true"
-      TEACHER_REGISTRATION_TOKEN: ${TEACHER_REGISTRATION_TOKEN}
     depends_on:
       db:
         condition: service_healthy
@@ -65,8 +66,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.unittest
-    environment:
-      TEACHER_REGISTRATION_TOKEN: ${TEACHER_REGISTRATION_TOKEN}
+    env_file:
+      - .env
     volumes:
       - ./tests:/usr/src/app/tests
       - ./backend:/usr/src/app/backend
@@ -80,9 +81,10 @@ services:
       dockerfile: Dockerfile.test
     depends_on:
       - web-test
+    env_file:
+      - .env
     environment:
       BASE_URL: http://web-test:8000
-      TEACHER_REGISTRATION_TOKEN: ${TEACHER_REGISTRATION_TOKEN}
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js

@@ -7,6 +7,8 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    env:
+      TEACHER_REGISTRATION_TOKEN: ${{ secrets.TEACHER_REGISTRATION_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +36,8 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     needs: unit-tests
+    env:
+      TEACHER_REGISTRATION_TOKEN: ${{ secrets.TEACHER_REGISTRATION_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4

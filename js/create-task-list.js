@@ -30,7 +30,7 @@ function initializePage() {
 function loadUsername() {
   const userNameEl = document.getElementById('user-name');
   const storedUsername = localStorage.getItem('username');
-  
+
   if (storedUsername) {
     userNameEl.textContent = storedUsername;
   } else {
@@ -390,10 +390,10 @@ function updateSelectedTasksPreview() {
           // Remove the dragged item from its current position
           const draggedTaskId = selectedTaskIds[draggedIndex];
           selectedTaskIds.splice(draggedIndex, 1);
-          
+
           // Find the target item's new index after removal
           const newTargetIndex = selectedTaskIds.findIndex(id => id === targetTaskId);
-          
+
           // Insert the dragged item before the target item
           if (newTargetIndex !== -1) {
             selectedTaskIds.splice(newTargetIndex, 0, draggedTaskId);
@@ -401,7 +401,7 @@ function updateSelectedTasksPreview() {
             // If target not found, append to end
             selectedTaskIds.push(draggedTaskId);
           }
-          
+
           updateSelectedTasksPreview();
         }
       }

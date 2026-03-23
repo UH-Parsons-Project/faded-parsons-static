@@ -10,6 +10,7 @@ import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
 let allTasks = [];
 let selectedTaskIds = [];  // Array to preserve order
 let draggedElement = null;
+let viewerIdentifiers = [];
 
 /**
  * Initialize the page when DOM is ready
@@ -18,6 +19,7 @@ function initializePage() {
   loadUsername();
   setupExpirationDateToggle();
   setupTaskSearch();
+  setupViewerSharing();
   setupFormSubmission();
   loadTasks();
 }
@@ -28,7 +30,7 @@ function initializePage() {
 function loadUsername() {
   const userNameEl = document.getElementById('user-name');
   const storedUsername = localStorage.getItem('username');
-  
+
   if (storedUsername) {
     userNameEl.textContent = storedUsername;
   } else {
@@ -66,6 +68,107 @@ function setupTaskSearch() {
       task.title.toLowerCase().includes(query)
     );
     renderTasks(filtered);
+  });
+}
+
+function setupViewerSharing() {
+  const input = document.getElementById('viewer-identifiers');
+  const addBtn = document.getElementById('add-viewer-btn');
+  if (!input) return;
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      addViewersFromInput();
+    });
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addViewersFromInput();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    addViewersFromInput();
+  });
+
+  renderViewerList();
+}
+
+function addViewersFromInput() {
+  const input = document.getElementById('viewer-identifiers');
+  if (!input) return;
+
+  const raw = input.value;
+  if (!raw) return;
+
+  const tokens = raw
+    .split(/[,\n;]/)
+    .map(token => token.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) return;
+
+  tokens.forEach(addViewerIdentifier);
+  input.value = '';
+  renderViewerList();
+}
+
+function addViewerIdentifier(identifier) {
+  const normalized = identifier.trim();
+  if (!normalized) return;
+
+  const exists = viewerIdentifiers.some(
+    existing => existing.toLowerCase() === normalized.toLowerCase()
+  );
+
+  if (!exists) {
+    viewerIdentifiers.push(normalized);
+  }
+}
+
+function removeViewerIdentifier(identifier) {
+  viewerIdentifiers = viewerIdentifiers.filter(
+    existing => existing.toLowerCase() !== identifier.toLowerCase()
+  );
+  renderViewerList();
+}
+
+
+
+
+
+
+
+function renderViewerList() {
+  const container = document.getElementById('viewer-list');
+  if (!container) return;
+
+  if (viewerIdentifiers.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '';
+  viewerIdentifiers.forEach(identifier => {
+    const item = document.createElement('div');
+    item.className = 'd-flex align-items-center mb-1';
+
+    const label = document.createElement('span');
+    label.className = 'badge badge-light border mr-2';
+    label.innerHTML = escapeHtml(identifier);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-link btn-sm text-danger p-0';
+    removeBtn.title = 'Remove viewer';
+    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    removeBtn.addEventListener('click', () => removeViewerIdentifier(identifier));
+
+    item.appendChild(label);
+    item.appendChild(removeBtn);
+    container.appendChild(item);
   });
 }
 
@@ -287,10 +390,10 @@ function updateSelectedTasksPreview() {
           // Remove the dragged item from its current position
           const draggedTaskId = selectedTaskIds[draggedIndex];
           selectedTaskIds.splice(draggedIndex, 1);
-          
+
           // Find the target item's new index after removal
           const newTargetIndex = selectedTaskIds.findIndex(id => id === targetTaskId);
-          
+
           // Insert the dragged item before the target item
           if (newTargetIndex !== -1) {
             selectedTaskIds.splice(newTargetIndex, 0, draggedTaskId);
@@ -298,7 +401,7 @@ function updateSelectedTasksPreview() {
             // If target not found, append to end
             selectedTaskIds.push(draggedTaskId);
           }
-          
+
           updateSelectedTasksPreview();
         }
       }
@@ -417,6 +520,9 @@ function setupFormSubmission() {
       ? document.getElementById('expiration-date').value
       : null;
 
+    addViewersFromInput();
+    const viewersToShare = [...viewerIdentifiers];
+
     if (!title) {
       showError('Please enter a task list title');
       return;
@@ -463,8 +569,35 @@ function setupFormSubmission() {
         throw new Error(errorDetail);
       }
 
-      await createResponse.json();
-      showSuccess('Task list created successfully!');
+      const createdList = await createResponse.json();
+
+      const viewerErrors = [];
+      for (const identifier of viewersToShare) {
+        try {
+          const viewerResponse = await fetch(`/api/problemsets/${createdList.id}/viewers`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ identifier })
+          });
+
+          if (!viewerResponse.ok) {
+            const viewerError = await viewerResponse.json().catch(() => null);
+            const detail = viewerError?.detail || `HTTP ${viewerResponse.status}`;
+            viewerErrors.push(`${identifier} (${detail})`);
+          }
+        } catch (error) {
+          viewerErrors.push(`${identifier} (network error)`);
+        }
+      }
+
+      let successMessage = 'Task list created successfully!';
+      if (viewerErrors.length > 0) {
+        successMessage += ` Viewers not added: ${viewerErrors.join(', ')}.`;
+      }
+      showSuccess(successMessage);
 
       setTimeout(() => {
         window.location.href = `/task_list_selector`;

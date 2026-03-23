@@ -52,6 +52,22 @@
         </div>
 
         <div class="students-column">
+          <div class="students-section mb-4">
+            <h3 class="mb-3">Shared Viewers</h3>
+            <div class="form-group">
+              <label for="viewer-identifier" class="sr-only">Add viewer</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="viewer-identifier" placeholder="Username or email">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                    <i class="fas fa-user-plus"></i> Add
+                  </button>
+                </div>
+              </div>
+              <small class="form-text text-muted">Add teachers who can view this task list.</small>
+            </div>
+            <div id="viewers-list"></div>
+          </div>
           <div class="students-section">
             <h3 class="mb-3">Students (total: <span id="student-count"></span>)</h3>
             <div id="students-list"></div>

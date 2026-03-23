@@ -32,6 +32,14 @@ CREATE TABLE task_lists (
 	expires_at TIMESTAMP
 );
 
+CREATE TABLE task_list_viewers (
+	id SERIAL PRIMARY KEY,
+	task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
+	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE (task_list_id, teacher_id)
+);
+
 CREATE TABLE task_list_items (
 	id SERIAL PRIMARY KEY,
 	task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,

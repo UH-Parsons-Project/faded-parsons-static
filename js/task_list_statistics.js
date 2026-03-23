@@ -10,6 +10,8 @@ if (!listId) {
 	window.location.href = '/task_list_selector';
 }
 
+setupViewerSharing();
+
 function formatDate(isoString) {
 	const date = new Date(isoString);
 	return date.toLocaleDateString('en-US', {
@@ -23,6 +25,153 @@ function escapeHtml(text) {
 	const div = document.createElement('div');
 	div.textContent = text;
 	return div.innerHTML;
+}
+
+function setupViewerSharing() {
+	const input = document.getElementById('viewer-identifier');
+	const addBtn = document.getElementById('add-viewer-btn');
+	if (!input || !addBtn) return;
+
+	const addHandler = async () => {
+		const identifier = input.value.trim();
+		if (!identifier) return;
+		addBtn.disabled = true;
+		input.disabled = true;
+		const added = await addViewer(identifier);
+		if (added) {
+			input.value = '';
+		}
+		input.disabled = false;
+		addBtn.disabled = false;
+		input.focus();
+	};
+
+	addBtn.addEventListener('click', () => {
+		addHandler();
+	});
+
+	input.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			addHandler();
+		}
+	});
+}
+
+function showViewerError(message) {
+	const container = document.getElementById('viewers-list');
+	if (!container) return;
+
+	const alert = document.createElement('div');
+	alert.className = 'text-danger mb-2';
+	alert.textContent = message;
+
+	container.prepend(alert);
+	setTimeout(() => {
+		alert.remove();
+	}, 4000);
+}
+
+function renderViewers(viewers) {
+	const container = document.getElementById('viewers-list');
+	if (!container) return;
+
+	if (!viewers || viewers.length === 0) {
+		container.innerHTML = '<div class="text-muted">No shared viewers yet.</div>';
+		return;
+	}
+
+	container.innerHTML = '';
+	viewers.forEach(viewer => {
+		container.appendChild(createViewerItem(viewer));
+	});
+}
+
+function createViewerItem(viewer) {
+	const item = document.createElement('div');
+	item.className = 'd-flex align-items-center justify-content-between border rounded px-2 py-1 mb-2';
+
+	const info = document.createElement('div');
+	info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="text-muted">(${escapeHtml(viewer.email)})</span>`;
+
+	const removeBtn = document.createElement('button');
+	removeBtn.className = 'btn btn-sm btn-outline-danger';
+	removeBtn.type = 'button';
+	removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+	removeBtn.title = 'Remove viewer';
+	removeBtn.addEventListener('click', () => {
+		const confirmRemove = window.confirm(`Remove access for ${viewer.username}?`);
+		if (!confirmRemove) return;
+		removeViewer(viewer.teacher_id);
+	});
+
+	item.appendChild(info);
+	item.appendChild(removeBtn);
+
+	return item;
+}
+
+async function loadViewers() {
+	try {
+		const response = await fetch(`/api/problemsets/${listId}/viewers`, { credentials: 'include' });
+		if (!response.ok) {
+			const error = await response.json().catch(() => null);
+			const detail = error?.detail || 'Failed to load viewers';
+			throw new Error(detail);
+		}
+		const viewers = await response.json();
+		renderViewers(viewers);
+	} catch (error) {
+		console.error('Error loading viewers:', error);
+		showViewerError(error.message || 'Failed to load viewers');
+	}
+}
+
+async function addViewer(identifier) {
+	try {
+		const response = await fetch(`/api/problemsets/${listId}/viewers`, {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ identifier })
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => null);
+			const detail = error?.detail || 'Failed to add viewer';
+			throw new Error(detail);
+		}
+
+		await response.json();
+		loadViewers();
+		return true;
+	} catch (error) {
+		console.error('Error adding viewer:', error);
+		showViewerError(error.message || 'Failed to add viewer');
+		return false;
+	}
+}
+
+async function removeViewer(teacherId) {
+	try {
+		const response = await fetch(`/api/problemsets/${listId}/viewers/${teacherId}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => null);
+			const detail = error?.detail || 'Failed to remove viewer';
+			throw new Error(detail);
+		}
+
+		loadViewers();
+	} catch (error) {
+		console.error('Error removing viewer:', error);
+		showViewerError(error.message || 'Failed to remove viewer');
+	}
 }
 
 function renderListHeader(taskList) {
@@ -240,6 +389,7 @@ Promise.all([
 	renderListHeader(taskList);
 	renderTasks(tasks, taskList);
 	renderStudents(students);
+	loadViewers();
 	document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {

@@ -10,7 +10,7 @@
 </head>
 <body>
 	<nav class="navbar">
-		<a href="index.html">
+		<a href="index.html" class="title-logo-link">
 			<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
 		</a>
 		<div class="ml-auto" id="auth-section">
@@ -29,27 +29,47 @@
 		</div>
 	</nav>
 
-	<h1 class="mt-4 text-center">Welcome to Parsons Code Lab!</h1>
-	<h4 class="mt-4 text-center">This page is for teacher use only. If you are a student, your teacher will share a link for the task list.</h4>
+	<div class="title-with-logo mt-4">
+		<a href="index.html" class="title-logo-link">
+			<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="index-logo">
+		</a>
+		<h1 class="text-center title-main">Welcome to Parsons Code Lab!</h1>
+	</div>
+	<h4 class="mt-4 text-center">This page is for teacher use only. If you are a student, your teacher will provide an access link.</h4>
 
     <div class="container mt-5 text-center">
-		<p>This website lets you work on Faded Parsons Problems, a type of
+		<b>You're using an early version of our software—thank you for your patience as we continue to improve it!</b>
+
+		<p>This website lets students practice programming basics by solving Faded Parsons Problems, a type of
 		programming exercise where you rearrange blocks of code and fill in blanks
 		to create a working program. You can learn more about Faded Parsons Problems
 		in <a target="_blank" href="https://dl.acm.org/doi/10.1145/3411764.3445228">
 			Nate Weinman's CHI 2021 paper</a>.
 
-		<p>The problems hosted here are all in Python 3 and checked for correctness using <a target="_blank" href="https://docs.python.org/3/library/doctest.html">doctests</a>.
+		<p>
+			Parsons Code Lab offers educators a simple way to observe and understand student progress at one glance.
+			By providing a diverse set of statistics on learning outcomes and the challenges students most commonly
+			encounter, the tool helps educators form a clearer picture of individual and class development. Its aim 
+			is to support reflective teaching practices by making meaningful patterns in student learning easier to 
+			recognize and interpret. 
+		</p>
+		
+		<p>
+			The coding problems hosted in Parsons Code Lab are currently written in Python 3, and student submissions
+			are checked for correctness using <a target="_blank" href="https://docs.python.org/3/library/doctest.html">doctests</a>.
+			The software is straightforward to use; educators can build task sets from a library of ready-made exercises or 
+			include their own custom tasks. Each task set can be shared with students through a unique URL, making the whole 
+			process easy and smooth.
 	    </p>
 
-		<p>Here's a (non-comprehensive) list of the problem hosted here:</p>
-
-		<p>If you're a teacher and would like to host your own problems,
-			<a target="blank" href="https://github.com/pamelafox/faded-parsons-static">
-				check the Github repository for more instructions.
+		<p>If you're a teacher and would like to use Parsons Code Lab,
+			check the
+			<a target="blank" href="https://github.com/UH-Parsons-Project/parsons-code-lab">
+				Github repository
 			</a>
+			for more instructions.
 		</p>
-
+		<footer>Parsons Code Lab is being developed within the University of Helsinki.</footer>
     </div>
 	<script type="module">
 		import { initLoginPage, initNavbarExercisesButton } from '/js/auth-ui.js';

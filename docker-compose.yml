@@ -50,6 +50,8 @@ services:
       - "8001:8000"
     volumes:
       - .:/usr/src/app
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
       TEST_MODE: "true"
@@ -64,6 +66,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.unittest
+    env_file:
+      - .env
     volumes:
       - ./tests:/usr/src/app/tests
       - ./backend:/usr/src/app/backend
@@ -77,6 +81,8 @@ services:
       dockerfile: Dockerfile.test
     depends_on:
       - web-test
+    env_file:
+      - .env
     environment:
       BASE_URL: http://web-test:8000
     volumes:

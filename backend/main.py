@@ -12,6 +12,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 import re
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(env_path)
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -872,7 +877,7 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
-    REGISTRATION_TOKEN = "test_token"
+    REGISTRATION_TOKEN = os.getenv("TEACHER_REGISTRATION_TOKEN")
 
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")

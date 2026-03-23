@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Task Blocks</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/js/main.css">
+  <style>
+    .page-wrap {
+      padding-top: 1rem;
+      padding-bottom: 1.5rem;
+    }
+
+    .builder-layout {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .problem-subtitle {
+      color: #5b6472;
+      margin-bottom: 0;
+    }
+
+    .sortable-code {
+      min-height: 280px;
+    }
+
+    .starter {
+      width: 40%;
+      float: left;
+    }
+
+    .solution {
+      width: 58%;
+      margin-left: 2%;
+      float: left;
+    }
+
+    #source-sortable ul,
+    #solution-sortable ul {
+      min-height: 230px;
+      border-radius: 8px;
+      padding: 0.5rem;
+      border: 1px solid #d8e0ec;
+      background: #fbfdff;
+      margin-bottom: 0;
+      box-sizing: border-box;
+    }
+
+    #solution-sortable ul {
+      background: #fffdeb;
+    }
+
+    .add-btn {
+      border: 0;
+      background: #0f766e;
+      color: #fff;
+      border-radius: 6px;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .add-btn:hover {
+      background: #0d5f59;
+    }
+
+    .custom-block-box {
+      margin-top: 0.7rem;
+      border: 1px dashed #bfc9da;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 0.6rem;
+    }
+
+    .custom-block-box label {
+      display: block;
+      font-size: 0.84rem;
+      color: #475569;
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+    }
+
+    .custom-block-input {
+      width: 100%;
+      min-height: 74px;
+      resize: vertical;
+      border: 1px solid #cad3e1;
+      border-radius: 7px;
+      padding: 0.5rem;
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 0.84rem;
+      line-height: 1.4;
+      white-space: pre;
+      overflow-x: auto;
+      margin-bottom: 0.5rem;
+    }
+
+    .custom-block-input:focus,
+    .problem-description:focus,
+    .tests-input:focus {
+      outline: none;
+      border-color: #7aa5f8;
+      box-shadow: 0 0 0 2px rgba(70, 111, 197, 0.2);
+    }
+
+    .problem-description,
+    .tests-input {
+      width: 100%;
+      border: 1px solid #cad3e1;
+      border-radius: 7px;
+      padding: 0.55rem;
+      font-size: 0.92rem;
+      line-height: 1.4;
+      resize: vertical;
+    }
+
+    .tests-input {
+      min-height: 150px;
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      white-space: pre;
+    }
+
+    .problem-description {
+      min-height: 96px;
+    }
+
+    .run-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.7rem;
+      margin-top: 0.85rem;
+    }
+
+    .run-status {
+      color: #4b5563;
+      font-size: 0.9rem;
+    }
+
+    .test-results-box {
+      min-height: 120px;
+      border: 1px solid #d7deeb;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 0.7rem;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    .test-results-box.pass {
+      border-color: #8ad0a3;
+      background: #f0fff5;
+    }
+
+    .test-results-box.fail {
+      border-color: #f0a0a0;
+      background: #fff5f5;
+    }
+
+    .empty-msg {
+      color: #6b7280;
+      font-style: italic;
+      padding: 0.35rem 0;
+    }
+
+    @media (max-width: 980px) {
+      .starter,
+      .solution {
+        float: none;
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .solution {
+        margin-top: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto">
+      <span class="text-dark ml-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+    </div>
+  </nav>
+
+  <div class="container page-wrap">
+    <div class="row mt-2">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Create Task Blocks</h3>
+            <div class="d-flex" style="gap: 0.5rem;">
+              <button id="back-to-code" class="btn btn-outline-secondary btn-sm" type="button">Back To Code/Test Editor</button>
+              <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear Blocks</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="problem-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="mb-0">Problem Statement</h3>
+          </div>
+          <div class="card-body">
+            <label for="problem-description" class="mb-2">Description shown with the task</label>
+            <textarea id="problem-description" class="problem-description" placeholder="Describe what students should do..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="builder-layout row mt-4">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Parsons Workspace</h4>
+            <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+          </div>
+          <div class="card-body">
+            <div id="source-sortable" class="sortable-code starter"></div>
+            <div id="solution-sortable" class="sortable-code solution"></div>
+            <div style="clear: both;"></div>
+
+            <div class="custom-block-box">
+              <label for="custom-block-input">+ Add Custom Block (stays on left until dragged)</label>
+              <textarea id="custom-block-input" class="custom-block-input" spellcheck="false" placeholder="Write custom block code here..."></textarea>
+              <button id="add-custom-block" class="add-btn" type="button">+ Add Custom Block</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-1">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="mb-0">Tests</h4>
+          </div>
+          <div class="card-body">
+            <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
+            <div class="run-toolbar">
+              <span id="run-status" class="run-status"></span>
+              <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="mb-0">Test Cases</h4>
+          </div>
+          <div class="card-body">
+            <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initSignedInAs } from "/js/auth-ui.js";
+    initSignedInAs({ preferNickname: false });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
+  <script type="module" src="/js/create-task-problem.js"></script>
+</body>
+</html>

@@ -588,6 +588,40 @@ async def create_task_list_page(request: Request, db: AsyncSession = Depends(get
     response.headers["Pragma"] = "no-cache"
     return response
 
+
+@app.get("/create_task", response_class=HTMLResponse)
+@app.get("/create_task.html", response_class=HTMLResponse)
+async def create_task_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task.html"
+    response = FileResponse(create_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.get("/create_task_problem", response_class=HTMLResponse)
+@app.get("/create_task_problem.html", response_class=HTMLResponse)
+async def create_task_problem_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task_problem.html"
+    response = FileResponse(create_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
 @app.get("/task_list_statistics", response_class=HTMLResponse)
 async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_db)):
     try:

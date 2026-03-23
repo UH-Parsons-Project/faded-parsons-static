@@ -1,3 +1,8 @@
+import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+
+initProtectedPage('/index.html');
+initSignedInAs();
+
 // Load user info
 const userNameEl = document.getElementById('user-name');
 const allSetsButtonContainer = document.getElementById('all-sets-button-container');
@@ -17,23 +22,6 @@ fetch('/api/me', { credentials: 'include' })
 		console.error(error);
 		userNameEl.textContent = '';
 	});
-
-// Handle logout button
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-	logoutBtn.addEventListener('click', async () => {
-	try {
-		await fetch('/api/logout', { method: 'POST' });
-		localStorage.removeItem('auth_token');
-		localStorage.removeItem('username');
-		window.location.href = '/index.html';
-	} catch (error) {
-		console.error('Logout error:', error);
-		window.location.href = '/index.html';
-	}
-	});
-}
-
 
 function formatDate(isoString) {
 	const date = new Date(isoString);

@@ -1,3 +1,7 @@
+import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+
+initProtectedPage('/index.html');
+initSignedInAs();
 
 
 const userNameEl = document.getElementById('user-name');

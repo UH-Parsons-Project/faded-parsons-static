@@ -27,6 +27,10 @@
       <span class="text-dark">
         <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span></span>
       </span>
+
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
+        Logout
+      </button>
     </div>
   </nav>
 
@@ -117,11 +121,6 @@
       </div>
     </div>
   </div>
-
-  <script type="module">
-    import { initSignedInAs } from '/js/auth-ui.js';
-    initSignedInAs();
-  </script>
 
   <script type="module" src="/js/student_task_statistics.js"></script>
 

@@ -1,19 +1,10 @@
-import {clearAuth} from '/js/auth-utils.js';
-import {initNavbarExercisesButton, initSignedInAs} from '/js/auth-ui.js';
+import {initNavbarExercisesButton, initSignedInAs, initProtectedPage} from '/js/auth-ui.js';
 
 initSignedInAs();
 
 initNavbarExercisesButton();
 
-// Set up logout button
-document
-	.getElementById('logout-btn')
-	.addEventListener('click', async function () {
-		// Call logout endpoint to clear cookie
-		await fetch('/api/logout', {method: 'POST'});
-		clearAuth();
-		window.location.href = '/index.html';
-	});
+initProtectedPage('/index.html');
 
 // Load exercise list
 const container = document.getElementById('problems-list');

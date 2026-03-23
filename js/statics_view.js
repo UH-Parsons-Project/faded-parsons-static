@@ -1,3 +1,8 @@
+import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
+initSignedInAs();
+initProtectedPage('/index.html');
+
+
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
 const problemsetCode = params.get('problemset');

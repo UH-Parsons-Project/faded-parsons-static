@@ -467,7 +467,7 @@ async def problemset_page(
     if student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
-    problemset_path = BASE_DIR / "templates" / "nickname.html"
+    problemset_path = BASE_DIR / "templates" / "student_index.html"
     response = FileResponse(problemset_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     return response

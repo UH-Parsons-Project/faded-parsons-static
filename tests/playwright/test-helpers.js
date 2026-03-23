@@ -28,3 +28,24 @@ export async function loginTeacher(page, username, password) {
   await page.locator('#password').fill(password);
   await page.locator('#login-btn').click();
 }
+
+export async function createTaskList(page, taskListTitle, studentDescription, teacherDescription) {
+  await page.locator('text=Create New Task List').click();
+  await page.locator('#task-list-title').fill(taskListTitle);
+  await page.locator('#student-description').fill(studentDescription);
+  await page.locator('#teacher-description').fill(teacherDescription);
+  await page.waitForSelector('.task-item', { timeout: 10000 });
+  const taskItems = await page.locator('.task-item').all();
+  const tasksToSelect = Math.min(3, taskItems.length);
+  const selectedIndices = new Set();
+
+  while (selectedIndices.size < tasksToSelect) {
+    selectedIndices.add(Math.floor(Math.random() * taskItems.length));
+  }
+
+  for (const index of selectedIndices) {
+    await taskItems[index].click();
+  }
+
+  await page.locator('#create-task-list-form button[type="submit"]').click();
+}

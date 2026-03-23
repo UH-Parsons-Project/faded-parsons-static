@@ -1,3 +1,7 @@
+import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
+    initSignedInAs();
+    initProtectedPage('/index.html');
+
 /**
  * Task List Creation Form Module
  * Handles form interactions, task selection, and task list creation
@@ -351,7 +355,7 @@ function updateSelectedTasksPreview() {
     itemEl.appendChild(controlsEl);
 
     // Drag event handlers
-    itemEl.addEventListener('dragstart', (e) => {
+    itemEl.addEventListener('dragstart', () => {
       draggedElement = itemEl;
       itemEl.classList.add('dragging');
     });
@@ -444,7 +448,7 @@ function showDuplicateTitleModal(title) {
 
   // Show the Bootstrap modal after a brief delay to ensure scroll completes
   setTimeout(() => {
-    $('#duplicate-title-modal').modal('show');
+    toggleDuplicateTitleModal(true);
   }, 300);
 
   // Focus back to the title input for easy editing after a brief delay
@@ -454,13 +458,31 @@ function showDuplicateTitleModal(title) {
   }, 500);
 }
 
+function toggleDuplicateTitleModal(show) {
+  const modalEl = document.getElementById('duplicate-title-modal');
+  if (!modalEl) return;
+
+  // Bootstrap 4 modal API via jQuery when available.
+  if (window.jQuery) {
+    window.jQuery(modalEl).modal(show ? 'show' : 'hide');
+    return;
+  }
+
+  // Graceful fallback if jQuery is unavailable.
+  modalEl.style.display = show ? 'block' : 'none';
+  modalEl.classList.toggle('show', show);
+  modalEl.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
 /**
  * Close duplicate title modal
  */
 function closeDuplicateTitleModal() {
-  $('#duplicate-title-modal').modal('hide');
+  toggleDuplicateTitleModal(false);
   document.getElementById('task-list-title').focus();
 }
+
+window.closeDuplicateTitleModal = closeDuplicateTitleModal;
 
 /**
  * Show success message

@@ -6,12 +6,16 @@ initSignedInAs();
 // Load user info
 const userNameEl = document.getElementById('user-name');
 const allSetsButtonContainer = document.getElementById('all-sets-button-container');
-let currentUserId = null;
+let currentUsername = null;
 
-fetch('/api/me', { credentials: 'include' })
-	.then(r => r.ok ? r.json() : Promise.reject('Failed to fetch user data'))
-	.then(data => {
-		currentUserId = data?.id ?? null;
+async function loadCurrentUser() {
+	try {
+		const response = await fetch('/api/me', { credentials: 'include' });
+		if (!response.ok) {
+			throw new Error('Failed to fetch user data');
+		}
+		const data = await response.json();
+		currentUsername = data?.username ?? null;
 		if (data?.username) {
 			userNameEl.textContent = data.username;
 			localStorage.setItem('username', data.username);
@@ -19,11 +23,11 @@ fetch('/api/me', { credentials: 'include' })
 		if (data?.has_data_access) {
 			allSetsButtonContainer.style.display = 'block';
 		}
-	})
-	.catch(error => {
+	} catch (error) {
 		console.error(error);
 		userNameEl.textContent = '';
-	});
+	}
+}
 
 function formatDate(isoString) {
 	const date = new Date(isoString);
@@ -61,7 +65,7 @@ function createTaskListItem(taskList) {
 	item.appendChild(title);
 	item.appendChild(meta);
 
-	if (currentUserId && taskList.teacher_id !== currentUserId && taskList.owner_username) {
+	if (currentUsername && taskList.owner_username && taskList.owner_username !== currentUsername) {
 		const sharedLabel = document.createElement('div');
 		sharedLabel.className = 'text-muted';
 		sharedLabel.style.fontSize = '0.8rem';
@@ -128,11 +132,11 @@ function renderTaskLists(taskLists) {
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-lists-column';
 
-	const ownedLists = currentUserId
-		? taskLists.filter(taskList => taskList.teacher_id === currentUserId)
+	const ownedLists = currentUsername
+		? taskLists.filter(taskList => taskList.owner_username === currentUsername)
 		: taskLists;
-	const sharedLists = currentUserId
-		? taskLists.filter(taskList => taskList.teacher_id !== currentUserId)
+	const sharedLists = currentUsername
+		? taskLists.filter(taskList => taskList.owner_username !== currentUsername)
 		: [];
 
 	const ownedSection = document.createElement('div');
@@ -186,23 +190,28 @@ function showError(message) {
 	`;
 }
 
-// Load task lists
-fetch('/api/problemsets', { credentials: 'include' })
-	.then(r => {
-	if (!r.ok) {
-		if (r.status === 401) {
-		window.location.href = '/index.html';
-		return;
+async function loadTaskLists() {
+	try {
+		const response = await fetch('/api/problemsets', { credentials: 'include' });
+		if (!response.ok) {
+			if (response.status === 401) {
+				window.location.href = '/index.html';
+				return;
+			}
+			throw new Error('Failed to load task lists');
 		}
-		throw new Error('Failed to load task lists');
+		const data = await response.json();
+		renderTaskLists(data);
+	} catch (err) {
+		console.error('Error loading task lists:', err);
+		showError(err.message);
 	}
-	return r.json();
-	})
-	.then(data => {
-	renderTaskLists(data);
-	})
-	.catch(err => {
-	console.error('Error loading task lists:', err);
-	showError(err.message);
-	});
+}
+
+async function initPage() {
+	await loadCurrentUser();
+	await loadTaskLists();
+}
+
+initPage();
 

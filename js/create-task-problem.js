@@ -261,8 +261,7 @@ initProtectedPage('/index.html');
     }
 
     if (message.includes('AssertionError')) {
-      const detail = message.split('AssertionError:').pop()?.trim();
-      return detail ? `${linePart}AssertionError: ${detail}` : `${linePart}AssertionError`;
+      return `${linePart}AssertionError`;
     }
 
     if (message.includes('Traceback')) {
@@ -317,20 +316,20 @@ initProtectedPage('/index.html');
       'print("ALL_TEACHER_TESTS_PASSED")',
     ].join('\n');
 
-    console.log('Combined Python code being sent to the runner:\n', python);
-
     try {
       const { results, error } = await new FiniteWorker(python);
       if (error) {
-        renderTestResult('fail', formatPythonError(error.message));
+        const errorMessage = error.message || 'An unknown error occurred during test execution.';
+        renderTestResult('fail', formatPythonError(errorMessage));
         addToListBtn.disabled = true;
       } else {
         const output = (results || '').toString().trim();
-        if (output === 'ALL_TEACHER_TESTS_PASSED') {
+        if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
           renderTestResult('pass', 'All tests passed!');
           addToListBtn.disabled = false;
         } else {
-          renderTestResult('fail', output);
+          const errorMessage = output || 'Test execution failed with no output.';
+          renderTestResult('fail', errorMessage);
           addToListBtn.disabled = true;
         }
       }
@@ -375,12 +374,19 @@ initProtectedPage('/index.html');
       },
       body: JSON.stringify(problemData),
     })
-      .then((response) => {
+      .then(async (response) => {
         if (response.ok) {
           alert('Problem successfully added to the problem list!');
-          window.location.href = '/problems';
+          window.location.href = '/task_list_selector';
         } else {
-          alert('Failed to add the problem. Please try again.');
+          let detail = '';
+          try {
+            const payload = await response.json();
+            detail = payload?.detail ? `\nReason: ${payload.detail}` : '';
+          } catch (parseError) {
+            detail = '';
+          }
+          alert(`Failed to add the problem.${detail}`);
         }
       })
       .catch((error) => {
@@ -420,6 +426,7 @@ initProtectedPage('/index.html');
     const backBtn = document.getElementById('back-to-code');
     const clearBtn = document.getElementById('clear-blocks');
     const addCustomBtn = document.getElementById('add-custom-block');
+    const addToListBtn = document.getElementById('add-to-problem-list');
     const customBlockInput = document.getElementById('custom-block-input');
     const descriptionInput = document.getElementById('problem-description');
     const testsInput = document.getElementById('tests-input');
@@ -485,6 +492,12 @@ initProtectedPage('/index.html');
     if (runBtn) {
       runBtn.addEventListener('click', () => {
         runTeacherTests();
+      });
+    }
+
+    if (addToListBtn) {
+      addToListBtn.addEventListener('click', () => {
+        addToProblemList();
       });
     }
   }

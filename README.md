@@ -7,7 +7,7 @@
 
 Check it out here:
 
-https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi/
+https://parsonscodelab.web.helsinki.fi
 
 ## Running the website
 

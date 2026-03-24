@@ -721,6 +721,12 @@ async def student_register_page():
     register_path = BASE_DIR / "templates" / "student_register.html"
     return FileResponse(register_path)
 
+@app.get("/instructions", response_class=HTMLResponse)
+async def teacher_instructions_page():
+    """Serve a simple teacher instructions page."""
+    instructions_path = BASE_DIR / "templates" / "instructions.html"
+    return FileResponse(instructions_path)
+
 # Authentication endpoints
 @app.post("/api/login/access-token", response_model=Token)
 async def login_access_token(

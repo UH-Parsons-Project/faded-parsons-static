@@ -91,7 +91,17 @@
   function setupEditorBehavior(textarea, statusElement, storageKey) {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
+      console.log(`Loading ${storageKey} from localStorage:`, saved);
       textarea.value = saved;
+    }
+
+    if (storageKey === TASK_CODE_DRAFT_KEY) {
+      const preservedCode = sessionStorage.getItem('preserved_task_code');
+      if (preservedCode) {
+        console.log('Loading preserved task code from sessionStorage:', preservedCode);
+        textarea.value = preservedCode;
+        sessionStorage.removeItem('preserved_task_code');
+      }
     }
 
     autoResize(textarea);
@@ -113,6 +123,7 @@
     });
 
     textarea.addEventListener('input', () => {
+      console.log(`Saving ${storageKey} to localStorage:`, textarea.value);
       localStorage.setItem(storageKey, textarea.value);
       autoResize(textarea);
       updateCaretStatus(textarea, statusElement);

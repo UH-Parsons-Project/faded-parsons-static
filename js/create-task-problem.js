@@ -274,8 +274,9 @@ import { FiniteWorker } from './worker-manager.js';
     const testsInput = document.getElementById('tests-input');
     const runStatus = document.getElementById('run-status');
     const runBtn = document.getElementById('run-tests');
+    const addToListBtn = document.getElementById('add-to-problem-list');
 
-    if (!testsInput || !runStatus || !runBtn) {
+    if (!testsInput || !runStatus || !runBtn || !addToListBtn) {
       return;
     }
 
@@ -317,15 +318,96 @@ import { FiniteWorker } from './worker-manager.js';
       const { results, error } = await new FiniteWorker(python);
       if (error) {
         renderTestResult('fail', formatPythonError(error.message));
+        addToListBtn.disabled = true;
       } else {
         const output = (results || '').toString().trim();
-        renderTestResult('pass', output || 'ALL_TEACHER_TESTS_PASSED');
+        if (output === 'ALL_TEACHER_TESTS_PASSED') {
+          renderTestResult('pass', 'All tests passed!');
+          addToListBtn.disabled = false;
+        } else {
+          renderTestResult('fail', output);
+          addToListBtn.disabled = true;
+        }
       }
     } catch (err) {
       renderTestResult('fail', `Execution error: ${err.message || err}`);
+      addToListBtn.disabled = true;
     } finally {
       runBtn.disabled = false;
       runStatus.textContent = '';
+    }
+  }
+
+  function addToProblemList() {
+    const descriptionInput = document.getElementById('problem-description');
+    const testsInput = document.getElementById('tests-input');
+    const solutionList = document.querySelector('#solution-sortable ul');
+
+    if (!descriptionInput || !testsInput || !solutionList || !parsonsWidget) {
+      alert('Missing required fields to add the problem.');
+      return;
+    }
+
+    const description = descriptionInput.value.trim();
+    const tests = testsInput.value.trim();
+    const solutionCode = parsonsWidget.solutionCode();
+
+    if (!description || !tests || !solutionCode) {
+      alert('Please ensure all fields are filled out before adding the problem.');
+      return;
+    }
+
+    const problemData = {
+      description,
+      tests,
+      solutionCode,
+    };
+
+    fetch('/api/problems', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(problemData),
+    })
+      .then((response) => {
+        if (response.ok) {
+          alert('Problem successfully added to the problem list!');
+          window.location.href = '/problems';
+        } else {
+          alert('Failed to add the problem. Please try again.');
+        }
+      })
+      .catch((error) => {
+        console.error('Error adding problem:', error);
+        alert('An error occurred while adding the problem.');
+      });
+  }
+
+  function saveCodeToSession() {
+    const testsInput = document.getElementById('tests-input');
+    const solutionList = document.querySelector('#solution-sortable ul');
+    const hasSolutionBlocks = Boolean(solutionList && solutionList.children.length > 0);
+    const currentCode = hasSolutionBlocks && parsonsWidget
+      ? parsonsWidget.solutionCode()
+      : (draftPayload?.taskCode || '');
+    const currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
+
+    console.log('Saving code to session:', currentCode);
+    console.log('Saving tests to session:', currentTests);
+
+    localStorage.setItem('create_task_draft_code', currentCode);
+    localStorage.setItem('create_task_draft_tests', currentTests);
+
+    if (draftPayload) {
+      const updatedDraft = {
+        ...draftPayload,
+        taskCode: currentCode,
+        taskTests: currentTests,
+        savedAt: new Date().toISOString(),
+      };
+      console.log('Updated draft payload:', updatedDraft);
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(updatedDraft));
     }
   }
 
@@ -340,6 +422,7 @@ import { FiniteWorker } from './worker-manager.js';
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
+        saveCodeToSession();
         window.location.href = '/create_task';
       });
     }

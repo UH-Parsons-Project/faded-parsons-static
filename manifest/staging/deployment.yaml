@@ -26,6 +26,11 @@ spec:
                 secretKeyRef:
                   name: database-credentials
                   key: DATABASE_URL
+            - name: TEACHER_REGISTRATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: teachertoken
+                  key: TEACHER_REGISTRATION_TOKEN
           ports:
             - containerPort: 8000
 

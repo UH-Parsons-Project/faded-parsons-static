@@ -214,6 +214,12 @@ class SubmitTestResultRequest(BaseModel):
     start_time: str | None = None  # ISO format timestamp from localStorage
 
 
+class CreateProblemRequest(BaseModel):
+    description: str
+    tests: str
+    solutionCode: str
+
+
 class CreateTaskListRequest(BaseModel):
     title: str
     student_description: str | None = None
@@ -533,6 +539,40 @@ async def create_task_list_page(request: Request, db: AsyncSession = Depends(get
     response.headers["Pragma"] = "no-cache"
     return response
 
+
+@app.get("/create_task", response_class=HTMLResponse)
+@app.get("/create_task.html", response_class=HTMLResponse)
+async def create_task_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task.html"
+    response = FileResponse(create_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+@app.get("/create_task_problem", response_class=HTMLResponse)
+@app.get("/create_task_problem.html", response_class=HTMLResponse)
+async def create_task_problem_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(
+            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    create_path = BASE_DIR / "templates" / "create_task_problem.html"
+    response = FileResponse(create_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
 @app.get("/task_list_statistics", response_class=HTMLResponse)
 async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_db)):
     try:
@@ -705,6 +745,77 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
         )
 
     return task_list
+
+
+@app.post("/api/problems")
+async def create_problem(
+    request: CreateProblemRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
+    description = request.description.strip()
+    tests = request.tests.strip()
+
+    if not solution_code or not description or not tests:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="description, tests and solutionCode are required",
+        )
+
+    lines = [line for line in solution_code.split("\n") if line.strip()]
+    if not lines:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="solutionCode must contain at least one non-empty line",
+        )
+
+    first_code_line = lines[0].strip()
+    if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The first non-empty solution line must start with def or class",
+        )
+
+    header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
+    function_name = header_match.group(2) if header_match else "custom_task"
+
+    blocks = []
+    for line_index, line in enumerate(lines, start=1):
+        indent_count = len(line) - len(line.lstrip())
+        blocks.append(
+            {
+                "id": f"block_{line_index}",
+                "code": line.strip(),
+                "indent": indent_count // 4,
+                "faded": False,
+                "given": False,
+            }
+        )
+
+    task = Parsons(
+        created_by_teacher_id=current_user.id,
+        title=f"{function_name}_{int(datetime.now(timezone.utc).timestamp())}",
+        task_instructions='{"function_name":"","task_instructions":"","examples":""}',
+        description=description,
+        task_type="normal",
+        code_blocks={
+            "blocks": blocks,
+            "function_header": lines[0],
+        },
+        correct_solution={
+            "correct_order": [block["id"] for block in blocks],
+            "teacher_tests": tests,
+            "solution_code": solution_code,
+        },
+        is_public=True,
+    )
+
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    return {"id": task.id, "message": "Problem created"}
 
 @app.post("/api/register")
 async def api_register(request: Request, db: AsyncSession = Depends(get_db)):

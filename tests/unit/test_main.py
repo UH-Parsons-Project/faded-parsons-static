@@ -12,6 +12,7 @@ Uses shared fixtures from conftest.py:
 SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
+import os
 from datetime import datetime
 from unittest.mock import AsyncMock
 
@@ -255,6 +256,7 @@ class TestGetMe:
         r = await client.get("/api/me", headers=_auth(test_teacher.username))
         assert r.status_code == 200
         assert r.json() == {
+            "id": test_teacher.id,
             "username": "testteacher",
             "email": "test@example.com",
             "has_data_access": False,
@@ -282,13 +284,16 @@ class TestLogout:
 
 @pytest.mark.asyncio
 class TestRegister:
-    _valid = {
-        "username": "newteacher",
-        "password": "password123",
-        "password_confirm": "password123",
-        "email": "new@example.com",
-        "registration_token": "test_token",
-    }
+    def setup_method(self):
+        """Set up test data with registration token from environment."""
+        registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
+        self._valid = {
+            "username": "newteacher",
+            "password": "password123",
+            "password_confirm": "password123",
+            "email": "new@example.com",
+            "registration_token": registration_token,
+        }
 
     async def test_valid_registration_succeeds(self, client):
         r = await client.post("/api/register", json=self._valid)
@@ -461,8 +466,11 @@ class TestListTasks:
 
 @pytest.mark.asyncio
 class TestGetProblemset:
-    async def test_returns_problemset_data(self, client, problemset):
-        r = await client.get(f"/api/problemsets/{problemset.id}")
+    async def test_returns_problemset_data(self, client, problemset, test_teacher):
+        r = await client.get(
+            f"/api/problemsets/{problemset.id}",
+            headers=_auth(test_teacher.username),
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["id"] == problemset.id
@@ -478,12 +486,15 @@ class TestGetProblemset:
         db_session.add(ps)
         await db_session.commit()
         await db_session.refresh(ps)
-        r = await client.get(f"/api/problemsets/{ps.id}")
+        r = await client.get(
+            f"/api/problemsets/{ps.id}",
+            headers=_auth(test_teacher.username),
+        )
         assert r.status_code == 200
         assert r.json()["expires_at"] is not None
 
-    async def test_nonexistent_returns_404(self, client):
-        assert (await client.get("/api/problemsets/99999")).status_code == 404
+    async def test_nonexistent_returns_404(self, client, test_teacher):
+        assert (await client.get("/api/problemsets/99999", headers=_auth(test_teacher.username))).status_code == 404
 
 
 # ---------------------------------------------------------------------------
@@ -793,11 +804,11 @@ class TestStatistics:
         self, client, task, student_session, test_teacher, db_session
     ):
         await _add_attempt(db_session, student_session.id, task.id, success=True)
-        body = (await client.get(
+        response = await client.get(
             f"/api/tasks/{task.id}/statistics?problemset_code=NOCODE",
             headers=_auth(test_teacher.username),
-        )).json()
-        assert body["total_completions"] == 1
+        )
+        assert response.status_code == 404
 
 
 # ---------------------------------------------------------------------------

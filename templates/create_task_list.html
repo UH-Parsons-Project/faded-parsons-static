@@ -17,7 +17,7 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
   <!-- Task list creation form module -->
-  <script src="/js/create-task-list.js"></script>
+  <script type="module" src="/js/create-task-list.js"></script>
 
 </head>
 
@@ -32,10 +32,8 @@
          class="btn btn-outline-dark btn-sm mr-3">
         Back to task lists
       </a>
-      <span class="text-dark">
-        <i class="fas fa-user"></i>
-        <span id="user-name"></span>
-      </span>
+      <span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
     </div>
   </nav>
 
@@ -108,6 +106,24 @@
                     rows="3"
                     placeholder="Notes for the teacher"></textarea>
           <small class="form-text text-muted">This is only visible to teachers</small>
+        </div>
+
+        <div class="form-group">
+          <label for="viewer-identifiers">
+            <i class="fas fa-user-plus"></i> Share viewing rights (optional)
+          </label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="viewer-identifiers"
+                   placeholder="Username or email">
+            <div class="input-group-append">
+              <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                <i class="fas fa-user-plus"></i> Add
+              </button>
+            </div>
+          </div>
+          <small class="form-text text-muted">Add teachers who can view this task list.</small>
+          <div id="viewer-errors" class="mt-2"></div>
+          <div id="viewer-list" class="mt-2"></div>
         </div>
 
         <div class="form-group">

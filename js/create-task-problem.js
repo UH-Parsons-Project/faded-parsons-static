@@ -314,6 +314,8 @@ import { FiniteWorker } from './worker-manager.js';
       'print("ALL_TEACHER_TESTS_PASSED")',
     ].join('\n');
 
+    console.log('Combined Python code being sent to the runner:\n', python);
+
     try {
       const { results, error } = await new FiniteWorker(python);
       if (error) {

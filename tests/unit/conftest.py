@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for unit tests.
 """
 
+import os
 import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
@@ -112,6 +113,19 @@ async def inactive_teacher(db_session) -> Teacher:
 def valid_token_data() -> dict:
     """Return valid token data for testing."""
     return {"sub": "testteacher"}
+
+
+@pytest.fixture
+def valid_registration_payload() -> dict:
+    """Return valid registration payload with token from environment."""
+    registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
+    return {
+        "username": "newteacher",
+        "password": "password123",
+        "password_confirm": "password123",
+        "email": "new@example.com",
+        "registration_token": registration_token,
+    }
 
 
 # ---------------------------------------------------------------------------

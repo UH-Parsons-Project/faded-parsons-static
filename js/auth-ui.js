@@ -342,3 +342,23 @@ export async function initSignedInAs({
 		if (userInfoEl) userInfoEl.style.display = 'none';
 	}
 }
+
+/**
+ * Initialize student logout behavior for /set/{unique_link_code}/... pages.
+ */
+export function initStudentLogout({
+	logoutButtonId = 'logout-btn',
+	redirectFallback = '/'
+} = {}) {
+	const logoutBtn = document.getElementById(logoutButtonId);
+	if (!logoutBtn) return;
+
+	logoutBtn.addEventListener('click', async () => {
+		await fetch('/api/student_logout', { method: 'POST' });
+		localStorage.removeItem('nickname');
+
+		const pathParts = window.location.pathname.split('/').filter(Boolean);
+		const uniqueLinkCode = pathParts[1];
+		window.location.href = uniqueLinkCode ? `/set/${uniqueLinkCode}` : redirectFallback;
+	});
+}

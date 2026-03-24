@@ -1,11 +1,9 @@
-// Logout button
-document.getElementById('logout-btn').addEventListener('click', async () => {
-	await fetch('/api/student_logout', { method: 'POST' });
-	localStorage.removeItem('nickname');
-	const pathParts = window.location.pathname.split('/');
-	const uniqueLinkCode = pathParts[2];
-	window.location.href = `/set/${uniqueLinkCode}`;
-});
+import { initStudentLogout } from '/js/auth-ui.js';
+import { initSignedInAs } from '/js/auth-ui.js';
+
+initSignedInAs({ preferNickname: true });
+
+initStudentLogout();
 
 // Load problem list for this problemset
 const container = document.getElementById('problems-list');

@@ -1,10 +1,21 @@
+import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+
+initProtectedPage('/index.html');
+initSignedInAs();
+
 // Load user info
 const userNameEl = document.getElementById('user-name');
 const allSetsButtonContainer = document.getElementById('all-sets-button-container');
+let currentUsername = null;
 
-fetch('/api/me', { credentials: 'include' })
-	.then(r => r.ok ? r.json() : Promise.reject('Failed to fetch user data'))
-	.then(data => {
+async function loadCurrentUser() {
+	try {
+		const response = await fetch('/api/me', { credentials: 'include' });
+		if (!response.ok) {
+			throw new Error('Failed to fetch user data');
+		}
+		const data = await response.json();
+		currentUsername = data?.username ?? null;
 		if (data?.username) {
 			userNameEl.textContent = data.username;
 			localStorage.setItem('username', data.username);
@@ -12,28 +23,11 @@ fetch('/api/me', { credentials: 'include' })
 		if (data?.has_data_access) {
 			allSetsButtonContainer.style.display = 'block';
 		}
-	})
-	.catch(error => {
+	} catch (error) {
 		console.error(error);
 		userNameEl.textContent = '';
-	});
-
-// Handle logout button
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-	logoutBtn.addEventListener('click', async () => {
-	try {
-		await fetch('/api/logout', { method: 'POST' });
-		localStorage.removeItem('auth_token');
-		localStorage.removeItem('username');
-		window.location.href = '/index.html';
-	} catch (error) {
-		console.error('Logout error:', error);
-		window.location.href = '/index.html';
 	}
-	});
 }
-
 
 function formatDate(isoString) {
 	const date = new Date(isoString);
@@ -70,6 +64,14 @@ function createTaskListItem(taskList) {
 
 	item.appendChild(title);
 	item.appendChild(meta);
+
+	if (currentUsername && taskList.owner_username && taskList.owner_username !== currentUsername) {
+		const sharedLabel = document.createElement('div');
+		sharedLabel.className = 'text-muted';
+		sharedLabel.style.fontSize = '0.8rem';
+		sharedLabel.textContent = `Shared by ${taskList.owner_username}`;
+		item.appendChild(sharedLabel);
+	}
 
 	if (taskList.teacher_description) {
 	const description = document.createElement('div');
@@ -127,15 +129,47 @@ function renderTaskLists(taskLists) {
 	const layout = document.createElement('div');
 	layout.className = 'task-list-selector-layout';
 
-	// Left column: task lists
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-lists-column';
 
-	taskLists.forEach(taskList => {
-		listsColumn.appendChild(createTaskListItem(taskList));
-	});
+	const ownedLists = currentUsername
+		? taskLists.filter(taskList => taskList.owner_username === currentUsername)
+		: taskLists;
+	const sharedLists = currentUsername
+		? taskLists.filter(taskList => taskList.owner_username !== currentUsername)
+		: [];
 
-	// Right column: add button
+	const ownedSection = document.createElement('div');
+	ownedSection.className = 'task-list-section';
+	ownedSection.innerHTML = '<h4 class="mb-3">Your Task Lists</h4>';
+
+	const ownedContainer = document.createElement('div');
+	if (ownedLists.length === 0) {
+		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task lists yet.</div>';
+	} else {
+		ownedLists.forEach(taskList => {
+			ownedContainer.appendChild(createTaskListItem(taskList));
+		});
+	}
+	ownedSection.appendChild(ownedContainer);
+
+	const sharedSection = document.createElement('div');
+	sharedSection.className = 'task-list-section mt-4';
+	sharedSection.innerHTML = '<h4 class="mb-3">Shared With You</h4>';
+
+	const sharedContainer = document.createElement('div');
+	if (sharedLists.length === 0) {
+		sharedContainer.innerHTML = '<div class="text-muted">No shared task lists.</div>';
+	} else {
+		sharedLists.forEach(taskList => {
+			sharedContainer.appendChild(createTaskListItem(taskList));
+		});
+	}
+	sharedSection.appendChild(sharedContainer);
+
+	listsColumn.appendChild(ownedSection);
+	listsColumn.appendChild(sharedSection);
+
 	const addColumn = document.createElement('div');
 	addColumn.className = 'add-button-column';
 	addColumn.appendChild(createAddButton());
@@ -156,23 +190,27 @@ function showError(message) {
 	`;
 }
 
-// Load task lists
-fetch('/api/problemsets', { credentials: 'include' })
-	.then(r => {
-	if (!r.ok) {
-		if (r.status === 401) {
-		window.location.href = '/index.html';
-		return;
+async function loadTaskLists() {
+	try {
+		const response = await fetch('/api/problemsets', { credentials: 'include' });
+		if (!response.ok) {
+			if (response.status === 401) {
+				window.location.href = '/index.html';
+				return;
+			}
+			throw new Error('Failed to load task lists');
 		}
-		throw new Error('Failed to load task lists');
+		const data = await response.json();
+		renderTaskLists(data);
+	} catch (err) {
+		console.error('Error loading task lists:', err);
+		showError(err.message);
 	}
-	return r.json();
-	})
-	.then(data => {
-	renderTaskLists(data);
-	})
-	.catch(err => {
-	console.error('Error loading task lists:', err);
-	showError(err.message);
-	});
+}
 
+async function initPage() {
+	await loadCurrentUser();
+	await loadTaskLists();
+}
+
+initPage();

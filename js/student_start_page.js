@@ -1,3 +1,8 @@
+import { initSignedInAs } from '/js/auth-ui.js';
+import { initStudentLogout } from '/js/auth-ui.js';
+initSignedInAs({ preferNickname: true });
+initStudentLogout();
+
 // Extract unique_link_code and task_id from URL path
 // Path: /set/{unique_link_code}/tasks/{task_id}/start
 const pathParts = window.location.pathname.split('/').filter(p => p);

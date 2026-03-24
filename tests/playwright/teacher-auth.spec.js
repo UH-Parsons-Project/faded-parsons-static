@@ -1,28 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-
-async function registerTeacher(
-  page,
-  username,
-  email,
-  password = 'password123',
-  registrationToken = 'test_token'
-) {
-  await page.goto('/register');
-  await page.locator('#username').fill(username);
-  await page.locator('#email').fill(email);
-  await page.locator('#password').fill(password);
-  await page.locator('#password_confirm').fill(password);
-  await page.locator('#registration_token').fill(registrationToken);
-  await page.locator('#register-form button[type="submit"]').click();
-}
-
-async function loginTeacher(page, username, password) {
-  await page.goto('/');
-  await page.locator('#username').fill(username);
-  await page.locator('#password').fill(password);
-  await page.locator('#login-btn').click();
-}
+import { registerTeacher, loginTeacher } from './test-helpers.js';
 
 test('teacher can register and then login from the main page', async ({ page }) => {
   const unique = Date.now();
@@ -30,29 +8,16 @@ test('teacher can register and then login from the main page', async ({ page }) 
   const email = `teacher_${unique}@example.com`;
   const password = 'password123';
 
-  // Open main page and navigate to registration using the navbar button.
-  await page.goto('/');
-  await page.locator('#register-btn').click();
-  await expect(page).toHaveURL(/\/register$/);
-
-  // Register a new teacher account.
-  await page.locator('#username').fill(username);
-  await page.locator('#email').fill(email);
-  await page.locator('#password').fill(password);
-  await page.locator('#password_confirm').fill(password);
-  await page.locator('#registration_token').fill('test_token');
-  await page.locator('#register-form button[type="submit"]').click();
+  // Register a new teacher account
+  await registerTeacher(page, username, email, password);
 
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await expect(page.locator('#alert-placeholder .alert-success')).toContainText(
     'Registration successful.'
   );
 
-  // Login from the main page with the just-created credentials.
-  await page.goto('/');
-  await page.locator('#username').fill(username);
-  await page.locator('#password').fill(password);
-  await page.locator('#login-btn').click();
+  // Login from the main page with the just-created credentials
+  await loginTeacher(page, username, password);
 
   await expect(page).toHaveURL(/\/task_list_selector$/);
 });

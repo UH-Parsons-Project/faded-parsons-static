@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Task Blocks</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/js/main.css">
+  <link rel="stylesheet" href="/js/create-task-problem.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/task_list_selector" class="btn btn-outline-dark btn-sm mr-3">
+        Statistics
+      </a>
+      <span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+      <button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container page-wrap">
+    <div class="row mt-2">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Create Task Blocks</h3>
+            <div class="d-flex" style="gap: 0.5rem;">
+              <button id="back-to-code" class="btn btn-outline-secondary btn-sm" type="button">Back To Code/Test Editor</button>
+              <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear Blocks</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="problem-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="mb-0">Problem Statement</h3>
+          </div>
+          <div class="card-body">
+            <label for="problem-description" class="mb-2">Description shown with the task</label>
+            <textarea id="problem-description" class="problem-description" placeholder="Describe what students should do..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="builder-layout row mt-4">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Parsons Workspace</h4>
+            <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+          </div>
+          <div class="card-body">
+            <div id="source-sortable" class="sortable-code starter"></div>
+            <div id="solution-sortable" class="sortable-code solution"></div>
+            <div style="clear: both;"></div>
+
+            <div class="custom-block-box">
+              <label for="custom-block-input">+ Add Custom Block (stays on left until dragged)</label>
+              <textarea id="custom-block-input" class="custom-block-input" spellcheck="false" placeholder="Write custom block code here..."></textarea>
+              <button id="add-custom-block" class="add-btn" type="button">+ Add Custom Block</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-1">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="mb-0">Tests</h4>
+          </div>
+          <div class="card-body">
+            <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
+            <div class="run-toolbar">
+              <span id="run-status" class="run-status"></span>
+              <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+              <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Add to Problem List</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="mb-0">Test Cases</h4>
+          </div>
+          <div class="card-body">
+            <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
+  <script type="module" src="/js/create-task-problem.js"></script>
+</body>
+</html>

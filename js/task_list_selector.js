@@ -107,6 +107,19 @@ function createAddButton() {
 	return button;
 }
 
+function createNewTaskButton() {
+	const wrapper = document.createElement('div');
+	wrapper.className = 'mb-3';
+
+	const link = document.createElement('a');
+	link.href = '/create_task';
+	link.className = 'btn btn-success btn-block';
+	link.textContent = 'New task';
+
+	wrapper.appendChild(link);
+	return wrapper;
+}
+
 function renderTaskLists(taskLists) {
 	const container = document.getElementById('task-lists-container');
 	container.className = '';
@@ -123,6 +136,7 @@ function renderTaskLists(taskLists) {
 	const buttonWrapper = document.createElement('div');
 	buttonWrapper.style.maxWidth = '300px';
 	buttonWrapper.style.margin = '0 auto';
+	buttonWrapper.appendChild(createNewTaskButton());
 	buttonWrapper.appendChild(createAddButton());
 	container.appendChild(buttonWrapper);
 	} else {
@@ -172,6 +186,7 @@ function renderTaskLists(taskLists) {
 
 	const addColumn = document.createElement('div');
 	addColumn.className = 'add-button-column';
+	addColumn.appendChild(createNewTaskButton());
 	addColumn.appendChild(createAddButton());
 
 	layout.appendChild(listsColumn);
@@ -214,4 +229,3 @@ async function initPage() {
 }
 
 initPage();
-

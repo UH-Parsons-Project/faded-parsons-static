@@ -11,7 +11,20 @@ self.onmessage = async (event) => {
 	await pyodideReadyPromise;
 	const python = event.data;
 	try {
-		let results = await self.pyodide.runPythonAsync(python);
+		// Capture stdout by redirecting sys.stdout
+		const captureCode = `
+import sys
+from io import StringIO
+_old_stdout = sys.stdout
+_captured = StringIO()
+sys.stdout = _captured
+try:
+	exec(${JSON.stringify(python)})
+finally:
+	sys.stdout = _old_stdout
+_captured.getvalue()
+`;
+		let results = await self.pyodide.runPythonAsync(captureCode);
 		self.postMessage({results});
 	} catch (error) {
 		self.postMessage({error: error});

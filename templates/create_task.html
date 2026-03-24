@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Task</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="stylesheet" href="/js/main.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css">
+    <link rel="stylesheet" href="/js/create-task.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html">
+            <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+        </a>
+        <div class="ml-auto d-flex align-items-center">
+            <a href="/task_list_selector" class="btn btn-outline-dark btn-sm mr-3">
+                Statistics
+            </a>
+            <span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+            <button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <main class="create-task-shell">
+        <h1 class="page-title">Create a New Task</h1>
+        <p class="page-subtitle">
+            Write plain Python in the first editor and any Python test code in the second editor.
+            You can use <code>assert</code>, loops, helper functions, exception checks, and multiple test cases.
+        </p>
+
+        <form id="create-task-form">
+            <div class="editor-grid">
+                <section class="editor-panel">
+                    <div class="field-head">
+                        <label for="task-code">Task Code</label>
+                        <span class="field-hint">Example: <code>def format_name(first, last):</code></span>
+                    </div>
+                    <textarea
+                        id="task-code"
+                        name="task-code"
+                        class="code-editor"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        autocorrect="off"
+                        placeholder="def format_name(first, last):\n    return f\"{first.strip().title()} {last.strip().title()}\""
+                    ></textarea>
+                    <div class="editor-footer">
+                        <span id="task-code-status">Ln 1, Col 1</span>
+                        <button type="button" class="text-btn" data-clear-target="task-code">Clear</button>
+                    </div>
+                </section>
+
+                <section class="editor-panel">
+                    <div class="field-head">
+                        <label for="task-tests">Task Tests</label>
+                        <span class="field-hint">Use any Python test style you prefer</span>
+                    </div>
+                    <textarea
+                        id="task-tests"
+                        name="task-tests"
+                        class="code-editor"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        autocorrect="off"
+                        placeholder="assert format_name('ada', 'lovelace') == 'Ada Lovelace'\nassert format_name('  linus', 'torvalds ') == 'Linus Torvalds'\n\ntry:\n    int('x')\n    assert False, 'ValueError expected'\nexcept ValueError:\n    pass"
+                    ></textarea>
+                    <div class="editor-footer">
+                        <span id="task-tests-status">Ln 1, Col 1</span>
+                        <button type="button" class="text-btn" data-clear-target="task-tests">Clear</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="actions">
+                <button type="button" id="submit-task" class="primary-btn">Continue To Block Builder</button>
+                <button type="button" id="clear-drafts" class="secondary-btn">Clear Drafts</button>
+            </div>
+            <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
+        </form>
+    </main>
+
+    <script type="module">
+        import { initProtectedPage } from "/js/auth-ui.js";
+
+        initProtectedPage('/index.html');
+    </script>
+    <script src="/js/create-task.js"></script>
+</body>
+</html>

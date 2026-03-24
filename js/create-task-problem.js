@@ -3,6 +3,9 @@
  * Builds parsons-style code blocks from teacher-authored source code.
  */
 import { FiniteWorker } from './worker-manager.js';
+import { initProtectedPage } from "/js/auth-ui.js";
+
+initProtectedPage('/index.html');
 
 (function initCreateTaskProblemBuilder() {
   const DRAFT_KEY = 'create_task_draft_payload';

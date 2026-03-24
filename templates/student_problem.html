@@ -17,9 +17,10 @@
 			class="btn btn-outline-dark btn-sm mr-3">
 			Back to exercise list
 		</a>
-		<span class="text-dark">
+		<span class="text-dark mr-3">
 			<i class="fas fa-user"></i> <span id="user-name"></span>
 		</span>
+		<button id="logout-btn" class="btn btn-outline-dark btn-sm">Logout</button>
 		</div>
 	</nav>
 
@@ -33,18 +34,7 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.19.0/full/pyodide.js"></script>
 <script src="/js-parsons/parsons.js"></script>
 <script src="/dist/bundle.js" type="module"></script>
-<script type="module">
-import { initNavbarExercisesButton, initSignedInAs } from "/js/auth-ui.js";
 
-initSignedInAs({ preferNickname: true });
-initNavbarExercisesButton();
-</script>
-<script type="module">
-import { initWidget } from "/dist/bundle.js";
-
-// Initialize problem widget separately from auth UI.
-initWidget();
-</script>
 
 <script src="/js/student_problem.js" type="module"></script>
 

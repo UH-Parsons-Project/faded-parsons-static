@@ -33,6 +33,26 @@ test.beforeEach(async ({ page }) => {
   test.info().annotations.push({ type: 'studentUrl', description: studentUrl });
 });
 
+test('student cannot login with non-registered credentials', async ({ browser }) => {
+  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
+  if (!annotation) throw new Error('Student URL not found in test annotations');
+  const studentUrl = annotation.description.trim();
+
+  const context = await browser.newContext();
+  const studentPage = await context.newPage();
+  await studentPage.goto(studentUrl);
+
+  // Attempt to login with invalid credentials
+  await studentPage.locator('#login-form #username').fill('invalid_user');
+  await studentPage.locator('#login-form #password').fill('wrong_password');
+  await studentPage.locator('#login-btn').click();
+
+  // Expect an error message about invalid credentials
+  await studentPage.waitForSelector('#error-message:not([style*="display: none"])', { timeout: 10000 });
+  await expect(studentPage.locator('#error-message')).toContainText(
+    'Incorrect username or password'
+  );
+});
 
 test('student can register and then login from task list page', async ({ browser }) => {
   // Get the tasklist URL from test.info().annotations

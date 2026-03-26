@@ -10,6 +10,32 @@ const uniqueLinkCode = pathParts[1]; // set/starter-list/tasks/1/start -> starte
 const taskId = pathParts[3]; // set/starter-list/tasks/1/start -> 1
 const instructionsEl = document.getElementById('task-instructions');
 
+// Hide page content initially to prevent flash
+function hidePageContent() {
+	const contentElements = [
+		document.getElementById('start-btn'),
+		document.getElementById('task-instructions'),
+		document.getElementById('back-to-list')
+	];
+	contentElements.forEach(el => {
+		if (el) el.style.display = 'none';
+	});
+}
+
+// Show page content after verification
+function showPageContent() {
+	const contentElements = [
+		document.getElementById('start-btn'),
+		document.getElementById('task-instructions'),
+		document.getElementById('back-to-list')
+	];
+	contentElements.forEach(el => {
+		if (el) el.style.display = '';
+	});
+}
+
+hidePageContent();
+
 // Check if the user already started this task in the database
 async function checkAndRedirectIfStarted() {
 	try {
@@ -20,12 +46,16 @@ async function checkAndRedirectIfStarted() {
 				// User has already started this task, redirect them to it
 				window.history.replaceState(null, '', `/set/${uniqueLinkCode}/tasks/${taskId}`);
 				window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
+				return;
 			}
 		}
 	} catch (error) {
 		console.error('Error checking task start status:', error);
 		// Continue with showing the start page if there's an error
 	}
+	
+	// If we reach here, show the page content
+	showPageContent();
 }
 
 // Check on page load

@@ -62,7 +62,7 @@ services:
 
   # Unit test runner
   unittest:
-    profiles: ["test"]
+    profiles: ["unittest"]
     build:
       context: .
       dockerfile: Dockerfile.unittest

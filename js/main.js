@@ -192,16 +192,12 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 	set(probEl.getAttribute('name') + LS_REPR, reprCode);
 
 	try {
-    // Get start time from localStorage
-    const startTime = localStorage.getItem(`task-${globalTaskId}-start-time`);
-    
     const resultData = {
         task_id: parseInt(globalTaskId),
         success: testResults.status === 'pass',
         submitted_code: submittedCode,
         test_output: testResults.details || '',
-        repr_code: reprCode,
-        start_time: startTime
+        repr_code: reprCode
     };
 
     const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {

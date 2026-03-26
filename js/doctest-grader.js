@@ -113,10 +113,6 @@ export function prepareCode(submittedCode, codeHeader) {
 	extraLinesToPreserve.forEach((line) => {
 		finalCode.push(line);
 	});
-	// Redirects stdout so we can return it
-	finalCode.push('import sys');
-	finalCode.push('import io');
-	finalCode.push('sys.stdout = io.StringIO()');
 	// Runs the doctests
 	finalCode.push('import doctest');
 	finalCode.push('doctest.testmod(verbose=True)');
@@ -144,16 +140,24 @@ export function processTestResults(outputStr) {
 			details: doctestResults,
 		};
 	}
+
+	return {
+		status: 'fail',
+		header: 'Unable to parse test results',
+		details: outputStr || 'No test output received.',
+	};
 }
 
 export function processTestError(error, startLine) {
-	if (error.message.startsWith('Traceback')) {
+	const message = error?.message || '';
+
+	if (message.startsWith('Traceback')) {
 		return {
 			status: 'fail',
 			header: 'Syntax error',
-			details: extractError(error.message, startLine),
+			details: extractError(message, startLine),
 		};
-	} else if (error.message == 'Infinite loop') {
+	} else if (message == 'Infinite loop') {
 		return {
 			status: 'fail',
 			header: 'Infinite loop',
@@ -164,5 +168,6 @@ export function processTestError(error, startLine) {
 	return {
 		status: 'fail',
 		header: 'Unexpected error occurred',
+		details: message || 'No error details were provided.',
 	};
 }

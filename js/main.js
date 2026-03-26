@@ -162,14 +162,13 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 	// If preparation succeeded, execute the code
 	if (testResults.code) {
 		try {
-			// Add sys.stdout.getvalue() to capture output
-			const code = testResults.code + '\nsys.stdout.getvalue()';
+			const code = testResults.code;
 
 			// Execute code in a separate worker process (Pyodide)
 			const {results, error} = await new FiniteWorker(code);
 
 			// Process results or errors
-			if (results) {
+			if (typeof results === 'string') {
 				testResults = processTestResults(results);
 			} else {
 				testResults = processTestError(error, testResults.startLine);
@@ -179,7 +178,20 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 			console.warn(
 				`Error in pyodideWorker at ${e.filename}, Line: ${e.lineno}, ${e.message}`
 			);
+			testResults = {
+				status: 'fail',
+				header: 'Unexpected error occurred',
+				details: e.message || 'An unknown error occurred while running tests.',
+			};
 		}
+	}
+
+	if (!testResults || !testResults.status) {
+		testResults = {
+			status: 'fail',
+			header: 'Unexpected error occurred',
+			details: 'No test result was produced.',
+		};
 	}
 
 	// Update UI with test results

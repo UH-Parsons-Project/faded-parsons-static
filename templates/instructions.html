@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Parsons Code Lab</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
+    <link rel="stylesheet" href="/js/main.css"/>
+</head>
+<body>
+	<nav class="navbar">
+		<a href="index.html" class="title-logo-link">
+			<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+		</a>
+		<div class="ml-auto" id="auth-section">
+			<form class="form-inline" id="login-form">
+				<div id="error-message" class="text-danger mr-2" style="display: none;"></div>
+				<input class="form-control mr-2" type="text" id="username" placeholder="Username" aria-label="Username" required>
+				<input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
+				<button class="btn btn-outline-dark btn-sm mr-2" id="login-btn" type="submit">Login</button>
+				<button class="btn btn-outline-dark btn-sm mr-2" id="register-btn" type="button">Register</button>
+				<a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+			</form>
+			<div id="user-info" class="text-dark" style="display: none;">
+				<a class="btn btn-outline-dark btn-sm mr-2" id="exercises-btn" href="/exerciselist" style="display: none;">Exercises</a>
+				<a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+				<span class="mr-3"><i class="fas fa-user"></i> <span id="user-name"></span></span>
+				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
+			</div>
+		</div>
+	</nav>
+	<div>
+		<h2>Here's how to use Parsons Code Lab as a teacher</h2>
+		<h3>Registration</h3>
+		<p>
+			To register your Parsons Code Lab account, please enter your username, email and password. 
+			You will also need to enter a registration token. 
+		</p>
+		<h3>Task List Selector</h3>
+		<p>
+			After registering and logging in successfully, the teacher will be able to see all available task lists.
+			The teacher is able to create a new task list by clicking on "Create New Task List". By clicking on a
+			task list the teacher is able to see more information such as the link for students, creation date, 
+			added tasks and students. The teacher can also share a task list with other teachers. Added teachers
+			will have viewing rights to the task list.
+		</p>
+		<h3>Creating a task list</h3>
+		<p>
+			After clicking on "Create New Task List", the teacher is able to enter basic information of their task
+			list such as the title, optional descriptions for students and teachers, other teachers' email addresses 
+			or usernames to share viewing rights with them as well as an optional expiration date. The teacher is also
+			able to share viewing rights to a task list later on the task list's page. Most importantly,the teacher is 
+			able to select tasks they want to add to their task list as well as preview them beforehand. After creating 
+			a task list the teacher will be redirected to the Task List Selector page. Additional information as well 
+			as exercise analytics can be found by clicking on a specific task list.
+		</p>
+		<h3>Sharing a task list with students and receiving task data</h3>
+		<p>
+			Task lists become available to students via a unique link that can be found on the task list page right 
+			below the task list title. Once the students have access to the task list, the teacher will be able to 
+			see their udernames, joining date, last activity date, the amount of attempted tasks and the total 
+			amount of task attempts. More statistics are available by clicking on a student.
+		</p>
+		<h3>Student statistics</h3>
+		<p>
+			After clicking on a student, the teacher will be redirected to their stats page. Here the teacher is 
+			able to see all the tasks attempted by the student, their completion status, total amount of attempts 
+			per task as well as the time of last attempt. By clicking on a task on this page the teacher will be 
+			able to see all of the student's attempts, a summary containing the total amount of task attempts as
+			well as the amounts of successful and failed attempts separately. Additional statistics contain the
+			task's model solution, Time to First Fail, Thinking Time Before Starting Task and the Number of Moves 
+			made in the task.
+		</p>
+		<h3>Exercise List</h3>
+		<p>
+			By clicking on "Exercises" button on the navbar, the teacher will be redirected to the global exercise 
+			list, where they'll be able to view global statistics of each existing task. On this page the teacher 
+			is able to view each task's creation date, success rate as well as a short description of each task's 
+			goal. After clicking on a specific task the teacher is able to view more exercise analytics. They 
+			contain the total number of attempts, the amount of students who have completed the task, the amount of
+			students who attempted teh task and the average number of tries before success. Time related statistics 
+			include the average, minimum and maximum time to first fail and to first success as well as the average 
+			thinking time before starting a task. In addition to this, the average number of moves and most common 
+			mistakes and inputs as well as the model answer are also available on this page.
+		</p>
+		<h3></h3>
+	</div>
+	<script type="module">
+		import { initLoginPage, initNavbarExercisesButton } from '/js/auth-ui.js';
+		initLoginPage();
+		initNavbarExercisesButton();
+	</script>
+</body>

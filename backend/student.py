@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from pathlib import Path
-import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -244,6 +244,59 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     return {"status": "success", "id": student.id}
 
 
+@router.get("/api/tasks/{task_id}/check-start")
+async def check_task_start(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        return {"has_started": False}
+    
+    stmt = select(TaskAttempt).where(
+        (TaskAttempt.student_id == student_session.id) &
+        (TaskAttempt.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    attempt = result.scalar_one_or_none()
+    
+    if attempt:
+        return {
+            "has_started": True,
+            "started_at": attempt.task_started_at.isoformat()
+        }
+    
+    return {"has_started": False}
+
+
+@router.post("/api/tasks/{task_id}/start")
+async def start_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required to start a task"
+        )
+    
+    # Create a new task attempt with current timestamp
+    new_attempt = TaskAttempt(
+        student_id=student_session.id,
+        task_id=task_id,
+        task_started_at=datetime.now(timezone.utc),
+    )
+    db.add(new_attempt)
+    await db.commit()
+    await db.refresh(new_attempt)
+    
+    return {
+        "status": "success",
+        "started_at": new_attempt.task_started_at.isoformat()
+    }
+
+
 @router.post("/api/tasks/{task_id}/submit-result")
 async def submit_test_result(
     task_id: int,
@@ -257,24 +310,31 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    start_time = result.get("start_time") if isinstance(result, dict) else None
-    if start_time:
-        try:
-            task_started_at = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            task_started_at = datetime.now(timezone.utc)
+    # Update the first task attempt for this student and task with completion info
+    stmt = select(TaskAttempt).where(
+        (TaskAttempt.student_id == student_session.id) &
+        (TaskAttempt.task_id == task_id)
+    ).order_by(TaskAttempt.task_started_at)
+    result_query = await db.execute(stmt)
+    attempt = result_query.scalar_one_or_none()
+    
+    if attempt:
+        # Update existing attempt with results
+        attempt.completed_at = datetime.now(timezone.utc)
+        attempt.success = result.get("success", False)
+        attempt.submitted_inputs = {"code": result.get("submitted_code")}
     else:
-        task_started_at = datetime.now(timezone.utc)
-
-    new_attempt = TaskAttempt(
-        student_id=student_session.id,
-        task_id=task_id,
-        task_started_at=task_started_at,
-        completed_at=datetime.now(timezone.utc),
-        success=result.get("success", False),
-        submitted_inputs={"code": result.get("submitted_code")}
-    )
-    db.add(new_attempt)
+        # Fallback: create new attempt if one doesn't exist
+        attempt = TaskAttempt(
+            student_id=student_session.id,
+            task_id=task_id,
+            task_started_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            success=result.get("success", False),
+            submitted_inputs={"code": result.get("submitted_code")}
+        )
+        db.add(attempt)
+    
     await db.commit()
 
     return {"status": "success", "message": "Test result saved"}

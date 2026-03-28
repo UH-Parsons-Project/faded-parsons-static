@@ -73,5 +73,37 @@ CREATE TABLE task_attempts (
 CREATE TABLE move_events (
 	id SERIAL PRIMARY KEY,
 	attempt_id INTEGER NOT NULL REFERENCES task_attempts(id) ON DELETE CASCADE,
+	block_id VARCHAR(255) NOT NULL,
+	from_container VARCHAR(50) NOT NULL,
+	to_container VARCHAR(50) NOT NULL,
+	from_index INTEGER NOT NULL,
+	to_index INTEGER NOT NULL,
+	from_indent INTEGER NOT NULL,
+	to_indent INTEGER NOT NULL,
 	event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- IMPLEMENTATION PLAN FOR BLOCK MOVE TRACKING:
+--
+-- 1. FRONTEND (js/problem-element.js):
+--    - Capture block move events on drag start/stop
+--    - Log: block_id, from_container, to_container, from_index, to_index, from_indent, to_indent
+--    - Send POST to /api/telemetry/block-moves with attempt context
+--
+-- 2. BACKEND ENDPOINT (new):
+--    POST /api/telemetry/block-moves
+--    - Validate request has: attempt_id, block_id, from_container, to_container, from_index, to_index, from_indent, to_indent
+--    - Insert row into move_events table
+--    - Return 202 Accepted
+--
+-- 3. DATABASE:
+--    - Each row represents one successful block move
+--    - Indexed on attempt_id for fast lookup per student attempt
+--    - Indexed on event_time for temporal analysis
+--
+-- 4. ANALYTICS QUERIES:
+--    - Count total moves per attempt
+--    - Track move sequence/timeline per attempt
+--    - Identify blocks moved most frequently
+--    - Detect stuck patterns (many moves, no progress)
+--    - Time to solution (first correct vs total moves)

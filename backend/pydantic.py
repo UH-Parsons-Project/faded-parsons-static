@@ -129,3 +129,14 @@ class TaskListViewerResponse(BaseModel):
     username: str
     email: str
     created_at: str
+
+
+class BlockMoveEventRequest(BaseModel):
+    attempt_id: int
+    block_id: str
+    from_container: str
+    to_container: str
+    from_index: int
+    to_index: int
+    from_indent: int
+    to_indent: int

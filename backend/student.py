@@ -7,8 +7,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .pydantic import BlockMoveEventRequest
+
 from .database import get_db
-from .models import Parsons, Student, TaskAttempt, TaskList
+from .models import Parsons, Student, TaskAttempt, TaskList, MoveEvent
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -293,6 +295,7 @@ async def start_task(
     
     return {
         "status": "success",
+        "attempt_id": new_attempt.id,
         "started_at": new_attempt.task_started_at.isoformat()
     }
 
@@ -338,3 +341,49 @@ async def submit_test_result(
     await db.commit()
 
     return {"status": "success", "message": "Test result saved"}
+
+
+@router.post("/api/block-move")
+async def log_block_move(
+    move_event: BlockMoveEventRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required to log block moves"
+        )
+
+    # Verify the attempt belongs to this student
+    stmt = select(TaskAttempt).where(TaskAttempt.id == move_event.attempt_id)
+    result = await db.execute(stmt)
+    attempt = result.scalar_one_or_none()
+    
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task attempt not found"
+        )
+    
+    if attempt.student_id != student_session.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot log moves for another student's attempt"
+        )
+
+    # Create and save the move event
+    move = MoveEvent(
+        attempt_id=move_event.attempt_id,
+        block_id=move_event.block_id,
+        from_container=move_event.from_container,
+        to_container=move_event.to_container,
+        from_index=move_event.from_index,
+        to_index=move_event.to_index,
+        from_indent=move_event.from_indent,
+        to_indent=move_event.to_indent,
+    )
+    db.add(move)
+    await db.commit()
+
+    return {"status": "success", "message": "Block move logged"}

@@ -18,6 +18,7 @@ import './test-results-element.js';
 export class ProblemElement extends LitElement {
 	static properties = {
 		name: {type: String},
+		attemptId: {type: String},
 		taskInstructions: {type: String},
 		description: {type: String},
 		codeLines: {type: String},
@@ -129,16 +130,129 @@ export class ProblemElement extends LitElement {
 		`;
 	}
 
+	sendBlockMoveEvent = async (moveData) => {
+		if (!this.attemptId) {
+			return;
+		}
+
+		try {
+			const payload = {
+				attempt_id: parseInt(this.attemptId),
+				...moveData,
+			};
+
+			const response = await fetch('/api/block-move', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(payload),
+			});
+
+			if (response.ok) {
+				console.log('move sent to db');
+			}
+		} catch (e) {
+			// silently handle error
+		}
+	};
+
 	firstUpdated() {
+		const getListName = (listEl) => {
+			if (!listEl) {
+				return 'unknown';
+			}
+			const parent = listEl.parentElement;
+			if (!parent) {
+				return 'unknown';
+			}
+			if (parent === this.solutionRef.value) {
+				return 'solution';
+			}
+			if (parent === this.starterRef.value) {
+				return 'starter';
+			}
+			return 'unknown';
+		};
+
+		const getCurrentLocation = (itemId) => {
+			const itemEl = document.getElementById(itemId);
+			if (!itemEl || !itemEl.parentElement) {
+				return {list: 'unknown', index: -1};
+			}
+			const listEl = itemEl.parentElement;
+			const index = Array.from(listEl.children).indexOf(itemEl);
+			return {
+				list: getListName(listEl),
+				index,
+			};
+		};
+
+		let pendingMove = null;
+
 		// Initialize the Parsons widget with references to the two columns
 		this.parsonsWidget = new ParsonsWidget({
 			sortableId: this.solutionRef.value,
 			trashId: this.starterRef.value,
+			onSortableUpdate: () => {
+				if (!pendingMove) {
+					return;
+				}
+				const to = getCurrentLocation(pendingMove.id);
+				const toIndent =
+					this.parsonsWidget.getLineById(pendingMove.id)?.indent ?? 0;
+
+				if (
+					pendingMove.from.list === to.list &&
+					pendingMove.from.index === to.index &&
+					pendingMove.fromIndent === toIndent
+				) {
+					pendingMove = null;
+					return;
+				}
+
+				// Send move event to backend (handles all moves: container changes and reorders)
+				this.sendBlockMoveEvent({
+					block_id: pendingMove.id,
+					from_container: pendingMove.from.list,
+					to_container: to.list,
+					from_index: pendingMove.from.index,
+					to_index: to.index,
+					from_indent: pendingMove.fromIndent,
+					to_indent: toIndent,
+				});
+
+				pendingMove = null;
+			},
 		});
 		// Load the initial code blocks into the widget
 		this.parsonsWidget.init(this.codeLines);
 		// Optional: sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
+
+		const sortableList = this.solutionRef.value?.querySelector('ul');
+		const starterList = this.starterRef.value?.querySelector('ul');
+
+		const attachMoveStartTracking = (listEl) => {
+			if (!listEl) {
+				return;
+			}
+			$(listEl).on('sortstart', (event, ui) => {
+				const itemId = ui?.item?.[0]?.id;
+				if (!itemId) {
+					pendingMove = null;
+					return;
+				}
+				pendingMove = {
+					id: itemId,
+					from: getCurrentLocation(itemId),
+					fromIndent: this.parsonsWidget.getLineById(itemId)?.indent ?? 0,
+				};
+			});
+		};
+
+		attachMoveStartTracking(sortableList);
+		attachMoveStartTracking(starterList);
 	}
 
 	onRun() {

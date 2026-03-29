@@ -7,8 +7,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .pydantic import BlockMoveEventRequest
+
 from .database import get_db
-from .models import Parsons, Student, TaskAttempt, TaskList
+from .models import Parsons, Student, TaskAttempt, TaskList, MoveEvent
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -252,20 +254,20 @@ async def check_task_start(
 ):
     if not student_session:
         return {"has_started": False}
-    
+
     stmt = select(TaskAttempt).where(
         (TaskAttempt.student_id == student_session.id) &
         (TaskAttempt.task_id == task_id)
     )
     result = await db.execute(stmt)
     attempt = result.scalar_one_or_none()
-    
+
     if attempt:
         return {
             "has_started": True,
             "started_at": attempt.task_started_at.isoformat()
         }
-    
+
     return {"has_started": False}
 
 
@@ -280,7 +282,7 @@ async def start_task(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Student session required to start a task"
         )
-    
+
     # Create a new task attempt with current timestamp
     new_attempt = TaskAttempt(
         student_id=student_session.id,
@@ -290,9 +292,10 @@ async def start_task(
     db.add(new_attempt)
     await db.commit()
     await db.refresh(new_attempt)
-    
+
     return {
         "status": "success",
+        "attempt_id": new_attempt.id,
         "started_at": new_attempt.task_started_at.isoformat()
     }
 
@@ -316,8 +319,8 @@ async def submit_test_result(
         (TaskAttempt.task_id == task_id)
     ).order_by(TaskAttempt.task_started_at)
     result_query = await db.execute(stmt)
-    attempt = result_query.scalar_one_or_none()
-    
+    attempt = result_query.scalars().first()
+
     if attempt:
         # Update existing attempt with results
         attempt.completed_at = datetime.now(timezone.utc)
@@ -334,7 +337,102 @@ async def submit_test_result(
             submitted_inputs={"code": result.get("submitted_code")}
         )
         db.add(attempt)
-    
+
     await db.commit()
 
     return {"status": "success", "message": "Test result saved"}
+
+
+@router.post("/api/block-move")
+async def log_block_move(
+    move_event: BlockMoveEventRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required to log block moves"
+        )
+
+    # Verify the attempt belongs to this student
+    stmt = select(TaskAttempt).where(TaskAttempt.id == move_event.attempt_id)
+    result = await db.execute(stmt)
+    attempt = result.scalar_one_or_none()
+
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task attempt not found"
+        )
+
+    if attempt.student_id != student_session.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot log moves for another student's attempt"
+        )
+
+    # Create and save the move event
+    move = MoveEvent(
+        attempt_id=move_event.attempt_id,
+        block_id=move_event.block_id,
+        from_container=move_event.from_container,
+        to_container=move_event.to_container,
+        from_index=move_event.from_index,
+        to_index=move_event.to_index,
+        from_indent=move_event.from_indent,
+        to_indent=move_event.to_indent,
+    )
+    db.add(move)
+    await db.commit()
+
+    return {"status": "success", "message": "Block move logged"}
+
+@router.get("/api/students/{student_username}/tasks/{task_id}/moves")
+async def get_task_moves(
+    student_username: str,
+    task_id: int,
+    list_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_student_session_no_update),
+):
+    """Fetch all moves for a student's attempts on a specific task."""
+    # Find student by username
+    stmt = select(Student).where(Student.username == student_username)
+    result = await db.execute(stmt)
+    student = result.scalar_one_or_none()
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Fetch all attempts for this student on this task
+    stmt = select(TaskAttempt).where(
+        (TaskAttempt.student_id == student.id) &
+        (TaskAttempt.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    attempts = result.scalars().all()
+
+    attempt_ids = [a.id for a in attempts]
+
+    # Fetch all moves for these attempts
+    if not attempt_ids:
+        return []
+
+    stmt = select(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids)).order_by(MoveEvent.event_time.asc())
+    result = await db.execute(stmt)
+    moves = result.scalars().all()
+
+    return [
+        {
+            "block_id": move.block_id,
+            "from_container": move.from_container,
+            "to_container": move.to_container,
+            "from_index": move.from_index,
+            "to_index": move.to_index,
+            "from_indent": move.from_indent,
+            "to_indent": move.to_indent,
+            "event_time": move.event_time.isoformat(),
+        }
+        for move in moves
+    ]

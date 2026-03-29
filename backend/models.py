@@ -180,6 +180,13 @@ class MoveEvent(Base):
     attempt_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("task_attempts.id", ondelete="CASCADE"), nullable=False
     )
+    block_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    from_container: Mapped[str] = mapped_column(String(50), nullable=False)
+    to_container: Mapped[str] = mapped_column(String(50), nullable=False)
+    from_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    to_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    from_indent: Mapped[int] = mapped_column(Integer, nullable=False)
+    to_indent: Mapped[int] = mapped_column(Integer, nullable=False)
     event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 

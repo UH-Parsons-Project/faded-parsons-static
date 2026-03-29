@@ -17,6 +17,9 @@ let probEl;
 // Global variable to store task ID for local storage operations
 let globalTaskId;
 
+// Global variable to store task attempt ID for tracking block moves
+let globalAttemptId;
+
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
 	// Extract the task ID from URL path (e.g., /set/starter-list/tasks/1)
@@ -48,6 +51,23 @@ export async function initWidget() {
 		}
 
 		const task = await response.json();
+
+		// Start task attempt to get attempt ID for tracking moves
+		try {
+			const startResponse = await fetch(`/api/tasks/${globalTaskId}/start`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				}
+			});
+
+			if (startResponse.ok) {
+				const startData = await startResponse.json();
+				globalAttemptId = startData.attempt_id;
+			}
+		} catch (e) {
+			console.warn('Failed to start task attempt:', e);
+		}
 
 		// Parse task instructions JSON
 		let parsedInstructions = {};
@@ -103,6 +123,7 @@ export async function initWidget() {
 
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
+		probEl.setAttribute('attemptId', globalAttemptId || '');
 		probEl.setAttribute('taskInstructions', problemStatementHTML);
 		probEl.setAttribute('description', task.description);
 		probEl.setAttribute('codeLines', codeLines);

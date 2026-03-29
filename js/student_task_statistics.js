@@ -163,6 +163,41 @@ function renderAttempts(attempts) {
 	}
 }
 
+async function renderMoveHistory(studentUsername, taskId, listId) {
+	const moveHistoryContent = document.getElementById('move-history-content');
+
+	try {
+		const response = await fetch(
+			`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/moves?list_id=${listId}`,
+			{ credentials: 'include' }
+		);
+
+		if (!response.ok) {
+			moveHistoryContent.innerHTML = '<em class="text-muted">No moves recorded.</em>';
+			return;
+		}
+
+		const moves = await response.json();
+
+		if (!moves || moves.length === 0) {
+			moveHistoryContent.innerHTML = '<em class="text-muted">No moves recorded.</em>';
+			return;
+		}
+
+		// Display moves
+		let html = '<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">';
+		moves.forEach(move => {
+			html += `${move.block_id}: ${move.from_container}[${move.from_index}](indent=${move.from_indent}) → ${move.to_container}[${move.to_index}](indent=${move.to_indent})\n`;
+		});
+		html += '</pre>';
+
+		moveHistoryContent.innerHTML = html;
+	} catch (err) {
+		console.error('Error rendering move history:', err);
+		moveHistoryContent.innerHTML = '<em class="text-danger">Error loading move history.</em>';
+	}
+}
+
 function renderStatistics(data) {
 	document.getElementById('stat-total').textContent = data.total_attempts;
 	document.getElementById('stat-success').textContent = data.successful_attempts;
@@ -227,6 +262,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	renderModelAnswer(data.model_answer);
 	renderAttempts(data.attempts_detail);
 	renderStatistics(data);
+	renderMoveHistory(studentUsername, taskId, listId);
 	document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {

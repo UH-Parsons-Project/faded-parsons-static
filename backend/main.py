@@ -728,7 +728,7 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
-    registration_token = payload.get("registration_token", "")
+    registration_token = str(payload.get("registration_token", "")).strip()
 
     # Validate registration token from database
     if not registration_token:

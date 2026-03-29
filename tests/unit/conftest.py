@@ -19,7 +19,8 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
-from backend.models import Parsons, Student, TaskList, TaskListItem, Teacher
+from backend.models import Parsons, Student, TaskList, TaskListItem, Teacher, RegistrationToken
+from backend.token_utils import generate_token, hash_token
 
 
 @pytest_asyncio.fixture
@@ -115,10 +116,25 @@ def valid_token_data() -> dict:
     return {"sub": "testteacher"}
 
 
-@pytest.fixture
-def valid_registration_payload() -> dict:
-    """Return valid registration payload with token from environment."""
-    registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
+@pytest_asyncio.fixture
+async def registration_token(db_session, test_teacher) -> str:
+    """Create a registration token in the database and return the plain token."""
+    plain_token = generate_token(length=15)
+    token_hash = hash_token(plain_token)
+    
+    reg_token = RegistrationToken(
+        token_hash=token_hash,
+        created_by_admin_id=test_teacher.id,
+    )
+    db_session.add(reg_token)
+    await db_session.commit()
+    
+    return plain_token
+
+
+@pytest_asyncio.fixture
+async def valid_registration_payload(registration_token) -> dict:
+    """Return valid registration payload with token from database."""
     return {
         "username": "newteacher",
         "password": "password123",

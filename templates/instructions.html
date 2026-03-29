@@ -75,6 +75,7 @@
 			statistics are available by clicking on a student.
 		</p>
 		<img src="/documentation/pictures/ohtuproj_screenshots3.png" alt="Task List link" class="screenshots">
+		<img src="/documentation/pictures/ohtuproj_screenshots4.png" alt="Student blocks on Task List Page" class="screenshots">
 		<h3>Student statistics</h3>
 		<p>
 			After clicking on a student, the teacher will be redirected to their stats page. Here the teacher is 
@@ -85,7 +86,24 @@
 			task's model solution, Time to First Fail, Thinking Time Before Starting Task and the Number of Moves 
 			made in the task.
 		</p>
-		<h3>Exercise List</h3>
+		<img src="/documentation/pictures/ohtuproj_screenshots5.png" alt="Student Statistics task attempts view" class="screenshots">
+		<img src="/documentation/pictures/student_stats.png" alt="Student task attempt stats" class="screenshots">
+		<img src="/documentation/pictures/student_stats2.png" alt="Student task attempt stats pt2" class="screenshots">
+		<h3>Creating a new task</h3>
+		<p>
+			On the Task Lists page, right above "Create New Task List"-button, there is a "New task"-button that 
+			allows the teacher to add a new task to the system. After clicking on this button, the teacher will be 
+			redirected to Create a New Task page with two code editor views. The upper editor is for task code 
+			written in plain Python. The lower editor is for writing test cases for the abovementioned task. The 
+			teacher is able to use any Python test style they prefer for writing the task test cases. After writing
+			bith the task code and the test cases, the teacher can go on to writing task instructions, task 
+			description and constructing the block solution byt clicking on the "Continue To Block Builder" button.
+			Task draft can be cleared by clicking on the "Clear Drafts" button. After continuing to block builder, 
+			the teacher is also able to add their own custom blocks to the task, run the tests they have previously 
+			written. Finally, when the tests have been passed, the teacher can add their custom task to the global 
+			Exercise list.
+		</p>
+		<h3>Global Exercise List</h3>
 		<p>
 			By clicking on "Exercises" button on the navbar, the teacher will be redirected to the global exercise 
 			list, where they'll be able to view global statistics of each existing task. On this page the teacher 
@@ -97,6 +115,8 @@
 			thinking time before starting a task. In addition to this, the average number of moves and most common 
 			mistakes and inputs as well as the model answer are also available on this page.
 		</p>
+		<img src="/documentation/pictures/ohtuproj_screenshots6.png" alt="Exercises button on the navbar" class="screenshots">
+		<img src="/documentation/pictures/ohtuproj_screenshots7.png" alt="Global Task List" class="screenshots">
 	</div>
 	<script type="module">
 		import { initLoginPage, initNavbarExercisesButton } from '/js/auth-ui.js';

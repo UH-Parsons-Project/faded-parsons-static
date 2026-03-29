@@ -41,6 +41,9 @@ from .pydantic import (
     TaskListResponse,
     TaskListViewerRequest,
     TaskListViewerResponse,
+    CreateRegistrationTokenRequest,
+    RegistrationTokenResponse,
+    RegistrationTokenListItem,
 )
 from sqlalchemy import Integer, delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +55,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher
+from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -62,6 +65,7 @@ from .student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
+from .token_utils import generate_token, hash_token, verify_token
 
 
 @asynccontextmanager
@@ -720,15 +724,31 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
-    REGISTRATION_TOKEN = os.getenv("TEACHER_REGISTRATION_TOKEN")
-
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
     registration_token = payload.get("registration_token", "")
 
-    if registration_token != REGISTRATION_TOKEN:
+    # Validate registration token from database
+    if not registration_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration token is required",
+        )
+
+    # Find matching token in database
+    stmt = select(RegistrationToken)
+    result = await db.execute(stmt)
+    all_tokens = result.scalars().all()
+
+    valid_token = None
+    for token_obj in all_tokens:
+        if verify_token(registration_token, token_obj.token_hash):
+            valid_token = token_obj
+            break
+
+    if not valid_token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid registration token",
@@ -784,6 +804,89 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
 
     return {"status": "success", "id": teacher.id}
 
+
+@app.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)
+async def create_registration_token(
+    request: CreateRegistrationTokenRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new registration token for teachers. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    # Get or generate token
+    plain_token = request.token.strip() if request.token else None
+    
+    if not plain_token:
+        # Generate a new token if none provided
+        plain_token = generate_token(length=32)
+    
+    # Hash the token
+    token_hash = hash_token(plain_token)
+    
+    # Create token in database
+    reg_token = RegistrationToken(
+        token_hash=token_hash,
+        created_by_admin_id=current_user.id,
+    )
+    
+    db.add(reg_token)
+    await db.commit()
+    await db.refresh(reg_token)
+    
+    # Return token only once - this is the only time the plain token is shown
+    return RegistrationTokenResponse(
+        id=reg_token.id,
+        token=plain_token,
+        created_at=reg_token.created_at.isoformat(),
+    )
+
+
+@app.get("/api/admin/registration-tokens", response_model=list[RegistrationTokenListItem])
+async def list_registration_tokens(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """List all registration tokens. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    stmt = select(RegistrationToken).order_by(RegistrationToken.created_at.desc())
+    result = await db.execute(stmt)
+    tokens = result.scalars().all()
+    
+    return [
+        RegistrationTokenListItem(
+            id=token.id,
+            created_at=token.created_at.isoformat(),
+            created_by_admin_id=token.created_by_admin_id,
+        )
+        for token in tokens
+    ]
+
+
+@app.delete("/api/admin/registration-tokens/{token_id}")
+async def delete_registration_token(
+    token_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete/revoke a registration token. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    stmt = select(RegistrationToken).where(RegistrationToken.id == token_id)
+    result = await db.execute(stmt)
+    token = result.scalar_one_or_none()
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found",
+        )
+    
+    await db.delete(token)
+    await db.commit()
+    
+    return {"status": "success", "message": "Token deleted"}
 
 
 @app.get("/api/problemsets", response_model=list[ProblemSetResponse])

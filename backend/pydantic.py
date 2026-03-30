@@ -84,6 +84,16 @@ class StudentTaskStatisticsResponse(BaseModel):
     attempts_detail: list[dict]
 
 
+class MoveData(BaseModel):
+    block_id: str
+    from_container: str
+    to_container: str
+    from_index: int
+    to_index: int
+    from_indent: int
+    to_indent: int
+
+
 class SubmitTestResultRequest(BaseModel):
     task_id: int
     success: bool
@@ -91,6 +101,7 @@ class SubmitTestResultRequest(BaseModel):
     test_output: str
     repr_code: str
     start_time: str | None = None  # ISO format timestamp from localStorage
+    moves: list[MoveData] = []  # Block moves recorded during the attempt
 
 
 class CreateProblemRequest(BaseModel):

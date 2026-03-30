@@ -7,10 +7,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .pydantic import BlockMoveEventRequest
+from .pydantic import SubmitTestResultRequest
 
 from .database import get_db
-from .models import Parsons, Student, TaskAttempt, TaskList, MoveEvent
+from .models import Student, TaskAttempt, TaskList, MoveEvent, TaskStart
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -246,8 +246,8 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     return {"status": "success", "id": student.id}
 
 
-@router.get("/api/tasks/{task_id}/check-start")
-async def check_task_start(
+@router.get("/api/tasks/{task_id}/has-started")
+async def check_task_has_started(
     task_id: int,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session),
@@ -255,20 +255,14 @@ async def check_task_start(
     if not student_session:
         return {"has_started": False}
 
-    stmt = select(TaskAttempt).where(
-        (TaskAttempt.student_id == student_session.id) &
-        (TaskAttempt.task_id == task_id)
+    stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
     )
     result = await db.execute(stmt)
-    attempt = result.scalar_one_or_none()
+    existing_start = result.scalar_one_or_none()
 
-    if attempt:
-        return {
-            "has_started": True,
-            "started_at": attempt.task_started_at.isoformat()
-        }
-
-    return {"has_started": False}
+    return {"has_started": existing_start is not None}
 
 
 @router.post("/api/tasks/{task_id}/start")
@@ -283,27 +277,37 @@ async def start_task(
             detail="Student session required to start a task"
         )
 
-    # Create a new task attempt with current timestamp
-    new_attempt = TaskAttempt(
-        student_id=student_session.id,
-        task_id=task_id,
-        task_started_at=datetime.now(timezone.utc),
+    stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
     )
-    db.add(new_attempt)
+    result = await db.execute(stmt)
+    task_start = result.scalar_one_or_none()
+
+    if task_start:
+        return {
+            "status": "success",
+            "started_at": task_start.started_at.isoformat()
+        }
+
+    new_start = TaskStart(
+        student_id=student_session.id,
+        task_id=task_id
+    )
+    db.add(new_start)
     await db.commit()
-    await db.refresh(new_attempt)
+    await db.refresh(new_start)
 
     return {
         "status": "success",
-        "attempt_id": new_attempt.id,
-        "started_at": new_attempt.task_started_at.isoformat()
+        "started_at": new_start.started_at.isoformat()
     }
 
 
 @router.post("/api/tasks/{task_id}/submit-result")
 async def submit_test_result(
     task_id: int,
-    result: dict,
+    result: SubmitTestResultRequest,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session),
 ):
@@ -313,80 +317,55 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    # Update the first task attempt for this student and task with completion info
-    stmt = select(TaskAttempt).where(
-        (TaskAttempt.student_id == student_session.id) &
-        (TaskAttempt.task_id == task_id)
-    ).order_by(TaskAttempt.task_started_at)
-    result_query = await db.execute(stmt)
-    attempt = result_query.scalars().first()
-
-    if attempt:
-        # Update existing attempt with results
-        attempt.completed_at = datetime.now(timezone.utc)
-        attempt.success = result.get("success", False)
-        attempt.submitted_inputs = {"code": result.get("submitted_code")}
-    else:
-        # Fallback: create new attempt if one doesn't exist
-        attempt = TaskAttempt(
-            student_id=student_session.id,
-            task_id=task_id,
-            task_started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
-            success=result.get("success", False),
-            submitted_inputs={"code": result.get("submitted_code")}
-        )
-        db.add(attempt)
-
-    await db.commit()
-
-    return {"status": "success", "message": "Test result saved"}
-
-
-@router.post("/api/block-move")
-async def log_block_move(
-    move_event: BlockMoveEventRequest,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
-):
-    if not student_session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Student session required to log block moves"
-        )
-
-    # Verify the attempt belongs to this student
-    stmt = select(TaskAttempt).where(TaskAttempt.id == move_event.attempt_id)
-    result = await db.execute(stmt)
-    attempt = result.scalar_one_or_none()
-
-    if not attempt:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task attempt not found"
-        )
-
-    if attempt.student_id != student_session.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot log moves for another student's attempt"
-        )
-
-    # Create and save the move event
-    move = MoveEvent(
-        attempt_id=move_event.attempt_id,
-        block_id=move_event.block_id,
-        from_container=move_event.from_container,
-        to_container=move_event.to_container,
-        from_index=move_event.from_index,
-        to_index=move_event.to_index,
-        from_indent=move_event.from_indent,
-        to_indent=move_event.to_indent,
+    start_stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
     )
-    db.add(move)
+    start_result = await db.execute(start_stmt)
+    task_start = start_result.scalar_one_or_none()
+
+    if not task_start:
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task_id
+        )
+        db.add(task_start)
+        await db.flush()
+
+    new_attempt = TaskAttempt(
+        student_id=student_session.id,
+        task_id=task_id,
+        task_start_id=task_start.id,
+        completed_at=datetime.now(timezone.utc),
+        success=result.success,
+        submitted_inputs={"code": result.submitted_code}
+    )
+    db.add(new_attempt)
+    await db.flush()
+    await db.refresh(new_attempt)
+
+    if result.moves:
+        for move_data in result.moves:
+            move = MoveEvent(
+                attempt_id=new_attempt.id,
+                block_id=move_data.block_id,
+                from_container=move_data.from_container,
+                to_container=move_data.to_container,
+                from_index=move_data.from_index,
+                to_index=move_data.to_index,
+                from_indent=move_data.from_indent,
+                to_indent=move_data.to_indent,
+            )
+            db.add(move)
+
     await db.commit()
 
-    return {"status": "success", "message": "Block move logged"}
+    return {
+        "status": "success",
+        "message": "Test result saved",
+        "attempt_id": new_attempt.id
+    }
+
 
 @router.get("/api/students/{student_username}/tasks/{task_id}/moves")
 async def get_task_moves(
@@ -397,7 +376,6 @@ async def get_task_moves(
     current_user = Depends(get_current_student_session_no_update),
 ):
     """Fetch all moves for a student's attempts on a specific task."""
-    # Find student by username
     stmt = select(Student).where(Student.username == student_username)
     result = await db.execute(stmt)
     student = result.scalar_one_or_none()
@@ -405,7 +383,6 @@ async def get_task_moves(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Fetch all attempts for this student on this task
     stmt = select(TaskAttempt).where(
         (TaskAttempt.student_id == student.id) &
         (TaskAttempt.task_id == task_id)
@@ -415,7 +392,6 @@ async def get_task_moves(
 
     attempt_ids = [a.id for a in attempts]
 
-    # Fetch all moves for these attempts
     if not attempt_ids:
         return []
 

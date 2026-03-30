@@ -150,6 +150,22 @@ class Student(Base):
         )
 
 
+class TaskStart(Base):
+    """Record of when a student started a task."""
+
+    __tablename__ = "task_starts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
+    )
+    task_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    __table_args__ = (UniqueConstraint("student_id", "task_id"),)
+
+
 class TaskAttempt(Base):
     """Student attempt for a specific task."""
 
@@ -162,8 +178,8 @@ class TaskAttempt(Base):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
-    task_started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now
+    task_start_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_starts.id", ondelete="CASCADE"), nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     success: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

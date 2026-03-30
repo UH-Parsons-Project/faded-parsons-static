@@ -230,6 +230,16 @@
   padding: 3rem;
 }
 
+.test-details-line-pass {
+  color: #218838;
+  font-weight: 600;
+}
+
+.test-details-line-fail {
+  color: #c82333;
+  font-weight: 600;
+}
+
 /* Task List Statistics - Two Column Layout */
 .statistics-layout {
   display: flex;

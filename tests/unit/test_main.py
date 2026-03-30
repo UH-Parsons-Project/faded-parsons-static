@@ -21,7 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
-from backend.models import Parsons, Student, TaskAttempt, TaskList
+from backend.models import Parsons, Student, Teacher, TaskAttempt, TaskList, TaskStart
 
 
 # ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ def _auth(username: str) -> dict:
 
 
 def _submit(task_id: int, *, success=True, code="print(1)",
-            start_time="2026-01-01T10:00:00") -> dict:
+            start_time="2026-01-01T10:00:00", moves=None) -> dict:
     """Build a submit-result JSON body."""
     payload = {
         "task_id": task_id,
@@ -42,6 +42,7 @@ def _submit(task_id: int, *, success=True, code="print(1)",
         "submitted_code": code,
         "test_output": "ok" if success else "fail",
         "repr_code": code,
+        "moves": moves or [],
     }
     if start_time is not None:
         payload["start_time"] = start_time
@@ -50,13 +51,27 @@ def _submit(task_id: int, *, success=True, code="print(1)",
 
 async def _add_attempt(db_session, ss_id: int, task_id: int, *,
                         success: bool, code="x",
-                        start=None, end=None) -> TaskAttempt:
-    start = start or datetime(2026, 1, 1, 0, 0, 0)
+                        start_time=None, end=None) -> TaskAttempt:
+    start = start_time or datetime(2026, 1, 1, 0, 0, 0)
     end = end or datetime(2026, 1, 1, 0, 1, 0)
+
+    result = await db_session.execute(
+        select(TaskStart).where(
+            TaskStart.student_id == ss_id,
+            TaskStart.task_id == task_id
+        )
+    )
+    task_start = result.scalar_one_or_none()
+    if not task_start:
+        task_start = TaskStart(student_id=ss_id, task_id=task_id, started_at=start)
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
     a = TaskAttempt(
         student_id=ss_id,
         task_id=task_id,
-        task_started_at=start,
+        task_start_id=task_start.id,
         completed_at=end,
         success=success,
         submitted_inputs={"code": code},
@@ -554,7 +569,7 @@ class TestSubmitResult:
     async def test_missing_start_time_uses_now(self, client, task, student_session):
         client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
-                               json=_submit(task.id, start_time=None))
+                               json=_submit(task.id))
         client.cookies.clear()
         assert r.status_code == 200
 
@@ -570,6 +585,7 @@ class TestSubmitResult:
         attempt = result.scalar_one()
         assert attempt.success is True
         assert attempt.submitted_inputs["code"] == "my_answer"
+        assert attempt.task_start_id is not None
 
     async def test_failure_attempt_persisted(self, client, task, student_session, db_session):
         client.cookies.set("student_session", str(student_session.id))
@@ -582,6 +598,7 @@ class TestSubmitResult:
         )
         attempt = result.scalar_one()
         assert attempt.success is False
+        assert attempt.task_start_id is not None
 
 
 # ---------------------------------------------------------------------------
@@ -615,7 +632,7 @@ class TestStatistics:
         self, client, task, student_session, test_teacher, db_session
     ):
         await _add_attempt(db_session, student_session.id, task.id, success=True,
-                            start=datetime(2026, 1, 1, 0, 0, 0),
+                            start_time=datetime(2026, 1, 1, 0, 0, 0),
                             end=datetime(2026, 1, 1, 0, 2, 0))
         r = await client.get(f"/api/tasks/{task.id}/statistics",
                               headers=_auth(test_teacher.username))
@@ -631,10 +648,10 @@ class TestStatistics:
         for i in range(2):
             await _add_attempt(db_session, student_session.id, task.id, success=False,
                                 code=f"wrong_{i}",
-                                start=datetime(2026, 1, 1, 0, i, 0),
+                                start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
         await _add_attempt(db_session, student_session.id, task.id, success=True,
-                            start=datetime(2026, 1, 1, 0, 3, 0),
+                            start_time=datetime(2026, 1, 1, 0, 3, 0),
                             end=datetime(2026, 1, 1, 0, 4, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -649,7 +666,7 @@ class TestStatistics:
         for i in range(3):
             await _add_attempt(db_session, student_session.id, task.id, success=False,
                                 code="wrong",
-                                start=datetime(2026, 1, 1, 0, i, 0),
+                                start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -671,7 +688,7 @@ class TestStatistics:
             await db_session.commit()
             await db_session.refresh(ss)
             await _add_attempt(db_session, ss.id, task.id, success=True,
-                                start=datetime(2026, 1, 1, 0, 0, 0),
+                                start_time=datetime(2026, 1, 1, 0, 0, 0),
                                 end=datetime(2026, 1, 1, 0, i + 1, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -739,9 +756,18 @@ class TestStatistics:
     async def test_attempt_missing_code_key_not_a_mistake(
         self, client, task, student_session, test_teacher, db_session
     ):
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task.id,
+            started_at=datetime(2026, 1, 1),
+        )
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs={},   # no "code" key
         )
         db_session.add(a)
@@ -753,9 +779,18 @@ class TestStatistics:
     async def test_attempt_with_null_submitted_inputs(
         self, client, task, student_session, test_teacher, db_session
     ):
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task.id,
+            started_at=datetime(2026, 1, 1),
+        )
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs=None,
         )
         db_session.add(a)

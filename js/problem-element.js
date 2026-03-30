@@ -46,6 +46,9 @@ export class ProblemElement extends LitElement {
 	starterRef = createRef();
 	solutionRef = createRef();
 
+	// Array to store moves locally as they happen
+	recordedMoves = [];
+
 	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
 		return this;
@@ -130,31 +133,10 @@ export class ProblemElement extends LitElement {
 		`;
 	}
 
-	sendBlockMoveEvent = async (moveData) => {
-		if (!this.attemptId) {
-			return;
-		}
-
-		try {
-			const payload = {
-				attempt_id: parseInt(this.attemptId),
-				...moveData,
-			};
-
-			const response = await fetch('/api/block-move', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(payload),
-			});
-
-			if (response.ok) {
-				console.log('move sent to db');
-			}
-		} catch (e) {
-			// silently handle error
-		}
+	recordBlockMove = (moveData) => {
+		// Store move locally instead of sending to server immediately
+		this.recordedMoves.push(moveData);
+		console.log('Move recorded locally:', moveData);
 	};
 
 	firstUpdated() {
@@ -211,8 +193,8 @@ export class ProblemElement extends LitElement {
 					return;
 				}
 
-				// Send move event to backend (handles all moves: container changes and reorders)
-				this.sendBlockMoveEvent({
+				// Record move locally for later submission with attempt
+				this.recordBlockMove({
 					block_id: pendingMove.id,
 					from_container: pendingMove.from.list,
 					to_container: to.list,
@@ -265,9 +247,12 @@ export class ProblemElement extends LitElement {
 					code: this.parsonsWidget.solutionCode(),
 					// Serializable block representation for persistence
 					repr: this.parsonsWidget.reprCode(),
+					// Include recorded moves to send with attempt
+					moves: this.recordedMoves,
 				},
 			})
 		);
+		this.recordedMoves = [];
 	}
 }
 

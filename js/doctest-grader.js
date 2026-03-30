@@ -76,6 +76,68 @@ function cleanupDoctestResults(resultsStr) {
 	return keptLines.join('\n');
 }
 
+function extractPassedExamples(resultsStr) {
+	const lines = resultsStr.split('\n');
+	const passedExamples = [];
+
+	for (let i = 0; i < lines.length; i++) {
+		if (!lines[i].startsWith('Trying:')) {
+			continue;
+		}
+
+		const tryingLines = [];
+		const expectedLines = [];
+		let j = i + 1;
+
+		while (j < lines.length) {
+			const current = lines[j];
+			if (
+				current.startsWith('Expecting:') ||
+				current.trim() === 'ok' ||
+				current.startsWith('Trying:') ||
+				current.startsWith('***')
+			) {
+				break;
+			}
+
+			if (current.trim()) {
+				tryingLines.push(current.trim());
+			}
+			j++;
+		}
+
+		if (j < lines.length && lines[j].startsWith('Expecting:')) {
+			j++;
+			while (
+				j < lines.length &&
+				!lines[j].trim().startsWith('ok') &&
+				!lines[j].startsWith('Trying:') &&
+				!lines[j].startsWith('***') &&
+				!lines[j].startsWith('File "__main__"')
+			) {
+				if (lines[j].trim()) {
+					expectedLines.push(lines[j].trim());
+				}
+				j++;
+			}
+		}
+
+		if (j < lines.length && lines[j].trim() === 'ok' && tryingLines.length > 0) {
+			const expectedText = expectedLines.length
+				? expectedLines.join('\n    ')
+				: '<no output>';
+
+			passedExamples.push(
+				`${tryingLines.join(' ')}\nExpected:\n    ${expectedText}\nGot:\n    ${expectedText}`
+			);
+		}
+
+		i = j;
+	}
+
+	return passedExamples;
+}
+
 export function prepareCode(submittedCode, codeHeader) {
 	submittedCode += '\n';
 	let lines = codeHeader.split('\n');
@@ -133,7 +195,12 @@ export function processTestResults(outputStr) {
 		const successCount = parseInt(summaryMatches[1], 10);
 		const failCount = parseInt(summaryMatches[2], 10);
 		const totalCount = successCount + failCount;
-		const doctestResults = cleanupDoctestResults(outputStr);
+		const passedExamples = extractPassedExamples(outputStr);
+		const failedDetails = cleanupDoctestResults(outputStr);
+		const passedDetails = passedExamples.length
+			? ['✅ Passed tests:', ...passedExamples].join('\n\n')
+			: '';
+		const doctestResults = [passedDetails, failedDetails].filter(Boolean).join('\n\n');
 		return {
 			status: successCount == totalCount ? 'pass' : 'fail',
 			header: `${successCount} of ${totalCount} tests passed`,

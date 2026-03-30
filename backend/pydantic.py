@@ -130,7 +130,6 @@ class TaskListViewerResponse(BaseModel):
     email: str
     created_at: str
 
-
 class BlockMoveEventRequest(BaseModel):
     attempt_id: int
     block_id: str
@@ -140,3 +139,22 @@ class BlockMoveEventRequest(BaseModel):
     to_index: int
     from_indent: int
     to_indent: int
+
+
+class CreateRegistrationTokenRequest(BaseModel):
+    """Request to create a new registration token."""
+    token: str | None = None
+
+
+class RegistrationTokenResponse(BaseModel):
+    """Response containing a newly created token."""
+    id: int
+    token: str
+    created_at: str
+
+
+class RegistrationTokenListItem(BaseModel):
+    """Item in registration token list."""
+    id: int
+    created_at: str
+    created_by_admin_id: int

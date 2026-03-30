@@ -767,3 +767,150 @@
   font-weight: 600;
   margin-bottom: 1rem;
 }
+
+/* Admin Token Management Styles */
+.admin-section {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.admin-section h3 {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-card {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.admin-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.admin-card .card-body {
+  padding: 1.5rem;
+}
+
+.admin-card .card-title {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.admin-card .card-text {
+  margin-bottom: 1rem;
+}
+
+#token-display {
+  background: #cfe2ff;
+  border: 1px solid #b6d4fe;
+  border-radius: 6px;
+  padding: 1.25rem;
+  color: #084298;
+}
+
+#token-display strong {
+  color: #084298;
+}
+
+#token-value {
+  background: white !important;
+  border: 1px solid #dee2e6 !important;
+  padding: 0.75rem !important;
+  border-radius: 4px !important;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
+  user-select: all;
+  margin-bottom: 0.75rem;
+}
+
+.token-items {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.token-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.token-item:hover {
+  background-color: #f1f3f5;
+}
+
+.token-item:last-child {
+  border-bottom: none;
+}
+
+.token-item small {
+  display: block;
+  line-height: 1.4;
+}
+
+.token-item small.text-dark {
+  color: #212529 !important;
+}
+
+.token-item small.text-muted {
+  color: #6c757d !important;
+}
+
+.tokens-list {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+}
+
+#create-token-btn,
+#copy-token-btn {
+  transition: all 0.2s ease;
+}
+
+#create-token-btn:hover:not(:disabled),
+#copy-token-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+#create-token-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .admin-section {
+    padding: 1.5rem;
+  }
+
+  .admin-section h3 {
+    font-size: 1.25rem;
+  }
+
+  .admin-card .card-body {
+    padding: 1rem;
+  }
+
+  .token-items {
+    max-height: 250px;
+  }
+}

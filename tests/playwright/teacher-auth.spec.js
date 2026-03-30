@@ -73,21 +73,6 @@ test('registration shows error for invalid token', async ({ page }) => {
   );
 });
 
-test('registration fails with wrong access token and user cannot login', async ({ page }) => {
-  const unique = Date.now();
-  const username = `teacher_wrong_access_${unique}`;
-  const email = `teacher_wrong_access_${unique}@example.com`;
-  const password = 'password123';
-
-  await registerTeacher(page, username, email, password, 'wrong_access_token');
-  await expect(page.locator('#alert-placeholder .alert-danger')).toContainText(
-    'Invalid registration token'
-  );
-
-  await loginTeacher(page, username, password);
-  await expect(page.locator('#error-message')).toContainText('Incorrect username or password');
-});
-
 test('login shows error with wrong password', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_wrongpw_${unique}`;

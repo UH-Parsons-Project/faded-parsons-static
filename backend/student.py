@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .pydantic import SubmitTestResultRequest
 
 from .database import get_db
-from .models import Parsons, Student, TaskAttempt, TaskList, MoveEvent
+from .models import Student, TaskAttempt, TaskList, MoveEvent, TaskStart
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -246,6 +246,64 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     return {"status": "success", "id": student.id}
 
 
+@router.get("/api/tasks/{task_id}/has-started")
+async def check_task_has_started(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        return {"has_started": False}
+
+    stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    existing_start = result.scalar_one_or_none()
+
+    return {"has_started": existing_start is not None}
+
+
+@router.post("/api/tasks/{task_id}/start")
+async def start_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required to start a task"
+        )
+
+    stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    task_start = result.scalar_one_or_none()
+
+    if task_start:
+        return {
+            "status": "success",
+            "started_at": task_start.started_at.isoformat()
+        }
+
+    new_start = TaskStart(
+        student_id=student_session.id,
+        task_id=task_id
+    )
+    db.add(new_start)
+    await db.commit()
+    await db.refresh(new_start)
+
+    return {
+        "status": "success",
+        "started_at": new_start.started_at.isoformat()
+    }
+
+
 @router.post("/api/tasks/{task_id}/submit-result")
 async def submit_test_result(
     task_id: int,
@@ -259,30 +317,33 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    # Create a new task attempt with completion info
-    now = datetime.now(timezone.utc)
+    start_stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
+    )
+    start_result = await db.execute(start_stmt)
+    task_start = start_result.scalar_one_or_none()
 
-    # Parse start_time if provided, otherwise use current time
-    task_started_at = now
-    if result.start_time:
-        try:
-            task_started_at = datetime.fromisoformat(result.start_time.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            task_started_at = now
+    if not task_start:
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task_id
+        )
+        db.add(task_start)
+        await db.flush()
 
     new_attempt = TaskAttempt(
         student_id=student_session.id,
         task_id=task_id,
-        task_started_at=task_started_at,
-        completed_at=now,
+        task_start_id=task_start.id,
+        completed_at=datetime.now(timezone.utc),
         success=result.success,
         submitted_inputs={"code": result.submitted_code}
     )
     db.add(new_attempt)
-    await db.flush()  # Flush to get the attempt ID without committing yet
+    await db.flush()
     await db.refresh(new_attempt)
 
-    # Save all block moves that were recorded during the attempt
     if result.moves:
         for move_data in result.moves:
             move = MoveEvent(
@@ -315,7 +376,6 @@ async def get_task_moves(
     current_user = Depends(get_current_student_session_no_update),
 ):
     """Fetch all moves for a student's attempts on a specific task."""
-    # Find student by username
     stmt = select(Student).where(Student.username == student_username)
     result = await db.execute(stmt)
     student = result.scalar_one_or_none()
@@ -323,7 +383,6 @@ async def get_task_moves(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Fetch all attempts for this student on this task
     stmt = select(TaskAttempt).where(
         (TaskAttempt.student_id == student.id) &
         (TaskAttempt.task_id == task_id)
@@ -333,7 +392,6 @@ async def get_task_moves(
 
     attempt_ids = [a.id for a in attempts]
 
-    # Fetch all moves for these attempts
     if not attempt_ids:
         return []
 

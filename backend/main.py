@@ -1300,43 +1300,49 @@ async def get_student_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    # Get all attempts by this student for this task
+    # Get all attempts by this student for this task, joined with TaskStart
+    from .models import TaskStart
+    
     stmt = (
-        select(TaskAttempt)
+        select(TaskAttempt, TaskStart)
         .join(Student, Student.id == TaskAttempt.student_id)
+        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
         .where(Student.username == student_username)
         .where(TaskAttempt.task_id == task_id)
         .order_by(TaskAttempt.completed_at.asc())
     )
 
     result = await db.execute(stmt)
-    attempts = result.scalars().all()
+    attempts_with_starts = result.all()
+    
+    # Unpack into list of (attempt, task_start) tuples for easier access
+    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
 
     # Filter out empty attempts (those with no user-added code)
     empty_attempts_count = 0
-    filtered_attempts = []
-    for attempt in attempts:
+    filtered_attempts_data = []
+    for attempt, task_start in attempts_data:
         # Keep attempts that don't have code field (e.g., old data, missing field)
         if not (
             attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
         ):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         elif has_user_added_own_code(code, task.code_blocks):
             # Has user-added code - keep it
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         else:
             # Has code but it's empty template - count it
             empty_attempts_count += 1
 
-    attempts = filtered_attempts
+    attempts_data = filtered_attempts_data
 
-    if not attempts:
+    if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
@@ -1352,28 +1358,32 @@ async def get_student_task_statistics(
         )
 
     # Calculate statistics
-    successful_attempts = sum(1 for a in attempts if a.success)
-    failed_attempts = sum(1 for a in attempts if not a.success)
+    successful_attempts = sum(1 for a, _ in attempts_data if a.success)
+    failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
 
     # Time to first success
-    first_success = next((a for a in attempts if a.success), None)
+    first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
     time_to_first_success = None
-    if first_success and first_success.task_started_at and first_success.completed_at:
-        seconds = (first_success.completed_at - first_success.task_started_at).total_seconds()
-        time_to_first_success = {"seconds": seconds}
+    if first_success_pair:
+        attempt, task_start = first_success_pair
+        if task_start and task_start.started_at and attempt.completed_at:
+            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
+            time_to_first_success = {"seconds": seconds}
 
     # Time to first fail
-    first_fail = next((a for a in attempts if not a.success), None)
+    first_fail_pair = next(((a, ts) for a, ts in attempts_data if not a.success), None)
     time_to_first_fail = None
-    if first_fail and first_fail.task_started_at and first_fail.completed_at:
-        seconds = (first_fail.completed_at - first_fail.task_started_at).total_seconds()
-        time_to_first_fail = {"seconds": seconds}
+    if first_fail_pair:
+        attempt, task_start = first_fail_pair
+        if task_start and task_start.started_at and attempt.completed_at:
+            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
+            time_to_first_fail = {"seconds": seconds}
 
     # Attempts detail
     attempts_detail = []
-    for i, attempt in enumerate(attempts, 1):
-        time_taken = (attempt.completed_at - attempt.task_started_at).total_seconds() \
-            if attempt.task_started_at and attempt.completed_at else None
+    for i, (attempt, task_start) in enumerate(attempts_data, 1):
+        time_taken = (attempt.completed_at - task_start.started_at).total_seconds() \
+            if task_start and task_start.started_at and attempt.completed_at else None
         detail = {
             "attempt_number": i,
             "success": attempt.success,
@@ -1388,7 +1398,7 @@ async def get_student_task_statistics(
         task_description=task.description,
         model_answer=_get_model_answer_for_task(task),
         student_username=student_username,
-        total_attempts=len(attempts),
+        total_attempts=len(attempts_data),
         successful_attempts=successful_attempts,
         failed_attempts=failed_attempts,
         empty_attempts=empty_attempts_count,
@@ -1415,8 +1425,14 @@ async def get_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    # Build attempts query, optionally filtered by problemset
-    attempts_query = select(TaskAttempt).where(TaskAttempt.task_id == task_id)
+    # Build attempts query, optionally filtered by problemset, joined with TaskStart
+    from .models import TaskStart
+    
+    attempts_query = (
+        select(TaskAttempt, TaskStart)
+        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
+        .where(TaskAttempt.task_id == task_id)
+    )
 
     if problemset_code:
         problemset_result = await db.execute(
@@ -1433,7 +1449,8 @@ async def get_task_statistics(
         await require_task_list_view_access(problemset, current_user, db)
 
         attempts_query = (
-            select(TaskAttempt)
+            select(TaskAttempt, TaskStart)
+            .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
             .join(Student, TaskAttempt.student_id == Student.id)
             .where(
                 TaskAttempt.task_id == task_id,
@@ -1442,24 +1459,24 @@ async def get_task_statistics(
         )
 
     attempts_result = await db.execute(attempts_query)
-    attempts = attempts_result.scalars().all()
+    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_result.all()]
 
     # Filter out empty attempts (those with no user-added code)
-    filtered_attempts = []
-    for attempt in attempts:
+    filtered_attempts_data = []
+    for attempt, task_start in attempts_data:
         if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
 
-    attempts = filtered_attempts
+    attempts_data = filtered_attempts_data
 
-    if not attempts:
+    if not attempts_data:
         return {
             "task_name": task.title,
             "model_answer": _get_model_answer_for_task(task),
@@ -1474,21 +1491,24 @@ async def get_task_statistics(
             "common_mistakes": []
         }
 
-    successful_attempts = [a for a in attempts if a.success]
-    failed_attempts = [a for a in attempts if not a.success]
+    successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]
+    failed_attempts = [(a, ts) for a, ts in attempts_data if not a.success]
 
-    students_attempted = len(set(a.student_id for a in attempts))
-    students_completed = len(set(a.student_id for a in successful_attempts))
+    students_attempted = len(set(a.student_id for a, _ in attempts_data))
+    students_completed = len(set(a.student_id for a, _ in successful_attempts))
 
     # Average tries before first success (per student)
     student_attempts: dict = {}
-    for attempt in attempts:
-        student_attempts.setdefault(attempt.student_id, []).append(attempt)
+    for attempt, task_start in attempts_data:
+        student_attempts.setdefault(attempt.student_id, []).append((attempt, task_start))
 
     tries_before_success = []
     for session_attempts in student_attempts.values():
-        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
-        for idx, attempt in enumerate(sorted_attempts):
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for idx, (attempt, _) in enumerate(sorted_attempts):
             if attempt.success:
                 tries_before_success.append(idx + 1)
                 break
@@ -1497,9 +1517,9 @@ async def get_task_statistics(
 
     # Time to first fail
     tff_values = [
-        (a.completed_at - a.task_started_at).total_seconds()
-        for a in failed_attempts
-        if a.completed_at and a.task_started_at
+        (attempt.completed_at - task_start.started_at).total_seconds()
+        for attempt, task_start in failed_attempts
+        if attempt.completed_at and task_start and task_start.started_at
     ]
     tff = {
         "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
@@ -1510,10 +1530,13 @@ async def get_task_statistics(
     # Time to first success
     tfs_values = []
     for session_attempts in student_attempts.values():
-        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
-        for attempt in sorted_attempts:
-            if attempt.success and attempt.completed_at and attempt.task_started_at:
-                tfs_values.append((attempt.completed_at - attempt.task_started_at).total_seconds())
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for attempt, task_start in sorted_attempts:
+            if attempt.success and attempt.completed_at and task_start and task_start.started_at:
+                tfs_values.append((attempt.completed_at - task_start.started_at).total_seconds())
                 break
 
     tfs = {
@@ -1524,7 +1547,7 @@ async def get_task_statistics(
 
     # Common mistakes (top 5 most frequent failed submissions)
     mistake_counts: dict = {}
-    for attempt in failed_attempts:
+    for attempt, _ in failed_attempts:
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
             code = attempt.submitted_inputs.get("code", "")
             if code:
@@ -1548,7 +1571,7 @@ async def get_task_statistics(
     return {
         "task_name": task.title,
         "model_answer": _get_model_answer_for_task(task),
-        "total_completions": len(attempts),
+        "total_completions": len(attempts_data),
         "students_attempted": students_attempted,
         "students_completed": students_completed,
         "avg_tries": round(avg_tries, 2),

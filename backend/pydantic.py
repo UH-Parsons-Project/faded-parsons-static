@@ -100,7 +100,7 @@ class SubmitTestResultRequest(BaseModel):
     submitted_code: str
     test_output: str
     repr_code: str
-    start_time: str | None = None  # ISO format timestamp from localStorage
+
     moves: list[MoveData] = []  # Block moves recorded during the attempt
 
 

@@ -252,6 +252,7 @@ export class ProblemElement extends LitElement {
 				},
 			})
 		);
+		this.recordedMoves = [];
 	}
 }
 

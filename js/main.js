@@ -117,7 +117,7 @@ export async function initWidget() {
 
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, globalTaskStartTime, functionHeader);
+			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, functionHeader);
 		});
 
 		// Activate the run button
@@ -163,7 +163,7 @@ function reconstructCodeLines(blocks) {
 // moves: array of move events recorded during the attempt
 // startTime: ISO timestamp of when the user clicked Start
 // codeHeader: Python function template/header
-async function handleSubmit(submittedCode, reprCode, moves, startTime, codeHeader) {
+async function handleSubmit(submittedCode, reprCode, moves, codeHeader) {
 	// Prepare code and inject test code
 	let testResults = prepareCode(submittedCode, codeHeader);
 
@@ -218,7 +218,6 @@ async function handleSubmit(submittedCode, reprCode, moves, startTime, codeHeade
 			submitted_code: submittedCode,
 			test_output: testResults.details || '',
 			repr_code: reprCode,
-			start_time: startTime || null, // Include start time if available
 			moves: moves || [] // Include recorded moves with the submission
 		};
 

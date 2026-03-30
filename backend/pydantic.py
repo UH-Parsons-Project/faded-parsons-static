@@ -95,6 +95,7 @@ class SubmitTestResultRequest(BaseModel):
 
 class CreateProblemRequest(BaseModel):
     description: str
+    startDescription: str
     tests: str
     solutionCode: str
 

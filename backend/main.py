@@ -647,12 +647,13 @@ async def create_problem(
 ):
     solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
     description = request.description.strip()
+    start_description = request.startDescription.strip()
     tests = request.tests.strip()
 
-    if not solution_code or not description or not tests:
+    if not solution_code or not description or not start_description or not tests:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="description, tests and solutionCode are required",
+            detail="description, startDescription, tests and solutionCode are required",
         )
 
     lines = [line for line in solution_code.split("\n") if line.strip()]
@@ -685,11 +686,19 @@ async def create_problem(
             }
         )
 
+    task_instructions_payload = json.dumps(
+        {
+            "function_name": function_name,
+            "task_instructions": description,
+            "examples": "",
+        }
+    )
+
     task = Parsons(
         created_by_teacher_id=current_user.id,
         title=f"{function_name}_{int(datetime.now(timezone.utc).timestamp())}",
-        task_instructions='{"function_name":"","task_instructions":"","examples":""}',
-        description=description,
+        task_instructions=task_instructions_payload,
+        description=start_description,
         task_type="normal",
         code_blocks={
             "blocks": blocks,

@@ -61,26 +61,27 @@ initProtectedPage('/index.html');
       const normalizedSource = normalizeSourceCode(sourceCode || '');
 
       if (!raw) {
-        return { description: '', tests: '' };
+        return { description: '', startDescription: '', tests: '' };
       }
 
       if (typeof rawSource !== 'string' || rawSource !== normalizedSource) {
-        return { description: '', tests: '' };
+        return { description: '', startDescription: '', tests: '' };
       }
 
       const parsed = JSON.parse(raw);
       return {
         description: typeof parsed.description === 'string' ? parsed.description : '',
+        startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { description: '', tests: '' };
+      return { description: '', startDescription: '', tests: '' };
     }
   }
 
-  function saveMetaToSession(description, tests) {
-    sessionStorage.setItem(META_KEY, JSON.stringify({ description, tests }));
+  function saveMetaToSession(description, startDescription, tests) {
+    sessionStorage.setItem(META_KEY, JSON.stringify({ description, startDescription, tests }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
@@ -189,6 +190,38 @@ initProtectedPage('/index.html');
       el.classList.add('fail');
     }
     el.textContent = message;
+  }
+
+  function formatApiErrorDetail(detail) {
+    if (!detail) {
+      return '';
+    }
+
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => {
+          if (typeof item === 'string') {
+            return item;
+          }
+          if (item && typeof item === 'object') {
+            const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+            const msg = item.msg || JSON.stringify(item);
+            return loc ? `${loc}: ${msg}` : msg;
+          }
+          return String(item);
+        })
+        .join('; ');
+    }
+
+    if (typeof detail === 'object') {
+      return detail.message || detail.msg || JSON.stringify(detail);
+    }
+
+    return String(detail);
   }
 
   function validateSourceCodeShape(sourceCode) {
@@ -344,25 +377,28 @@ initProtectedPage('/index.html');
 
   function addToProblemList() {
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const solutionList = document.querySelector('#solution-sortable ul');
 
-    if (!descriptionInput || !testsInput || !solutionList || !parsonsWidget) {
+    if (!descriptionInput || !startDescriptionInput || !testsInput || !solutionList || !parsonsWidget) {
       alert('Missing required fields to add the problem.');
       return;
     }
 
     const description = descriptionInput.value.trim();
+    const startDescription = startDescriptionInput.value.trim();
     const tests = testsInput.value.trim();
     const solutionCode = parsonsWidget.solutionCode();
 
-    if (!description || !tests || !solutionCode) {
+    if (!description || !startDescription || !tests || !solutionCode) {
       alert('Please ensure all fields are filled out before adding the problem.');
       return;
     }
 
     const problemData = {
       description,
+      startDescription,
       tests,
       solutionCode,
     };
@@ -382,7 +418,8 @@ initProtectedPage('/index.html');
           let detail = '';
           try {
             const payload = await response.json();
-            detail = payload?.detail ? `\nReason: ${payload.detail}` : '';
+            const parsedDetail = formatApiErrorDetail(payload?.detail);
+            detail = parsedDetail ? `\nReason: ${parsedDetail}` : '';
           } catch (parseError) {
             detail = '';
           }
@@ -429,6 +466,7 @@ initProtectedPage('/index.html');
     const addToListBtn = document.getElementById('add-to-problem-list');
     const customBlockInput = document.getElementById('custom-block-input');
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const runBtn = document.getElementById('run-tests');
 
@@ -448,9 +486,13 @@ initProtectedPage('/index.html');
         renderParsonsBoard(normalizeSourceCode(draftPayload?.taskCode || ''));
 
         const descriptionInput = document.getElementById('problem-description');
+        const startDescriptionInput = document.getElementById('start-description');
         const testsInput = document.getElementById('tests-input');
         if (descriptionInput) {
           descriptionInput.value = '';
+        }
+        if (startDescriptionInput) {
+          startDescriptionInput.value = '';
         }
         if (testsInput) {
           testsInput.value = draftPayload?.taskTests || '';
@@ -479,13 +521,17 @@ initProtectedPage('/index.html');
       });
     }
 
-    if (descriptionInput && testsInput) {
+    if (descriptionInput && startDescriptionInput && testsInput) {
       descriptionInput.addEventListener('input', () => {
-        saveMetaToSession(descriptionInput.value, testsInput.value);
+        saveMetaToSession(descriptionInput.value, startDescriptionInput.value, testsInput.value);
+      });
+
+      startDescriptionInput.addEventListener('input', () => {
+        saveMetaToSession(descriptionInput.value, startDescriptionInput.value, testsInput.value);
       });
 
       testsInput.addEventListener('input', () => {
-        saveMetaToSession(descriptionInput.value, testsInput.value);
+        saveMetaToSession(descriptionInput.value, startDescriptionInput.value, testsInput.value);
       });
     }
 
@@ -516,10 +562,14 @@ initProtectedPage('/index.html');
 
     const meta = loadMetaFromSession(draft.taskCode);
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
 
     if (descriptionInput) {
       descriptionInput.value = meta.description || '';
+    }
+    if (startDescriptionInput) {
+      startDescriptionInput.value = meta.startDescription || '';
     }
     if (testsInput) {
       testsInput.value = meta.tests || draft.taskTests || '';

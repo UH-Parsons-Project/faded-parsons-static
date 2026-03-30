@@ -1515,12 +1515,17 @@ async def get_task_statistics(
 
     avg_tries = sum(tries_before_success) / len(tries_before_success) if tries_before_success else 0
 
-    # Time to first fail
-    tff_values = [
-        (attempt.completed_at - task_start.started_at).total_seconds()
-        for attempt, task_start in failed_attempts
-        if attempt.completed_at and task_start and task_start.started_at
-    ]
+    # Time to first fail (per student)
+    tff_values = []
+    for session_attempts in student_attempts.values():
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for attempt, task_start in sorted_attempts:
+            if not attempt.success and attempt.completed_at and task_start and task_start.started_at:
+                tff_values.append((attempt.completed_at - task_start.started_at).total_seconds())
+                break
     tff = {
         "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
         "min": round(min(tff_values), 2) if tff_values else 0,

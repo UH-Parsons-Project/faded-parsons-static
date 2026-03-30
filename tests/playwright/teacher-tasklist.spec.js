@@ -28,4 +28,3 @@ test('teacher can create a new task list by clicking "Create New Task List"', as
   // Verify the newly created task list is visible on the page
   await expect(page.locator('.task-list-title', { hasText: taskListTitle })).toBeVisible();
 });
-

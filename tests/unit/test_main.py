@@ -21,7 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
-from backend.models import Parsons, Student, TaskAttempt, TaskList
+from backend.models import Parsons, Student, TaskAttempt, TaskList, TaskListItem
 
 
 # ---------------------------------------------------------------------------
@@ -514,6 +514,24 @@ class TestGetProblemsetTasks:
         ps, task = problemset_with_task
         r = await client.get(f"/api/problemsets/{ps.id}/tasks")
         assert r.status_code == 200
+        assert r.json()[0]["id"] == task.id
+
+    async def test_numeric_unique_link_code_is_resolved_as_code(self, client, db_session, test_teacher, task):
+        ps = TaskList(
+            teacher_id=test_teacher.id,
+            title="Numeric Code List",
+            unique_link_code="303",
+        )
+        db_session.add(ps)
+        await db_session.commit()
+        await db_session.refresh(ps)
+
+        db_session.add(TaskListItem(task_list_id=ps.id, task_id=task.id))
+        await db_session.commit()
+
+        r = await client.get("/api/problemsets/303/tasks")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
     async def test_unknown_code_returns_404(self, client):

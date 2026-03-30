@@ -858,15 +858,19 @@ async def get_problemset(
 @app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
 async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
-    # Determine whether the caller passed an integer ID or a string code
+    # Always try unique_link_code first so numeric codes like "303" still work.
     code_str = str(code)
-    if code_str.isdigit():
-        problemset_stmt = select(TaskList).where(TaskList.id == int(code))
-    else:
-        problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
-
-    problemset_result = await db.execute(problemset_stmt)
+    problemset_result = await db.execute(
+        select(TaskList).where(TaskList.unique_link_code == code_str)
+    )
     problemset = problemset_result.scalar_one_or_none()
+
+    # Fallback: allow numeric route segments to address a problemset by ID.
+    if problemset is None and code_str.isdigit():
+        problemset_result = await db.execute(
+            select(TaskList).where(TaskList.id == int(code_str))
+        )
+        problemset = problemset_result.scalar_one_or_none()
 
     if not problemset:
         raise HTTPException(

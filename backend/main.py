@@ -41,6 +41,9 @@ from .pydantic import (
     TaskListResponse,
     TaskListViewerRequest,
     TaskListViewerResponse,
+    CreateRegistrationTokenRequest,
+    RegistrationTokenResponse,
+    RegistrationTokenListItem,
 )
 from sqlalchemy import Integer, delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +55,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher
+from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -62,6 +65,7 @@ from .student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
+from .token_utils import generate_token, hash_token, verify_token
 
 
 @asynccontextmanager
@@ -739,15 +743,31 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
             detail="Invalid JSON payload",
         ) from exc
 
-    REGISTRATION_TOKEN = os.getenv("TEACHER_REGISTRATION_TOKEN")
-
     username = str(payload.get("username", "")).strip()
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
-    registration_token = payload.get("registration_token", "")
+    registration_token = str(payload.get("registration_token", "")).strip()
 
-    if registration_token != REGISTRATION_TOKEN:
+    # Validate registration token from database
+    if not registration_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration token is required",
+        )
+
+    # Find matching token in database
+    stmt = select(RegistrationToken)
+    result = await db.execute(stmt)
+    all_tokens = result.scalars().all()
+
+    valid_token = None
+    for token_obj in all_tokens:
+        if verify_token(registration_token, token_obj.token_hash):
+            valid_token = token_obj
+            break
+
+    if not valid_token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid registration token",
@@ -803,6 +823,89 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
 
     return {"status": "success", "id": teacher.id}
 
+
+@app.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)
+async def create_registration_token(
+    request: CreateRegistrationTokenRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new registration token for teachers. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    # Get or generate token
+    plain_token = request.token.strip() if request.token else None
+    
+    if not plain_token:
+        # Generate a new token if none provided
+        plain_token = generate_token(length=32)
+    
+    # Hash the token
+    token_hash = hash_token(plain_token)
+    
+    # Create token in database
+    reg_token = RegistrationToken(
+        token_hash=token_hash,
+        created_by_admin_id=current_user.id,
+    )
+    
+    db.add(reg_token)
+    await db.commit()
+    await db.refresh(reg_token)
+    
+    # Return token only once - this is the only time the plain token is shown
+    return RegistrationTokenResponse(
+        id=reg_token.id,
+        token=plain_token,
+        created_at=reg_token.created_at.isoformat(),
+    )
+
+
+@app.get("/api/admin/registration-tokens", response_model=list[RegistrationTokenListItem])
+async def list_registration_tokens(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """List all registration tokens. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    stmt = select(RegistrationToken).order_by(RegistrationToken.created_at.desc())
+    result = await db.execute(stmt)
+    tokens = result.scalars().all()
+    
+    return [
+        RegistrationTokenListItem(
+            id=token.id,
+            created_at=token.created_at.isoformat(),
+            created_by_admin_id=token.created_by_admin_id,
+        )
+        for token in tokens
+    ]
+
+
+@app.delete("/api/admin/registration-tokens/{token_id}")
+async def delete_registration_token(
+    token_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete/revoke a registration token. Admin only."""
+    # TODO: Add admin role check when implemented
+    
+    stmt = select(RegistrationToken).where(RegistrationToken.id == token_id)
+    result = await db.execute(stmt)
+    token = result.scalar_one_or_none()
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found",
+        )
+    
+    await db.delete(token)
+    await db.commit()
+    
+    return {"status": "success", "message": "Token deleted"}
 
 
 @app.get("/api/problemsets", response_model=list[ProblemSetResponse])
@@ -1323,43 +1426,49 @@ async def get_student_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    # Get all attempts by this student for this task
+    # Get all attempts by this student for this task, joined with TaskStart
+    from .models import TaskStart
+    
     stmt = (
-        select(TaskAttempt)
+        select(TaskAttempt, TaskStart)
         .join(Student, Student.id == TaskAttempt.student_id)
+        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
         .where(Student.username == student_username)
         .where(TaskAttempt.task_id == task_id)
         .order_by(TaskAttempt.completed_at.asc())
     )
 
     result = await db.execute(stmt)
-    attempts = result.scalars().all()
+    attempts_with_starts = result.all()
+    
+    # Unpack into list of (attempt, task_start) tuples for easier access
+    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
 
     # Filter out empty attempts (those with no user-added code)
     empty_attempts_count = 0
-    filtered_attempts = []
-    for attempt in attempts:
+    filtered_attempts_data = []
+    for attempt, task_start in attempts_data:
         # Keep attempts that don't have code field (e.g., old data, missing field)
         if not (
             attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
         ):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
             # No code at all - keep it (might be old attempt format)
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         elif has_user_added_own_code(code, task.code_blocks):
             # Has user-added code - keep it
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         else:
             # Has code but it's empty template - count it
             empty_attempts_count += 1
 
-    attempts = filtered_attempts
+    attempts_data = filtered_attempts_data
 
-    if not attempts:
+    if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
@@ -1375,28 +1484,32 @@ async def get_student_task_statistics(
         )
 
     # Calculate statistics
-    successful_attempts = sum(1 for a in attempts if a.success)
-    failed_attempts = sum(1 for a in attempts if not a.success)
+    successful_attempts = sum(1 for a, _ in attempts_data if a.success)
+    failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
 
     # Time to first success
-    first_success = next((a for a in attempts if a.success), None)
+    first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
     time_to_first_success = None
-    if first_success and first_success.task_started_at and first_success.completed_at:
-        seconds = (first_success.completed_at - first_success.task_started_at).total_seconds()
-        time_to_first_success = {"seconds": seconds}
+    if first_success_pair:
+        attempt, task_start = first_success_pair
+        if task_start and task_start.started_at and attempt.completed_at:
+            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
+            time_to_first_success = {"seconds": seconds}
 
     # Time to first fail
-    first_fail = next((a for a in attempts if not a.success), None)
+    first_fail_pair = next(((a, ts) for a, ts in attempts_data if not a.success), None)
     time_to_first_fail = None
-    if first_fail and first_fail.task_started_at and first_fail.completed_at:
-        seconds = (first_fail.completed_at - first_fail.task_started_at).total_seconds()
-        time_to_first_fail = {"seconds": seconds}
+    if first_fail_pair:
+        attempt, task_start = first_fail_pair
+        if task_start and task_start.started_at and attempt.completed_at:
+            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
+            time_to_first_fail = {"seconds": seconds}
 
     # Attempts detail
     attempts_detail = []
-    for i, attempt in enumerate(attempts, 1):
-        time_taken = (attempt.completed_at - attempt.task_started_at).total_seconds() \
-            if attempt.task_started_at and attempt.completed_at else None
+    for i, (attempt, task_start) in enumerate(attempts_data, 1):
+        time_taken = (attempt.completed_at - task_start.started_at).total_seconds() \
+            if task_start and task_start.started_at and attempt.completed_at else None
         detail = {
             "attempt_number": i,
             "success": attempt.success,
@@ -1411,7 +1524,7 @@ async def get_student_task_statistics(
         task_description=task.description,
         model_answer=_get_model_answer_for_task(task),
         student_username=student_username,
-        total_attempts=len(attempts),
+        total_attempts=len(attempts_data),
         successful_attempts=successful_attempts,
         failed_attempts=failed_attempts,
         empty_attempts=empty_attempts_count,
@@ -1438,8 +1551,14 @@ async def get_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    # Build attempts query, optionally filtered by problemset
-    attempts_query = select(TaskAttempt).where(TaskAttempt.task_id == task_id)
+    # Build attempts query, optionally filtered by problemset, joined with TaskStart
+    from .models import TaskStart
+    
+    attempts_query = (
+        select(TaskAttempt, TaskStart)
+        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
+        .where(TaskAttempt.task_id == task_id)
+    )
 
     if problemset_code:
         problemset_result = await db.execute(
@@ -1456,7 +1575,8 @@ async def get_task_statistics(
         await require_task_list_view_access(problemset, current_user, db)
 
         attempts_query = (
-            select(TaskAttempt)
+            select(TaskAttempt, TaskStart)
+            .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
             .join(Student, TaskAttempt.student_id == Student.id)
             .where(
                 TaskAttempt.task_id == task_id,
@@ -1465,24 +1585,24 @@ async def get_task_statistics(
         )
 
     attempts_result = await db.execute(attempts_query)
-    attempts = attempts_result.scalars().all()
+    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_result.all()]
 
     # Filter out empty attempts (those with no user-added code)
-    filtered_attempts = []
-    for attempt in attempts:
+    filtered_attempts_data = []
+    for attempt, task_start in attempts_data:
         if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
         elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts.append(attempt)
+            filtered_attempts_data.append((attempt, task_start))
 
-    attempts = filtered_attempts
+    attempts_data = filtered_attempts_data
 
-    if not attempts:
+    if not attempts_data:
         return {
             "task_name": task.title,
             "model_answer": _get_model_answer_for_task(task),
@@ -1497,33 +1617,41 @@ async def get_task_statistics(
             "common_mistakes": []
         }
 
-    successful_attempts = [a for a in attempts if a.success]
-    failed_attempts = [a for a in attempts if not a.success]
+    successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]
+    failed_attempts = [(a, ts) for a, ts in attempts_data if not a.success]
 
-    students_attempted = len(set(a.student_id for a in attempts))
-    students_completed = len(set(a.student_id for a in successful_attempts))
+    students_attempted = len(set(a.student_id for a, _ in attempts_data))
+    students_completed = len(set(a.student_id for a, _ in successful_attempts))
 
     # Average tries before first success (per student)
     student_attempts: dict = {}
-    for attempt in attempts:
-        student_attempts.setdefault(attempt.student_id, []).append(attempt)
+    for attempt, task_start in attempts_data:
+        student_attempts.setdefault(attempt.student_id, []).append((attempt, task_start))
 
     tries_before_success = []
     for session_attempts in student_attempts.values():
-        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
-        for idx, attempt in enumerate(sorted_attempts):
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for idx, (attempt, _) in enumerate(sorted_attempts):
             if attempt.success:
                 tries_before_success.append(idx + 1)
                 break
 
     avg_tries = sum(tries_before_success) / len(tries_before_success) if tries_before_success else 0
 
-    # Time to first fail
-    tff_values = [
-        (a.completed_at - a.task_started_at).total_seconds()
-        for a in failed_attempts
-        if a.completed_at and a.task_started_at
-    ]
+    # Time to first fail (per student)
+    tff_values = []
+    for session_attempts in student_attempts.values():
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for attempt, task_start in sorted_attempts:
+            if not attempt.success and attempt.completed_at and task_start and task_start.started_at:
+                tff_values.append((attempt.completed_at - task_start.started_at).total_seconds())
+                break
     tff = {
         "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
         "min": round(min(tff_values), 2) if tff_values else 0,
@@ -1533,10 +1661,13 @@ async def get_task_statistics(
     # Time to first success
     tfs_values = []
     for session_attempts in student_attempts.values():
-        sorted_attempts = sorted(session_attempts, key=lambda a: a.completed_at or datetime.now(timezone.utc))
-        for attempt in sorted_attempts:
-            if attempt.success and attempt.completed_at and attempt.task_started_at:
-                tfs_values.append((attempt.completed_at - attempt.task_started_at).total_seconds())
+        sorted_attempts = sorted(
+            session_attempts,
+            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+        )
+        for attempt, task_start in sorted_attempts:
+            if attempt.success and attempt.completed_at and task_start and task_start.started_at:
+                tfs_values.append((attempt.completed_at - task_start.started_at).total_seconds())
                 break
 
     tfs = {
@@ -1547,7 +1678,7 @@ async def get_task_statistics(
 
     # Common mistakes (top 5 most frequent failed submissions)
     mistake_counts: dict = {}
-    for attempt in failed_attempts:
+    for attempt, _ in failed_attempts:
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
             code = attempt.submitted_inputs.get("code", "")
             if code:
@@ -1571,7 +1702,7 @@ async def get_task_statistics(
     return {
         "task_name": task.title,
         "model_answer": _get_model_answer_for_task(task),
-        "total_completions": len(attempts),
+        "total_completions": len(attempts_data),
         "students_attempted": students_attempted,
         "students_completed": students_completed,
         "avg_tries": round(avg_tries, 2),

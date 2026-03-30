@@ -17,8 +17,8 @@ let probEl;
 // Global variable to store task ID for local storage operations
 let globalTaskId;
 
-// Global variable to store task attempt ID for tracking block moves
-let globalAttemptId;
+// Global variable to store task start time
+let globalTaskStartTime;
 
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
@@ -52,22 +52,8 @@ export async function initWidget() {
 
 		const task = await response.json();
 
-		// Start task attempt to get attempt ID for tracking moves
-		try {
-			const startResponse = await fetch(`/api/tasks/${globalTaskId}/start`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				}
-			});
-
-			if (startResponse.ok) {
-				const startData = await startResponse.json();
-				globalAttemptId = startData.attempt_id;
-			}
-		} catch (e) {
-			console.warn('Failed to start task attempt:', e);
-		}
+		// Retrieve task start time from localStorage (set when user clicked Start button)
+		globalTaskStartTime = localStorage.getItem(`task_${globalTaskId}_start_time`);
 
 		// Parse task instructions JSON
 		let parsedInstructions = {};
@@ -123,7 +109,6 @@ export async function initWidget() {
 
 		// Set component attributes
 		probEl.setAttribute('name', globalTaskId);
-		probEl.setAttribute('attemptId', globalAttemptId || '');
 		probEl.setAttribute('taskInstructions', problemStatementHTML);
 		probEl.setAttribute('description', task.description);
 		probEl.setAttribute('codeLines', codeLines);
@@ -132,7 +117,7 @@ export async function initWidget() {
 
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, functionHeader);
+			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, functionHeader);
 		});
 
 		// Activate the run button
@@ -175,8 +160,10 @@ function reconstructCodeLines(blocks) {
 // Handles submitted code by running tests and processing results
 // submittedCode: the code written by the user
 // reprCode: visual representation of user code (for storage)
+// moves: array of move events recorded during the attempt
+// startTime: ISO timestamp of when the user clicked Start
 // codeHeader: Python function template/header
-async function handleSubmit(submittedCode, reprCode, codeHeader) {
+async function handleSubmit(submittedCode, reprCode, moves, codeHeader) {
 	// Prepare code and inject test code
 	let testResults = prepareCode(submittedCode, codeHeader);
 
@@ -225,28 +212,32 @@ async function handleSubmit(submittedCode, reprCode, codeHeader) {
 	set(probEl.getAttribute('name') + LS_REPR, reprCode);
 
 	try {
-    const resultData = {
-        task_id: parseInt(globalTaskId),
-        success: testResults.status === 'pass',
-        submitted_code: submittedCode,
-        test_output: testResults.details || '',
-        repr_code: reprCode
-    };
+		const resultData = {
+			task_id: parseInt(globalTaskId),
+			success: testResults.status === 'pass',
+			submitted_code: submittedCode,
+			test_output: testResults.details || '',
+			repr_code: reprCode,
+			moves: moves || [] // Include recorded moves with the submission
+		};
 
-    const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(resultData)
-    });
+		const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(resultData)
+		});
 
-    if (response.ok) {
-        console.log('Test results saved to backend');
-    } else {
-        console.warn('Failed to save test results:', response.statusText);
-    }
-} catch (error) {
-    console.warn('Error saving test results to backend:', error);
-}
+		if (response.ok) {
+			const data = await response.json();
+			console.log('Test results and moves saved to backend with attempt ID:', data.attempt_id);
+			// Clean up the start time from localStorage after successful submission
+			localStorage.removeItem(`task_${globalTaskId}_start_time`);
+		} else {
+			console.warn('Failed to save test results:', response.statusText);
+		}
+	} catch (error) {
+		console.warn('Error saving test results to backend:', error);
+	}
 }

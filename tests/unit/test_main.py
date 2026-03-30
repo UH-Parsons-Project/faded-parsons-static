@@ -21,7 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
-from backend.models import Parsons, Student, TaskAttempt, TaskList, TaskListItem
+from backend.models import Parsons, Student, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
 
 
 # ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ def _auth(username: str) -> dict:
 
 
 def _submit(task_id: int, *, success=True, code="print(1)",
-            start_time="2026-01-01T10:00:00") -> dict:
+            start_time="2026-01-01T10:00:00", moves=None) -> dict:
     """Build a submit-result JSON body."""
     payload = {
         "task_id": task_id,
@@ -42,6 +42,7 @@ def _submit(task_id: int, *, success=True, code="print(1)",
         "submitted_code": code,
         "test_output": "ok" if success else "fail",
         "repr_code": code,
+        "moves": moves or [],
     }
     if start_time is not None:
         payload["start_time"] = start_time
@@ -50,13 +51,27 @@ def _submit(task_id: int, *, success=True, code="print(1)",
 
 async def _add_attempt(db_session, ss_id: int, task_id: int, *,
                         success: bool, code="x",
-                        start=None, end=None) -> TaskAttempt:
-    start = start or datetime(2026, 1, 1, 0, 0, 0)
+                        start_time=None, end=None) -> TaskAttempt:
+    start = start_time or datetime(2026, 1, 1, 0, 0, 0)
     end = end or datetime(2026, 1, 1, 0, 1, 0)
+
+    result = await db_session.execute(
+        select(TaskStart).where(
+            TaskStart.student_id == ss_id,
+            TaskStart.task_id == task_id
+        )
+    )
+    task_start = result.scalar_one_or_none()
+    if not task_start:
+        task_start = TaskStart(student_id=ss_id, task_id=task_id, started_at=start)
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
     a = TaskAttempt(
         student_id=ss_id,
         task_id=task_id,
-        task_started_at=start,
+        task_start_id=task_start.id,
         completed_at=end,
         success=success,
         submitted_inputs={"code": code},
@@ -284,19 +299,8 @@ class TestLogout:
 
 @pytest.mark.asyncio
 class TestRegister:
-    def setup_method(self):
-        """Set up test data with registration token from environment."""
-        registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
-        self._valid = {
-            "username": "newteacher",
-            "password": "password123",
-            "password_confirm": "password123",
-            "email": "new@example.com",
-            "registration_token": registration_token,
-        }
-
-    async def test_valid_registration_succeeds(self, client):
-        r = await client.post("/api/register", json=self._valid)
+    async def test_valid_registration_succeeds(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json=valid_registration_payload)
         assert r.status_code == 200
         assert r.json()["status"] == "success"
 
@@ -308,85 +312,85 @@ class TestRegister:
         )
         assert r.status_code == 400
 
-    async def test_empty_username_returns_400(self, client):
-        r = await client.post("/api/register", json={**self._valid, "username": ""})
+    async def test_empty_username_returns_400(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "username": ""})
         assert r.status_code == 400
         assert "required" in r.json()["detail"]
 
-    async def test_empty_password_returns_400(self, client):
+    async def test_empty_password_returns_400(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "password": "", "password_confirm": ""})
+                               json={**valid_registration_payload, "password": "", "password_confirm": ""})
         assert r.status_code == 400
 
-    async def test_empty_email_returns_400(self, client):
-        r = await client.post("/api/register", json={**self._valid, "email": ""})
+    async def test_empty_email_returns_400(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "email": ""})
         assert r.status_code == 400
 
-    async def test_password_mismatch_returns_400(self, client):
+    async def test_password_mismatch_returns_400(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "password_confirm": "different"})
+                               json={**valid_registration_payload, "password_confirm": "different"})
         assert r.status_code == 400
         assert "Passwords do not match" in r.json()["detail"]
 
-    async def test_username_too_long_returns_400(self, client):
-        r = await client.post("/api/register", json={**self._valid, "username": "a" * 51})
+    async def test_username_too_long_returns_400(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "username": "a" * 51})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
-    async def test_email_too_long_returns_400(self, client):
+    async def test_email_too_long_returns_400(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "email": "a" * 101 + "@x.com"})
+                               json={**valid_registration_payload, "email": "a" * 101 + "@x.com"})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
-    async def test_username_too_short_returns_400(self, client):
-        r = await client.post("/api/register", json={**self._valid, "username": "ab"})
+    async def test_username_too_short_returns_400(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "username": "ab"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
-    async def test_password_too_short_returns_400(self, client):
+    async def test_password_too_short_returns_400(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "password": "short", "password_confirm": "short"})
+                               json={**valid_registration_payload, "password": "short", "password_confirm": "short"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
-    async def test_duplicate_username_returns_400(self, client, test_teacher):
-        payload = {**self._valid, "username": "testteacher", "email": "other@example.com"}
+    async def test_duplicate_username_returns_400(self, client, test_teacher, valid_registration_payload):
+        payload = {**valid_registration_payload, "username": "testteacher", "email": "other@example.com"}
         r = await client.post("/api/register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
-    async def test_duplicate_email_returns_400(self, client, test_teacher):
-        payload = {**self._valid, "username": "uniqueuser9", "email": "test@example.com"}
+    async def test_duplicate_email_returns_400(self, client, test_teacher, valid_registration_payload):
+        payload = {**valid_registration_payload, "username": "uniqueuser9", "email": "test@example.com"}
         r = await client.post("/api/register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
-    async def test_whitespace_username_treated_as_empty(self, client):
-        r = await client.post("/api/register", json={**self._valid, "username": "   "})
+    async def test_whitespace_username_treated_as_empty(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "username": "   "})
         assert r.status_code == 400
 
-    async def test_whitespace_email_treated_as_empty(self, client):
-        r = await client.post("/api/register", json={**self._valid, "email": "   "})
+    async def test_whitespace_email_treated_as_empty(self, client, valid_registration_payload):
+        r = await client.post("/api/register", json={**valid_registration_payload, "email": "   "})
         assert r.status_code == 400
 
-    async def test_missing_token_returns_403(self, client):
-        payload = {k: v for k, v in self._valid.items() if k != "registration_token"}
+    async def test_missing_token_returns_403(self, client, valid_registration_payload):
+        payload = {k: v for k, v in valid_registration_payload.items() if k != "registration_token"}
         r = await client.post("/api/register", json=payload)
         assert r.status_code == 403
-        assert "Invalid registration token" in r.json()["detail"]
+        assert "Registration token is required" in r.json()["detail"]
 
-    async def test_wrong_token_returns_403(self, client):
+    async def test_wrong_token_returns_403(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "registration_token": "wrong_token"})
+                               json={**valid_registration_payload, "registration_token": "wrong_token"})
         assert r.status_code == 403
         assert "Invalid registration token" in r.json()["detail"]
 
-    async def test_empty_token_returns_403(self, client):
+    async def test_empty_token_returns_403(self, client, valid_registration_payload):
         r = await client.post("/api/register",
-                               json={**self._valid, "registration_token": ""})
+                               json={**valid_registration_payload, "registration_token": ""})
         assert r.status_code == 403
-        assert "Invalid registration token" in r.json()["detail"]
+        assert "Registration token is required" in r.json()["detail"]
 
 # ---------------------------------------------------------------------------
 # GET /api/tasks/{task_id}
@@ -583,7 +587,7 @@ class TestSubmitResult:
     async def test_missing_start_time_uses_now(self, client, task, student_session):
         client.cookies.set("student_session", str(student_session.id))
         r = await client.post(f"/api/tasks/{task.id}/submit-result",
-                               json=_submit(task.id, start_time=None))
+                               json=_submit(task.id))
         client.cookies.clear()
         assert r.status_code == 200
 
@@ -599,6 +603,7 @@ class TestSubmitResult:
         attempt = result.scalar_one()
         assert attempt.success is True
         assert attempt.submitted_inputs["code"] == "my_answer"
+        assert attempt.task_start_id is not None
 
     async def test_failure_attempt_persisted(self, client, task, student_session, db_session):
         client.cookies.set("student_session", str(student_session.id))
@@ -611,6 +616,7 @@ class TestSubmitResult:
         )
         attempt = result.scalar_one()
         assert attempt.success is False
+        assert attempt.task_start_id is not None
 
 
 # ---------------------------------------------------------------------------
@@ -644,7 +650,7 @@ class TestStatistics:
         self, client, task, student_session, test_teacher, db_session
     ):
         await _add_attempt(db_session, student_session.id, task.id, success=True,
-                            start=datetime(2026, 1, 1, 0, 0, 0),
+                            start_time=datetime(2026, 1, 1, 0, 0, 0),
                             end=datetime(2026, 1, 1, 0, 2, 0))
         r = await client.get(f"/api/tasks/{task.id}/statistics",
                               headers=_auth(test_teacher.username))
@@ -660,10 +666,10 @@ class TestStatistics:
         for i in range(2):
             await _add_attempt(db_session, student_session.id, task.id, success=False,
                                 code=f"wrong_{i}",
-                                start=datetime(2026, 1, 1, 0, i, 0),
+                                start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
         await _add_attempt(db_session, student_session.id, task.id, success=True,
-                            start=datetime(2026, 1, 1, 0, 3, 0),
+                            start_time=datetime(2026, 1, 1, 0, 3, 0),
                             end=datetime(2026, 1, 1, 0, 4, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -678,7 +684,7 @@ class TestStatistics:
         for i in range(3):
             await _add_attempt(db_session, student_session.id, task.id, success=False,
                                 code="wrong",
-                                start=datetime(2026, 1, 1, 0, i, 0),
+                                start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -700,7 +706,7 @@ class TestStatistics:
             await db_session.commit()
             await db_session.refresh(ss)
             await _add_attempt(db_session, ss.id, task.id, success=True,
-                                start=datetime(2026, 1, 1, 0, 0, 0),
+                                start_time=datetime(2026, 1, 1, 0, 0, 0),
                                 end=datetime(2026, 1, 1, 0, i + 1, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
@@ -768,9 +774,18 @@ class TestStatistics:
     async def test_attempt_missing_code_key_not_a_mistake(
         self, client, task, student_session, test_teacher, db_session
     ):
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task.id,
+            started_at=datetime(2026, 1, 1),
+        )
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs={},   # no "code" key
         )
         db_session.add(a)
@@ -782,9 +797,18 @@ class TestStatistics:
     async def test_attempt_with_null_submitted_inputs(
         self, client, task, student_session, test_teacher, db_session
     ):
+        task_start = TaskStart(
+            student_id=student_session.id,
+            task_id=task.id,
+            started_at=datetime(2026, 1, 1),
+        )
+        db_session.add(task_start)
+        await db_session.commit()
+        await db_session.refresh(task_start)
+
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_started_at=datetime(2026, 1, 1), completed_at=datetime(2026, 1, 1, 0, 1),
+            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs=None,
         )
         db_session.add(a)

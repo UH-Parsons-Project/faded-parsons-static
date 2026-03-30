@@ -2,11 +2,13 @@
 Database seeding - creates initial data for development.
 """
 
+import os
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskList, TaskListItem, Teacher
+from .models import Parsons, TaskList, TaskListItem, Teacher, RegistrationToken
 from .migrate_tasks import migrate_tasks
+from .token_utils import hash_token
 
 
 async def seed_db():
@@ -20,6 +22,7 @@ async def seed_db():
             select(Teacher).where(Teacher.username == "mattiruotsalainen")
         )
         existing_teacher = result.scalar_one_or_none()
+        teacher_to_use = None
 
         if existing_teacher is None:
             # Create default test teacher
@@ -33,13 +36,32 @@ async def seed_db():
             session.add(test)
             try:
                 await session.commit()
+                await session.refresh(test)
+                teacher_to_use = test
                 print("Created default test teacher (username: mattiruotsalainen, password: test1234)")
             except IntegrityError:
                 # User was created by another instance in a race condition
                 await session.rollback()
                 print("Test teacher already exists (created by another instance), skipping seed")
         else:
+            teacher_to_use = existing_teacher
             print("Test teacher already exists, skipping seed")
+
+        # Create a registration token for testing if TEACHER_REGISTRATION_TOKEN is set
+        registration_token = os.getenv("TEACHER_REGISTRATION_TOKEN")
+        if registration_token and teacher_to_use:
+            token_hash = hash_token(registration_token)
+            reg_token = RegistrationToken(
+                token_hash=token_hash,
+                created_by_admin_id=teacher_to_use.id,
+            )
+            session.add(reg_token)
+            try:
+                await session.commit()
+                print("Created registration token from TEACHER_REGISTRATION_TOKEN environment variable")
+            except IntegrityError:
+                await session.rollback()
+                print("Registration token already exists, skipping seed")
 
     # Migrate tasks from parsons_probs/ directory
     print("\nMigrating tasks from parsons_probs/...")

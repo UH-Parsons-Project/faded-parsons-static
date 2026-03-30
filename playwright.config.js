@@ -1,19 +1,18 @@
 // @ts-check
+/* eslint-env node */
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
+ * Read environment variables from .env file when available (local dev).
+ * In Docker, env vars are injected via docker-compose env_file.
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+try { require('dotenv/config'); } catch {} // eslint-disable-line no-empty
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests',
+  testDir: './tests/playwright',
   /* Global setup script - runs once before all tests */
   globalSetup: './tests/global-setup.js',
   fullyParallel: false, // fixed database duplication issues in CI
@@ -74,11 +73,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  /* Start Docker services before tests when running locally (e.g. VS Code extension).
+     In CI/Docker, BASE_URL is set and the server is managed by docker-compose. */
+  webServer: (!process.env.CI && !process.env.BASE_URL) ? {
+    command: 'docker compose --profile web up',
+    url: 'http://localhost:8000',
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
+  } : undefined,
 });
 

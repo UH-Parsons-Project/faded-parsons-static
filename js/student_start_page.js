@@ -6,11 +6,12 @@ initStudentLogout();
 // Extract unique_link_code and task_id from URL path
 // Path: /set/{unique_link_code}/tasks/{task_id}/start
 const pathParts = window.location.pathname.split('/').filter(p => p);
-const uniqueLinkCode = pathParts[1]; // set/starter-list/tasks/1/start -> starter-list
-const taskId = pathParts[3]; // set/starter-list/tasks/1/start -> 1
+const uniqueLinkCode = pathParts[1];
+const taskId = pathParts[3];
 const instructionsEl = document.getElementById('task-instructions');
+const startBtn = document.getElementById('start-btn');
 
-// Hide page content initially to prevent flash
+// Hide content initially to prevent flash of the start button
 function hidePageContent() {
 	const contentElements = [
 		document.getElementById('start-btn'),
@@ -34,31 +35,28 @@ function showPageContent() {
 	});
 }
 
-hidePageContent();
-
-// Check if the user already started this task in the database
+// Check if the user has already started this task in the database
 async function checkAndRedirectIfStarted() {
 	try {
-		const response = await fetch(`/api/tasks/${taskId}/check-start`);
+		const response = await fetch(`/api/tasks/${taskId}/has-started`, { credentials: 'include' });
 		if (response.ok) {
 			const data = await response.json();
 			if (data.has_started) {
-				// User has already started this task, redirect them to it
-				window.history.replaceState(null, '', `/set/${uniqueLinkCode}/tasks/${taskId}`);
+				// User has already started this task, redirect them directly to it
 				window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
-				return;
+				return; // Stop further execution
 			}
 		}
 	} catch (error) {
 		console.error('Error checking task start status:', error);
-		// Continue with showing the start page if there's an error
+		// Fall through to show the start page if the check fails
 	}
 	
-	// If we reach here, show the page content
+	// If we reach here, it means the task hasn't been started. Show the page content.
 	showPageContent();
 }
 
-// Check on page load
+hidePageContent();
 checkAndRedirectIfStarted();
 
 // Set the back button to return to the task list
@@ -67,38 +65,45 @@ if (backButton) {
 	backButton.href = `/set/${uniqueLinkCode}/tasks`;
 }
 
-// Set the start button to navigate to the task exercise
-const startBtn = document.getElementById('start-btn');
+// Set the start button to create the start record and navigate to the task
 if (startBtn) {
 	startBtn.onclick = async function() {
 		try {
-			// Record task start in the database
+			// Disable button to prevent double-clicks
+			startBtn.disabled = true;
+			startBtn.textContent = 'Starting...';
+
+			// Call the backend to create the TaskStart record
 			const response = await fetch(`/api/tasks/${taskId}/start`, {
 				method: 'POST',
+				credentials: 'include',
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
 			
 			if (!response.ok) {
-				throw new Error('Failed to start task');
+				throw new Error('Failed to start task. Please try again.');
 			}
+
+			// On success, navigate to the task page
+			window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
+
 		} catch (error) {
 			console.error('Error starting task:', error);
-			// Continue navigation even if recording start fails
+			alert(error.message); // Inform the user
+			// Re-enable button on failure
+			startBtn.disabled = false;
+			startBtn.textContent = 'Start Task';
 		}
-		
-		// Replace current history entry so back button doesn't return here
-		window.history.replaceState(null, '', `/set/${uniqueLinkCode}/tasks/${taskId}`);
-		window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
 	};
 }
 
 // Fetch task instructions and render them
-fetch(`/api/tasks/${taskId}`)
+fetch(`/api/tasks/${taskId}`, { credentials: 'include' })
 	.then((response) => {
 		if (!response.ok) {
-			throw new Error('Failed to load task');
+			throw new Error('Failed to load task instructions.');
 		}
 		return response.json();
 	})
@@ -109,4 +114,7 @@ fetch(`/api/tasks/${taskId}`)
 	})
 	.catch((error) => {
 		console.error('Error loading task:', error);
+		if (instructionsEl) {
+			instructionsEl.textContent = 'Could not load task instructions.';
+		}
 	});

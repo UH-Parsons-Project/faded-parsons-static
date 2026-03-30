@@ -645,15 +645,16 @@ async def create_problem(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
+    task_title = request.taskTitle.strip()
     solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
     description = request.description.strip()
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
 
-    if not solution_code or not description or not start_description or not tests:
+    if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="description, startDescription, tests and solutionCode are required",
+            detail="taskTitle, description, startDescription, tests and solutionCode are required",
         )
 
     lines = [line for line in solution_code.split("\n") if line.strip()]
@@ -672,6 +673,15 @@ async def create_problem(
 
     header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
     function_name = header_match.group(2) if header_match else "custom_task"
+    final_title = task_title
+
+    existing_task_stmt = select(Parsons).where(Parsons.title == final_title)
+    existing_task_result = await db.execute(existing_task_stmt)
+    if existing_task_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Exercise called '{final_title}' already exists. Choose a different task name.",
+        )
 
     blocks = []
     for line_index, line in enumerate(lines, start=1):
@@ -696,7 +706,7 @@ async def create_problem(
 
     task = Parsons(
         created_by_teacher_id=current_user.id,
-        title=f"{function_name}_{int(datetime.now(timezone.utc).timestamp())}",
+        title=final_title,
         task_instructions=task_instructions_payload,
         description=start_description,
         task_type="normal",

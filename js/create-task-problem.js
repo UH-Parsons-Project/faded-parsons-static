@@ -17,6 +17,22 @@ initProtectedPage('/index.html');
   let draftPayload = null;
   let parsonsWidget = null;
 
+  function extractDefaultTitleFromCode(code) {
+    const normalized = normalizeSourceCode(code || '');
+    const lines = normalized.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+      const match = trimmed.match(/^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/);
+      if (match) {
+        return match[2];
+      }
+    }
+    return 'custom_task';
+  }
+
   function readDraftPayload() {
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
@@ -61,26 +77,28 @@ initProtectedPage('/index.html');
       const normalizedSource = normalizeSourceCode(sourceCode || '');
 
       if (!raw) {
-        return { description: '', tests: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '' };
       }
 
       if (typeof rawSource !== 'string' || rawSource !== normalizedSource) {
-        return { description: '', tests: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '' };
       }
 
       const parsed = JSON.parse(raw);
       return {
+        taskTitle: typeof parsed.taskTitle === 'string' ? parsed.taskTitle : '',
         description: typeof parsed.description === 'string' ? parsed.description : '',
+        startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { description: '', tests: '' };
+      return { taskTitle: '', description: '', startDescription: '', tests: '' };
     }
   }
 
-  function saveMetaToSession(description, tests) {
-    sessionStorage.setItem(META_KEY, JSON.stringify({ description, tests }));
+  function saveMetaToSession(taskTitle, description, startDescription, tests) {
+    sessionStorage.setItem(META_KEY, JSON.stringify({ taskTitle, description, startDescription, tests }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
@@ -189,6 +207,38 @@ initProtectedPage('/index.html');
       el.classList.add('fail');
     }
     el.textContent = message;
+  }
+
+  function formatApiErrorDetail(detail) {
+    if (!detail) {
+      return '';
+    }
+
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => {
+          if (typeof item === 'string') {
+            return item;
+          }
+          if (item && typeof item === 'object') {
+            const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+            const msg = item.msg || JSON.stringify(item);
+            return loc ? `${loc}: ${msg}` : msg;
+          }
+          return String(item);
+        })
+        .join('; ');
+    }
+
+    if (typeof detail === 'object') {
+      return detail.message || detail.msg || JSON.stringify(detail);
+    }
+
+    return String(detail);
   }
 
   function validateSourceCodeShape(sourceCode) {
@@ -343,26 +393,34 @@ initProtectedPage('/index.html');
   }
 
   function addToProblemList() {
+    const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const solutionList = document.querySelector('#solution-sortable ul');
 
-    if (!descriptionInput || !testsInput || !solutionList || !parsonsWidget) {
+    if (!taskTitleInput || !descriptionInput || !startDescriptionInput || !testsInput || !solutionList || !parsonsWidget) {
       alert('Missing required fields to add the problem.');
       return;
     }
 
+    const taskTitle = taskTitleInput.value.trim();
     const description = descriptionInput.value.trim();
+    const startDescription = startDescriptionInput.value.trim();
     const tests = testsInput.value.trim();
     const solutionCode = parsonsWidget.solutionCode();
 
-    if (!description || !tests || !solutionCode) {
+    saveMetaToSession(taskTitle, description, startDescription, tests);
+
+    if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
       alert('Please ensure all fields are filled out before adding the problem.');
       return;
     }
 
     const problemData = {
+      taskTitle,
       description,
+      startDescription,
       tests,
       solutionCode,
     };
@@ -380,12 +438,18 @@ initProtectedPage('/index.html');
           window.location.href = '/task_list_selector';
         } else {
           let detail = '';
+          let parsedDetail = '';
           try {
             const payload = await response.json();
-            detail = payload?.detail ? `\nReason: ${payload.detail}` : '';
+            parsedDetail = formatApiErrorDetail(payload?.detail);
+            detail = parsedDetail ? `\nReason: ${parsedDetail}` : '';
           } catch (parseError) {
             detail = '';
           }
+
+          saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+          taskTitleInput.focus();
+
           alert(`Failed to add the problem.${detail}`);
         }
       })
@@ -428,7 +492,9 @@ initProtectedPage('/index.html');
     const addCustomBtn = document.getElementById('add-custom-block');
     const addToListBtn = document.getElementById('add-to-problem-list');
     const customBlockInput = document.getElementById('custom-block-input');
+    const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const runBtn = document.getElementById('run-tests');
 
@@ -448,9 +514,17 @@ initProtectedPage('/index.html');
         renderParsonsBoard(normalizeSourceCode(draftPayload?.taskCode || ''));
 
         const descriptionInput = document.getElementById('problem-description');
+        const startDescriptionInput = document.getElementById('start-description');
         const testsInput = document.getElementById('tests-input');
+        const taskTitleInput = document.getElementById('task-title');
+        if (taskTitleInput) {
+          taskTitleInput.value = extractDefaultTitleFromCode(draftPayload?.taskCode || '');
+        }
         if (descriptionInput) {
           descriptionInput.value = '';
+        }
+        if (startDescriptionInput) {
+          startDescriptionInput.value = '';
         }
         if (testsInput) {
           testsInput.value = draftPayload?.taskTests || '';
@@ -479,13 +553,21 @@ initProtectedPage('/index.html');
       });
     }
 
-    if (descriptionInput && testsInput) {
+    if (taskTitleInput && descriptionInput && startDescriptionInput && testsInput) {
+      taskTitleInput.addEventListener('input', () => {
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+      });
+
       descriptionInput.addEventListener('input', () => {
-        saveMetaToSession(descriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+      });
+
+      startDescriptionInput.addEventListener('input', () => {
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
       });
 
       testsInput.addEventListener('input', () => {
-        saveMetaToSession(descriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
       });
     }
 
@@ -515,11 +597,21 @@ initProtectedPage('/index.html');
     const initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
 
     const meta = loadMetaFromSession(draft.taskCode);
+    const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
+
+    const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
+    if (taskTitleInput) {
+      taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
+    }
 
     if (descriptionInput) {
       descriptionInput.value = meta.description || '';
+    }
+    if (startDescriptionInput) {
+      startDescriptionInput.value = meta.startDescription || '';
     }
     if (testsInput) {
       testsInput.value = meta.tests || draft.taskTests || '';

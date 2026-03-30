@@ -649,14 +649,16 @@ async def create_problem(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
+    task_title = request.taskTitle.strip()
     solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
     description = request.description.strip()
+    start_description = request.startDescription.strip()
     tests = request.tests.strip()
 
-    if not solution_code or not description or not tests:
+    if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="description, tests and solutionCode are required",
+            detail="taskTitle, description, startDescription, tests and solutionCode are required",
         )
 
     lines = [line for line in solution_code.split("\n") if line.strip()]
@@ -675,6 +677,15 @@ async def create_problem(
 
     header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
     function_name = header_match.group(2) if header_match else "custom_task"
+    final_title = task_title
+
+    existing_task_stmt = select(Parsons).where(Parsons.title == final_title)
+    existing_task_result = await db.execute(existing_task_stmt)
+    if existing_task_result.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Exercise called '{final_title}' already exists. Choose a different task name.",
+        )
 
     blocks = []
     for line_index, line in enumerate(lines, start=1):
@@ -689,11 +700,19 @@ async def create_problem(
             }
         )
 
+    task_instructions_payload = json.dumps(
+        {
+            "function_name": function_name,
+            "task_instructions": description,
+            "examples": "",
+        }
+    )
+
     task = Parsons(
         created_by_teacher_id=current_user.id,
-        title=f"{function_name}_{int(datetime.now(timezone.utc).timestamp())}",
-        task_instructions='{"function_name":"","task_instructions":"","examples":""}',
-        description=description,
+        title=final_title,
+        task_instructions=task_instructions_payload,
+        description=start_description,
         task_type="normal",
         code_blocks={
             "blocks": blocks,
@@ -961,15 +980,19 @@ async def get_problemset(
 @app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
 async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
-    # Determine whether the caller passed an integer ID or a string code
+    # Always try unique_link_code first so numeric codes like "303" still work.
     code_str = str(code)
-    if code_str.isdigit():
-        problemset_stmt = select(TaskList).where(TaskList.id == int(code))
-    else:
-        problemset_stmt = select(TaskList).where(TaskList.unique_link_code == code)
-
-    problemset_result = await db.execute(problemset_stmt)
+    problemset_result = await db.execute(
+        select(TaskList).where(TaskList.unique_link_code == code_str)
+    )
     problemset = problemset_result.scalar_one_or_none()
+
+    # Fallback: allow numeric route segments to address a problemset by ID.
+    if problemset is None and code_str.isdigit():
+        problemset_result = await db.execute(
+            select(TaskList).where(TaskList.id == int(code_str))
+        )
+        problemset = problemset_result.scalar_one_or_none()
 
     if not problemset:
         raise HTTPException(

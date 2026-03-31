@@ -18,13 +18,16 @@
 			<a href="index.html">
 				<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
 			</a>
+			<div class="ml-auto">
+				<a class="btn btn-outline-dark btn-sm" id="instructions-btn" href="/instructions">Instructions</a>
+			</div>
 		</nav>
 
 		<main class="container">
-			<div class="row justify-content-center">
+			<div class="row justify-content-center register-row">
 				<div class="col-md-6">
-					<h2 class="mb-4">Register</h2>
-					<p>
+					<h2 class="mb-4 register-title">Teacher Register</h2>
+					<p class="text-danger">
 						If you are a student, you can't register here. Your teacher will share a link where you can register before joining the task list.
 					</p>
 					<div id="alert-placeholder"></div>
@@ -52,7 +55,14 @@
 
 						<div class="form-group">
 							<label for="registration_token">Registration Token</label>
-							<input type="password" class="form-control" id="registration_token" name="registration_token" required />
+							<input
+								type="password"
+								class="form-control"
+								id="registration_token"
+								name="registration_token"
+								placeholder="Enter the admin-provided token"
+								required
+							/>
 						</div>
 
 						<button type="submit" class="btn btn-primary">Register</button>

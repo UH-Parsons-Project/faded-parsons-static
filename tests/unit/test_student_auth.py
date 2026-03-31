@@ -17,7 +17,7 @@ from backend.student_auth import (
     require_student_session,
     STUDENT_SESSION_EXPIRE_HOURS,
 )
-from backend.models import Student, TaskList
+from backend.models import Student, StudentTaskListEnrollment, TaskList
 
 
 class TestCreateStudentSession:
@@ -46,7 +46,13 @@ class TestCreateStudentSession:
 
         assert session.id is not None
         assert session.id is not None
-        assert session.task_list_id == task_list.id
+        enrollment = await db_session.execute(
+            select(StudentTaskListEnrollment).where(
+                StudentTaskListEnrollment.student_id == session.id,
+                StudentTaskListEnrollment.task_list_id == task_list.id,
+            )
+        )
+        assert enrollment.scalar_one_or_none() is not None
         assert session.username == "TestStudent"
         assert session.email.endswith("@local.student")
         assert session.started_at is not None

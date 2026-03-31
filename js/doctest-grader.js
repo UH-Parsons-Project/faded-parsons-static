@@ -58,6 +58,7 @@ function extractError(error, numDocstringLines) {
 function cleanupDoctestResults(resultsStr) {
 	let keptLines = [];
 	let inKeepRange = false;
+	let stripNextLineIndent = false;
 	resultsStr.split('\n').forEach((line) => {
 		if (line.startsWith('File "__main__"')) {
 			inKeepRange = true;
@@ -67,9 +68,17 @@ function cleanupDoctestResults(resultsStr) {
 			line.startsWith('1 items had no tests:')
 		) {
 			inKeepRange = false;
+			stripNextLineIndent = false;
 		}
 		if (inKeepRange) {
-			line = line.replace('Failed example:', '\n❌ Failed example:');
+			if (stripNextLineIndent) {
+				line = line.trimStart();
+				stripNextLineIndent = false;
+			}
+			line = line.replace('Failed example:', '\n❌ Failed test');
+			if (line.includes('❌ Failed test')) {
+				stripNextLineIndent = true;
+			}
 			keptLines.push(line);
 		}
 	});
@@ -198,7 +207,7 @@ export function processTestResults(outputStr) {
 		const passedExamples = extractPassedExamples(outputStr);
 		const failedDetails = cleanupDoctestResults(outputStr);
 		const passedDetails = passedExamples.length
-			? ['✅ Passed tests:', ...passedExamples].join('\n\n')
+			? passedExamples.map((example) => `✅ Passed test\n${example}`).join('\n\n')
 			: '';
 		const doctestResults = [passedDetails, failedDetails].filter(Boolean).join('\n\n');
 		return {

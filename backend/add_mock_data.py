@@ -8,6 +8,7 @@ Usage: python3 -m backend.add_mock_data (from project root)
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -19,6 +20,13 @@ from backend.seed import seed_mock_activity
 
 async def main():
     """Run the mock data seeding."""
+    # Prevent running on production
+    development_mode = os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true'
+    if not development_mode:
+        print("✗ Cannot run mock data seeding outside of development mode!")
+        print("Set DEVELOPMENT_MODE=true to enable.")
+        sys.exit(1)
+
     print("Starting mock activity data seeding...")
     try:
         await seed_mock_activity()

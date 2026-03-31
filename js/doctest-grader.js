@@ -69,7 +69,7 @@ function cleanupDoctestResults(resultsStr) {
 			inKeepRange = false;
 		}
 		if (inKeepRange) {
-			line = line.replace('Failed example:', '\n❌ Failed example:');
+			line = line.replace('Failed example:', '\n❌ Failed test');
 			keptLines.push(line);
 		}
 	});
@@ -198,7 +198,7 @@ export function processTestResults(outputStr) {
 		const passedExamples = extractPassedExamples(outputStr);
 		const failedDetails = cleanupDoctestResults(outputStr);
 		const passedDetails = passedExamples.length
-			? ['✅ Passed tests:', ...passedExamples].join('\n\n')
+			? passedExamples.map((example) => `✅ Passed test\n${example}`).join('\n\n')
 			: '';
 		const doctestResults = [passedDetails, failedDetails].filter(Boolean).join('\n\n');
 		return {

@@ -129,9 +129,6 @@ class Student(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    task_list_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("task_lists.id", ondelete="SET NULL"), nullable=True
-    )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     last_activity_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
@@ -148,6 +145,23 @@ class Student(Base):
         return bcrypt.checkpw(
             password.encode("utf-8"), self.password_hash.encode("utf-8")
         )
+
+
+class StudentTaskListEnrollment(Base):
+    """Association between a student and a task list they have joined."""
+
+    __tablename__ = "student_task_list_enrollments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
+    )
+    task_list_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    )
+    enrolled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (UniqueConstraint("student_id", "task_list_id"),)
 
 
 class TaskStart(Base):

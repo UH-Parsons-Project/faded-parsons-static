@@ -19,7 +19,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
-from backend.models import Parsons, Student, TaskList, TaskListItem, Teacher, RegistrationToken
+from backend.models import Parsons, Student, StudentTaskListEnrollment, TaskList, TaskListItem, Teacher, RegistrationToken
 from backend.token_utils import generate_token, hash_token
 
 
@@ -213,12 +213,13 @@ async def problemset_with_task(db_session, problemset, task) -> tuple[TaskList, 
 async def student_session(db_session, problemset) -> Student:
     """A student account associated with *problemset*."""
     ss = Student(
-        task_list_id=problemset.id,
         username="student1",
         email="student1@example.com",
     )
     ss.set_password("studentpass123")
     db_session.add(ss)
+    await db_session.flush()
+    db_session.add(StudentTaskListEnrollment(student_id=ss.id, task_list_id=problemset.id))
     await db_session.commit()
     await db_session.refresh(ss)
     return ss

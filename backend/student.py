@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .pydantic import SubmitTestResultRequest
 
 from .database import get_db
-from .models import Student, TaskAttempt, TaskList, MoveEvent, TaskStart
+from .models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -170,7 +170,17 @@ async def student_login(
         result = await db.execute(stmt)
         task_list = result.scalar_one_or_none()
         if task_list:
-            student.task_list_id = task_list.id
+            enroll_result = await db.execute(
+                select(StudentTaskListEnrollment).where(
+                    StudentTaskListEnrollment.student_id == student.id,
+                    StudentTaskListEnrollment.task_list_id == task_list.id,
+                )
+            )
+            if not enroll_result.scalar_one_or_none():
+                db.add(StudentTaskListEnrollment(
+                    student_id=student.id,
+                    task_list_id=task_list.id,
+                ))
 
     await db.commit()
 

@@ -46,6 +46,14 @@ CREATE TABLE task_list_items (
 	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE
 );
 
+CREATE TABLE student_task_list_enrollments (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+    task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
+    enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (student_id, task_list_id)
+);
+
 CREATE TABLE student (
 	id SERIAL PRIMARY KEY,
 	username VARCHAR(20) UNIQUE NOT NULL,

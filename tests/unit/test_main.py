@@ -21,7 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
-from backend.models import Parsons, Student, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
+from backend.models import Parsons, Student, StudentTaskListEnrollment, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
 
 
 # ---------------------------------------------------------------------------
@@ -697,12 +697,13 @@ class TestStatistics:
     ):
         for i in range(3):
             ss = Student(
-                task_list_id=problemset.id,
                 username=f"S{i}",
                 email=f"s{i}@example.com",
             )
             ss.set_password("studentpass123")
             db_session.add(ss)
+            await db_session.flush()
+            db_session.add(StudentTaskListEnrollment(student_id=ss.id, task_list_id=problemset.id))
             await db_session.commit()
             await db_session.refresh(ss)
             await _add_attempt(db_session, ss.id, task.id, success=True,
@@ -827,9 +828,11 @@ class TestStatistics:
         db_session.add(ps2)
         await db_session.commit()
         await db_session.refresh(ps2)
-        ss2 = Student(task_list_id=ps2.id, username="Other", email="other@example.com")
+        ss2 = Student(username="Other", email="other@example.com")
         ss2.set_password("studentpass123")
         db_session.add(ss2)
+        await db_session.flush()
+        db_session.add(StudentTaskListEnrollment(student_id=ss2.id, task_list_id=ps2.id))
         await db_session.commit()
         await db_session.refresh(ss2)
 
@@ -1098,8 +1101,13 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.json()["status"] == "success"
         assert "student_session" in r.cookies
 
-        refreshed = await db_session.get(Student, student_session.id)
-        assert refreshed.task_list_id == other_list.id
+        enrollment = await db_session.execute(
+            select(StudentTaskListEnrollment).where(
+                StudentTaskListEnrollment.student_id == student_session.id,
+                StudentTaskListEnrollment.task_list_id == other_list.id,
+            )
+        )
+        assert enrollment.scalar_one_or_none() is not None
 
     async def test_student_logout_clears_cookie(self, client):
         r = await client.post("/api/student_logout")

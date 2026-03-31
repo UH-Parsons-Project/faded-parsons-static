@@ -59,7 +59,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Student, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken
+from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -1499,19 +1499,21 @@ async def get_problemset_students(
 
     # Get student sessions with attempts, grouped by session
     # Only include students who accessed this specific task list
+    # Counts and timestamps are scoped to attempts on tasks in this list only
     stmt = (
         select(
             Student.username,
-            Student.started_at,
-            Student.last_activity_at,
+            StudentTaskListEnrollment.enrolled_at.label('started_at'),
+            func.max(TaskAttempt.completed_at).label('last_activity_at'),
             func.count(TaskAttempt.id).label('total_attempts'),
             func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
         )
-        .join(TaskAttempt, TaskAttempt.student_id == Student.id)
-        .where(Student.task_list_id == problemset_id)
+        .join(StudentTaskListEnrollment, StudentTaskListEnrollment.student_id == Student.id)
+        .join(TaskAttempt, (TaskAttempt.student_id == Student.id) & (TaskAttempt.task_id.in_(task_ids)))
+        .where(StudentTaskListEnrollment.task_list_id == problemset_id)
         .where(Student.username.isnot(None))
-        .group_by(Student.id, Student.username, Student.started_at, Student.last_activity_at)
-        .order_by(Student.last_activity_at.desc())
+        .group_by(Student.id, Student.username, StudentTaskListEnrollment.enrolled_at)
+        .order_by(func.max(TaskAttempt.completed_at).desc())
     )
 
     result = await db.execute(stmt)
@@ -1521,7 +1523,7 @@ async def get_problemset_students(
         StudentInTaskListResponse(
             username=student.username,
             started_at=student.started_at.isoformat(),
-            last_activity_at=student.last_activity_at.isoformat(),
+            last_activity_at=student.last_activity_at.isoformat() if student.last_activity_at else student.started_at.isoformat(),
             total_attempts=student.total_attempts,
             tasks_attempted=student.tasks_attempted
         )
@@ -1780,9 +1782,10 @@ async def get_task_statistics(
             select(TaskAttempt, TaskStart)
             .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
             .join(Student, TaskAttempt.student_id == Student.id)
+            .join(StudentTaskListEnrollment, StudentTaskListEnrollment.student_id == Student.id)
             .where(
                 TaskAttempt.task_id == task_id,
-                Student.task_list_id == problemset.id
+                StudentTaskListEnrollment.task_list_id == problemset.id
             )
         )
 

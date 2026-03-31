@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+
+  <style>
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    .chart-container {
+      background: #f9f9f9;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .chart-container canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .user-group-section {
+      margin-bottom: 3rem;
+    }
+
+    .user-group-section h3 {
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 1200px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-mini-card {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-mini-card .label {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-mini-card .value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="index.html">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/exerciselist"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to exercise list
+      </a>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+      <span class="text-dark">
+        <i class="fas fa-user"></i>
+        <span id="user-name"></span>
+      </span>
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <h2 class="mb-1"><i class="fas fa-shield-alt"></i> Admin Dashboard</h2>
+    <p class="text-muted mb-5">System overview and administration tools.</p>
+
+    <!-- Statistics Section -->
+    <div class="mb-5">
+
+      <!-- Students Section -->
+      <div class="user-group-section">
+        <h3><i class="fas fa-graduation-cap"></i> Student Activity</h3>
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <div class="label">Registered Students</div>
+            <div class="value" id="stat-registered-students">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Active (Last 7 Days)</div>
+            <div class="value" id="stat-active-7d-students">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Monthly Activity</div>
+            <div class="value" id="stat-avg-monthly-students">—</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 7 Days</h6>
+            <canvas id="student-activity-chart" width="500" height="250"></canvas>
+          </div>
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 6 Months</h6>
+            <canvas id="student-monthly-chart" width="500" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teachers Section -->
+      <div class="user-group-section">
+        <h3><i class="fas fa-chalkboard-user"></i> Teacher Activity</h3>
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <div class="label">Registered Teachers</div>
+            <div class="value" id="stat-registered-teachers">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Active (Last 7 Days)</div>
+            <div class="value" id="stat-active-7d-teachers">—</div>
+          </div>
+          <div class="stat-mini-card">
+            <div class="label">Monthly Activity</div>
+            <div class="value" id="stat-avg-monthly-teachers">—</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 7 Days</h6>
+            <canvas id="teacher-activity-chart" width="500" height="250"></canvas>
+          </div>
+          <div class="chart-container">
+            <h6 class="mb-3">Activity Over Last 6 Months</h6>
+            <canvas id="teacher-monthly-chart" width="500" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Lists Section -->
+      <div class="user-group-section">
+        <h3><i class="fas fa-list"></i> Task Lists</h3>
+        <div class="stats-row">
+          <div class="stat-mini-card">
+            <div class="label">Total Task Lists</div>
+            <div class="value" id="stat-total-lists">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mb-5">
+      <a href="/all-problemsets" class="btn btn-primary">
+        <i class="fas fa-table"></i> View All Problem Sets
+      </a>
+      <button id="seed-mock-btn" class="btn btn-secondary ml-2">
+        <i class="fas fa-database"></i> Seed Mock Data
+      </button>
+    </div>
+
+    <!-- Token Management Section -->
+    <div class="border-top pt-4">
+      <h4 class="mb-3">
+        <i class="fas fa-key"></i> Registration Token Management
+      </h4>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card admin-card">
+            <div class="card-body">
+              <h5 class="card-title">Create New Token</h5>
+              <p class="card-text text-muted small">Enter a token manually or generate one automatically.</p>
+
+              <div class="form-group">
+                <label for="token-input" class="small">Token</label>
+                <input type="text" class="form-control form-control-sm" id="token-input" placeholder="Enter token or generate one...">
+              </div>
+
+              <div class="btn-group btn-group-sm btn-block mb-3" role="group">
+                <button type="button" class="btn btn-outline-secondary" id="generate-token-btn" title="Generate random token">
+                  <i class="fas fa-random"></i> Generate
+                </button>
+                <button type="button" class="btn btn-primary" id="add-token-btn">
+                  <i class="fas fa-save"></i> Add Token
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Token Display (shown after creation) -->
+          <div id="token-display" class="alert alert-success mt-3" style="display: none;">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="flex-grow-1">
+                <strong><i class="fas fa-check-circle"></i> Token Added!</strong>
+                <p class="mb-2 mt-2 text-dark"><strong>Make sure to copy it:</strong></p>
+                <div class="bg-white p-2 border rounded mb-2" id="token-value" style="word-break: break-all; font-family: monospace; font-size: 0.9rem;"></div>
+                <button class="btn btn-sm btn-outline-success" id="copy-token-btn">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+              </div>
+              <button type="button" class="close" onclick="document.getElementById('token-display').style.display='none';">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card admin-card">
+            <div class="card-body">
+              <h5 class="card-title">Active Tokens</h5>
+              <p class="card-text text-muted small">Manage your registration tokens.</p>
+              <div id="tokens-list" class="tokens-list mt-3" style="max-height: 300px; overflow-y: auto;">
+                <div class="text-muted small">Loading tokens...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/admin_view.js"></script>
+
+</body>
+</html>

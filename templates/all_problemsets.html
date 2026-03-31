@@ -20,6 +20,10 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
+      <a href="/admin_view"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Admin Dashboard
+      </a>
       <a href="/exerciselist"
          class="btn btn-outline-dark btn-sm mr-3">
         Back to exercise list
@@ -37,65 +41,6 @@
 
     <h2 class="mb-4">All Task Lists</h2>
     <p class="text-muted mb-4">Showing all task lists from all teachers.</p>
-
-    <!-- Admin Token Management Section -->
-    <div id="admin-token-section" class="admin-section mt-5 pt-4 border-top" style="display: none;">
-      <h3 class="mb-3">
-        <i class="fas fa-key"></i> Registration Token Management
-      </h3>
-      
-      <div class="row">
-        <div class="col-md-6">
-          <div class="card admin-card">
-            <div class="card-body">
-              <h5 class="card-title">Create New Token</h5>
-              <p class="card-text text-muted small">Enter a token manually or generate one automatically.</p>
-              
-              <div class="form-group">
-                <label for="token-input" class="small">Token</label>
-                <input type="text" class="form-control form-control-sm" id="token-input" placeholder="Enter token or generate one...">
-              </div>
-
-              <div class="btn-group btn-group-sm btn-block mb-3" role="group">
-                <button type="button" class="btn btn-outline-secondary" id="generate-token-btn" title="Generate random token">
-                  <i class="fas fa-random"></i> Generate
-                </button>
-                <button type="button" class="btn btn-primary" id="add-token-btn">
-                  <i class="fas fa-save"></i> Add Token
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Token Display (shown after creation) -->
-          <div id="token-display" class="alert alert-success mt-3" style="display: none;">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <strong><i class="fas fa-check-circle"></i> Token Added!</strong>
-                <p class="mb-2 mt-2 text-dark"><strong>Make sure to copy it:</strong></p>
-                <div class="bg-white p-2 border rounded mb-2" id="token-value" style="word-break: break-all; font-family: monospace; font-size: 0.9rem;"></div>
-                <button class="btn btn-sm btn-outline-success" id="copy-token-btn">
-                  <i class="fas fa-copy"></i> Copy
-                </button>
-              </div>
-              <button type="button" class="close" onclick="document.getElementById('token-display').style.display='none';">&times;</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="card admin-card">
-            <div class="card-body">
-              <h5 class="card-title">Active Tokens</h5>
-              <p class="card-text text-muted small">Manage your registration tokens.</p>
-              <div id="tokens-list" class="tokens-list mt-3" style="max-height: 300px; overflow-y: auto;">
-                <div class="text-muted small">Loading tokens...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div id="task-lists-container" class="loading-spinner mt-5">
       <div class="spinner-border text-primary" role="status">

@@ -171,3 +171,29 @@ class RegistrationTokenListItem(BaseModel):
     id: int
     created_at: str
     created_by_admin_id: int
+
+
+class DailyActiveUser(BaseModel):
+    """Daily active user count."""
+    date: str
+    active_users: int
+
+
+class MonthlyActiveUser(BaseModel):
+    """Monthly active user count."""
+    month: str
+    active_users: int
+
+
+class UserActivityStats(BaseModel):
+    """User activity statistics for a user group."""
+    registered_total: int
+    monthly_average: float
+    daily_breakdown_last_7_days: list[DailyActiveUser]
+    monthly_breakdown: list[MonthlyActiveUser]
+
+
+class UserActivityResponse(BaseModel):
+    """Combined user activity response for students and teachers."""
+    students: UserActivityStats
+    teachers: UserActivityStats

@@ -98,6 +98,16 @@
   top: 0;
   z-index: 1000;
 }
+.register-row {
+	margin-top: 1rem;
+}
+
+.register-title {
+	text-align: center;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    0 8px 20px rgba(100, 120, 255, 0.25);
+}
 .mistake-block {
   margin-top: 1rem;
   margin-bottom: 1rem;

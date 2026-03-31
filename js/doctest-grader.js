@@ -58,6 +58,7 @@ function extractError(error, numDocstringLines) {
 function cleanupDoctestResults(resultsStr) {
 	let keptLines = [];
 	let inKeepRange = false;
+	let stripNextLineIndent = false;
 	resultsStr.split('\n').forEach((line) => {
 		if (line.startsWith('File "__main__"')) {
 			inKeepRange = true;
@@ -67,9 +68,17 @@ function cleanupDoctestResults(resultsStr) {
 			line.startsWith('1 items had no tests:')
 		) {
 			inKeepRange = false;
+			stripNextLineIndent = false;
 		}
 		if (inKeepRange) {
+			if (stripNextLineIndent) {
+				line = line.trimStart();
+				stripNextLineIndent = false;
+			}
 			line = line.replace('Failed example:', '\n❌ Failed test');
+			if (line.includes('❌ Failed test')) {
+				stripNextLineIndent = true;
+			}
 			keptLines.push(line);
 		}
 	});

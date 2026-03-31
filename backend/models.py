@@ -223,3 +223,22 @@ class RegistrationToken(Base):
         return bcrypt.checkpw(
             token.encode("utf-8"), self.token_hash.encode("utf-8")
         )
+
+
+class ModelAnswer(Base):
+    """Teacher-provided model answer for a Parsons task."""
+
+    __tablename__ = "model_answers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    parsons_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("parsons.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    created_by_teacher_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("teachers.id"), nullable=False
+    )
+    answer_code: Mapped[str] = mapped_column(String(None), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

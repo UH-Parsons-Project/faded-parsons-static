@@ -64,6 +64,9 @@ from .student_auth import (
 )
 from .token_utils import verify_token
 
+from .student import router as student_router
+from .admin import router as admin_router
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -263,11 +266,9 @@ if documentation_dir.exists():
     app.mount("/documentation", StaticFiles(directory=documentation_dir), name="documentation")
 
 # Student routes moved to dedicated module
-from .student import router as student_router
 app.include_router(student_router)
 
 # Admin routes moved to dedicated module
-from .admin import router as admin_router
 app.include_router(admin_router)
 
 

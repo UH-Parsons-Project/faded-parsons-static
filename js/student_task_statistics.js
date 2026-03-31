@@ -163,8 +163,153 @@ function renderAttempts(attempts) {
 	}
 }
 
-async function renderMoveHistory(studentUsername, taskId, listId) {
-	const moveHistoryContent = document.getElementById('move-history-content');
+// ── Replay engine ──────────────────────────────────────────────────────────
+
+function countBlanks(code) {
+	return (code.match(/___/g) || []).length;
+}
+
+function renderBlockCode(code, blanks) {
+	// Block code stores blanks as ___ (real blocks) or !BLANK (debug lines)
+	let i = 0;
+	return escapeHtml(code).replace(/___/g, () => {
+		const val = (blanks && blanks[i] !== undefined) ? escapeHtml(blanks[i]) : '';
+		i++;
+		return `<span class="replay-blank">${val || '&nbsp;&nbsp;'}</span>`;
+	}).replace(/!BLANK/g, () => {
+		const val = (blanks && blanks[i] !== undefined) ? escapeHtml(blanks[i]) : '';
+		i++;
+		return `<span class="replay-blank">${val || '&nbsp;&nbsp;'}</span>`;
+	});
+}
+
+function buildInitialState(initialBlocks) {
+	const starter = [];
+	const solution = [];
+
+	const nonGiven = initialBlocks.filter(b => !b.given);
+	const given = initialBlocks.filter(b => b.given);
+
+	// Mirror alphabetize() — sort non-given blocks by code
+	const sorted = [...nonGiven].sort((a, b) => a.code.localeCompare(b.code));
+
+	for (const b of sorted) {
+		starter.push({
+			block_id: b.block_id,
+			code: b.code,
+			given: false,
+			debug: b.debug || false,
+			indent: b.indent,
+			blanks: Array(countBlanks(b.code)).fill(''),
+		});
+	}
+	for (const b of given) {
+		solution.push({
+			block_id: b.block_id,
+			code: b.code,
+			given: true,
+			indent: b.indent,
+			blanks: Array(countBlanks(b.code)).fill(''),
+		});
+	}
+
+	return { starter, solution };
+}
+
+function deepCopyState(state) {
+	return {
+		starter: state.starter.map(b => ({ ...b, blanks: [...b.blanks], debug: b.debug || false })),
+		solution: state.solution.map(b => ({ ...b, blanks: [...b.blanks], debug: b.debug || false })),
+	};
+}
+
+function applyEvent(state, event) {
+	const next = deepCopyState(state);
+
+	if (event.type === 'move') {
+		const src = next[event.from_container];
+		const dst = next[event.to_container];
+		if (!src || !dst) return next;
+
+		const idx = src.findIndex(b => b.block_id === event.block_id);
+		if (idx === -1) return next;
+
+		const [block] = src.splice(idx, 1);
+		block.indent = event.to_indent;
+		const insertAt = Math.min(event.to_index, dst.length);
+		dst.splice(insertAt, 0, block);
+
+	} else if (event.type === 'edit') {
+		for (const container of [next.starter, next.solution]) {
+			const block = container.find(b => b.block_id === event.block_id);
+			if (block) {
+				if (!block.blanks[event.blank_index] && block.blanks[event.blank_index] !== '') {
+					block.blanks[event.blank_index] = '';
+				}
+				block.blanks[event.blank_index] = event.value;
+				break;
+			}
+		}
+	}
+
+	return next;
+}
+
+function renderReplayBoard(state, highlightBlockId) {
+	const renderColumn = (blocks, containerId) => {
+		const el = document.getElementById(containerId);
+		el.innerHTML = '';
+		if (blocks.length === 0) {
+			el.innerHTML = '<em class="text-muted" style="font-size:0.8rem;">empty</em>';
+			return;
+		}
+		for (const block of blocks) {
+			const div = document.createElement('div');
+			div.className = 'replay-block'
+				+ (block.block_id === highlightBlockId ? ' highlight' : '')
+				+ (block.given ? ' given' : '')
+				+ (block.debug ? ' debug' : '');
+			div.style.marginLeft = (block.indent * 20) + 'px';
+			div.innerHTML = renderBlockCode(block.code, block.blanks);
+			el.appendChild(div);
+		}
+	};
+
+	renderColumn(state.starter, 'replay-starter-blocks');
+	renderColumn(state.solution, 'replay-solution-blocks');
+}
+
+function renderReplayStep(states, events, stepIndex) {
+	const total = events.length;
+	document.getElementById('replay-step-label').textContent =
+		`Step ${stepIndex} / ${total}`;
+	document.getElementById('replay-prev').disabled = stepIndex === 0;
+	document.getElementById('replay-next').disabled = stepIndex === total;
+
+	const labelEl = document.getElementById('replay-event-label');
+	if (stepIndex === 0) {
+		labelEl.textContent = 'Initial state';
+		renderReplayBoard(states[0], null);
+		return;
+	}
+
+	const event = events[stepIndex - 1];
+	const blockLabel = event.block_code ? `"${escapeHtml(event.block_code)}"` : event.block_id;
+
+	if (event.type === 'edit') {
+		labelEl.innerHTML = `[edit] ${blockLabel} blank[${event.blank_index}] ← "<strong>${escapeHtml(event.value)}</strong>"`;
+	} else {
+		labelEl.innerHTML = `[move] ${blockLabel}: ${event.from_container}[${event.from_index}] → ${event.to_container}[${event.to_index}](indent=${event.to_indent})`;
+	}
+
+	renderReplayBoard(states[stepIndex], event.block_id);
+}
+
+async function initReplay(studentUsername, taskId, listId) {
+	const loadingEl = document.getElementById('replay-loading');
+	const boardEl = document.getElementById('replay-board');
+	const controlsEl = document.getElementById('replay-controls');
+	const eventLabelEl = document.getElementById('replay-event-label');
 
 	try {
 		const response = await fetch(
@@ -173,28 +318,54 @@ async function renderMoveHistory(studentUsername, taskId, listId) {
 		);
 
 		if (!response.ok) {
-			moveHistoryContent.innerHTML = '<em class="text-muted">No moves recorded.</em>';
+			loadingEl.innerHTML = '<em class="text-muted">No replay data available.</em>';
 			return;
 		}
 
-		const moves = await response.json();
+		const data = await response.json();
+		const events = data.events || [];
+		const initialBlocks = data.initial_blocks || [];
 
-		if (!moves || moves.length === 0) {
-			moveHistoryContent.innerHTML = '<em class="text-muted">No moves recorded.</em>';
+		loadingEl.style.display = 'none';
+
+		if (events.length === 0 && initialBlocks.length === 0) {
+			boardEl.style.display = 'none';
+			controlsEl.style.display = 'none';
+			eventLabelEl.textContent = '';
+			document.getElementById('replay-step-label').textContent = 'No events recorded.';
 			return;
 		}
 
-		// Display moves
-		let html = '<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">';
-		moves.forEach(move => {
-			html += `${move.block_id}: ${move.from_container}[${move.from_index}](indent=${move.from_indent}) → ${move.to_container}[${move.to_index}](indent=${move.to_indent})\n`;
+		// Precompute all board states
+		const initialState = buildInitialState(initialBlocks);
+		const states = [initialState];
+		for (const event of events) {
+			states.push(applyEvent(states[states.length - 1], event));
+		}
+
+		let currentStep = 0;
+		renderReplayStep(states, events, currentStep);
+
+		document.getElementById('replay-prev').addEventListener('click', () => {
+			if (currentStep > 0) {
+				currentStep--;
+				renderReplayStep(states, events, currentStep);
+			}
 		});
-		html += '</pre>';
 
-		moveHistoryContent.innerHTML = html;
+		document.getElementById('replay-next').addEventListener('click', () => {
+			if (currentStep < events.length) {
+				currentStep++;
+				renderReplayStep(states, events, currentStep);
+			}
+		});
+
+		document.getElementById('replay-prev').disabled = false;
+		document.getElementById('replay-next').disabled = events.length === 0;
+
 	} catch (err) {
-		console.error('Error rendering move history:', err);
-		moveHistoryContent.innerHTML = '<em class="text-danger">Error loading move history.</em>';
+		console.error('Error initialising replay:', err);
+		loadingEl.innerHTML = '<em class="text-danger">Error loading replay.</em>';
 	}
 }
 
@@ -242,6 +413,12 @@ attemptsHeader.addEventListener('click', () => {
 	expandIcon.classList.toggle('expanded');
 });
 
+// Toggle replay
+document.getElementById('replay-header').addEventListener('click', () => {
+	document.getElementById('replay-content').classList.toggle('expanded');
+	document.getElementById('replay-expand-icon').classList.toggle('expanded');
+});
+
 // Load statistics
 fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/statistics?list_id=${listId}`, {
 	credentials: 'include'
@@ -262,7 +439,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	renderModelAnswer(data.model_answer);
 	renderAttempts(data.attempts_detail);
 	renderStatistics(data);
-	renderMoveHistory(studentUsername, taskId, listId);
+	initReplay(studentUsername, taskId, listId);
 	document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {

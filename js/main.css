@@ -942,3 +942,63 @@
     max-height: 250px;
   }
 }
+
+/* Replay viewer */
+.replay-board {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.replay-column {
+  flex: 1;
+  min-height: 60px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.replay-column-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.replay-block {
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  padding: 3px 8px;
+  margin: 3px 0;
+  font-family: monospace;
+  font-size: 0.82rem;
+  white-space: pre;
+}
+
+.replay-block.highlight {
+  background: #fff3cd;
+  border-color: #ffc107;
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+}
+
+.replay-block.given {
+  opacity: 0.55;
+}
+
+.replay-blank {
+  display: inline-block;
+  background: #e9f5ff;
+  border-bottom: 1px solid #74b9ff;
+  min-width: 2ch;
+  padding: 0 2px;
+  color: #0984e3;
+}
+
+.replay-block.debug {
+  opacity: 0.35;
+  font-style: italic;
+}

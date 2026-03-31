@@ -130,6 +130,56 @@
     });
   }
 
+  function setupGuideToggle() {
+    const guideToggle = document.getElementById('guide-toggle');
+    const guideContent = document.getElementById('guide-content');
+
+    if (!guideToggle || !guideContent) {
+      return;
+    }
+
+    guideToggle.addEventListener('click', () => {
+      guideToggle.classList.toggle('expanded');
+      guideContent.classList.toggle('expanded');
+    });
+  }
+
+  function setupCopyButtons() {
+    const copyButtons = document.querySelectorAll('.copy-btn');
+
+    copyButtons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const targetId = button.getAttribute('data-copy-target');
+        if (!targetId) {
+          return;
+        }
+
+        const sourceElement = document.getElementById(targetId);
+        if (!sourceElement) {
+          return;
+        }
+
+        const textToCopy = sourceElement.textContent;
+
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+
+          const originalHTML = button.innerHTML;
+          button.innerHTML = '<i class="fas fa-check"></i> Copied';
+          button.classList.add('copied');
+
+          setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('copied');
+          }, 2000);
+        } catch (error) {
+          console.error('Failed to copy:', error);
+          alert('Failed to copy. Please try manually selecting and copying.');
+        }
+      });
+    });
+  }
+
   function setupCreateTaskForm() {
     const form = document.getElementById('create-task-form');
     const submitBtn = document.getElementById('submit-task');
@@ -210,5 +260,9 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', setupCreateTaskForm);
+  document.addEventListener('DOMContentLoaded', () => {
+    setupGuideToggle();
+    setupCopyButtons();
+    setupCreateTaskForm();
+  });
 })();

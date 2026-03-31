@@ -32,11 +32,18 @@
 	</nav>
 	<div>
 		<h2>Here's how to use Parsons Code Lab as a teacher</h2>
+		<h3>Navbar</h3>
+		<p>
+			Login, Register, Instructions, Statistics, Exercises and Logout buttons as well as the login form can be 
+			found on the navigation bar at the top of the page. By clicking on the Parsons Code Lab logo the teacher 
+			is able to return to the homepage. 
+		</p>
 		<h3>Registration</h3>
 		<p>
 			To register your Parsons Code Lab account, please enter your username, email and password. 
 			You will also need to enter a registration token. 
 		</p>
+		<img src="/documentation/pictures/teacher_register.png" alt="Teacher Register Screenshot" class="screenshots">
 		<h3>Task List Selector</h3>
 		<p>
 			After registering and logging in successfully, the teacher will be able to see all available task lists.
@@ -45,6 +52,7 @@
 			added tasks and students. The teacher can also share a task list with other teachers. Added teachers
 			will have viewing rights to the task list.
 		</p>
+		<img src="/documentation/pictures/ohtuproj_screenshots.png" alt="Create New Task List button" class="screenshots">
 		<h3>Creating a task list</h3>
 		<p>
 			After clicking on "Create New Task List", the teacher is able to enter basic information of their task
@@ -55,13 +63,19 @@
 			a task list the teacher will be redirected to the Task List Selector page. Additional information as well 
 			as exercise analytics can be found by clicking on a specific task list.
 		</p>
+		<img src="/documentation/pictures/create_new_task_list1.png" alt="Create New Task List form part 1" class="screenshots">
+		<img src="/documentation/pictures/create_new_task_list2.png" alt="Create New Task List form part 2" class="screenshots">
+		<img src="/documentation/pictures/ohtuproj_screenshots2.png" alt="Create New Task List form part 3" class="screenshots">
 		<h3>Sharing a task list with students and receiving task data</h3>
 		<p>
 			Task lists become available to students via a unique link that can be found on the task list page right 
-			below the task list title. Once the students have access to the task list, the teacher will be able to 
-			see their udernames, joining date, last activity date, the amount of attempted tasks and the total 
-			amount of task attempts. More statistics are available by clicking on a student.
+			below the task list title. The link can be copied by clicking on the button on the right side of the link.
+			Once the students have access to the task list, the teacher will be able to see their udernames, joining 
+			date, last activity date, the amount of attempted tasks and the total amount of task attempts. More 
+			statistics are available by clicking on a student.
 		</p>
+		<img src="/documentation/pictures/ohtuproj_screenshots3.png" alt="Task List link" class="screenshots">
+		<img src="/documentation/pictures/ohtuproj_screenshots4.png" alt="Student blocks on Task List Page" class="screenshots">
 		<h3>Student statistics</h3>
 		<p>
 			After clicking on a student, the teacher will be redirected to their stats page. Here the teacher is 
@@ -72,7 +86,24 @@
 			task's model solution, Time to First Fail, Thinking Time Before Starting Task and the Number of Moves 
 			made in the task.
 		</p>
-		<h3>Exercise List</h3>
+		<img src="/documentation/pictures/ohtuproj_screenshots5.png" alt="Student Statistics task attempts view" class="screenshots">
+		<img src="/documentation/pictures/student_stats.png" alt="Student task attempt stats" class="screenshots">
+		<img src="/documentation/pictures/student_stats2.png" alt="Student task attempt stats pt2" class="screenshots">
+		<h3>Creating a new task</h3>
+		<p>
+			On the Task Lists page, right above "Create New Task List"-button, there is a "New task"-button that 
+			allows the teacher to add a new task to the system. After clicking on this button, the teacher will be 
+			redirected to Create a New Task page with two code editor views. The upper editor is for task code 
+			written in plain Python. The lower editor is for writing test cases for the abovementioned task. The 
+			teacher is able to use any Python test style they prefer for writing the task test cases. After writing
+			bith the task code and the test cases, the teacher can go on to writing task instructions, task 
+			description and constructing the block solution byt clicking on the "Continue To Block Builder" button.
+			Task draft can be cleared by clicking on the "Clear Drafts" button. After continuing to block builder, 
+			the teacher is also able to add their own custom blocks to the task, run the tests they have previously 
+			written. Finally, when the tests have been passed, the teacher can add their custom task to the global 
+			Exercise list.
+		</p>
+		<h3>Global Exercise List</h3>
 		<p>
 			By clicking on "Exercises" button on the navbar, the teacher will be redirected to the global exercise 
 			list, where they'll be able to view global statistics of each existing task. On this page the teacher 
@@ -84,7 +115,8 @@
 			thinking time before starting a task. In addition to this, the average number of moves and most common 
 			mistakes and inputs as well as the model answer are also available on this page.
 		</p>
-		<h3></h3>
+		<img src="/documentation/pictures/ohtuproj_screenshots6.png" alt="Exercises button on the navbar" class="screenshots">
+		<img src="/documentation/pictures/ohtuproj_screenshots7.png" alt="Global Task List" class="screenshots">
 	</div>
 	<script type="module">
 		import { initLoginPage, initNavbarExercisesButton } from '/js/auth-ui.js';

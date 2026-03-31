@@ -261,6 +261,10 @@ data_dir = BASE_DIR / "data"
 if data_dir.exists():
     app.mount("/data", StaticFiles(directory=data_dir), name="data")
 
+documentation_dir = BASE_DIR / "documentation"
+if documentation_dir.exists():
+    app.mount("/documentation", StaticFiles(directory=documentation_dir), name="documentation")
+
 # Student routes moved to dedicated module
 from .student import router as student_router
 app.include_router(student_router)

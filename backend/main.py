@@ -1087,6 +1087,13 @@ async def seed_mock_data_endpoint(
     if not current_user.has_data_access:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
+    # Prevent running on production
+    if not DEVELOPMENT_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Mock data seeding is only available in development mode"
+        )
+
     # Import the seeding function
     from .seed import seed_mock_activity
 

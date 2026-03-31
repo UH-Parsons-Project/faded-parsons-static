@@ -52,7 +52,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken
+from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken, ModelAnswer
 from .reset_db import reset_db
 from .seed import seed_db
 from .student_auth import (
@@ -88,23 +88,12 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HARDCODED_MODEL_ANSWERS = {
-    "add_in_range": "def add_in_range(start, stop):\n"
-    "    total = 0\n"
-    "    while start <= stop:\n"
-    "        total += start\n"
-    "        start += 1\n"
-    "    return total",
-}
-
-
-def _get_model_answer_for_task(task: Parsons) -> str | None:
-    """Return a teacher-facing hard-coded model answer for known exercises."""
-    if task.id == 1:
-        return HARDCODED_MODEL_ANSWERS["add_in_range"]
-
-    task_title = (task.title or "").strip().lower()
-    return HARDCODED_MODEL_ANSWERS.get(task_title)
+async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | None:
+    """Return teacher-facing model answer from database for this exercise."""
+    result = await db.execute(
+        select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
+    )
+    return result.scalar_one_or_none()
 
 
 def _clean_mistake_code(code: str) -> str:
@@ -1396,7 +1385,7 @@ async def get_student_task_statistics(
         return StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
-            model_answer=_get_model_answer_for_task(task),
+            model_answer=await _get_model_answer_for_task(task, db),
             student_username=student_username,
             total_attempts=0,
             successful_attempts=0,
@@ -1446,7 +1435,7 @@ async def get_student_task_statistics(
     return StudentTaskStatisticsResponse(
         task_name=task.title,
         task_description=task.description,
-        model_answer=_get_model_answer_for_task(task),
+        model_answer=await _get_model_answer_for_task(task, db),
         student_username=student_username,
         total_attempts=len(attempts_data),
         successful_attempts=successful_attempts,
@@ -1530,7 +1519,7 @@ async def get_task_statistics(
     if not attempts_data:
         return {
             "task_name": task.title,
-            "model_answer": _get_model_answer_for_task(task),
+            "model_answer": await _get_model_answer_for_task(task, db),
             "total_completions": 0,
             "students_attempted": 0,
             "students_completed": 0,
@@ -1626,7 +1615,7 @@ async def get_task_statistics(
 
     return {
         "task_name": task.title,
-        "model_answer": _get_model_answer_for_task(task),
+        "model_answer": await _get_model_answer_for_task(task, db),
         "total_completions": len(attempts_data),
         "students_attempted": students_attempted,
         "students_completed": students_completed,

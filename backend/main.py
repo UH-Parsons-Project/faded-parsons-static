@@ -3,10 +3,7 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
-import io
 import os
-import token
-import tokenize
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -63,6 +60,12 @@ from .student_auth import (
     get_current_student_session_no_update,
 )
 from .token_utils import verify_token
+from .utils import (
+    _clean_mistake_code,
+    _mistake_code_fingerprint,
+    generate_slug,
+    has_user_added_own_code,
+)
 
 from .student import router as student_router
 from .admin import router as admin_router
@@ -94,66 +97,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
     )
     return result.scalar_one_or_none()
-
-
-def _clean_mistake_code(code: str) -> str:
-    """Return a display-friendly version of submitted code."""
-    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-
-    while normalized_lines and not normalized_lines[0].strip():
-        normalized_lines.pop(0)
-    while normalized_lines and not normalized_lines[-1].strip():
-        normalized_lines.pop()
-
-    return "\n".join(normalized_lines)
-
-
-def _mistake_code_fingerprint(code: str) -> tuple:
-    """Build a grouping key that ignores whitespace-only differences."""
-    cleaned_code = _clean_mistake_code(code)
-    if not cleaned_code:
-        return tuple()
-
-    try:
-        tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
-        return tuple(
-            (current_token.type, current_token.string)
-            for current_token in tokens
-            if current_token.type not in {
-                token.INDENT,
-                token.DEDENT,
-                token.NEWLINE,
-                tokenize.NL,
-                tokenize.ENDMARKER,
-            }
-        )
-    except (IndentationError, SyntaxError, tokenize.TokenError):
-        return tuple(cleaned_code.split())
-
-
-def generate_slug(text: str) -> str:
-    """
-    Generate a URL-friendly slug from text.
-    Converts to lowercase, replaces spaces with hyphens, removes special characters.
-
-    Args:
-        text: The text to convert to a slug
-
-    Returns:
-        A slug-friendly string
-    """
-    # Convert to lowercase
-    slug = text.lower()
-    # Replace spaces and underscores with hyphens
-    slug = re.sub(r'[\s_]+', '-', slug)
-    # Remove any character that's not alphanumeric or hyphen
-    slug = re.sub(r'[^a-z0-9-]', '', slug)
-    # Remove multiple consecutive hyphens
-    slug = re.sub(r'-+', '-', slug)
-    # Strip hyphens from start and end
-    slug = slug.strip('-')
-    return slug
-
+# Helper utilities moved to backend/utils.py
 
 async def has_task_list_view_access(
     task_list: TaskList,

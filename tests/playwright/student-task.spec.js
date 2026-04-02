@@ -64,7 +64,7 @@ test('student can open and submit a (empty) task from the task list', async ({ p
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Click on the "add_in_range" task
-  await studentPage.locator('a', { hasText: 'add_in_range' }).click();
+  await studentPage.locator('.task-list-item', { hasText: 'add_in_range' }).click();
 
   // Click "Start" on the start page
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });

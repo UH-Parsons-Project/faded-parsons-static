@@ -21,6 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
+import backend.utils as utils
 from backend.models import Parsons, Student, StudentTaskListEnrollment, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
 
 
@@ -275,6 +276,7 @@ class TestGetMe:
             "username": "testteacher",
             "email": "test@example.com",
             "has_data_access": False,
+            "role": "Teacher",
         }
 
     async def test_unauthenticated_returns_401(self, client):
@@ -913,21 +915,21 @@ class TestProtectedPages:
 class TestMainHelpers:
     def test_clean_mistake_code_normalizes_and_trims_empty_edges(self):
         raw = "\r\n   \r\nprint(1)  \r\nprint(2)\r\n\r\n"
-        assert main_module._clean_mistake_code(raw) == "print(1)\nprint(2)"
+        assert utils._clean_mistake_code(raw) == "print(1)\nprint(2)"
 
     def test_mistake_code_fingerprint_empty_code_returns_empty_tuple(self):
-        assert main_module._mistake_code_fingerprint("\n\n  \n") == tuple()
+        assert utils._mistake_code_fingerprint("\n\n  \n") == tuple()
 
     def test_mistake_code_fingerprint_fallback_on_token_error(self, monkeypatch):
         def _raise_token_error(_):
-            raise main_module.tokenize.TokenError("boom")
+            raise utils.tokenize.TokenError("boom")
 
-        monkeypatch.setattr(main_module.tokenize, "generate_tokens", _raise_token_error)
-        fingerprint = main_module._mistake_code_fingerprint("a   b")
+        monkeypatch.setattr(utils.tokenize, "generate_tokens", _raise_token_error)
+        fingerprint = utils._mistake_code_fingerprint("a   b")
         assert fingerprint == ("a", "b")
 
     def test_generate_slug_strips_specials_and_collapses_separators(self):
-        assert main_module.generate_slug("  Hello__World! 2026  ") == "hello-world-2026"
+        assert utils.generate_slug("  Hello__World! 2026  ") == "hello-world-2026"
 
     @pytest.mark.parametrize(
         "submitted_code,blocks,expected",
@@ -948,7 +950,7 @@ class TestMainHelpers:
         ],
     )
     def test_has_user_added_own_code_branches(self, submitted_code, blocks, expected):
-        assert main_module.has_user_added_own_code(submitted_code, blocks) is expected
+        assert utils.has_user_added_own_code(submitted_code, blocks) is expected
 
 
 # ---------------------------------------------------------------------------

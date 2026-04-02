@@ -11,6 +11,7 @@ class UserInfo(BaseModel):
     username: str
     email: str
     has_data_access: bool
+    role: str
 
 
 class TaskResponse(BaseModel):
@@ -92,6 +93,14 @@ class MoveData(BaseModel):
     to_index: int
     from_indent: int
     to_indent: int
+    event_time: str | None = None
+
+
+class EditEventData(BaseModel):
+    block_id: str
+    blank_index: int
+    value: str
+    event_time: str
 
 
 class SubmitTestResultRequest(BaseModel):
@@ -102,6 +111,7 @@ class SubmitTestResultRequest(BaseModel):
     repr_code: str
 
     moves: list[MoveData] = []  # Block moves recorded during the attempt
+    edits: list[EditEventData] = []  # Blank field edits recorded during the attempt
 
 
 class CreateProblemRequest(BaseModel):

@@ -1,142 +1,20 @@
 from datetime import datetime, timezone
-from pathlib import Path
-
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .pydantic import SubmitTestResultRequest
-
-from .database import get_db
-from .models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
-from .student_auth import (
+from ..pydantic import SubmitTestResultRequest
+from ..database import get_db
+from ..models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
+from ..student_auth import (
     authenticate_student,
     set_session_cookie,
     get_current_student_session,
     get_current_student_session_no_update,
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 router = APIRouter()
-
-
-@router.get("/student_start_page", response_class=FileResponse)
-async def student_start_view():
-    index_path = BASE_DIR / "templates" / "student_start_page.html"
-    return FileResponse(index_path)
-
-
-@router.get("/set/{unique_link_code}", response_class=FileResponse)
-async def problemset_page(
-    unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
-
-    problemset_path = BASE_DIR / "templates" / "student_index.html"
-    response = FileResponse(problemset_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks", response_class=FileResponse)
-async def problemset_tasks_page(
-    unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    tasks_path = BASE_DIR / "templates" / "problemset.html"
-    response = FileResponse(tasks_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
-async def problemset_task_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    task_path = BASE_DIR / "templates" / "student_problem.html"
-    response = FileResponse(task_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
-async def problemset_task_start_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    start_path = BASE_DIR / "templates" / "student_start_page.html"
-    response = FileResponse(start_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
-@router.get("/student_register", response_class=FileResponse)
-async def student_register_page():
-    register_path = BASE_DIR / "templates" / "student_register.html"
-    return FileResponse(register_path)
 
 
 @router.post("/api/student_login")
@@ -145,7 +23,6 @@ async def student_login(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    # request expected to follow StudentLoginRequest structure
     username = request.get("username") if isinstance(request, dict) else None
     password = request.get("password") if isinstance(request, dict) else None
     unique_link_code = request.get("unique_link_code") if isinstance(request, dict) else None
@@ -236,7 +113,6 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
             detail="password must have a minimum length of 8 characters",
         )
 
-    # Check uniqueness
     stmt = select(Student).where((Student.username == username) | (Student.email == email))
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
@@ -356,7 +232,7 @@ async def submit_test_result(
 
     if result.moves:
         for move_data in result.moves:
-            move = MoveEvent(
+            move_kwargs = dict(
                 attempt_id=new_attempt.id,
                 block_id=move_data.block_id,
                 from_container=move_data.from_container,
@@ -366,7 +242,20 @@ async def submit_test_result(
                 from_indent=move_data.from_indent,
                 to_indent=move_data.to_indent,
             )
-            db.add(move)
+            if move_data.event_time:
+                move_kwargs["event_time"] = datetime.fromisoformat(move_data.event_time)
+            db.add(MoveEvent(**move_kwargs))
+
+    if result.edits:
+        for edit_data in result.edits:
+            edit = EditEvent(
+                attempt_id=new_attempt.id,
+                block_id=edit_data.block_id,
+                blank_index=edit_data.blank_index,
+                value=edit_data.value,
+                event_time=datetime.fromisoformat(edit_data.event_time),
+            )
+            db.add(edit)
 
     await db.commit()
 
@@ -381,11 +270,9 @@ async def submit_test_result(
 async def get_task_moves(
     student_username: str,
     task_id: int,
-    list_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_student_session_no_update),
 ):
-    """Fetch all moves for a student's attempts on a specific task."""
     stmt = select(Student).where(Student.username == student_username)
     result = await db.execute(stmt)
     student = result.scalar_one_or_none()
@@ -400,18 +287,76 @@ async def get_task_moves(
     result = await db.execute(stmt)
     attempts = result.scalars().all()
 
-    attempt_ids = [a.id for a in attempts]
+    attempt_ids = [a.id for a in attempts] 
 
     if not attempt_ids:
         return []
 
-    stmt = select(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids)).order_by(MoveEvent.event_time.asc())
+    stmt = select(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids))
     result = await db.execute(stmt)
     moves = result.scalars().all()
 
-    return [
+    stmt = select(EditEvent).where(EditEvent.attempt_id.in_(attempt_ids))
+    result = await db.execute(stmt)
+    edits = result.scalars().all()
+
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    # main.js appends these 4 extra lines to codeLines before passing to the widget,
+    # so they get sortable-codelineN IDs just like real blocks and live in the starter.
+    DEBUG_LINES = [
+        {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
+        {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
+        {"code": "# !BLANK", "given": False, "indent": 0},
+        {"code": "# !BLANK", "given": False, "indent": 0},
+    ]
+
+    initial_blocks = []
+    block_code_map = {}
+    if task and task.code_blocks and "blocks" in task.code_blocks:
+        draggable_index = 0
+        for block in task.code_blocks["blocks"]:
+            if not block.get("given", False):
+                block_id = f"sortable-codeline{draggable_index}"
+                block_code_map[block_id] = block["code"]
+                initial_blocks.append({
+                    "block_id": block_id,
+                    "code": block["code"],
+                    "given": False,
+                    "indent": block.get("indent", 0),
+                })
+                draggable_index += 1
+        # Debug lines come before given blocks in the widget's modified_lines
+        for debug in DEBUG_LINES:
+            block_id = f"sortable-codeline{draggable_index}"
+            block_code_map[block_id] = debug["code"]
+            initial_blocks.append({
+                "block_id": block_id,
+                "code": debug["code"],
+                "given": False,
+                "indent": 0,
+                "debug": True,
+            })
+            draggable_index += 1
+        # Given blocks come last in the widget's modified_lines
+        for block in task.code_blocks["blocks"]:
+            if block.get("given", False):
+                block_id = f"sortable-codeline{draggable_index}"
+                block_code_map[block_id] = block["code"]
+                initial_blocks.append({
+                    "block_id": block_id,
+                    "code": block["code"],
+                    "given": True,
+                    "indent": block.get("indent", 0),
+                })
+                draggable_index += 1
+
+    move_events = [
         {
+            "type": "move",
             "block_id": move.block_id,
+            "block_code": block_code_map.get(move.block_id, ""),
             "from_container": move.from_container,
             "to_container": move.to_container,
             "from_index": move.from_index,

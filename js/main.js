@@ -117,7 +117,7 @@ export async function initWidget() {
 
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, functionHeader);
+			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, e.detail.edits, functionHeader);
 		});
 
 		// Activate the run button
@@ -161,9 +161,9 @@ function reconstructCodeLines(blocks) {
 // submittedCode: the code written by the user
 // reprCode: visual representation of user code (for storage)
 // moves: array of move events recorded during the attempt
-// startTime: ISO timestamp of when the user clicked Start
+// edits: array of blank field edit events recorded during the attempt
 // codeHeader: Python function template/header
-async function handleSubmit(submittedCode, reprCode, moves, codeHeader) {
+async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader) {
 	// Prepare code and inject test code
 	let testResults = prepareCode(submittedCode, codeHeader);
 
@@ -218,7 +218,8 @@ async function handleSubmit(submittedCode, reprCode, moves, codeHeader) {
 			submitted_code: submittedCode,
 			test_output: testResults.details || '',
 			repr_code: reprCode,
-			moves: moves || [] // Include recorded moves with the submission
+			moves: moves || [], // Include recorded moves with the submission
+		edits: edits || [] // Include recorded blank edits with the submission
 		};
 
 		const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {

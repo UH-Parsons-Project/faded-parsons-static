@@ -220,6 +220,21 @@ class MoveEvent(Base):
     event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class EditEvent(Base):
+    """Individual blank field edit event tied to a task attempt."""
+
+    __tablename__ = "edit_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    attempt_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_attempts.id", ondelete="CASCADE"), nullable=False
+    )
+    block_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    blank_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    value: Mapped[str] = mapped_column(String(1000), nullable=False)
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class RegistrationToken(Base):
     """Registration token for teacher account creation."""
 

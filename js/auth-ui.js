@@ -13,6 +13,36 @@ function setExercisesButtonVisible(visible) {
 }
 
 /**
+ * Get the appropriate badge class for a user role
+ */
+function getRoleBadgeClass(role) {
+	if (!role) return 'badge-light text-muted';
+
+	switch(role.toLowerCase()) {
+		case 'admin':
+			return 'badge-warning';
+		case 'teacher':
+			return 'badge-info';
+		case 'student':
+			return 'badge-success';
+		default:
+			return 'badge-light text-muted';
+	}
+}
+
+/**
+ * Display a user role with appropriate styling
+ */
+function displayUserRole(roleElement, role) {
+	if (!roleElement || !role) return;
+
+	roleElement.textContent = role;
+	roleElement.className = 'badge ' + getRoleBadgeClass(role);
+	roleElement.style.display = 'inline';
+	roleElement.style.marginLeft = '8px';
+}
+
+/**
  * Initialize login page authentication UI
  * Handles login form submission and checks if user is already logged in
  */
@@ -32,13 +62,13 @@ export function initLoginPage() {
 	async function checkAuth() {
 		const userData = await verifyAuth();
 		if (userData) {
-			showUserInfo(userData.username);
+			showUserInfo(userData.username, userData.role);
 		} else {
 			showLoginForm();
 		}
 	}
 
-	function showUserInfo(username) {
+	function showUserInfo(username, role) {
 		loginForm.style.display = 'none';
 		if (userInfo) {
 			userInfo.style.display = 'block';
@@ -46,6 +76,8 @@ export function initLoginPage() {
 			if (userNameElement) {
 				userNameElement.textContent = username;
 			}
+			const userRoleElement = document.getElementById('user-role');
+			displayUserRole(userRoleElement, role);
 		}
 		setExercisesButtonVisible(true);
 	}
@@ -141,7 +173,7 @@ export function initLoginPage() {
 					document.getElementById('password').value = '';
 
 					// Show user info
-					showUserInfo(userData.username);
+					showUserInfo(userData.username, userData.role);
 
 					// Redirect to exercise list
 					window.location.href = '/task_list_selector';
@@ -236,6 +268,10 @@ export async function initProtectedPage(loginPageUrl = '/index.html') {
 		userNameElement.textContent = userData.username;
 	}
 
+	// Update user role if element exists
+	const userRoleElement = document.getElementById('user-role');
+	displayUserRole(userRoleElement, userData.role);
+
 	// Handle logout button
 	const logoutBtn = document.getElementById('logout-btn');
 	if (logoutBtn) {
@@ -260,6 +296,9 @@ export async function displayAuthStatus() {
 		if (userNameElement) {
 			userNameElement.textContent = userData.username;
 		}
+
+		const userRoleElement = document.getElementById('user-role');
+		displayUserRole(userRoleElement, userData.role);
 
 		const userInfo = document.getElementById('user-info');
 		const loginForm = document.getElementById('login-form');
@@ -286,25 +325,30 @@ export async function displayAuthStatus() {
 /**
  * Initialize user name display on student pages
  * @param {string} userNameId - ID of the user name element
+ * @param {string} userRoleId - ID of the user role element
  * @param {string} userInfoId - ID of the user info element
  * @param {boolean} preferNickname - Whether to prefer nickname over username
  */
 export async function initSignedInAs({
 	userNameId = 'user-name',
+	userRoleId = 'user-role',
 	userInfoId = 'user-info',
 	preferNickname = false
 } = {}) {
 	const userNameEl = document.getElementById(userNameId);
+	const userRoleEl = document.getElementById(userRoleId);
 	const userInfoEl = document.getElementById(userInfoId);
 
 	if (!userNameEl) return;
 
 	let name = null;
+	let role = null;
 
 	// Student pages can prefer nickname
 	if (preferNickname) {
 		// Prefer student nickname, but fall back to stored username.
 		name = localStorage.getItem('nickname') || localStorage.getItem('username');
+		role = 'Student';
 	} else {
 		// Teacher flow
 		name = localStorage.getItem('username');
@@ -315,6 +359,7 @@ export async function initSignedInAs({
 		const userData = await verifyAuth();
 		if (userData?.username) {
 			name = userData.username;
+			role = userData.role;
 			localStorage.setItem('username', name);
 		}
 	}
@@ -327,6 +372,7 @@ export async function initSignedInAs({
 				const userData = await response.json();
 				if (userData?.username) {
 					name = userData.username;
+					role = userData.role;
 					localStorage.setItem('username', name);
 				}
 			}
@@ -337,6 +383,7 @@ export async function initSignedInAs({
 
 	if (name) {
 		userNameEl.textContent = name;
+		displayUserRole(userRoleEl, role);
 		if (userInfoEl) userInfoEl.style.display = 'block';
 	} else {
 		if (userInfoEl) userInfoEl.style.display = 'none';

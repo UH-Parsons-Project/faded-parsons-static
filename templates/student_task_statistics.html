@@ -62,6 +62,36 @@
             </div>
           </div>
           <div class="attempts-list" id="attempts-list"></div>
+
+          <div class="mt-2" id="replay-box">
+            <div class="attempts-header" id="replay-header">
+              <div class="attempts-header-title">
+                <h4>Replay</h4>
+                <i class="fas fa-chevron-down expand-icon" id="replay-expand-icon"></i>
+              </div>
+            </div>
+            <div class="attempts-list" id="replay-content">
+              <div class="p-3">
+                <div id="replay-controls" class="d-flex align-items-center mb-2" style="gap: 8px;">
+                  <button class="btn btn-sm btn-outline-secondary" id="replay-prev" disabled>&#9664; Prev</button>
+                  <span id="replay-step-label" class="text-muted small">Step 0 / 0</span>
+                  <button class="btn btn-sm btn-outline-secondary" id="replay-next" disabled>Next &#9654;</button>
+                </div>
+                <div id="replay-event-label" class="mb-2 small" style="min-height: 1.4em;"></div>
+                <div id="replay-board" class="replay-board">
+                  <div class="replay-column">
+                    <div class="replay-column-header">Starter</div>
+                    <div id="replay-starter-blocks"></div>
+                  </div>
+                  <div class="replay-column">
+                    <div class="replay-column-header">Solution</div>
+                    <div id="replay-solution-blocks"></div>
+                  </div>
+                </div>
+                <div id="replay-loading"><em class="text-muted">Loading replay...</em></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="statistics-column">
@@ -113,13 +143,6 @@
               <h5>Number of Moves</h5>
               <div class="stat-item">
                 <span class="stat-value"><em class="text-muted">Not yet tracked.</em></span>
-              </div>
-            </div>
-
-            <div class="stat-box mt-4">
-              <h5>Move History</h5>
-              <div id="move-history-content" class="mt-2">
-                <em class="text-muted">Loading moves...</em>
               </div>
             </div>
           </div>

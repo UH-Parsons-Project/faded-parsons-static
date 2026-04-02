@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .pydantic import SubmitTestResultRequest
 
 from .database import get_db
-from .models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
+from .models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, EditEvent, TaskStart, Parsons
 from .student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -356,7 +356,7 @@ async def submit_test_result(
 
     if result.moves:
         for move_data in result.moves:
-            move = MoveEvent(
+            move_kwargs = dict(
                 attempt_id=new_attempt.id,
                 block_id=move_data.block_id,
                 from_container=move_data.from_container,
@@ -366,7 +366,20 @@ async def submit_test_result(
                 from_indent=move_data.from_indent,
                 to_indent=move_data.to_indent,
             )
-            db.add(move)
+            if move_data.event_time:
+                move_kwargs["event_time"] = datetime.fromisoformat(move_data.event_time)
+            db.add(MoveEvent(**move_kwargs))
+
+    if result.edits:
+        for edit_data in result.edits:
+            edit = EditEvent(
+                attempt_id=new_attempt.id,
+                block_id=edit_data.block_id,
+                blank_index=edit_data.blank_index,
+                value=edit_data.value,
+                event_time=datetime.fromisoformat(edit_data.event_time),
+            )
+            db.add(edit)
 
     await db.commit()
 
@@ -405,13 +418,71 @@ async def get_task_moves(
     if not attempt_ids:
         return []
 
-    stmt = select(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids)).order_by(MoveEvent.event_time.asc())
+    stmt = select(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids))
     result = await db.execute(stmt)
     moves = result.scalars().all()
 
-    return [
+    stmt = select(EditEvent).where(EditEvent.attempt_id.in_(attempt_ids))
+    result = await db.execute(stmt)
+    edits = result.scalars().all()
+
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    # main.js appends these 4 extra lines to codeLines before passing to the widget,
+    # so they get sortable-codelineN IDs just like real blocks and live in the starter.
+    DEBUG_LINES = [
+        {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
+        {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
+        {"code": "# !BLANK", "given": False, "indent": 0},
+        {"code": "# !BLANK", "given": False, "indent": 0},
+    ]
+
+    initial_blocks = []
+    block_code_map = {}
+    if task and task.code_blocks and "blocks" in task.code_blocks:
+        draggable_index = 0
+        for block in task.code_blocks["blocks"]:
+            if not block.get("given", False):
+                block_id = f"sortable-codeline{draggable_index}"
+                block_code_map[block_id] = block["code"]
+                initial_blocks.append({
+                    "block_id": block_id,
+                    "code": block["code"],
+                    "given": False,
+                    "indent": block.get("indent", 0),
+                })
+                draggable_index += 1
+        # Debug lines come before given blocks in the widget's modified_lines
+        for debug in DEBUG_LINES:
+            block_id = f"sortable-codeline{draggable_index}"
+            block_code_map[block_id] = debug["code"]
+            initial_blocks.append({
+                "block_id": block_id,
+                "code": debug["code"],
+                "given": False,
+                "indent": 0,
+                "debug": True,
+            })
+            draggable_index += 1
+        # Given blocks come last in the widget's modified_lines
+        for block in task.code_blocks["blocks"]:
+            if block.get("given", False):
+                block_id = f"sortable-codeline{draggable_index}"
+                block_code_map[block_id] = block["code"]
+                initial_blocks.append({
+                    "block_id": block_id,
+                    "code": block["code"],
+                    "given": True,
+                    "indent": block.get("indent", 0),
+                })
+                draggable_index += 1
+
+    move_events = [
         {
+            "type": "move",
             "block_id": move.block_id,
+            "block_code": block_code_map.get(move.block_id, ""),
             "from_container": move.from_container,
             "to_container": move.to_container,
             "from_index": move.from_index,
@@ -422,3 +493,18 @@ async def get_task_moves(
         }
         for move in moves
     ]
+
+    edit_events = [
+        {
+            "type": "edit",
+            "block_id": edit.block_id,
+            "block_code": block_code_map.get(edit.block_id, ""),
+            "blank_index": edit.blank_index,
+            "value": edit.value,
+            "event_time": edit.event_time.isoformat(),
+        }
+        for edit in edits
+    ]
+
+    combined = sorted(move_events + edit_events, key=lambda e: e["event_time"])
+    return {"events": combined, "initial_blocks": initial_blocks}

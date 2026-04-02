@@ -1,7 +1,3 @@
-"""Utility helpers extracted from main.py.
-
-Keep these utilities type-agnostic to avoid circular imports with models.
-"""
 from __future__ import annotations
 
 import io
@@ -12,27 +8,7 @@ import json
 from typing import Any
 
 
-def _get_model_answer_for_task(task: Any) -> str | None:
-    """Return a teacher-facing hard-coded model answer for known exercises.
-
-    The `task` object is expected to have `id` and/or `title` attributes.
-    """
-    try:
-        if getattr(task, "id", None) == 1:
-            return HARDCODED_MODEL_ANSWERS["add_in_range"]
-
-        task_title = (getattr(task, "title", "") or "").strip().lower()
-        return HARDCODED_MODEL_ANSWERS.get(task_title)
-    except Exception:
-        return None
-
-
 def _clean_mistake_code(code: str) -> str:
-    """Return a display-friendly version of submitted code.
-
-    Normalizes line endings, strips leading/trailing blank lines and trims
-    trailing whitespace from each line.
-    """
     normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
 
     while normalized_lines and not normalized_lines[0].strip():
@@ -121,7 +97,6 @@ def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool
 
 
 __all__ = [
-    "_get_model_answer_for_task",
     "_clean_mistake_code",
     "_mistake_code_fingerprint",
     "generate_slug",

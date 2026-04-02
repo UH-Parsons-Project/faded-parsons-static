@@ -11,6 +11,7 @@ class UserInfo(BaseModel):
     username: str
     email: str
     has_data_access: bool
+    role: str
 
 
 class TaskResponse(BaseModel):

@@ -921,9 +921,9 @@ class TestMainHelpers:
 
     def test_mistake_code_fingerprint_fallback_on_token_error(self, monkeypatch):
         def _raise_token_error(_):
-            raise main_module.tokenize.TokenError("boom")
+            raise utils.tokenize.TokenError("boom")
 
-        monkeypatch.setattr(main_module.tokenize, "generate_tokens", _raise_token_error)
+        monkeypatch.setattr(utils.tokenize, "generate_tokens", _raise_token_error)
         fingerprint = utils._mistake_code_fingerprint("a   b")
         assert fingerprint == ("a", "b")
 

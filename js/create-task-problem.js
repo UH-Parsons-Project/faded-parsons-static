@@ -19,8 +19,102 @@ initProtectedPage('/index.html');
 
   let draftPayload = null;
   let parsonsWidget = null;
+  let previewParsonsWidget = null;
   let modelAnswerCode = '';
   let modelAnswerUpdatedAt = '';
+  let hasOpenedStudentPreview = false;
+  let testsPassed = false;
+
+  function updateAddToListState() {
+    const addToListBtn = document.getElementById('add-to-problem-list');
+    if (!addToListBtn) {
+      return;
+    }
+
+    addToListBtn.disabled = !(testsPassed && hasOpenedStudentPreview);
+  }
+
+  function escapeHtml(unsafe) {
+    return (unsafe || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function openStudentPreview() {
+    const modal = document.getElementById('student-preview-modal');
+    const previewText = document.getElementById('preview-problem-text');
+    const previewSource = document.getElementById('preview-source-sortable');
+    const previewSolution = document.getElementById('preview-solution-sortable');
+    const previewWrittenTests = document.getElementById('preview-written-tests');
+    const previewModelAnswer = document.getElementById('preview-model-answer');
+    const descriptionInput = document.getElementById('problem-description');
+    const testsInput = document.getElementById('tests-input');
+    const ParsonsWidgetCtor = window.ParsonsWidget;
+
+    if (!modal || !previewText || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
+      return;
+    }
+
+    const problemStatement = descriptionInput?.value.trim() || 'No problem statement provided yet.';
+    previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+    previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
+    previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
+
+    previewSource.innerHTML = '';
+    previewSolution.innerHTML = '';
+
+    previewParsonsWidget = new ParsonsWidgetCtor({
+      sortableId: previewSolution,
+      trashId: previewSource,
+      trash_label: 'Drag from here',
+      solution_label: 'Construct your solution here, including indents',
+    });
+
+    previewParsonsWidget.init(parsonsWidget.reprCode());
+    previewParsonsWidget.alphabetize();
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    hasOpenedStudentPreview = true;
+    updateAddToListState();
+  }
+
+  function closeStudentPreview() {
+    const modal = document.getElementById('student-preview-modal');
+    if (!modal) {
+      return;
+    }
+
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function setupPreviewModal() {
+    const modal = document.getElementById('student-preview-modal');
+    const closeBtn = document.getElementById('close-student-preview');
+
+    if (!modal || !closeBtn) {
+      return;
+    }
+
+    closeBtn.addEventListener('click', closeStudentPreview);
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeStudentPreview();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal.classList.contains('open')) {
+        closeStudentPreview();
+      }
+    });
+  }
 
   function extractDefaultTitleFromCode(code) {
     const normalized = normalizeSourceCode(code || '');
@@ -206,6 +300,8 @@ initProtectedPage('/index.html');
       onSortableUpdate: () => {
         updateCounters();
         persistParsonsRepr();
+        hasOpenedStudentPreview = false;
+        updateAddToListState();
       },
     });
 
@@ -414,6 +510,9 @@ initProtectedPage('/index.html');
       return;
     }
 
+    testsPassed = false;
+    updateAddToListState();
+
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.children.length > 0);
     const sourceCode = hasSolutionBlocks && parsonsWidget
@@ -453,21 +552,25 @@ initProtectedPage('/index.html');
       if (error) {
         const errorMessage = error.message || 'An unknown error occurred during test execution.';
         renderTestResult('fail', formatPythonError(errorMessage));
-        addToListBtn.disabled = true;
+        testsPassed = false;
+        updateAddToListState();
       } else {
         const output = (results || '').toString().trim();
         if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
           renderTestResult('pass', 'All tests passed!');
-          addToListBtn.disabled = false;
+          testsPassed = true;
+          updateAddToListState();
         } else {
           const errorMessage = output || 'Test execution failed with no output.';
           renderTestResult('fail', errorMessage);
-          addToListBtn.disabled = true;
+          testsPassed = false;
+          updateAddToListState();
         }
       }
     } catch (err) {
       renderTestResult('fail', `Execution error: ${err.message || err}`);
-      addToListBtn.disabled = true;
+      testsPassed = false;
+      updateAddToListState();
     } finally {
       runBtn.disabled = false;
       runStatus.textContent = '';
@@ -496,6 +599,16 @@ initProtectedPage('/index.html');
 
     if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
       alert('Please ensure all fields are filled out and set a model answer before adding the problem.');
+      return;
+    }
+
+    if (!hasOpenedStudentPreview) {
+      alert('Please open "Preview" before adding the problem to the list.');
+      return;
+    }
+
+    if (!testsPassed) {
+      alert('Please run tests successfully before adding the problem to the list.');
       return;
     }
 
@@ -580,6 +693,7 @@ initProtectedPage('/index.html');
     const testsInput = document.getElementById('tests-input');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
+    const previewStudentBtn = document.getElementById('preview-student-view');
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
@@ -599,8 +713,11 @@ initProtectedPage('/index.html');
         sessionStorage.removeItem(MODEL_ANSWER_UPDATED_AT_KEY);
         modelAnswerCode = '';
         modelAnswerUpdatedAt = '';
+        hasOpenedStudentPreview = false;
+        testsPassed = false;
         renderParsonsBoard(normalizeSourceCode(draftPayload?.taskCode || ''));
         updateModelAnswerStatus();
+        updateAddToListState();
 
         const descriptionInput = document.getElementById('problem-description');
         const startDescriptionInput = document.getElementById('start-description');
@@ -634,6 +751,14 @@ initProtectedPage('/index.html');
         }
 
         saveModelAnswerToSession(currentSolutionCode);
+        hasOpenedStudentPreview = false;
+        updateAddToListState();
+      });
+    }
+
+    if (previewStudentBtn) {
+      previewStudentBtn.addEventListener('click', () => {
+        openStudentPreview();
       });
     }
 
@@ -660,19 +785,28 @@ initProtectedPage('/index.html');
 
     if (taskTitleInput && descriptionInput && startDescriptionInput && testsInput) {
       taskTitleInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
         saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        updateAddToListState();
       });
 
       descriptionInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
         saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        updateAddToListState();
       });
 
       startDescriptionInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
         saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        updateAddToListState();
       });
 
       testsInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
+        testsPassed = false;
         saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        updateAddToListState();
       });
     }
 
@@ -728,8 +862,10 @@ initProtectedPage('/index.html');
 
     renderParsonsBoard(initialText);
     setupGuideToggle();
+    setupPreviewModal();
     setupButtons();
     updateModelAnswerStatus();
+    updateAddToListState();
   }
 
   document.addEventListener('DOMContentLoaded', initializeBuilder);

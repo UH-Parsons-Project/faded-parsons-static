@@ -45,6 +45,12 @@ class ProblemSetTaskResponse(BaseModel):
     created_at: str
 
 
+class ProblemSetInfoResponse(BaseModel):
+    id: int
+    title: str
+    student_description: str | None
+
+
 class NicknameRequest(BaseModel):
     nickname: str
     unique_link_code: str

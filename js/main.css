@@ -156,12 +156,12 @@
 .task-list-item {
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 2px solid #dee2e6;
-  margin-bottom: 1rem;
-  padding: 1.25rem;
+  border: 1px solid #dee2e6;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 1rem;
   background-color: #fff;
   border-radius: 0.35rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
 .task-list-item:hover {
@@ -171,9 +171,9 @@
 }
 
 .task-list-title {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #333;
 }
 
@@ -941,6 +941,240 @@
   .token-items {
     max-height: 250px;
   }
+}
+
+/* Problemset (student task list) page */
+.problemset-layout {
+  display: flex;
+  min-height: calc(100vh - 56px);
+}
+
+.problemset-sidebar {
+  width: 480px;
+  flex-shrink: 0;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  padding: 2rem 1.5rem;
+}
+
+.problemset-sidebar-sticky {
+  position: sticky;
+  top: 2rem;
+}
+
+.problemset-sidebar-heading {
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #495057;
+}
+
+.progress-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.progress-count-row {
+  margin-bottom: 1.25rem;
+}
+
+.progress-count-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.progress-count-value {
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+
+.progress-count-done {
+  color: #007bff;
+}
+
+.progress-count-sep {
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+.problemset-progress-bar-wrap {
+  height: 1.25rem;
+  margin-bottom: 1rem;
+  background-color: #e9ecef;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.problemset-progress-bar {
+  width: 0%;
+  transition: width 0.4s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 1rem;
+}
+
+.progress-percentage-row {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-align: center;
+  font-weight: 500;
+}
+
+.problemset-divider {
+  margin: 1.75rem 0;
+  border: none;
+  border-top: 1px solid #dee2e6;
+}
+
+#info-section {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.info-heading {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-top: 0;
+}
+
+.info-description {
+  font-size: 0.875rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.task-completed {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.task-completed i {
+  color: #28a745;
+  margin-right: 0.5rem;
+}
+
+.task-in-progress {
+  color: #ff9800;
+}
+
+.task-in-progress i {
+  color: #ff9800;
+  margin-right: 0.5rem;
+}
+
+#info-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+#info-section::-webkit-scrollbar-track {
+  background: #e9ecef;
+  border-radius: 3px;
+}
+
+#info-section::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 3px;
+}
+
+#info-section::-webkit-scrollbar-thumb:hover {
+  background: #6c757d;
+}
+
+.problemset-info-heading {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #495057;
+  margin-top: 0;
+}
+
+.problemset-info-text {
+  font-size: 1rem;
+  color: #6c757d;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.problemset-content {
+  flex: 1;
+  padding: 3rem 2.5rem 2rem 2.5rem;
+  min-width: 0;
+}
+
+.problemset-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #212529;
+}
+
+/* Numbered task card layout */
+.task-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.task-list-item-number {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.task-list-item:hover .task-list-item-number {
+  background: #007bff;
+  color: white;
+}
+
+.task-list-item-number.completed {
+  background: #28a745;
+  color: white;
+}
+
+.task-list-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-list-item-chevron {
+  flex-shrink: 0;
+  color: #ced4da;
+  font-size: 0.9rem;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.task-list-item:hover .task-list-item-chevron {
+  color: #007bff;
+  transform: translateX(3px);
 }
 
 /* Replay viewer */

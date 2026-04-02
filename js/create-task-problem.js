@@ -14,6 +14,7 @@ initProtectedPage('/index.html');
   const META_KEY = 'create_task_builder_meta';
   const META_SOURCE_KEY = 'create_task_builder_meta_source';
   const MODEL_ANSWER_KEY = 'create_task_builder_model_answer';
+  const MODEL_ANSWER_REPR_KEY = 'create_task_builder_model_answer_repr';
   const MODEL_ANSWER_SOURCE_KEY = 'create_task_builder_model_answer_source';
   const MODEL_ANSWER_UPDATED_AT_KEY = 'create_task_builder_model_answer_updated_at';
 
@@ -21,6 +22,7 @@ initProtectedPage('/index.html');
   let parsonsWidget = null;
   let previewParsonsWidget = null;
   let modelAnswerCode = '';
+  let modelAnswerRepr = '';
   let modelAnswerUpdatedAt = '';
   let hasOpenedStudentPreview = false;
   let testsPassed = false;
@@ -45,20 +47,28 @@ initProtectedPage('/index.html');
 
   function openStudentPreview() {
     const modal = document.getElementById('student-preview-modal');
+    const previewTaskTitle = document.getElementById('preview-task-title');
+    const previewStartIntro = document.getElementById('preview-start-intro');
     const previewText = document.getElementById('preview-problem-text');
     const previewSource = document.getElementById('preview-source-sortable');
     const previewSolution = document.getElementById('preview-solution-sortable');
     const previewWrittenTests = document.getElementById('preview-written-tests');
     const previewModelAnswer = document.getElementById('preview-model-answer');
+    const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
 
-    if (!modal || !previewText || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
+    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
       return;
     }
 
+    const taskTitle = taskTitleInput?.value.trim() || 'No task name provided yet.';
+    const startIntro = startDescriptionInput?.value.trim() || 'No start page intro provided yet.';
     const problemStatement = descriptionInput?.value.trim() || 'No problem statement provided yet.';
+    previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
+    previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
@@ -73,8 +83,15 @@ initProtectedPage('/index.html');
       solution_label: 'Construct your solution here, including indents',
     });
 
-    previewParsonsWidget.init(parsonsWidget.reprCode());
-    previewParsonsWidget.alphabetize();
+    const previewRepr = modelAnswerRepr || parsonsWidget.reprCode();
+    previewParsonsWidget.init(previewRepr);
+
+    const previewSolutionIds = previewParsonsWidget.given.map((line) => line.id);
+    const previewSolutionSet = new Set(previewSolutionIds);
+    const previewSourceIds = previewParsonsWidget.modified_lines
+      .filter((line) => !previewSolutionSet.has(line.id))
+      .map((line) => line.id);
+    previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -208,19 +225,22 @@ initProtectedPage('/index.html');
     const normalizedSource = normalizeSourceCode(sourceCode || '');
 
     if (!rawModelAnswer || typeof rawSource !== 'string' || rawSource !== normalizedSource) {
-      return { code: '', updatedAt: '' };
+      return { code: '', repr: '', updatedAt: '' };
     }
 
     return {
       code: rawModelAnswer,
+      repr: sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || '',
       updatedAt: rawUpdatedAt || '',
     };
   }
 
-  function saveModelAnswerToSession(code) {
+  function saveModelAnswerToSession(code, repr) {
     modelAnswerCode = code || '';
+    modelAnswerRepr = repr || '';
     modelAnswerUpdatedAt = new Date().toISOString();
     sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
+    sessionStorage.setItem(MODEL_ANSWER_REPR_KEY, modelAnswerRepr);
     sessionStorage.setItem(MODEL_ANSWER_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
     sessionStorage.setItem(MODEL_ANSWER_UPDATED_AT_KEY, modelAnswerUpdatedAt);
     updateModelAnswerStatus();
@@ -709,9 +729,11 @@ initProtectedPage('/index.html');
         sessionStorage.removeItem(META_KEY);
         sessionStorage.removeItem(META_SOURCE_KEY);
         sessionStorage.removeItem(MODEL_ANSWER_KEY);
+        sessionStorage.removeItem(MODEL_ANSWER_REPR_KEY);
         sessionStorage.removeItem(MODEL_ANSWER_SOURCE_KEY);
         sessionStorage.removeItem(MODEL_ANSWER_UPDATED_AT_KEY);
         modelAnswerCode = '';
+        modelAnswerRepr = '';
         modelAnswerUpdatedAt = '';
         hasOpenedStudentPreview = false;
         testsPassed = false;
@@ -750,7 +772,7 @@ initProtectedPage('/index.html');
           return;
         }
 
-        saveModelAnswerToSession(currentSolutionCode);
+        saveModelAnswerToSession(currentSolutionCode, parsonsWidget.reprCode());
         hasOpenedStudentPreview = false;
         updateAddToListState();
       });
@@ -858,6 +880,7 @@ initProtectedPage('/index.html');
 
     const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
     modelAnswerCode = savedModelAnswer.code;
+    modelAnswerRepr = savedModelAnswer.repr;
     modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
 
     renderParsonsBoard(initialText);

@@ -1,12 +1,7 @@
-from __future__ import annotations
-
 import io
 import token
 import tokenize
 import re
-import json
-from typing import Any
-
 
 def _clean_mistake_code(code: str) -> str:
     normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]

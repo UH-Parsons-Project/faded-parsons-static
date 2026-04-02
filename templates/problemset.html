@@ -17,20 +17,58 @@
 		<link rel="stylesheet" href="/js/main.css" />
 	</head>
 	<body>
-		  <nav class="navbar">
-    		<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+		<nav class="navbar">
+			<a href="/">
+				<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+			</a>
 			<div class="ml-auto">
-				<span class="text-black mr-3"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
+				<span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
 				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
 			</div>
 		</nav>
-		<div class="container">
-			<h1>Problems</h1>
-			<div id="problems-list">
-				<p>Loading problems…</p>
+		<div class="problemset-layout">
+			<!-- Left sidebar -->
+			<div class="problemset-sidebar">
+				<div class="problemset-sidebar-sticky">
+					<h5 class="problemset-sidebar-heading">Progress</h5>
+
+					<div class="progress-card">
+						<div class="progress-count-row">
+							<div class="progress-count-label">Tasks Completed</div>
+							<div class="progress-count-value">
+								<span id="completed-count" class="progress-count-done">0</span><span class="progress-count-sep">/<span id="total-count">0</span></span>
+							</div>
+						</div>
+
+						<div class="progress problemset-progress-bar-wrap">
+							<div id="progress-bar" class="progress-bar bg-success problemset-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+						</div>
+					</div>
+
+					<hr class="problemset-divider">
+
+					<div id="info-section">
+						<h6 class="problemset-info-heading">About These Tasks</h6>
+						<p class="problemset-info-text">
+							Complete all tasks in this set to master the concepts. Each task builds on the previous one. Start from the top and work your way through systematically.
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Right content -->
+			<div class="problemset-content">
+				<h2 class="problemset-title mb-3">Tasks</h2>
+				<p class="text-muted mb-3">Each exercise includes instructions and starter code. You can run the code as many times as needed.</p>
+				<div id="problems-list" class="loading-spinner">
+					<div class="spinner-border text-primary" role="status">
+						<span class="sr-only">Loading...</span>
+					</div>
+					<p class="mt-2">Loading tasks...</p>
+				</div>
 			</div>
 		</div>
 
 		<script type="module" src="/js/problemset.js"></script>
-</body>
+	</body>
 </html>

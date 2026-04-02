@@ -151,6 +151,28 @@ async def check_task_has_started(
     return {"has_started": existing_start is not None}
 
 
+@router.get("/api/tasks/{task_id}/my-completion-status")
+async def get_my_completion_status(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        return {"student_attempts": 0, "student_completed": 0}
+
+    stmt = select(TaskAttempt).where(
+        (TaskAttempt.student_id == student_session.id) &
+        (TaskAttempt.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    attempts = result.scalars().all()
+
+    student_attempts = len(attempts)
+    student_completed = sum(1 for a in attempts if a.success)
+
+    return {"student_attempts": student_attempts, "student_completed": student_completed}
+
+
 @router.post("/api/tasks/{task_id}/start")
 async def start_task(
     task_id: int,

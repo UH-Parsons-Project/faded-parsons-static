@@ -89,8 +89,8 @@ async def seed_db():
                 teacher_id=test_teacher.id,
                 title="Starter List",
                 unique_link_code="starter-list",
-                teacher_description="This is a starter set list that has two basic tasks. It is created for the Helsinki University project.",
-                student_description="Complete all exercises in this list. Each exercise includes instructions and starter code. You can run the code as many times as needed",
+                teacher_description="Template starter list containing 2 foundational exercises for beginners. Use this as a reference for creating your own exercise collections. Students can attempt each exercise multiple times with instant feedback. View student progress and statistics through the dashboard. Part of Helsinki University's Parsons Code Lab project.",
+                student_description="A beginner-friendly collection of foundational programming exercises designed to help you learn core concepts. This starter set includes two carefully selected tasks that progressively build your understanding. Each exercise includes clear instructions and starter code to help you get started. You can run and test your code as many times as needed until you're ready to submit.",
             )
             session.add(default_list)
             try:

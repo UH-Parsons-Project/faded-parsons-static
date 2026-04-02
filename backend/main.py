@@ -69,7 +69,7 @@ from .utils import (
 
 from .routes.student import router as student_router
 from .routes.student_api import router as student_api_router
-from .admin import router as admin_router
+from .routes.admin.admin_api import router as admin_router
 
 
 @asynccontextmanager

@@ -67,8 +67,8 @@ from .utils import (
     has_user_added_own_code,
 )
 
-from .routes.student import router as student_router
-from .routes.student_api import router as student_api_router
+from .routes.student.student import router as student_router
+from .routes.student.student_api import router as student_api_router
 from .routes.admin.admin_api import router as admin_router
 
 

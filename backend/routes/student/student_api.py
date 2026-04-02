@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..pydantic import SubmitTestResultRequest
-from ..database import get_db
-from ..models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
-from ..student_auth import (
+from ...pydantic import SubmitTestResultRequest
+from ...database import get_db
+from ...models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart, Parsons, EditEvent
+from ...student_auth import (
     authenticate_student,
     set_session_cookie,
     get_current_student_session,
@@ -367,3 +367,5 @@ async def get_task_moves(
         }
         for move in moves
     ]
+
+    return move_events

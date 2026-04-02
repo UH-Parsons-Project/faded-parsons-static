@@ -6,13 +6,13 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..database import get_db
-from ..models import Student, TaskList
-from ..student_auth import (
+from ...database import get_db
+from ...models import Student, TaskList
+from ...student_auth import (
     get_current_student_session_no_update,
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
 
@@ -131,4 +131,3 @@ async def problemset_task_start_page(
 async def student_register_page():
     register_path = BASE_DIR / "templates" / "student_register.html"
     return FileResponse(register_path)
-

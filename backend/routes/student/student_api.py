@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...pydantic import SubmitTestResultRequest
 from ...database import get_db
-from ...models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart, Parsons, EditEvent
+from ...models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -309,7 +309,7 @@ async def get_task_moves(
     result = await db.execute(stmt)
     attempts = result.scalars().all()
 
-    attempt_ids = [a.id for a in attempts] 
+    attempt_ids = [a.id for a in attempts]
 
     if not attempt_ids:
         return []
@@ -389,6 +389,25 @@ async def get_task_moves(
         }
         for move in moves
     ]
+
+    edit_events = [
+        {
+            "type": "edit",
+            "block_id": edit.block_id,
+            "block_code": block_code_map.get(edit.block_id, ""),
+            "blank_index": edit.blank_index,
+            "value": edit.value,
+            "event_time": edit.event_time.isoformat(),
+        }
+        for edit in edits
+    ]
+
+    all_events = sorted(move_events + edit_events, key=lambda e: e["event_time"])
+
+    return {
+        "events": all_events,
+        "initial_blocks": initial_blocks,
+    }
     
     edit_events = [
         {

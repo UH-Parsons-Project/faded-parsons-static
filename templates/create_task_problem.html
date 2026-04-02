@@ -38,6 +38,27 @@
           </div>
           <div class="card-body">
             <p class="problem-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
+
+            <section class="guide-section" aria-label="Teacher guide for block builder">
+              <button type="button" class="guide-toggle" id="problem-guide-toggle" aria-expanded="false" aria-controls="problem-guide-content">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <span>Quick Guide for Teachers</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+
+              <div class="guide-content" id="problem-guide-content">
+                <div class="guide-steps">
+                <ol class="steps-list">
+                  <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left.</li>
+                  <li>Use <strong>+ Add Custom Block</strong> to add a new custom code block.</li>
+                  <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
+                  <li>Click <strong>Set as Model Answer</strong>. You can click it again later to update the saved model answer.</li>
+                  <li>Click <strong>Preview</strong> to review the block page.</li>
+                  <li>When all tests pass, click <strong>Add to Problem List</strong> to publish the task.</li>
+                </ol>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -53,9 +74,19 @@
             <label for="task-title" class="mb-2">Task name shown in task lists</label>
             <input id="task-title" class="form-control mb-3" placeholder="add" />
             <label for="problem-description" class="mb-2">Problem statement shown on the exercise page</label>
+            <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
             <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
             <label for="start-description" class="mb-2 mt-3">Start page intro shown above the Start button</label>
+            <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
             <textarea id="start-description" class="problem-description" placeholder="In this exercise you will practice adding values."></textarea>
+
+            <details class="field-help-details mt-3">
+              <summary>Where do students see these texts?</summary>
+              <div class="field-help-details-body">
+                <p><strong>Problem statement:</strong> Appears on the exercise page where students work with code blocks and inputs.</p>
+                <p><strong>Start page intro:</strong> Appears on the start screen right before students click the Start button.</p>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -72,6 +103,11 @@
             <div id="source-sortable" class="sortable-code starter"></div>
             <div id="solution-sortable" class="sortable-code solution"></div>
             <div style="clear: both;"></div>
+
+            <div class="model-answer-toolbar" aria-live="polite">
+              <span id="model-answer-status" class="model-answer-status">No model answer saved yet.</span>
+              <button id="set-model-answer" class="btn btn-outline-primary btn-sm" type="button">Set as Model Answer</button>
+            </div>
 
             <div class="custom-block-box">
               <label for="custom-block-input">+ Add Custom Block (stays on left until dragged)</label>
@@ -94,6 +130,7 @@
             <div class="run-toolbar">
               <span id="run-status" class="run-status"></span>
               <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+              <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
               <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Add to Problem List</button>
             </div>
           </div>
@@ -109,6 +146,92 @@
           </div>
           <div class="card-body">
             <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+      <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+        <div class="student-preview-header">
+          <h4 id="student-preview-title" class="mb-0">Preview</h4>
+          <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+        </div>
+        <div class="student-preview-body">
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Task Name</h3>
+                </div>
+                <div class="card-body" id="preview-task-title"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Start Page Intro</h3>
+                </div>
+                <div class="card-body" id="preview-start-intro"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="mb-0">Problem Statement</h3>
+                </div>
+                <div class="card-body" id="preview-problem-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-body">
+                  <div id="preview-source-sortable" class="sortable-code starter"></div>
+                  <div id="preview-solution-sortable" class="sortable-code solution"></div>
+                  <div style="clear: both;"></div>
+                  <div class="row float-right">
+                    <div class="col-sm-12">
+                      <button type="button" class="btn btn-primary" disabled>Run Tests</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="mb-0">Written Tests</h4>
+                </div>
+                <div class="card-body preview-code-block" id="preview-written-tests">
+                  No tests written yet.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mt-4">
+            <div class="col-sm-12">
+              <div class="card">
+                <div class="card-header">
+                  <h4 class="mb-0">Model Answer</h4>
+                </div>
+                <div class="card-body preview-code-block" id="preview-model-answer">
+                  No model answer set yet.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

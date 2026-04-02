@@ -17,6 +17,88 @@ body {
   margin-bottom: 0;
 }
 
+/* Guide style aligned with create_task page */
+.guide-section {
+  margin-top: 0.85rem;
+}
+
+.guide-toggle {
+  width: 100%;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f8f5ff 100%);
+  border: 2px solid #d8e1ef;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1a2a44;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.guide-toggle:hover {
+  border-color: #b0c4e0;
+  background: linear-gradient(135deg, #e8f0ff 0%, #f3ebff 100%);
+}
+
+.guide-toggle i:first-child {
+  font-size: 1.2rem;
+  color: #0f766e;
+}
+
+.guide-toggle span {
+  flex: 1;
+  text-align: left;
+}
+
+.guide-toggle i:last-child {
+  transition: transform 0.3s ease;
+}
+
+.guide-toggle.expanded i:last-child {
+  transform: rotate(180deg);
+}
+
+.guide-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.guide-content.expanded {
+  max-height: 2000px;
+  opacity: 1;
+  margin-top: 1rem;
+}
+
+.guide-steps {
+  background: #ffffff;
+  border: 1px solid #d8e1ef;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-bottom: 0.2rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.steps-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+.steps-list li {
+  margin-bottom: 0.8rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.steps-list li strong {
+  color: #0f766e;
+}
+
 .sortable-code {
   min-height: 280px;
 }
@@ -45,6 +127,24 @@ body {
 
 #solution-sortable ul {
   background: #fffdeb;
+}
+
+.model-answer-toolbar {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.model-answer-status {
+  color: #4b5563;
+  font-size: 0.88rem;
+}
+
+.model-answer-status.saved {
+  color: #0f766e;
+  font-weight: 600;
 }
 
 .add-btn {
@@ -121,6 +221,42 @@ body {
   min-height: 96px;
 }
 
+.field-help {
+  margin: -0.15rem 0 0.45rem;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.field-help-details {
+  border: 1px solid #d8e1ef;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 0.55rem 0.7rem;
+}
+
+.field-help-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.field-help-details-body {
+  margin-top: 0.55rem;
+  color: #475569;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.field-help-details-body p {
+  margin: 0;
+}
+
+.field-help-details-body p + p {
+  margin-top: 0.45rem;
+}
+
 .run-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -160,6 +296,75 @@ body {
   padding: 0.35rem 0;
 }
 
+.student-preview-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  z-index: 1300;
+  display: none;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.student-preview-modal.open {
+  display: block;
+}
+
+.student-preview-dialog {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #f6f9ff;
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(2, 6, 23, 0.3);
+  overflow: hidden;
+}
+
+.student-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #d8e1ef;
+  background: #ffffff;
+}
+
+.student-preview-body {
+  padding: 0 1rem 1.1rem;
+}
+
+.student-preview-close {
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preview-code-block {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid #d8e1ef;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+#preview-source-sortable ul,
+#preview-solution-sortable ul {
+  min-height: 230px;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid #d8e0ec;
+  background: #fbfdff;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+#preview-solution-sortable ul {
+  background: #fffdeb;
+}
+
 @media (max-width: 980px) {
   .starter,
   .solution {
@@ -170,5 +375,22 @@ body {
 
   .solution {
     margin-top: 1rem;
+  }
+
+  .guide-toggle {
+    padding: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .guide-toggle i:first-child {
+    font-size: 1rem;
+  }
+
+  .student-preview-modal {
+    padding: 0.5rem;
+  }
+
+  .student-preview-body {
+    padding: 0 0.55rem 0.75rem;
   }
 }

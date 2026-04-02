@@ -53,7 +53,7 @@ test('teacher can see empty student submission in task list statistics under "st
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Click on the "add_in_range" task
-  await studentPage.locator('a', { hasText: 'add_in_range' }).click();
+  await studentPage.locator('.task-list-item', { hasText: 'add_in_range' }).click();
 
   // Start the task
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });

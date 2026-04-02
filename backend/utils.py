@@ -11,15 +11,6 @@ import re
 import json
 from typing import Any
 
-HARDCODED_MODEL_ANSWERS = {
-    "add_in_range": "def add_in_range(start, stop):\n"
-    "    total = 0\n"
-    "    while start <= stop:\n"
-    "        total += start\n"
-    "        start += 1\n"
-    "    return total",
-}
-
 
 def _get_model_answer_for_task(task: Any) -> str | None:
     """Return a teacher-facing hard-coded model answer for known exercises.

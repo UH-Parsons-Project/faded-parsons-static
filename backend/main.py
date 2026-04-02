@@ -3,10 +3,7 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
-import io
 import os
-import token
-import tokenize
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -63,6 +60,12 @@ from .student_auth import (
     get_current_student_session_no_update,
 )
 from .token_utils import verify_token
+from .utils import (
+    _clean_mistake_code,
+    _mistake_code_fingerprint,
+    generate_slug,
+    has_user_added_own_code,
+)
 
 from .student import router as student_router
 from .admin import router as admin_router
@@ -94,66 +97,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
     )
     return result.scalar_one_or_none()
-
-
-def _clean_mistake_code(code: str) -> str:
-    """Return a display-friendly version of submitted code."""
-    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-
-    while normalized_lines and not normalized_lines[0].strip():
-        normalized_lines.pop(0)
-    while normalized_lines and not normalized_lines[-1].strip():
-        normalized_lines.pop()
-
-    return "\n".join(normalized_lines)
-
-
-def _mistake_code_fingerprint(code: str) -> tuple:
-    """Build a grouping key that ignores whitespace-only differences."""
-    cleaned_code = _clean_mistake_code(code)
-    if not cleaned_code:
-        return tuple()
-
-    try:
-        tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
-        return tuple(
-            (current_token.type, current_token.string)
-            for current_token in tokens
-            if current_token.type not in {
-                token.INDENT,
-                token.DEDENT,
-                token.NEWLINE,
-                tokenize.NL,
-                tokenize.ENDMARKER,
-            }
-        )
-    except (IndentationError, SyntaxError, tokenize.TokenError):
-        return tuple(cleaned_code.split())
-
-
-def generate_slug(text: str) -> str:
-    """
-    Generate a URL-friendly slug from text.
-    Converts to lowercase, replaces spaces with hyphens, removes special characters.
-
-    Args:
-        text: The text to convert to a slug
-
-    Returns:
-        A slug-friendly string
-    """
-    # Convert to lowercase
-    slug = text.lower()
-    # Replace spaces and underscores with hyphens
-    slug = re.sub(r'[\s_]+', '-', slug)
-    # Remove any character that's not alphanumeric or hyphen
-    slug = re.sub(r'[^a-z0-9-]', '', slug)
-    # Remove multiple consecutive hyphens
-    slug = re.sub(r'-+', '-', slug)
-    # Strip hyphens from start and end
-    slug = slug.strip('-')
-    return slug
-
+# Helper utilities moved to backend/utils.py
 
 async def has_task_list_view_access(
     task_list: TaskList,
@@ -183,53 +127,6 @@ async def require_task_list_view_access(
             detail="You don't have permission to view this task list"
         )
 
-
-def has_user_added_own_code(submitted_code: str, task_code_blocks: dict) -> bool:
-    """
-    Check if submitted code has user-added content beyond just the given blocks.
-
-    An "empty" submission is one that only contains the pre-filled (given) blocks
-    with no other blocks added and no blanks filled in.
-
-    Handles both old format (blocks as list of strings) and new format (blocks as list of dicts).
-    """
-    if not submitted_code.strip():
-        return False
-
-    blocks = task_code_blocks.get("blocks", [])
-    if not blocks:
-        # No blocks defined, so any submission has user-added code
-        return True
-
-    # Handle old format where blocks is a list of strings
-    if isinstance(blocks[0], str):
-        # Old format - assume any non-empty submission is user-added
-        return True
-
-    submitted_lines = [line.strip() for line in submitted_code.strip().split('\n') if line.strip()]
-
-    # Get all "given" (pre-filled) blocks - these are the ones shown by default
-    given_blocks = [block for block in blocks if isinstance(block, dict) and block.get("given", False)]
-
-    # If submission has more lines than given blocks, user added something
-    if len(submitted_lines) > len(given_blocks):
-        return True
-
-    # If submission has fewer lines than given blocks, it's incomplete/empty
-    if len(submitted_lines) < len(given_blocks):
-        return False
-
-    # Same number of lines - check if they match the given blocks with empty blanks
-    for submitted_line, given_block in zip(submitted_lines, given_blocks):
-        # Reconstruct what this given block looks like with empty blanks
-        expected_empty = given_block.get("code", "").replace("___", "").strip()
-        submitted_clean = submitted_line.replace(" ", "")
-        expected_clean = expected_empty.replace(" ", "")
-
-        if submitted_clean != expected_clean:
-            return True
-
-    return False
 
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"

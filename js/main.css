@@ -156,12 +156,12 @@
 .task-list-item {
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid #dee2e6;
-  margin-bottom: 0.5rem;
-  padding: 0.75rem 1rem;
+  border: 2px solid #dee2e6;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
   background-color: #fff;
   border-radius: 0.35rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
 .task-list-item:hover {
@@ -171,9 +171,9 @@
 }
 
 .task-list-title {
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   color: #333;
 }
 
@@ -1128,11 +1128,20 @@
   color: #212529;
 }
 
-/* Numbered task card layout */
-.task-list-item {
+/* Numbered task card layout (problemset page only) */
+.problemset-content .task-list-item {
   display: flex;
   align-items: center;
   gap: 1rem;
+  border-width: 1px;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.problemset-content .task-list-title {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
 }
 
 .task-list-item-number {
@@ -1150,7 +1159,7 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.task-list-item:hover .task-list-item-number {
+.problemset-content .task-list-item:hover .task-list-item-number {
   background: #007bff;
   color: white;
 }
@@ -1172,7 +1181,7 @@
   transition: color 0.2s, transform 0.2s;
 }
 
-.task-list-item:hover .task-list-item-chevron {
+.problemset-content .task-list-item:hover .task-list-item-chevron {
   color: #007bff;
   transform: translateX(3px);
 }

@@ -49,6 +49,9 @@ export class ProblemElement extends LitElement {
 	// Array to store moves locally as they happen
 	recordedMoves = [];
 
+	// Array to store blank field edits locally as they happen
+	recordedEdits = [];
+
 	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
 		return this;
@@ -202,6 +205,7 @@ export class ProblemElement extends LitElement {
 					to_index: to.index,
 					from_indent: pendingMove.fromIndent,
 					to_indent: toIndent,
+					event_time: new Date().toISOString(),
 				});
 
 				pendingMove = null;
@@ -235,6 +239,55 @@ export class ProblemElement extends LitElement {
 
 		attachMoveStartTracking(sortableList);
 		attachMoveStartTracking(starterList);
+
+		// Track text typed into !BLANK input fields via event delegation on both containers
+		const debounceTimers = new Map();
+
+		const recordEdit = (input) => {
+			const li = input.closest('li[id]');
+			if (!li) return;
+			const blockId = li.id;
+			const inputs = Array.from(li.querySelectorAll('input.text-box'));
+			const blankIndex = inputs.indexOf(input);
+			const value = input.value;
+
+			// Skip if value unchanged from last recorded edit for this block+blank
+			const key = `${blockId}:${blankIndex}`;
+			const last = this.recordedEdits.findLast?.(e => e.block_id === blockId && e.blank_index === blankIndex);
+			if (last && last.value === value) return;
+
+			this.recordedEdits.push({
+				block_id: blockId,
+				blank_index: blankIndex,
+				value,
+				event_time: new Date().toISOString(),
+			});
+		};
+
+		const attachEditTracking = (containerEl) => {
+			if (!containerEl) return;
+
+			containerEl.addEventListener('input', (event) => {
+				if (!event.target.matches('input.text-box')) return;
+				const input = event.target;
+				const key = input.closest('li[id]')?.id + ':' + Array.from(input.closest('li[id]')?.querySelectorAll('input.text-box') ?? []).indexOf(input);
+				clearTimeout(debounceTimers.get(key));
+				debounceTimers.set(key, setTimeout(() => recordEdit(input), 500));
+			});
+
+			containerEl.addEventListener('blur', (event) => {
+				if (!event.target.matches('input.text-box')) return;
+				const input = event.target;
+				const li = input.closest('li[id]');
+				if (!li) return;
+				const key = li.id + ':' + Array.from(li.querySelectorAll('input.text-box')).indexOf(input);
+				clearTimeout(debounceTimers.get(key));
+				recordEdit(input);
+			}, true);
+		};
+
+		attachEditTracking(this.solutionRef.value);
+		attachEditTracking(this.starterRef.value);
 	}
 
 	onRun() {
@@ -249,10 +302,13 @@ export class ProblemElement extends LitElement {
 					repr: this.parsonsWidget.reprCode(),
 					// Include recorded moves to send with attempt
 					moves: this.recordedMoves,
+					// Include recorded blank edits to send with attempt
+					edits: this.recordedEdits,
 				},
 			})
 		);
 		this.recordedMoves = [];
+		this.recordedEdits = [];
 	}
 }
 

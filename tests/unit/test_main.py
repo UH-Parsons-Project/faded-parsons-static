@@ -276,6 +276,7 @@ class TestGetMe:
             "username": "testteacher",
             "email": "test@example.com",
             "has_data_access": False,
+            "role": "Teacher",
         }
 
     async def test_unauthenticated_returns_401(self, client):

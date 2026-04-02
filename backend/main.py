@@ -67,7 +67,8 @@ from .utils import (
     has_user_added_own_code,
 )
 
-from .student import router as student_router
+from .routes.student import router as student_router
+from .routes.student_api import router as student_api_router
 from .admin import router as admin_router
 
 
@@ -156,6 +157,7 @@ app.include_router(student_router)
 
 # Admin routes moved to dedicated module
 app.include_router(admin_router)
+app.include_router(student_api_router)
 
 
 @app.get("/ohtuproj_logo.png")

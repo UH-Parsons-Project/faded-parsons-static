@@ -1,142 +1,20 @@
 from datetime import datetime, timezone
-from pathlib import Path
-
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .pydantic import SubmitTestResultRequest
-
-from .database import get_db
-from .models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
-from .student_auth import (
+from ..pydantic import SubmitTestResultRequest
+from ..database import get_db
+from ..models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart
+from ..student_auth import (
     authenticate_student,
     set_session_cookie,
     get_current_student_session,
     get_current_student_session_no_update,
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 router = APIRouter()
-
-
-@router.get("/student_start_page", response_class=FileResponse)
-async def student_start_view():
-    index_path = BASE_DIR / "templates" / "student_start_page.html"
-    return FileResponse(index_path)
-
-
-@router.get("/set/{unique_link_code}", response_class=FileResponse)
-async def problemset_page(
-    unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
-
-    problemset_path = BASE_DIR / "templates" / "student_index.html"
-    response = FileResponse(problemset_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks", response_class=FileResponse)
-async def problemset_tasks_page(
-    unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    tasks_path = BASE_DIR / "templates" / "problemset.html"
-    response = FileResponse(tasks_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
-async def problemset_task_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    task_path = BASE_DIR / "templates" / "student_problem.html"
-    response = FileResponse(task_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
-async def problemset_task_start_page(
-    unique_link_code: str,
-    task_id: int,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
-):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
-
-    if not problemset:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
-
-    if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
-
-    start_path = BASE_DIR / "templates" / "student_start_page.html"
-    response = FileResponse(start_path)
-    response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
-    return response
-
-
-@router.get("/student_register", response_class=FileResponse)
-async def student_register_page():
-    register_path = BASE_DIR / "templates" / "student_register.html"
-    return FileResponse(register_path)
 
 
 @router.post("/api/student_login")
@@ -145,7 +23,6 @@ async def student_login(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    # request expected to follow StudentLoginRequest structure
     username = request.get("username") if isinstance(request, dict) else None
     password = request.get("password") if isinstance(request, dict) else None
     unique_link_code = request.get("unique_link_code") if isinstance(request, dict) else None
@@ -236,7 +113,6 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
             detail="password must have a minimum length of 8 characters",
         )
 
-    # Check uniqueness
     stmt = select(Student).where((Student.username == username) | (Student.email == email))
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
@@ -381,11 +257,9 @@ async def submit_test_result(
 async def get_task_moves(
     student_username: str,
     task_id: int,
-    list_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_student_session_no_update),
 ):
-    """Fetch all moves for a student's attempts on a specific task."""
     stmt = select(Student).where(Student.username == student_username)
     result = await db.execute(stmt)
     student = result.scalar_one_or_none()
@@ -400,7 +274,7 @@ async def get_task_moves(
     result = await db.execute(stmt)
     attempts = result.scalars().all()
 
-    attempt_ids = [a.id for a in attempts]
+    attempt_ids = [a.id for a in attempts] 
 
     if not attempt_ids:
         return []

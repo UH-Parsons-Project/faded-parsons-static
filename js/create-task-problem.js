@@ -13,9 +13,14 @@ initProtectedPage('/index.html');
   const BLOCKS_SOURCE_KEY = 'create_task_builder_blocks_source';
   const META_KEY = 'create_task_builder_meta';
   const META_SOURCE_KEY = 'create_task_builder_meta_source';
+  const MODEL_ANSWER_KEY = 'create_task_builder_model_answer';
+  const MODEL_ANSWER_SOURCE_KEY = 'create_task_builder_model_answer_source';
+  const MODEL_ANSWER_UPDATED_AT_KEY = 'create_task_builder_model_answer_updated_at';
 
   let draftPayload = null;
   let parsonsWidget = null;
+  let modelAnswerCode = '';
+  let modelAnswerUpdatedAt = '';
 
   function extractDefaultTitleFromCode(code) {
     const normalized = normalizeSourceCode(code || '');
@@ -100,6 +105,68 @@ initProtectedPage('/index.html');
   function saveMetaToSession(taskTitle, description, startDescription, tests) {
     sessionStorage.setItem(META_KEY, JSON.stringify({ taskTitle, description, startDescription, tests }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
+  }
+
+  function loadModelAnswerFromSession(sourceCode) {
+    const rawModelAnswer = sessionStorage.getItem(MODEL_ANSWER_KEY);
+    const rawSource = sessionStorage.getItem(MODEL_ANSWER_SOURCE_KEY);
+    const rawUpdatedAt = sessionStorage.getItem(MODEL_ANSWER_UPDATED_AT_KEY);
+    const normalizedSource = normalizeSourceCode(sourceCode || '');
+
+    if (!rawModelAnswer || typeof rawSource !== 'string' || rawSource !== normalizedSource) {
+      return { code: '', updatedAt: '' };
+    }
+
+    return {
+      code: rawModelAnswer,
+      updatedAt: rawUpdatedAt || '',
+    };
+  }
+
+  function saveModelAnswerToSession(code) {
+    modelAnswerCode = code || '';
+    modelAnswerUpdatedAt = new Date().toISOString();
+    sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
+    sessionStorage.setItem(MODEL_ANSWER_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
+    sessionStorage.setItem(MODEL_ANSWER_UPDATED_AT_KEY, modelAnswerUpdatedAt);
+    updateModelAnswerStatus();
+  }
+
+  function formatUpdatedAtLabel(isoString) {
+    if (!isoString) {
+      return '';
+    }
+
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function updateModelAnswerStatus() {
+    const status = document.getElementById('model-answer-status');
+    const setModelAnswerBtn = document.getElementById('set-model-answer');
+
+    if (setModelAnswerBtn) {
+      setModelAnswerBtn.textContent = modelAnswerCode ? 'Update Model Answer' : 'Set as Model Answer';
+    }
+
+    if (!status) {
+      return;
+    }
+
+    status.classList.toggle('saved', Boolean(modelAnswerCode));
+    if (!modelAnswerCode) {
+      status.textContent = 'No model answer saved yet.';
+      return;
+    }
+
+    const updatedAtLabel = formatUpdatedAtLabel(modelAnswerUpdatedAt);
+    status.textContent = updatedAtLabel
+      ? `Model answer saved at ${updatedAtLabel}.`
+      : 'Model answer saved.';
   }
 
   function updateCounters() {
@@ -191,6 +258,21 @@ initProtectedPage('/index.html');
 
     updateCounters();
     persistParsonsRepr();
+  }
+
+  function setupGuideToggle() {
+    const toggle = document.getElementById('problem-guide-toggle');
+    const content = document.getElementById('problem-guide-content');
+
+    if (!toggle || !content) {
+      return;
+    }
+
+    toggle.addEventListener('click', () => {
+      const isExpanded = toggle.classList.toggle('expanded');
+      content.classList.toggle('expanded', isExpanded);
+      toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    });
   }
 
   function renderTestResult(status, message) {
@@ -408,12 +490,12 @@ initProtectedPage('/index.html');
     const description = descriptionInput.value.trim();
     const startDescription = startDescriptionInput.value.trim();
     const tests = testsInput.value.trim();
-    const solutionCode = parsonsWidget.solutionCode();
+    const solutionCode = modelAnswerCode;
 
     saveMetaToSession(taskTitle, description, startDescription, tests);
 
     if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
-      alert('Please ensure all fields are filled out before adding the problem.');
+      alert('Please ensure all fields are filled out and set a model answer before adding the problem.');
       return;
     }
 
@@ -497,6 +579,7 @@ initProtectedPage('/index.html');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const runBtn = document.getElementById('run-tests');
+    const setModelAnswerBtn = document.getElementById('set-model-answer');
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
@@ -511,7 +594,13 @@ initProtectedPage('/index.html');
         sessionStorage.removeItem(BLOCKS_SOURCE_KEY);
         sessionStorage.removeItem(META_KEY);
         sessionStorage.removeItem(META_SOURCE_KEY);
+        sessionStorage.removeItem(MODEL_ANSWER_KEY);
+        sessionStorage.removeItem(MODEL_ANSWER_SOURCE_KEY);
+        sessionStorage.removeItem(MODEL_ANSWER_UPDATED_AT_KEY);
+        modelAnswerCode = '';
+        modelAnswerUpdatedAt = '';
         renderParsonsBoard(normalizeSourceCode(draftPayload?.taskCode || ''));
+        updateModelAnswerStatus();
 
         const descriptionInput = document.getElementById('problem-description');
         const startDescriptionInput = document.getElementById('start-description');
@@ -529,6 +618,22 @@ initProtectedPage('/index.html');
         if (testsInput) {
           testsInput.value = draftPayload?.taskTests || '';
         }
+      });
+    }
+
+    if (setModelAnswerBtn) {
+      setModelAnswerBtn.addEventListener('click', () => {
+        if (!parsonsWidget) {
+          return;
+        }
+
+        const currentSolutionCode = parsonsWidget.solutionCode().trim();
+        if (!currentSolutionCode) {
+          alert('Move at least one block to the right column before setting the model answer.');
+          return;
+        }
+
+        saveModelAnswerToSession(currentSolutionCode);
       });
     }
 
@@ -617,8 +722,14 @@ initProtectedPage('/index.html');
       testsInput.value = meta.tests || draft.taskTests || '';
     }
 
+    const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
+    modelAnswerCode = savedModelAnswer.code;
+    modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
+
     renderParsonsBoard(initialText);
+    setupGuideToggle();
     setupButtons();
+    updateModelAnswerStatus();
   }
 
   document.addEventListener('DOMContentLoaded', initializeBuilder);

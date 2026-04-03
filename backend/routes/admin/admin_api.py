@@ -19,7 +19,7 @@ from ...pydantic import (
 	DailyActiveUser,
 	MonthlyActiveUser,
 )
-from ...token_utils import generate_token, hash_token
+from utils import generate_token, hash_token
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"

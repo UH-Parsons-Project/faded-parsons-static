@@ -59,8 +59,8 @@ from .student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
-from .token_utils import verify_token
-from .utils import (
+from utils import verify_token
+from utils import (
     _clean_mistake_code,
     _mistake_code_fingerprint,
     generate_slug,
@@ -98,7 +98,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
     )
     return result.scalar_one_or_none()
-# Helper utilities moved to backend/utils.py
+# Helper utilities moved to utils package
 
 async def has_task_list_view_access(
     task_list: TaskList,

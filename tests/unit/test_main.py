@@ -21,7 +21,7 @@ from sqlalchemy import select
 
 from backend.auth import create_access_token
 import backend.main as main_module
-import backend.utils as utils
+import utils as utils
 from backend.models import Parsons, Student, StudentTaskListEnrollment, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
 
 

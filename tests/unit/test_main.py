@@ -22,6 +22,9 @@ from sqlalchemy import select
 from backend.auth import create_access_token
 import backend.main as main_module
 import utils as utils
+import backend.config as config
+import backend.reset_db as reset_module
+import backend.seed as seed_module
 from backend.models import Parsons, Student, StudentTaskListEnrollment, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
 
 
@@ -90,14 +93,13 @@ async def _add_attempt(db_session, ss_id: int, task_id: int, *,
 @pytest.mark.asyncio
 class TestResetDb:
     async def test_forbidden_when_test_mode_is_false(self, client):
-        import backend.main as m
-        original = m.TEST_MODE
-        m.TEST_MODE = False
+        original = config.TEST_MODE
         try:
+            config.TEST_MODE = False
             r = await client.post("/test/reset-db")
             assert r.status_code == 403
         finally:
-            m.TEST_MODE = original
+            config.TEST_MODE = original
 
 
 # ---------------------------------------------------------------------------
@@ -960,11 +962,11 @@ class TestMainHelpers:
 @pytest.mark.asyncio
 class TestDevAndMaintenanceEndpoints:
     async def test_reset_test_db_success_in_test_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "TEST_MODE", True)
+        monkeypatch.setattr(config, "TEST_MODE", True)
         reset_mock = AsyncMock()
         seed_mock = AsyncMock()
-        monkeypatch.setattr(main_module, "reset_db", reset_mock)
-        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+        monkeypatch.setattr(reset_module, "reset_db", reset_mock)
+        monkeypatch.setattr(seed_module, "seed_db", seed_mock)
 
         r = await client.post("/test/reset-db")
 
@@ -974,12 +976,12 @@ class TestDevAndMaintenanceEndpoints:
         seed_mock.assert_awaited_once()
 
     async def test_reset_test_db_returns_500_on_error(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "TEST_MODE", True)
+        monkeypatch.setattr(config, "TEST_MODE", True)
 
         async def boom():
             raise RuntimeError("reset failed")
 
-        monkeypatch.setattr(main_module, "reset_db", boom)
+        monkeypatch.setattr(reset_module, "reset_db", boom)
 
         r = await client.post("/test/reset-db")
 
@@ -987,24 +989,24 @@ class TestDevAndMaintenanceEndpoints:
         assert "Failed to reset database" in r.json()["detail"]
 
     async def test_reset_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
         r = await client.post("/api/reset-db")
         assert r.status_code == 403
 
     async def test_seed_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
         r = await client.post("/api/seed-db")
         assert r.status_code == 403
 
     async def test_dev_db_page_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", False)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
         r = await client.get("/dev/db")
         assert r.status_code == 403
 
     async def test_reset_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
         reset_mock = AsyncMock()
-        monkeypatch.setattr(main_module, "reset_db", reset_mock)
+        monkeypatch.setattr(reset_module, "reset_db", reset_mock)
 
         r = await client.post("/api/reset-db")
 
@@ -1013,9 +1015,9 @@ class TestDevAndMaintenanceEndpoints:
         reset_mock.assert_awaited_once()
 
     async def test_seed_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
         seed_mock = AsyncMock()
-        monkeypatch.setattr(main_module, "seed_db", seed_mock)
+        monkeypatch.setattr(seed_module, "seed_db", seed_mock)
 
         r = await client.post("/api/seed-db")
 
@@ -1024,7 +1026,7 @@ class TestDevAndMaintenanceEndpoints:
         seed_mock.assert_awaited_once()
 
     async def test_dev_db_page_returns_html_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(main_module, "DEVELOPMENT_MODE", True)
+        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
         r = await client.get("/dev/db")
         assert r.status_code == 200
         assert "DB Management" in r.text

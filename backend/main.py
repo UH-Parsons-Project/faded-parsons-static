@@ -158,6 +158,8 @@ app.include_router(student_router)
 # Admin routes moved to dedicated module
 app.include_router(admin_router)
 app.include_router(student_api_router)
+from .routes.test.test_api import router as test_router
+app.include_router(test_router)
 
 
 @app.get("/ohtuproj_logo.png")
@@ -167,27 +169,8 @@ async def logo_image():
     return FileResponse(logo_path)
 
 
-# Test-only endpoint
-TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
-DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
-
-@app.post("/test/reset-db")
-async def reset_test_db():
-    """Reset the database (requires TEST_MODE env variable)."""
-    if not TEST_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Test endpoints are only available in test mode"
-        )
-    try:
-        await reset_db()
-        await seed_db()
-        return {"status": "success", "message": "Database reset complete"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to reset database: {str(e)}"
-        ) from e
+# Feature flags (moved to backend/config.py)
+from .config import TEST_MODE, DEVELOPMENT_MODE
 
 
 @app.post("/api/reset-db")

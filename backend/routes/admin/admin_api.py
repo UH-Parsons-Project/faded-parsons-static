@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -20,9 +20,9 @@ from ...pydantic import (
 	MonthlyActiveUser,
 )
 from utils import generate_token, hash_token
+from backend.config import DEVELOPMENT_MODE
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
 
 router = APIRouter()
 

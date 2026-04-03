@@ -1,0 +1,11 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from project root .env
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(env_path)
+
+# Feature flags
+TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"

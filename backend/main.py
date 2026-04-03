@@ -76,7 +76,7 @@ from .routes.admin.admin_api import router as admin_router
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
     await init_db()
-    await seed_db()
+    await seed_module.seed_db()
     yield
 
 

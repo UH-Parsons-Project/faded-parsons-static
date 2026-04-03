@@ -9,6 +9,8 @@ from .token_utils import (
     hash_token,
     verify_token,
 )
+import token as token
+import tokenize as tokenize
 
 __all__ = [
     "_clean_mistake_code",
@@ -18,4 +20,6 @@ __all__ = [
     "generate_token",
     "hash_token",
     "verify_token",
+    "token",
+    "tokenize",
 ]

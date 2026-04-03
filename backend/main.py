@@ -50,8 +50,8 @@ from .auth import (
 )
 from .database import get_db, init_db
 from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken, ModelAnswer
-from .reset_db import reset_db
-from .seed import seed_db
+from . import reset_db as reset_module
+from . import seed as seed_module
 from .student_auth import (
     authenticate_student,
     create_student_session,
@@ -170,19 +170,19 @@ async def logo_image():
 
 
 # Feature flags (moved to backend/config.py)
-from .config import TEST_MODE, DEVELOPMENT_MODE
+from . import config
 
 
 @app.post("/api/reset-db")
 async def reset_database():
     """Reset the database (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database reset is only available in development mode"
         )
     try:
-        await reset_db()
+        await reset_module.reset_db()
         return {"status": "success", "message": "Database reset complete"}
     except Exception as e:
         raise HTTPException(
@@ -194,13 +194,13 @@ async def reset_database():
 @app.post("/api/seed-db")
 async def seed_database():
     """Seed the database with initial data (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database seeding is only available in development mode"
         )
     try:
-        await seed_db()
+        await seed_module.seed_db()
         return {"status": "success", "message": "Database seeded successfully"}
     except Exception as e:
         raise HTTPException(
@@ -212,7 +212,7 @@ async def seed_database():
 @app.get("/dev/db", response_class=HTMLResponse)
 async def db_operations_page():
     """Serve a page with database management buttons (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database management is only available in development mode"

@@ -279,13 +279,8 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Call logout endpoint to clear cookie
 			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
-			// Historically some pages expect the public index to be `/index.html`.
-			// If the loginPageUrl is the root `/`, redirect explicitly to `/index.html`.
-			if (loginPageUrl === '/') {
-				window.location.href = '/index.html';
-			} else {
-				window.location.href = loginPageUrl;
-			}
+			// Redirect to the configured login page URL (usually `/`).
+			window.location.href = loginPageUrl;
 		});
 	}
 }

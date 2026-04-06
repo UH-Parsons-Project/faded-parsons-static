@@ -38,7 +38,7 @@ test('teacher can logout after successful login', async ({ page }) => {
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await page.locator('#logout-btn').click();
-  await expect(page).toHaveURL(/\/index\.html$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('#login-form')).toBeVisible();
 });
 

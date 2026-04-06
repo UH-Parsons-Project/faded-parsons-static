@@ -17,9 +17,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 router = APIRouter()
 
 
-@router.get("/student_start_page", response_class=FileResponse)
+@router.get("/student-start-task", response_class=FileResponse)
 async def student_start_view():
-    index_path = BASE_DIR / "templates" / "student_start_page.html"
+    index_path = BASE_DIR / "templates" / "student_start_task.html"
     return FileResponse(index_path)
 
 

@@ -28,7 +28,7 @@ form.addEventListener('submit', async (e) => {
 	}
 
 	try {
-		const res = await fetch('/api/register', {
+		const res = await fetch('/api/teacher_register', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload),
@@ -42,7 +42,7 @@ form.addEventListener('submit', async (e) => {
 
 		showAlert('Registration successful.', 'success');
 		form.reset();
-		setTimeout(() => { window.location.href = '/index.html?focus=username'; }, 1000);
+		setTimeout(() => { window.location.href = '/?focus=username'; }, 1000);
 	} catch (err) {
 		showAlert('Network error');
 	}

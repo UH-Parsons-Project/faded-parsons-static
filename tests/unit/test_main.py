@@ -112,33 +112,33 @@ class TestStaticPages:
         assert (await client.get("/")).status_code == 200
 
     async def test_index_html_returns_200(self, client):
-        assert (await client.get("/index.html")).status_code == 200
+        assert (await client.get("/")).status_code == 200
 
-    async def test_problem_html_returns_200(self, client):
-        assert (await client.get("/problem.html")).status_code == 200
+    async def test_task_html_returns_200(self, client):
+        assert (await client.get("/task")).status_code == 200
 
-    async def test_register_page_returns_200(self, client):
-        assert (await client.get("/register")).status_code == 200
+    async def test_teacher_register_page_returns_200(self, client):
+        assert (await client.get("/teacher-register")).status_code == 200
 
     async def test_student_start_page_returns_200(self, client):
         assert (await client.get("/student_start_page")).status_code == 200
 
-    async def test_exerciselist_unauthenticated_redirects(self, client):
-        r = await client.get("/exerciselist", follow_redirects=False)
+    async def test_all_tasks_unauthenticated_redirects(self, client):
+        r = await client.get("/all-tasks", follow_redirects=False)
         assert r.status_code == 303
-        assert "/index.html" in r.headers["location"]
+        assert "/" in r.headers["location"]
 
-    async def test_exerciselist_authenticated_returns_200(self, client, test_teacher):
-        r = await client.get("/exerciselist", headers=_auth(test_teacher.username))
+    async def test_all_tasks_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/all-tasks", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_statics_view_unauthenticated_redirects(self, client):
-        r = await client.get("/statics_view", follow_redirects=False)
+    async def test_task_statistics_view_unauthenticated_redirects(self, client):
+        r = await client.get("/task-statistics", follow_redirects=False)
         assert r.status_code == 303
-        assert "/index.html" in r.headers["location"]
+        assert "/" in r.headers["location"]
 
-    async def test_statics_view_authenticated_returns_200(self, client, test_teacher):
-        r = await client.get("/statics_view", headers=_auth(test_teacher.username))
+    async def test_task_statistics_view_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/task-statistics", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
 
@@ -304,94 +304,94 @@ class TestLogout:
 @pytest.mark.asyncio
 class TestRegister:
     async def test_valid_registration_succeeds(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json=valid_registration_payload)
+        r = await client.post("/api/teacher_register", json=valid_registration_payload)
         assert r.status_code == 200
         assert r.json()["status"] == "success"
 
     async def test_invalid_json_returns_400(self, client):
         r = await client.post(
-            "/api/register",
+            "/api/teacher_register",
             content=b"not-json",
             headers={"Content-Type": "application/json"},
         )
         assert r.status_code == 400
 
     async def test_empty_username_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": ""})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": ""})
         assert r.status_code == 400
         assert "required" in r.json()["detail"]
 
     async def test_empty_password_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password": "", "password_confirm": ""})
         assert r.status_code == 400
 
     async def test_empty_email_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "email": ""})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "email": ""})
         assert r.status_code == 400
 
     async def test_password_mismatch_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password_confirm": "different"})
         assert r.status_code == 400
         assert "Passwords do not match" in r.json()["detail"]
 
     async def test_username_too_long_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "a" * 51})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "a" * 51})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
     async def test_email_too_long_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "email": "a" * 101 + "@x.com"})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
     async def test_username_too_short_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "ab"})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "ab"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
     async def test_password_too_short_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password": "short", "password_confirm": "short"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
     async def test_duplicate_username_returns_400(self, client, test_teacher, valid_registration_payload):
         payload = {**valid_registration_payload, "username": "testteacher", "email": "other@example.com"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
     async def test_duplicate_email_returns_400(self, client, test_teacher, valid_registration_payload):
         payload = {**valid_registration_payload, "username": "uniqueuser9", "email": "test@example.com"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
     async def test_whitespace_username_treated_as_empty(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "   "})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "   "})
         assert r.status_code == 400
 
     async def test_whitespace_email_treated_as_empty(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "email": "   "})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "email": "   "})
         assert r.status_code == 400
 
     async def test_missing_token_returns_403(self, client, valid_registration_payload):
         payload = {k: v for k, v in valid_registration_payload.items() if k != "registration_token"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 403
         assert "Registration token is required" in r.json()["detail"]
 
     async def test_wrong_token_returns_403(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "registration_token": "wrong_token"})
         assert r.status_code == 403
         assert "Invalid registration token" in r.json()["detail"]
 
     async def test_empty_token_returns_403(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "registration_token": ""})
         assert r.status_code == 403
         assert "Registration token is required" in r.json()["detail"]
@@ -469,14 +469,14 @@ class TestListTasks:
 
 
 # ---------------------------------------------------------------------------
-# GET /api/problemsets/{id}
+# GET /api/my_sets/{id}
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestGetProblemset:
     async def test_returns_problemset_data(self, client, problemset, test_teacher):
         r = await client.get(
-            f"/api/problemsets/{problemset.id}",
+            f"/api/my_sets/{problemset.id}",
             headers=_auth(test_teacher.username),
         )
         assert r.status_code == 200
@@ -495,32 +495,32 @@ class TestGetProblemset:
         await db_session.commit()
         await db_session.refresh(ps)
         r = await client.get(
-            f"/api/problemsets/{ps.id}",
+            f"/api/my_sets/{ps.id}",
             headers=_auth(test_teacher.username),
         )
         assert r.status_code == 200
         assert r.json()["expires_at"] is not None
 
     async def test_nonexistent_returns_404(self, client, test_teacher):
-        assert (await client.get("/api/problemsets/99999", headers=_auth(test_teacher.username))).status_code == 404
+        assert (await client.get("/api/my_sets/99999", headers=_auth(test_teacher.username))).status_code == 404
 
 
 # ---------------------------------------------------------------------------
-# GET /api/problemsets/{code}/tasks
+# GET /api/my_sets/{code}/tasks
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestGetProblemsetTasks:
     async def test_get_by_string_code(self, client, problemset_with_task):
         ps, task = problemset_with_task
-        r = await client.get(f"/api/problemsets/{ps.unique_link_code}/tasks")
+        r = await client.get(f"/api/my_sets/{ps.unique_link_code}/tasks")
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
     async def test_get_by_numeric_id(self, client, problemset_with_task):
         ps, task = problemset_with_task
-        r = await client.get(f"/api/problemsets/{ps.id}/tasks")
+        r = await client.get(f"/api/my_sets/{ps.id}/tasks")
         assert r.status_code == 200
         assert r.json()[0]["id"] == task.id
 
@@ -537,19 +537,19 @@ class TestGetProblemsetTasks:
         db_session.add(TaskListItem(task_list_id=ps.id, task_id=task.id))
         await db_session.commit()
 
-        r = await client.get("/api/problemsets/303/tasks")
+        r = await client.get("/api/my_sets/303/tasks")
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
     async def test_unknown_code_returns_404(self, client):
-        assert (await client.get("/api/problemsets/NOSUCHCODE/tasks")).status_code == 404
+        assert (await client.get("/api/my_sets/NOSUCHCODE/tasks")).status_code == 404
 
     async def test_unknown_id_returns_404(self, client):
-        assert (await client.get("/api/problemsets/99999/tasks")).status_code == 404
+        assert (await client.get("/api/my_sets/99999/tasks")).status_code == 404
 
     async def test_empty_problemset_returns_empty_list(self, client, problemset):
-        r = await client.get(f"/api/problemsets/{problemset.unique_link_code}/tasks")
+        r = await client.get(f"/api/my_sets/{problemset.unique_link_code}/tasks")
         assert r.status_code == 200
         assert r.json() == []
 
@@ -865,33 +865,33 @@ class TestStatistics:
 # ---------------------------------------------------------------------------
 
 class TestProtectedPages:
-    async def test_task_list_selector_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
-        r = await client.get("/task_list_selector", follow_redirects=False)
+    async def test_teacher_dashboard_unauthenticated(self, client):
+        """Should redirect to / when not authenticated"""
+        r = await client.get("/teacher-dashboard", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
-    async def test_task_list_selector_authenticated(self, client, test_teacher):
+    async def test_teacher_dashboard_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
-        r = await client.get("/task_list_selector", headers=_auth(test_teacher.username))
+        r = await client.get("/teacher-dashboard", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_task_list_statistics_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
-        r = await client.get("/task_list_statistics", follow_redirects=False)
+    async def test_task_set_overview_unauthenticated(self, client):
+        """Should redirect to / when not authenticated"""
+        r = await client.get("/task-set-overview", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
-    async def test_task_list_statistics_authenticated(self, client, test_teacher):
+    async def test_task_set_overview_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
-        r = await client.get("/task_list_statistics", headers=_auth(test_teacher.username))
+        r = await client.get("/task-set-overview", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_student_attempts_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/student_attempts", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_student_attempts_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -899,10 +899,10 @@ class TestProtectedPages:
         assert r.status_code == 200
 
     async def test_student_task_statistics_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/student_task_statistics", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_student_task_statistics_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -1034,19 +1034,19 @@ class TestDevAndMaintenanceEndpoints:
 
 @pytest.mark.asyncio
 class TestAdditionalMainPagesAndStudentAuth:
-    async def test_create_task_list_page_requires_authentication(self, client):
-        r = await client.get("/create_task_list", follow_redirects=False)
+    async def test_create_task_set_page_requires_authentication(self, client):
+        r = await client.get("/create-task-set", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
-    async def test_create_task_list_page_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_list", headers=_auth(test_teacher.username))
+    async def test_create_task_set_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create-task-set", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_create_task_page_requires_authentication(self, client):
         r = await client.get("/create_task", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_create_task_page_returns_200_when_authenticated(self, client, test_teacher):
         r = await client.get("/create_task", headers=_auth(test_teacher.username))
@@ -1056,21 +1056,21 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.get("/create_task.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_create_task_problem_page_requires_authentication(self, client):
-        r = await client.get("/create_task_problem", follow_redirects=False)
+    async def test_create_task_editor_page_requires_authentication(self, client):
+        r = await client.get("/create-task-editor", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
-    async def test_create_task_problem_page_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_problem", headers=_auth(test_teacher.username))
+    async def test_create_task_editor_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create-task-editor", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_create_task_problem_html_alias_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_problem.html", headers=_auth(test_teacher.username))
+    async def test_create_task_editor_html_alias_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create_task_editor.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_student_register_page_returns_200(self, client):
-        r = await client.get("/student_register")
+        r = await client.get("/student-register")
         assert r.status_code == 200
 
     async def test_student_login_invalid_credentials_returns_400(self, client):
@@ -1121,11 +1121,11 @@ class TestAdditionalMainPagesAndStudentAuth:
 
 @pytest.mark.asyncio
 class TestAdditionalProblemsetAndTaskListApis:
-    async def test_list_problemsets_requires_authentication(self, client):
-        r = await client.get("/api/problemsets")
+    async def test_my_sets_requires_authentication(self, client):
+        r = await client.get("/api/my_sets")
         assert r.status_code == 401
 
-    async def test_list_problemsets_returns_current_teacher_problemsets(
+    async def test_my_sets_returns_current_teacher_my_sets(
         self, client, test_teacher, problemset, db_session
     ):
         other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
@@ -1143,7 +1143,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         )
         await db_session.commit()
 
-        r = await client.get("/api/problemsets", headers=_auth(test_teacher.username))
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
         assert r.status_code == 200
         assert {item["unique_link_code"] for item in r.json()} == {problemset.unique_link_code}
 
@@ -1162,7 +1162,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         assert dup.status_code == 400
         assert "already exists" in dup.json()["detail"]
 
-    async def test_create_task_list_rejects_unknown_task_id(self, client, test_teacher):
+    async def test_create_task_set_rejects_unknown_task_id(self, client, test_teacher):
         r = await client.post(
             "/api/task_lists",
             headers=_auth(test_teacher.username),
@@ -1170,7 +1170,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         )
         assert r.status_code == 404
 
-    async def test_create_task_list_rejects_invalid_expiration(self, client, test_teacher):
+    async def test_create_task_set_rejects_invalid_expiration(self, client, test_teacher):
         r = await client.post(
             "/api/task_lists",
             headers=_auth(test_teacher.username),
@@ -1179,7 +1179,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         assert r.status_code == 400
         assert "Invalid expiration date format" in r.json()["detail"]
 
-    async def test_create_task_list_success_with_tasks(self, client, test_teacher, task, db_session):
+    async def test_create_task_set_success_with_tasks(self, client, test_teacher, task, db_session):
         second = Parsons(
             created_by_teacher_id=test_teacher.id,
             title="Hello Again",

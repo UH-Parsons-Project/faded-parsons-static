@@ -1,13 +1,13 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const params = new URLSearchParams(window.location.search);
 const listId = params.get('list_id');
 
 if (!listId) {
-	window.location.href = '/task_list_selector';
+	window.location.href = '/teacher-dashboard';
 }
 
 setupViewerSharing();
@@ -113,7 +113,7 @@ function createViewerItem(viewer) {
 
 async function loadViewers() {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers`, { credentials: 'include' });
+		const response = await fetch(`/api/my_sets/${listId}/viewers`, { credentials: 'include' });
 		if (!response.ok) {
 			const error = await response.json().catch(() => null);
 			const detail = error?.detail || 'Failed to load viewers';
@@ -129,7 +129,7 @@ async function loadViewers() {
 
 async function addViewer(identifier) {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers`, {
+		const response = await fetch(`/api/my_sets/${listId}/viewers`, {
 			method: 'POST',
 			credentials: 'include',
 			headers: {
@@ -156,7 +156,7 @@ async function addViewer(identifier) {
 
 async function removeViewer(teacherId) {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers/${teacherId}`, {
+		const response = await fetch(`/api/my_sets/${listId}/viewers/${teacherId}`, {
 			method: 'DELETE',
 			credentials: 'include'
 		});
@@ -242,7 +242,7 @@ function createTaskItem(task, taskList) {
 	const item = document.createElement('div');
 	item.className = 'task-list-item';
 	item.onclick = () => {
-	window.location.href = `/statics_view?id=${task.id}&problemset=${taskList.unique_link_code}`;
+	window.location.href = `/task-statistics?id=${task.id}&problemset=${taskList.unique_link_code}`;
 	};
 
 	const title = document.createElement('div');
@@ -366,21 +366,21 @@ function showError(message) {
 	<i class="fas fa-exclamation-triangle text-danger"></i>
 	<h4>Error Loading Task List</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/task_list_selector" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
 	`;
 }
 
 // Load task list details, tasks, and students
 Promise.all([
-	fetch(`/api/problemsets/${listId}`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load task list details');
 	return r.json();
 	}),
-	fetch(`/api/problemsets/${listId}/tasks`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}/tasks`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load tasks');
 	return r.json();
 	}),
-	fetch(`/api/problemsets/${listId}/students`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}/students`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load students');
 	return r.json();
 	})
@@ -395,7 +395,7 @@ Promise.all([
 	.catch(err => {
 	console.error('Error loading data:', err);
 	if (err.message.includes('401') || err.status === 401) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	} else {
 		showError(err.message);
 	}

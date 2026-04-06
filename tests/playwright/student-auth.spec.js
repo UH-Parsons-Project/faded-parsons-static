@@ -22,8 +22,8 @@ test.beforeEach(async ({ page }) => {
     `Student description for Student Test List ${unique}.`,
     `Teacher description for Student Test List ${unique}.`
   );
-  await page.waitForURL(/\/task_list_selector$/, { timeout: 10000 });
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   const studentUrl = await getStudentUrl(page, `Student Test List ${unique}`);
   // Store the URL in test.info().annotations for access in the test

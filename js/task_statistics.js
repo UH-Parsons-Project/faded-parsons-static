@@ -1,6 +1,6 @@
 import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
 initSignedInAs();
-initProtectedPage('/index.html');
+initProtectedPage('/');
 
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
@@ -54,7 +54,7 @@ async function loadStatistics() {
 
 	if (!response.ok) {
 		if (response.status === 401) {
-			window.location.href = '/index.html';
+			window.location.href = '/';
 			return;
 		}
 

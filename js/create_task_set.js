@@ -1,6 +1,6 @@
 import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
     initSignedInAs();
-    initProtectedPage('/index.html');
+    initProtectedPage('/');
 
 /**
  * Task List Creation Form Module
@@ -416,7 +416,7 @@ function updateSelectedTasksPreview() {
  */
 function openTaskPreview(task) {
   const previewWindow = window.open(
-    `/problem.html?id=${task.id}`,
+    `/task?id=${task.id}`,
     '_blank',
     'width=1000,height=800,resizable=yes,scrollbars=yes'
   );
@@ -510,7 +510,7 @@ function escapeHtml(text) {
  * Setup form submission
  */
 function setupFormSubmission() {
-  document.getElementById('create-task-list-form').addEventListener('submit', async (e) => {
+  document.getElementById('create-task-set-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const title = document.getElementById('task-list-title').value.trim();
@@ -538,7 +538,7 @@ function setupFormSubmission() {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
     try {
-      // Create task list
+      // Create task set
       const createResponse = await fetch('/api/task_lists', {
         method: 'POST',
         credentials: 'include',
@@ -556,13 +556,13 @@ function setupFormSubmission() {
 
       if (!createResponse.ok) {
         const error = await createResponse.json();
-        const errorDetail = error.detail || 'Failed to create task list';
+        const errorDetail = error.detail || 'Failed to create task Set';
 
         // Check if this is a duplicate title error
         if (errorDetail.includes('already exists') || errorDetail.includes('title')) {
           showDuplicateTitleModal(title);
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task List';
+          submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task Set';
           return;
         }
 
@@ -574,7 +574,7 @@ function setupFormSubmission() {
       const viewerErrors = [];
       for (const identifier of viewersToShare) {
         try {
-          const viewerResponse = await fetch(`/api/problemsets/${createdList.id}/viewers`, {
+          const viewerResponse = await fetch(`/api/my_sets/${createdList.id}/viewers`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -600,13 +600,13 @@ function setupFormSubmission() {
       showSuccess(successMessage);
 
       setTimeout(() => {
-        window.location.href = `/task_list_selector`;
+        window.location.href = `/teacher-dashboard`;
       }, 1500);
     } catch (error) {
       console.error('Error creating task list:', error);
-      showError(error.message || 'Failed to create task list');
+      showError(error.message || 'Failed to create task set');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task List';
+      submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task Set';
     }
   });
 }

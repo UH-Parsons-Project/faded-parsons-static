@@ -127,7 +127,7 @@ async def problemset_task_start_page(
     return response
 
 
-@router.get("/student_register", response_class=FileResponse)
+@router.get("/student-register", response_class=FileResponse)
 async def student_register_page():
-    register_path = BASE_DIR / "templates" / "student_register.html"
-    return FileResponse(register_path)
+    student_register_path = BASE_DIR / "templates" / "student_register.html"
+    return FileResponse(student_register_path)

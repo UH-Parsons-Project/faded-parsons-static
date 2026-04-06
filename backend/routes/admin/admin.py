@@ -16,7 +16,7 @@ async def all_problemsets_page(request: Request, db: AsyncSession = Depends(get_
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 	except HTTPException:
 		return RedirectResponse(
-			url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+			url="/", status_code=status.HTTP_303_SEE_OTHER
 		)
 
 	all_problemsets_path = BASE_DIR / "templates" / "all_problemsets.html"
@@ -35,7 +35,7 @@ async def admin_view_page(request: Request, db: AsyncSession = Depends(get_db)):
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 	except HTTPException:
 		return RedirectResponse(
-			url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+			url="/", status_code=status.HTTP_303_SEE_OTHER
 		)
 
 	admin_view_path = BASE_DIR / "templates" / "admin_view.html"

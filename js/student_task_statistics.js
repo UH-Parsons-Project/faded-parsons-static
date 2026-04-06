@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const params = new URLSearchParams(window.location.search);
@@ -9,7 +9,7 @@ const taskId = params.get('task_id');
 const listId = params.get('list_id');
 
 if (!studentUsername || !taskId || !listId) {
-	window.location.href = '/task_list_selector';
+	window.location.href = '/teacher-dashboard';
 }
 
 // Set up back button
@@ -399,7 +399,7 @@ function showError(message) {
 	<i class="fas fa-exclamation-triangle text-danger"></i>
 	<h4>Error Loading Data</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/task_list_selector" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
 	`;
 }
 
@@ -426,7 +426,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	.then(r => {
 	if (!r.ok) {
 		if (r.status === 401) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 		return;
 		}
 		throw new Error('Failed to load statistics');
@@ -445,7 +445,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	.catch(err => {
 	console.error('Error loading statistics:', err);
 	if (err.message && err.message.includes('401')) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	} else {
 		showError(err.message);
 	}

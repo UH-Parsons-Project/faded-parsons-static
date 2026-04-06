@@ -176,7 +176,7 @@ export function initLoginPage() {
 					showUserInfo(userData.username, userData.role);
 
 					// Redirect to exercise list
-					window.location.href = '/task_list_selector';
+					window.location.href = '/teacher-dashboard';
 				} else {
 					showError('Failed to get user information');
 				}
@@ -216,7 +216,7 @@ export function initLoginPage() {
 	if (registerBtn) {
 		registerBtn.addEventListener('click', function() {
 			// console.log('Register button clicked'); // Debug log
-			window.location.href = '/register';
+			window.location.href = '/teacher-register';
 		});
 	}
 
@@ -242,9 +242,9 @@ export async function initNavbarExercisesButton() {
 /**
  * Initialize protected page authentication UI
  * Verifies user is logged in and handles logout, redirects to login if not authenticated
- * @param {string} loginPageUrl - URL to redirect to if not authenticated (default: '/index.html')
+ * @param {string} loginPageUrl - URL to redirect to if not authenticated (default: '/')
  */
-export async function initProtectedPage(loginPageUrl = '/index.html') {
+export async function initProtectedPage(loginPageUrl = '/') {
 	const token = getAuthToken();
 	const username = getUsername();
 
@@ -279,6 +279,7 @@ export async function initProtectedPage(loginPageUrl = '/index.html') {
 			// Call logout endpoint to clear cookie
 			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
+			// Redirect to the configured login page URL (usually `/`).
 			window.location.href = loginPageUrl;
 		});
 	}

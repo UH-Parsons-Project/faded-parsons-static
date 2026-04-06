@@ -136,7 +136,7 @@
 }
 
 /* Task List Selector Styles */
-.task-list-selector-layout {
+.teacher-dashboard-layout {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
@@ -524,7 +524,7 @@
   color: #333;
 }
 
-.create-task-list-container {
+.create-task-set-container {
   max-width: 1000px;
   margin: 2rem auto;
 }

@@ -5,7 +5,7 @@
 import { FiniteWorker } from './worker-manager.js';
 import { initProtectedPage } from "/js/auth-ui.js";
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 
 (function initCreateTaskProblemBuilder() {
   const DRAFT_KEY = 'create_task_draft_payload';
@@ -650,7 +650,7 @@ initProtectedPage('/index.html');
       .then(async (response) => {
         if (response.ok) {
           alert('Problem successfully added to the problem list!');
-          window.location.href = '/task_list_selector';
+          window.location.href = '/teacher-dashboard';
         } else {
           let detail = '';
           let parsedDetail = '';

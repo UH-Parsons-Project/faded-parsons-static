@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const userNameEl = document.getElementById('user-name');
@@ -479,7 +479,7 @@ if (seedBtn) {
 fetch('/api/admin/registration-tokens', { credentials: 'include' })
 	.then(r => {
 		if (r.status === 403 || r.status === 401) {
-			window.location.href = '/index.html';
+			window.location.href = '/';
 			return;
 		}
 		if (r.ok) {
@@ -488,5 +488,5 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 		}
 	})
 	.catch(() => {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	});

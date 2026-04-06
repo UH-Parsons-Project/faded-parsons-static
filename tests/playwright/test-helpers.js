@@ -44,7 +44,7 @@ export async function registerTeacher(
   password = 'password123',
   registrationToken = getTestRegistrationToken()
 ) {
-  await page.goto('/register');
+  await page.goto('/teacher-register');
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
@@ -96,7 +96,7 @@ export async function createTaskList(
     await taskItems[index].click();
   }
 
-  await page.locator('#create-task-list-form button[type="submit"]').click();
+  await page.locator('#create-task-set-form button[type="submit"]').click();
 }
 
 export async function createTaskListWithTasks(page, taskListTitle, studentDescription, teacherDescription, taskNames) {
@@ -110,11 +110,30 @@ export async function createTaskListWithTasks(page, taskListTitle, studentDescri
     await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
   }
 
-  await page.locator('#create-task-list-form button[type="submit"]').click();
+  await page.locator('#create-task-set-form button[type="submit"]').click();
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {
+  // Click register and wait for the student register form to appear.
+  // Avoid waiting for URL navigation which can be aborted in some browsers.
   await page.locator('#register-btn').click();
+
+  // Try a few strategies to wait for the register form to appear.
+  try {
+    await page.waitForSelector('#register-form', { timeout: 5000 });
+  } catch (err) {
+    // If selector didn't appear quickly, some browsers may navigate and abort
+    // the URL wait; try waiting for the student register URL then the form.
+    try {
+      await page.waitForURL(/student_register|\/student_register/, { timeout: 5000 });
+      await page.waitForSelector('#register-form', { timeout: 5000 });
+    } catch (err2) {
+      // Final fallback: small delay then wait longer for the form
+      await page.waitForTimeout(500);
+      await page.waitForSelector('#register-form', { timeout: 10000 });
+    }
+  }
+
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);

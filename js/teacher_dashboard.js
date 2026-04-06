@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 // Load user info
@@ -48,7 +48,7 @@ function createTaskListItem(taskList) {
 	const item = document.createElement('div');
 	item.className = 'task-list-item';
 	item.onclick = () => {
-	window.location.href = `/task_list_statistics?list_id=${taskList.id}`;
+	window.location.href = `/task-set-overview?list_id=${taskList.id}`;
 	};
 
 	const title = document.createElement('div');
@@ -95,7 +95,7 @@ function createAddButton() {
 	const button = document.createElement('div');
 	button.className = 'create-new-card';
 	button.onclick = () => {
-	window.location.href = '/create_task_list';
+	window.location.href = '/create-task-set';
 	};
 
 	button.innerHTML = `
@@ -141,7 +141,7 @@ function renderTaskLists(taskLists) {
 	container.appendChild(buttonWrapper);
 	} else {
 	const layout = document.createElement('div');
-	layout.className = 'task-list-selector-layout';
+	layout.className = 'teacher-dashboard-layout';
 
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-lists-column';
@@ -207,10 +207,10 @@ function showError(message) {
 
 async function loadTaskLists() {
 	try {
-		const response = await fetch('/api/problemsets', { credentials: 'include' });
+		const response = await fetch('/api/my_sets', { credentials: 'include' });
 		if (!response.ok) {
 			if (response.status === 401) {
-				window.location.href = '/index.html';
+				window.location.href = '/';
 				return;
 			}
 			throw new Error('Failed to load task lists');

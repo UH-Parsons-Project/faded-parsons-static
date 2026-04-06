@@ -4,7 +4,7 @@ initSignedInAs();
 
 initNavbarExercisesButton();
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 
 // Load exercise list
 const container = document.getElementById('problems-list');
@@ -68,7 +68,7 @@ function createExerciseCard(item) {
 	const card = document.createElement('div');
 	card.className = 'task-list-item';
 	card.onclick = () => {
-		window.location.href = '/statics_view?id=' + encodeURIComponent(item.id);
+		window.location.href = '/task-statistics?id=' + encodeURIComponent(item.id);
 	};
 
 	const title = document.createElement('div');

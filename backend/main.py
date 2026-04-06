@@ -70,6 +70,8 @@ from utils import (
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
 from .routes.admin.admin_api import router as admin_router
+from .routes.developer.developer_api import router as developer_router
+from .routes.utils import router as utils_router
 
 
 @asynccontextmanager
@@ -158,73 +160,15 @@ app.include_router(student_router)
 # Admin routes moved to dedicated module
 app.include_router(admin_router)
 app.include_router(student_api_router)
+app.include_router(developer_router)
+app.include_router(utils_router)
 from .routes.test.test_api import router as test_router
 app.include_router(test_router)
 
 
-@app.get("/ohtuproj_logo.png")
-async def logo_image():
-    """Serve the navbar logo image used by templates."""
-    logo_path = BASE_DIR / "ohtuproj_logo.png"
-    return FileResponse(logo_path)
-
 
 # Feature flags (moved to backend/config.py)
 from . import config
-
-
-@app.post("/api/reset-db")
-async def reset_database():
-    """Reset the database (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database reset is only available in development mode"
-        )
-    try:
-        await reset_module.reset_db()
-        return {"status": "success", "message": "Database reset complete"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to reset database: {str(e)}"
-        ) from e
-
-
-@app.post("/api/seed-db")
-async def seed_database():
-    """Seed the database with initial data (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database seeding is only available in development mode"
-        )
-    try:
-        await seed_module.seed_db()
-        return {"status": "success", "message": "Database seeded successfully"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to seed database: {str(e)}"
-        ) from e
-
-
-@app.get("/dev/db", response_class=HTMLResponse)
-async def db_operations_page():
-    """Serve a page with database management buttons (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database management is only available in development mode"
-        )
-
-    html_content = """
-    <h1>DB Management</h1>
-    <button onclick="fetch('/api/reset-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Reset DB</button>
-    <button onclick="fetch('/api/seed-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Seed DB</button>
-    """
-
-    return HTMLResponse(content=html_content)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -233,74 +177,69 @@ async def index():
     index_path = BASE_DIR / "templates" / "index.html"
     return FileResponse(index_path)
 
-@app.get("/index.html", response_class=HTMLResponse)
-async def index_html():
-    index_path = BASE_DIR / "templates" / "index.html"
-    return FileResponse(index_path)
 
-
-@app.get("/problem.html", response_class=HTMLResponse)
+@app.get("/task", response_class=HTMLResponse)
 async def problem_page():
-    problem_path = BASE_DIR / "templates" / "problem.html"
+    problem_path = BASE_DIR / "templates" / "task.html"
     return FileResponse(problem_path)
 
 
-@app.get("/exerciselist")
+@app.get("/all-tasks")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
-    response = FileResponse(exerciselist_path)
+    all_tasks_path = BASE_DIR / "templates" / "all_tasks.html"
+    response = FileResponse(all_tasks_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
 
 
-@app.get("/statics_view", response_class=HTMLResponse)
-async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/task-statistics", response_class=HTMLResponse)
+async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    statics_path = BASE_DIR / "templates" / "statics_view.html"
-    response = FileResponse(statics_path)
+    statistics_path = BASE_DIR / "templates" / "task_statistics.html"
+    response = FileResponse(statistics_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/task_list_selector", response_class=HTMLResponse)
-async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/teacher-dashboard", response_class=HTMLResponse)
+async def teacher_selector(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    selector_path = BASE_DIR / "templates" / "task_list_selector.html"
-    response = FileResponse(selector_path)
+    teacher_dashboard_path = BASE_DIR / "templates" / "teacher_dashboard.html"
+    response = FileResponse(teacher_dashboard_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/create_task_list", response_class=HTMLResponse)
-async def create_task_list_page(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/create-task-set", response_class=HTMLResponse)
+async def create_task_set_page(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    create_path = BASE_DIR / "templates" / "create_task_list.html"
+    create_path = BASE_DIR / "templates" / "create_task_set.html"
     response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -314,7 +253,7 @@ async def create_task_page(request: Request, db: AsyncSession = Depends(get_db))
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     create_path = BASE_DIR / "templates" / "create_task.html"
@@ -324,32 +263,32 @@ async def create_task_page(request: Request, db: AsyncSession = Depends(get_db))
     return response
 
 
-@app.get("/create_task_problem", response_class=HTMLResponse)
-@app.get("/create_task_problem.html", response_class=HTMLResponse)
+@app.get("/create-task-editor", response_class=HTMLResponse)
+@app.get("/create_task_editor.html", response_class=HTMLResponse)
 async def create_task_problem_page(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    create_path = BASE_DIR / "templates" / "create_task_problem.html"
+    create_path = BASE_DIR / "templates" / "create_task_editor.html"
     response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/task_list_statistics", response_class=HTMLResponse)
-async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/task-set-overview", response_class=HTMLResponse)
+async def task_set_overview(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    stats_path = BASE_DIR / "templates" / "task_list_statistics.html"
+    stats_path = BASE_DIR / "templates" / "task_set_overview.html"
     response = FileResponse(stats_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -361,7 +300,7 @@ async def student_attempts_page(request: Request, db: AsyncSession = Depends(get
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     attempts_path = BASE_DIR / "templates" / "student_attempts.html"
@@ -376,7 +315,7 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     stats_path = BASE_DIR / "templates" / "student_task_statistics.html"
@@ -385,11 +324,11 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/register", response_class=HTMLResponse)
-async def register_page():
+@app.get("/teacher-register", response_class=HTMLResponse)
+async def teacher_register_page():
     """Serve a simple registration page."""
-    register_path = BASE_DIR / "templates" / "register.html"
-    return FileResponse(register_path)
+    teacher_register_path = BASE_DIR / "templates" / "teacher_register.html"
+    return FileResponse(teacher_register_path)
 
 @app.get("/instructions", response_class=HTMLResponse)
 async def teacher_instructions_page():
@@ -611,8 +550,8 @@ async def create_problem(
 
     return {"id": task.id, "message": "Problem created"}
 
-@app.post("/api/register")
-async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
+@app.post("/api/teacher_register")
+async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
@@ -703,8 +642,8 @@ async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
     return {"status": "success", "id": teacher.id}
 
 
-@app.get("/api/problemsets", response_model=list[ProblemSetResponse])
-async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+@app.get("/api/my_sets", response_model=list[ProblemSetResponse])
+async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     """List all task lists for the current teacher."""
     stmt = (
         select(TaskList, Teacher.username)
@@ -718,7 +657,7 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
         .distinct()
     )
     result = await db.execute(stmt)
-    problemsets = result.all()
+    my_sets = result.all()
 
     return [
         ProblemSetResponse(
@@ -732,10 +671,10 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
             created_at=ps.created_at.isoformat(),
             expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
         )
-        for ps, owner_username in problemsets
+        for ps, owner_username in my_sets
     ]
 
-@app.get("/api/problemsets/{problemset_id}", response_model=ProblemSetResponse)
+@app.get("/api/my_sets/{problemset_id}", response_model=ProblemSetResponse)
 async def get_problemset(
     problemset_id: int,
     current_user: CurrentUser,
@@ -772,7 +711,7 @@ async def get_problemset(
     )
 
 
-@app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
+@app.get("/api/my_sets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
 async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
     # Always try unique_link_code first so numeric codes like "303" still work.
@@ -816,7 +755,7 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
 
 
 @app.post("/api/task_lists", response_model=TaskListResponse)
-async def create_task_list(
+async def create_task_set(
     request: CreateTaskListRequest,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
@@ -893,7 +832,7 @@ async def create_task_list(
 
 #### Who can view problem sets ####
 
-@app.get("/api/problemsets/{problemset_id}/viewers", response_model=list[TaskListViewerResponse])
+@app.get("/api/my_sets/{problemset_id}/viewers", response_model=list[TaskListViewerResponse])
 async def list_problemset_viewers(
     problemset_id: int,
     current_user: CurrentUser,
@@ -933,7 +872,7 @@ async def list_problemset_viewers(
     ]
 
 
-@app.post("/api/problemsets/{problemset_id}/viewers", response_model=TaskListViewerResponse)
+@app.post("/api/my_sets/{problemset_id}/viewers", response_model=TaskListViewerResponse)
 async def add_problemset_viewer(
     problemset_id: int,
     request: TaskListViewerRequest,
@@ -1015,7 +954,7 @@ async def add_problemset_viewer(
     )
 
 
-@app.delete("/api/problemsets/{problemset_id}/viewers/{teacher_id}")
+@app.delete("/api/my_sets/{problemset_id}/viewers/{teacher_id}")
 async def remove_problemset_viewer(
     problemset_id: int,
     teacher_id: int,
@@ -1060,7 +999,7 @@ async def remove_problemset_viewer(
     return {"status": "success"}
 
 
-@app.get("/api/problemsets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
+@app.get("/api/my_sets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
 async def get_problemset_students(
     problemset_id: int,
     current_user: CurrentUser,
@@ -1225,7 +1164,7 @@ async def get_student_task_statistics(
 
     # Get all attempts by this student for this task, joined with TaskStart
     from .models import TaskStart
-    
+
     stmt = (
         select(TaskAttempt, TaskStart)
         .join(Student, Student.id == TaskAttempt.student_id)
@@ -1237,7 +1176,7 @@ async def get_student_task_statistics(
 
     result = await db.execute(stmt)
     attempts_with_starts = result.all()
-    
+
     # Unpack into list of (attempt, task_start) tuples for easier access
     attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
 
@@ -1350,7 +1289,7 @@ async def get_task_statistics(
 
     # Build attempts query, optionally filtered by problemset, joined with TaskStart
     from .models import TaskStart
-    
+
     attempts_query = (
         select(TaskAttempt, TaskStart)
         .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
@@ -1510,4 +1449,3 @@ async def get_task_statistics(
         "number_of_moves": None, # Not yet tracked — requires move_events table
         "common_mistakes": common_mistakes,
     }
-

@@ -322,7 +322,7 @@ async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Dep
 		.order_by(TaskList.created_at.desc())
 	)
 	result = await db.execute(stmt)
-	problemsets = result.all()
+	my_sets = result.all()
 
 	return [
 		ProblemSetResponse(
@@ -336,6 +336,5 @@ async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Dep
 			created_at=ps.created_at.isoformat(),
 			expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
 		)
-		for ps, owner_username in problemsets
+		for ps, owner_username in my_sets
 	]
-

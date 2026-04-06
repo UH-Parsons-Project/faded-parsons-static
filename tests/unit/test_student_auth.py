@@ -143,7 +143,7 @@ class TestGetStudentSession:
         self, db_session, test_teacher
     ):
         """Test that existing session is retrieved correctly."""
-        # Create task list and session
+        # Create task set and session
         task_list = TaskList(
             title="Test List",
             unique_link_code="GET01",
@@ -172,7 +172,7 @@ class TestGetStudentSession:
         self, db_session, test_teacher
     ):
         """Test that expired session returns None when check_expiry=True."""
-        # Create task list and session
+        # Create task set and session
         task_list = TaskList(
             title="Test List",
             unique_link_code="GET02",
@@ -423,7 +423,7 @@ class TestGetCurrentStudentSessionDependency:
         result_activity = result.last_activity_at
         if result_activity.tzinfo is None:
             result_activity = result_activity.replace(tzinfo=timezone.utc)
-        
+
         original_activity_fixed = original_activity
         if original_activity_fixed.tzinfo is None:
             original_activity_fixed = original_activity_fixed.replace(tzinfo=timezone.utc)

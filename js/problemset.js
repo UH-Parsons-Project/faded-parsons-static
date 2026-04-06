@@ -15,7 +15,7 @@ let tasksList = [];
 
 async function loadProblemsetInfo() {
 	try {
-		const response = await fetch(`/api/problemsets/${uniqueLinkCode}/info`);
+		const response = await fetch(`/api/my_sets/${uniqueLinkCode}/info`);
 		if (!response.ok) {
 			return;
 		}
@@ -163,7 +163,7 @@ if (uniqueLinkCode) {
 	loadProblemsetInfo();
 
 	// Fetch problems for this problemset
-	fetch(`/api/problemsets/${uniqueLinkCode}/tasks`)
+	fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
 		.then(function (resp) {
 			if (!resp.ok) throw new Error('Network response not ok');
 			return resp.json();

@@ -70,6 +70,7 @@ from utils import (
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
 from .routes.admin.admin_api import router as admin_router
+from .routes.developer.developer_api import router as developer_router
 
 
 @asynccontextmanager
@@ -158,6 +159,7 @@ app.include_router(student_router)
 # Admin routes moved to dedicated module
 app.include_router(admin_router)
 app.include_router(student_api_router)
+app.include_router(developer_router)
 from .routes.test.test_api import router as test_router
 app.include_router(test_router)
 
@@ -171,60 +173,6 @@ async def logo_image():
 
 # Feature flags (moved to backend/config.py)
 from . import config
-
-
-@app.post("/api/reset-db")
-async def reset_database():
-    """Reset the database (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database reset is only available in development mode"
-        )
-    try:
-        await reset_module.reset_db()
-        return {"status": "success", "message": "Database reset complete"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to reset database: {str(e)}"
-        ) from e
-
-
-@app.post("/api/seed-db")
-async def seed_database():
-    """Seed the database with initial data (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database seeding is only available in development mode"
-        )
-    try:
-        await seed_module.seed_db()
-        return {"status": "success", "message": "Database seeded successfully"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to seed database: {str(e)}"
-        ) from e
-
-
-@app.get("/dev/db", response_class=HTMLResponse)
-async def db_operations_page():
-    """Serve a page with database management buttons (requires DEVELOPMENT_MODE env variable)."""
-    if not config.DEVELOPMENT_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Database management is only available in development mode"
-        )
-
-    html_content = """
-    <h1>DB Management</h1>
-    <button onclick="fetch('/api/reset-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Reset DB</button>
-    <button onclick="fetch('/api/seed-db', {method: 'POST'}).then(r => r.json()).then(d => alert(d.message || d.detail))">Seed DB</button>
-    """
-
-    return HTMLResponse(content=html_content)
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -416,7 +416,7 @@ function updateSelectedTasksPreview() {
  */
 function openTaskPreview(task) {
   const previewWindow = window.open(
-    `/problem.html?id=${task.id}`,
+    `/task?id=${task.id}`,
     '_blank',
     'width=1000,height=800,resizable=yes,scrollbars=yes'
   );

@@ -11,7 +11,7 @@ if (!studentUsername || !listId) {
 }
 
 // Set up back button
-document.getElementById('back-btn').href = `/task_list_statistics?list_id=${listId}`;
+document.getElementById('back-btn').href = `/task-set-overview?list_id=${listId}`;
 
 
 function formatDateTime(isoString) {

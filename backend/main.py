@@ -279,8 +279,8 @@ async def create_task_problem_page(request: Request, db: AsyncSession = Depends(
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/task_list_statistics", response_class=HTMLResponse)
-async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/task-set-overview", response_class=HTMLResponse)
+async def task_set_overview(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -288,7 +288,7 @@ async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    stats_path = BASE_DIR / "templates" / "task_list_statistics.html"
+    stats_path = BASE_DIR / "templates" / "task_set_overview.html"
     response = FileResponse(stats_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"

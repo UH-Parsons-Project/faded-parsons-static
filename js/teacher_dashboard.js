@@ -48,7 +48,7 @@ function createTaskListItem(taskList) {
 	const item = document.createElement('div');
 	item.className = 'task-list-item';
 	item.onclick = () => {
-	window.location.href = `/task_list_statistics?list_id=${taskList.id}`;
+	window.location.href = `/task-set-overview?list_id=${taskList.id}`;
 	};
 
 	const title = document.createElement('div');

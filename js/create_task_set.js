@@ -574,7 +574,7 @@ function setupFormSubmission() {
       const viewerErrors = [];
       for (const identifier of viewersToShare) {
         try {
-          const viewerResponse = await fetch(`/api/problemsets/${createdList.id}/viewers`, {
+          const viewerResponse = await fetch(`/api/my_sets/${createdList.id}/viewers`, {
             method: 'POST',
             credentials: 'include',
             headers: {

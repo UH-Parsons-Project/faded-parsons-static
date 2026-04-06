@@ -113,7 +113,7 @@ function createViewerItem(viewer) {
 
 async function loadViewers() {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers`, { credentials: 'include' });
+		const response = await fetch(`/api/my_sets/${listId}/viewers`, { credentials: 'include' });
 		if (!response.ok) {
 			const error = await response.json().catch(() => null);
 			const detail = error?.detail || 'Failed to load viewers';
@@ -129,7 +129,7 @@ async function loadViewers() {
 
 async function addViewer(identifier) {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers`, {
+		const response = await fetch(`/api/my_sets/${listId}/viewers`, {
 			method: 'POST',
 			credentials: 'include',
 			headers: {
@@ -156,7 +156,7 @@ async function addViewer(identifier) {
 
 async function removeViewer(teacherId) {
 	try {
-		const response = await fetch(`/api/problemsets/${listId}/viewers/${teacherId}`, {
+		const response = await fetch(`/api/my_sets/${listId}/viewers/${teacherId}`, {
 			method: 'DELETE',
 			credentials: 'include'
 		});
@@ -372,15 +372,15 @@ function showError(message) {
 
 // Load task list details, tasks, and students
 Promise.all([
-	fetch(`/api/problemsets/${listId}`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load task list details');
 	return r.json();
 	}),
-	fetch(`/api/problemsets/${listId}/tasks`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}/tasks`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load tasks');
 	return r.json();
 	}),
-	fetch(`/api/problemsets/${listId}/students`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${listId}/students`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load students');
 	return r.json();
 	})

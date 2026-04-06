@@ -207,7 +207,7 @@ function showError(message) {
 
 async function loadTaskLists() {
 	try {
-		const response = await fetch('/api/problemsets', { credentials: 'include' });
+		const response = await fetch('/api/my_sets', { credentials: 'include' });
 		if (!response.ok) {
 			if (response.status === 401) {
 				window.location.href = '/';

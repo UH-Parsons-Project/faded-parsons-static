@@ -642,8 +642,8 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     return {"status": "success", "id": teacher.id}
 
 
-@app.get("/api/problemsets", response_model=list[ProblemSetResponse])
-async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+@app.get("/api/my_sets", response_model=list[ProblemSetResponse])
+async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     """List all task lists for the current teacher."""
     stmt = (
         select(TaskList, Teacher.username)
@@ -657,7 +657,7 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
         .distinct()
     )
     result = await db.execute(stmt)
-    problemsets = result.all()
+    my_sets = result.all()
 
     return [
         ProblemSetResponse(
@@ -671,10 +671,10 @@ async def list_problemsets(current_user: CurrentUser, db: AsyncSession = Depends
             created_at=ps.created_at.isoformat(),
             expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
         )
-        for ps, owner_username in problemsets
+        for ps, owner_username in my_sets
     ]
 
-@app.get("/api/problemsets/{problemset_id}", response_model=ProblemSetResponse)
+@app.get("/api/my_sets/{problemset_id}", response_model=ProblemSetResponse)
 async def get_problemset(
     problemset_id: int,
     current_user: CurrentUser,
@@ -711,7 +711,7 @@ async def get_problemset(
     )
 
 
-@app.get("/api/problemsets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
+@app.get("/api/my_sets/{code}/tasks", response_model=list[ProblemSetTaskResponse])
 async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     """Get all tasks belonging to a problemset. Accepts either a unique link code or an integer ID."""
     # Always try unique_link_code first so numeric codes like "303" still work.
@@ -832,7 +832,7 @@ async def create_task_set(
 
 #### Who can view problem sets ####
 
-@app.get("/api/problemsets/{problemset_id}/viewers", response_model=list[TaskListViewerResponse])
+@app.get("/api/my_sets/{problemset_id}/viewers", response_model=list[TaskListViewerResponse])
 async def list_problemset_viewers(
     problemset_id: int,
     current_user: CurrentUser,
@@ -872,7 +872,7 @@ async def list_problemset_viewers(
     ]
 
 
-@app.post("/api/problemsets/{problemset_id}/viewers", response_model=TaskListViewerResponse)
+@app.post("/api/my_sets/{problemset_id}/viewers", response_model=TaskListViewerResponse)
 async def add_problemset_viewer(
     problemset_id: int,
     request: TaskListViewerRequest,
@@ -954,7 +954,7 @@ async def add_problemset_viewer(
     )
 
 
-@app.delete("/api/problemsets/{problemset_id}/viewers/{teacher_id}")
+@app.delete("/api/my_sets/{problemset_id}/viewers/{teacher_id}")
 async def remove_problemset_viewer(
     problemset_id: int,
     teacher_id: int,
@@ -999,7 +999,7 @@ async def remove_problemset_viewer(
     return {"status": "success"}
 
 
-@app.get("/api/problemsets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
+@app.get("/api/my_sets/{problemset_id}/students", response_model=list[StudentInTaskListResponse])
 async def get_problemset_students(
     problemset_id: int,
     current_user: CurrentUser,

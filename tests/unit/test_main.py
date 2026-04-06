@@ -469,14 +469,14 @@ class TestListTasks:
 
 
 # ---------------------------------------------------------------------------
-# GET /api/problemsets/{id}
+# GET /api/my_sets/{id}
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestGetProblemset:
     async def test_returns_problemset_data(self, client, problemset, test_teacher):
         r = await client.get(
-            f"/api/problemsets/{problemset.id}",
+            f"/api/my_sets/{problemset.id}",
             headers=_auth(test_teacher.username),
         )
         assert r.status_code == 200
@@ -495,32 +495,32 @@ class TestGetProblemset:
         await db_session.commit()
         await db_session.refresh(ps)
         r = await client.get(
-            f"/api/problemsets/{ps.id}",
+            f"/api/my_sets/{ps.id}",
             headers=_auth(test_teacher.username),
         )
         assert r.status_code == 200
         assert r.json()["expires_at"] is not None
 
     async def test_nonexistent_returns_404(self, client, test_teacher):
-        assert (await client.get("/api/problemsets/99999", headers=_auth(test_teacher.username))).status_code == 404
+        assert (await client.get("/api/my_sets/99999", headers=_auth(test_teacher.username))).status_code == 404
 
 
 # ---------------------------------------------------------------------------
-# GET /api/problemsets/{code}/tasks
+# GET /api/my_sets/{code}/tasks
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestGetProblemsetTasks:
     async def test_get_by_string_code(self, client, problemset_with_task):
         ps, task = problemset_with_task
-        r = await client.get(f"/api/problemsets/{ps.unique_link_code}/tasks")
+        r = await client.get(f"/api/my_sets/{ps.unique_link_code}/tasks")
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
     async def test_get_by_numeric_id(self, client, problemset_with_task):
         ps, task = problemset_with_task
-        r = await client.get(f"/api/problemsets/{ps.id}/tasks")
+        r = await client.get(f"/api/my_sets/{ps.id}/tasks")
         assert r.status_code == 200
         assert r.json()[0]["id"] == task.id
 
@@ -537,19 +537,19 @@ class TestGetProblemsetTasks:
         db_session.add(TaskListItem(task_list_id=ps.id, task_id=task.id))
         await db_session.commit()
 
-        r = await client.get("/api/problemsets/303/tasks")
+        r = await client.get("/api/my_sets/303/tasks")
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
     async def test_unknown_code_returns_404(self, client):
-        assert (await client.get("/api/problemsets/NOSUCHCODE/tasks")).status_code == 404
+        assert (await client.get("/api/my_sets/NOSUCHCODE/tasks")).status_code == 404
 
     async def test_unknown_id_returns_404(self, client):
-        assert (await client.get("/api/problemsets/99999/tasks")).status_code == 404
+        assert (await client.get("/api/my_sets/99999/tasks")).status_code == 404
 
     async def test_empty_problemset_returns_empty_list(self, client, problemset):
-        r = await client.get(f"/api/problemsets/{problemset.unique_link_code}/tasks")
+        r = await client.get(f"/api/my_sets/{problemset.unique_link_code}/tasks")
         assert r.status_code == 200
         assert r.json() == []
 
@@ -1121,11 +1121,11 @@ class TestAdditionalMainPagesAndStudentAuth:
 
 @pytest.mark.asyncio
 class TestAdditionalProblemsetAndTaskListApis:
-    async def test_list_problemsets_requires_authentication(self, client):
-        r = await client.get("/api/problemsets")
+    async def test_my_sets_requires_authentication(self, client):
+        r = await client.get("/api/my_sets")
         assert r.status_code == 401
 
-    async def test_list_problemsets_returns_current_teacher_problemsets(
+    async def test_my_sets_returns_current_teacher_my_sets(
         self, client, test_teacher, problemset, db_session
     ):
         other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
@@ -1143,7 +1143,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         )
         await db_session.commit()
 
-        r = await client.get("/api/problemsets", headers=_auth(test_teacher.username))
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
         assert r.status_code == 200
         assert {item["unique_link_code"] for item in r.json()} == {problemset.unique_link_code}
 

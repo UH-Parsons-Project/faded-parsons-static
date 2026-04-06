@@ -324,11 +324,11 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/register", response_class=HTMLResponse)
-async def register_page():
+@app.get("/teacher-register", response_class=HTMLResponse)
+async def teacher_register_page():
     """Serve a simple registration page."""
-    register_path = BASE_DIR / "templates" / "register.html"
-    return FileResponse(register_path)
+    teacher_register_path = BASE_DIR / "templates" / "teacher_register.html"
+    return FileResponse(teacher_register_path)
 
 @app.get("/instructions", response_class=HTMLResponse)
 async def teacher_instructions_page():
@@ -550,8 +550,8 @@ async def create_problem(
 
     return {"id": task.id, "message": "Problem created"}
 
-@app.post("/api/register")
-async def api_register(request: Request, db: AsyncSession = Depends(get_db)):
+@app.post("/api/teacher_register")
+async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_db)):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()

@@ -216,7 +216,7 @@ export function initLoginPage() {
 	if (registerBtn) {
 		registerBtn.addEventListener('click', function() {
 			// console.log('Register button clicked'); // Debug log
-			window.location.href = '/register';
+			window.location.href = '/teacher-register';
 		});
 	}
 

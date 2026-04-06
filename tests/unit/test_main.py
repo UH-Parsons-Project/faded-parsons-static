@@ -117,8 +117,8 @@ class TestStaticPages:
     async def test_task_html_returns_200(self, client):
         assert (await client.get("/task")).status_code == 200
 
-    async def test_register_page_returns_200(self, client):
-        assert (await client.get("/register")).status_code == 200
+    async def test_teacher_register_page_returns_200(self, client):
+        assert (await client.get("/teacher-register")).status_code == 200
 
     async def test_student_start_page_returns_200(self, client):
         assert (await client.get("/student_start_page")).status_code == 200
@@ -304,94 +304,94 @@ class TestLogout:
 @pytest.mark.asyncio
 class TestRegister:
     async def test_valid_registration_succeeds(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json=valid_registration_payload)
+        r = await client.post("/api/teacher_register", json=valid_registration_payload)
         assert r.status_code == 200
         assert r.json()["status"] == "success"
 
     async def test_invalid_json_returns_400(self, client):
         r = await client.post(
-            "/api/register",
+            "/api/teacher_register",
             content=b"not-json",
             headers={"Content-Type": "application/json"},
         )
         assert r.status_code == 400
 
     async def test_empty_username_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": ""})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": ""})
         assert r.status_code == 400
         assert "required" in r.json()["detail"]
 
     async def test_empty_password_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password": "", "password_confirm": ""})
         assert r.status_code == 400
 
     async def test_empty_email_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "email": ""})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "email": ""})
         assert r.status_code == 400
 
     async def test_password_mismatch_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password_confirm": "different"})
         assert r.status_code == 400
         assert "Passwords do not match" in r.json()["detail"]
 
     async def test_username_too_long_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "a" * 51})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "a" * 51})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
     async def test_email_too_long_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "email": "a" * 101 + "@x.com"})
         assert r.status_code == 400
         assert "too long" in r.json()["detail"]
 
     async def test_username_too_short_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "ab"})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "ab"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
     async def test_password_too_short_returns_400(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "password": "short", "password_confirm": "short"})
         assert r.status_code == 400
         assert "minimum length" in r.json()["detail"]
 
     async def test_duplicate_username_returns_400(self, client, test_teacher, valid_registration_payload):
         payload = {**valid_registration_payload, "username": "testteacher", "email": "other@example.com"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
     async def test_duplicate_email_returns_400(self, client, test_teacher, valid_registration_payload):
         payload = {**valid_registration_payload, "username": "uniqueuser9", "email": "test@example.com"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 400
         assert "already exists" in r.json()["detail"]
 
     async def test_whitespace_username_treated_as_empty(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "username": "   "})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "username": "   "})
         assert r.status_code == 400
 
     async def test_whitespace_email_treated_as_empty(self, client, valid_registration_payload):
-        r = await client.post("/api/register", json={**valid_registration_payload, "email": "   "})
+        r = await client.post("/api/teacher_register", json={**valid_registration_payload, "email": "   "})
         assert r.status_code == 400
 
     async def test_missing_token_returns_403(self, client, valid_registration_payload):
         payload = {k: v for k, v in valid_registration_payload.items() if k != "registration_token"}
-        r = await client.post("/api/register", json=payload)
+        r = await client.post("/api/teacher_register", json=payload)
         assert r.status_code == 403
         assert "Registration token is required" in r.json()["detail"]
 
     async def test_wrong_token_returns_403(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "registration_token": "wrong_token"})
         assert r.status_code == 403
         assert "Invalid registration token" in r.json()["detail"]
 
     async def test_empty_token_returns_403(self, client, valid_registration_payload):
-        r = await client.post("/api/register",
+        r = await client.post("/api/teacher_register",
                                json={**valid_registration_payload, "registration_token": ""})
         assert r.status_code == 403
         assert "Registration token is required" in r.json()["detail"]
@@ -1070,7 +1070,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 200
 
     async def test_student_register_page_returns_200(self, client):
-        r = await client.get("/student_register")
+        r = await client.get("/student-register")
         assert r.status_code == 200
 
     async def test_student_login_invalid_credentials_returns_400(self, client):

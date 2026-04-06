@@ -71,6 +71,7 @@ from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
 from .routes.admin.admin_api import router as admin_router
 from .routes.developer.developer_api import router as developer_router
+from .routes.utils import router as utils_router
 
 
 @asynccontextmanager
@@ -160,15 +161,10 @@ app.include_router(student_router)
 app.include_router(admin_router)
 app.include_router(student_api_router)
 app.include_router(developer_router)
+app.include_router(utils_router)
 from .routes.test.test_api import router as test_router
 app.include_router(test_router)
 
-
-@app.get("/ohtuproj_logo.png")
-async def logo_image():
-    """Serve the navbar logo image used by templates."""
-    logo_path = BASE_DIR / "ohtuproj_logo.png"
-    return FileResponse(logo_path)
 
 
 # Feature flags (moved to backend/config.py)

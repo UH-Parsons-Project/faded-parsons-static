@@ -1034,13 +1034,13 @@ class TestDevAndMaintenanceEndpoints:
 
 @pytest.mark.asyncio
 class TestAdditionalMainPagesAndStudentAuth:
-    async def test_create_task_list_page_requires_authentication(self, client):
-        r = await client.get("/create_task_list", follow_redirects=False)
+    async def test_create_task_set_page_requires_authentication(self, client):
+        r = await client.get("/create-task-set", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
-    async def test_create_task_list_page_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_list", headers=_auth(test_teacher.username))
+    async def test_create_task_set_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create-task-set", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_create_task_page_requires_authentication(self, client):
@@ -1162,7 +1162,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         assert dup.status_code == 400
         assert "already exists" in dup.json()["detail"]
 
-    async def test_create_task_list_rejects_unknown_task_id(self, client, test_teacher):
+    async def test_create_task_set_rejects_unknown_task_id(self, client, test_teacher):
         r = await client.post(
             "/api/task_lists",
             headers=_auth(test_teacher.username),
@@ -1170,7 +1170,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         )
         assert r.status_code == 404
 
-    async def test_create_task_list_rejects_invalid_expiration(self, client, test_teacher):
+    async def test_create_task_set_rejects_invalid_expiration(self, client, test_teacher):
         r = await client.post(
             "/api/task_lists",
             headers=_auth(test_teacher.username),
@@ -1179,7 +1179,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         assert r.status_code == 400
         assert "Invalid expiration date format" in r.json()["detail"]
 
-    async def test_create_task_list_success_with_tasks(self, client, test_teacher, task, db_session):
+    async def test_create_task_set_success_with_tasks(self, client, test_teacher, task, db_session):
         second = Parsons(
             created_by_teacher_id=test_teacher.id,
             title="Hello Again",

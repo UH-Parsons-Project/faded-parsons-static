@@ -96,7 +96,7 @@ export async function createTaskList(
     await taskItems[index].click();
   }
 
-  await page.locator('#create-task-list-form button[type="submit"]').click();
+  await page.locator('#create-task-set-form button[type="submit"]').click();
 }
 
 export async function createTaskListWithTasks(page, taskListTitle, studentDescription, teacherDescription, taskNames) {
@@ -110,7 +110,7 @@ export async function createTaskListWithTasks(page, taskListTitle, studentDescri
     await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
   }
 
-  await page.locator('#create-task-list-form button[type="submit"]').click();
+  await page.locator('#create-task-set-form button[type="submit"]').click();
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {

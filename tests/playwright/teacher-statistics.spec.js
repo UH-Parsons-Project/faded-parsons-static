@@ -68,7 +68,7 @@ test('teacher can see empty student submission in task list statistics under "st
   await studentContext.close();
 
   // Teacher navigates to task list statistics and checks for student submission
-  await page.goto('/task_list_selector');
+  await page.goto('/teacher-dashboard');
   await page.waitForSelector('.task-list-title', { timeout: 10000 });
   await page.locator('.task-list-title', { hasText: taskListTitle }).click();
 

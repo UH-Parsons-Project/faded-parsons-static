@@ -95,7 +95,7 @@ function createAddButton() {
 	const button = document.createElement('div');
 	button.className = 'create-new-card';
 	button.onclick = () => {
-	window.location.href = '/create_task_list';
+	window.location.href = '/create-task-set';
 	};
 
 	button.innerHTML = `

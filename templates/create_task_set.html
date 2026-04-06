@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Task List - Parsons Code Lab</title>
+  <title>Create Task Set - Parsons Code Lab</title>
 
   <link rel="stylesheet"
         href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
@@ -17,7 +17,7 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 
   <!-- Task list creation form module -->
-  <script type="module" src="/js/create-task-list.js"></script>
+  <script type="module" src="/js/create_task_set.js"></script>
 
 </head>
 
@@ -38,7 +38,7 @@
     </div>
   </nav>
 
-  <div class="create-task-list-container">
+  <div class="create-task-set-container">
     <h1 class="mb-4">Create New Task List</h1>
 
     <div id="error-container"></div>
@@ -76,7 +76,7 @@
       </div>
     </div>
 
-    <form id="create-task-list-form" class="task-list-form">
+    <form id="create-task-set-form" class="task-list-form">
       <!-- Basic Information -->
       <div class="form-section">
         <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
@@ -178,9 +178,9 @@
       <!-- Submit Buttons -->
       <div class="button-group">
         <button type="submit" class="btn btn-submit">
-          <i class="fas fa-save"></i> Create Task List
+          <i class="fas fa-save"></i> Create Task Set
         </button>
-        <a href="/task_list_selector" class="btn btn-cancel">
+        <a href="/teacher-dashboard" class="btn btn-cancel">
           <i class="fas fa-times"></i> Cancel
         </a>
       </div>

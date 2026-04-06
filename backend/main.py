@@ -230,8 +230,8 @@ async def teacher_selector(request: Request, db: AsyncSession = Depends(get_db))
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/create_task_list", response_class=HTMLResponse)
-async def create_task_list_page(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/create-task-set", response_class=HTMLResponse)
+async def create_task_set_page(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -239,7 +239,7 @@ async def create_task_list_page(request: Request, db: AsyncSession = Depends(get
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    create_path = BASE_DIR / "templates" / "create_task_list.html"
+    create_path = BASE_DIR / "templates" / "create_task_set.html"
     response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -755,7 +755,7 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
 
 
 @app.post("/api/task_lists", response_model=TaskListResponse)
-async def create_task_list(
+async def create_task_set(
     request: CreateTaskListRequest,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)

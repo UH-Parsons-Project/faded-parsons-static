@@ -16,13 +16,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.seed import seed_mock_activity
+import backend.config as config
 
 
 async def main():
     """Run the mock data seeding."""
     # Prevent running on production
-    development_mode = os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true'
-    if not development_mode:
+    if not config.DEVELOPMENT_MODE:
         print("✗ Cannot run mock data seeding outside of development mode!")
         print("Set DEVELOPMENT_MODE=true to enable.")
         sys.exit(1)

@@ -50,8 +50,8 @@ from .auth import (
 )
 from .database import get_db, init_db
 from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken, ModelAnswer
-from .reset_db import reset_db
-from .seed import seed_db
+from . import reset_db as reset_module
+from . import seed as seed_module
 from .student_auth import (
     authenticate_student,
     create_student_session,
@@ -59,8 +59,8 @@ from .student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
-from .token_utils import verify_token
-from .utils import (
+from utils import verify_token
+from utils import (
     _clean_mistake_code,
     _mistake_code_fingerprint,
     generate_slug,
@@ -76,7 +76,7 @@ from .routes.admin.admin_api import router as admin_router
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
     await init_db()
-    await seed_db()
+    await seed_module.seed_db()
     yield
 
 
@@ -98,7 +98,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
     )
     return result.scalar_one_or_none()
-# Helper utilities moved to backend/utils.py
+# Helper utilities moved to utils package
 
 async def has_task_list_view_access(
     task_list: TaskList,
@@ -158,6 +158,8 @@ app.include_router(student_router)
 # Admin routes moved to dedicated module
 app.include_router(admin_router)
 app.include_router(student_api_router)
+from .routes.test.test_api import router as test_router
+app.include_router(test_router)
 
 
 @app.get("/ohtuproj_logo.png")
@@ -167,39 +169,20 @@ async def logo_image():
     return FileResponse(logo_path)
 
 
-# Test-only endpoint
-TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
-DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
-
-@app.post("/test/reset-db")
-async def reset_test_db():
-    """Reset the database (requires TEST_MODE env variable)."""
-    if not TEST_MODE:
-        raise HTTPException(
-            status_code=403,
-            detail="Test endpoints are only available in test mode"
-        )
-    try:
-        await reset_db()
-        await seed_db()
-        return {"status": "success", "message": "Database reset complete"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to reset database: {str(e)}"
-        ) from e
+# Feature flags (moved to backend/config.py)
+from . import config
 
 
 @app.post("/api/reset-db")
 async def reset_database():
     """Reset the database (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database reset is only available in development mode"
         )
     try:
-        await reset_db()
+        await reset_module.reset_db()
         return {"status": "success", "message": "Database reset complete"}
     except Exception as e:
         raise HTTPException(
@@ -211,13 +194,13 @@ async def reset_database():
 @app.post("/api/seed-db")
 async def seed_database():
     """Seed the database with initial data (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database seeding is only available in development mode"
         )
     try:
-        await seed_db()
+        await seed_module.seed_db()
         return {"status": "success", "message": "Database seeded successfully"}
     except Exception as e:
         raise HTTPException(
@@ -229,7 +212,7 @@ async def seed_database():
 @app.get("/dev/db", response_class=HTMLResponse)
 async def db_operations_page():
     """Serve a page with database management buttons (requires DEVELOPMENT_MODE env variable)."""
-    if not DEVELOPMENT_MODE:
+    if not config.DEVELOPMENT_MODE:
         raise HTTPException(
             status_code=403,
             detail="Database management is only available in development mode"

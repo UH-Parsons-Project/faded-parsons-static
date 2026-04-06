@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -19,10 +19,10 @@ from ...pydantic import (
 	DailyActiveUser,
 	MonthlyActiveUser,
 )
-from ...token_utils import generate_token, hash_token
+from utils import generate_token, hash_token
+import backend.config as config
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
 
 router = APIRouter()
 
@@ -285,7 +285,7 @@ async def seed_mock_data_endpoint(
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	# Prevent running on production
-	if not DEVELOPMENT_MODE:
+	if not config.DEVELOPMENT_MODE:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
 			detail="Mock data seeding is only available in development mode"

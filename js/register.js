@@ -42,7 +42,7 @@ form.addEventListener('submit', async (e) => {
 
 		showAlert('Registration successful.', 'success');
 		form.reset();
-		setTimeout(() => { window.location.href = '/index.html?focus=username'; }, 1000);
+		setTimeout(() => { window.location.href = '/?focus=username'; }, 1000);
 	} catch (err) {
 		showAlert('Network error');
 	}

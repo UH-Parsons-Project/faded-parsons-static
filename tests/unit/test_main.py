@@ -112,7 +112,7 @@ class TestStaticPages:
         assert (await client.get("/")).status_code == 200
 
     async def test_index_html_returns_200(self, client):
-        assert (await client.get("/index.html")).status_code == 200
+        assert (await client.get("/")).status_code == 200
 
     async def test_problem_html_returns_200(self, client):
         assert (await client.get("/problem.html")).status_code == 200
@@ -126,7 +126,7 @@ class TestStaticPages:
     async def test_exerciselist_unauthenticated_redirects(self, client):
         r = await client.get("/exerciselist", follow_redirects=False)
         assert r.status_code == 303
-        assert "/index.html" in r.headers["location"]
+        assert "/" in r.headers["location"]
 
     async def test_exerciselist_authenticated_returns_200(self, client, test_teacher):
         r = await client.get("/exerciselist", headers=_auth(test_teacher.username))
@@ -135,7 +135,7 @@ class TestStaticPages:
     async def test_statics_view_unauthenticated_redirects(self, client):
         r = await client.get("/statics_view", follow_redirects=False)
         assert r.status_code == 303
-        assert "/index.html" in r.headers["location"]
+        assert "/" in r.headers["location"]
 
     async def test_statics_view_authenticated_returns_200(self, client, test_teacher):
         r = await client.get("/statics_view", headers=_auth(test_teacher.username))
@@ -866,10 +866,10 @@ class TestStatistics:
 
 class TestProtectedPages:
     async def test_task_list_selector_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/task_list_selector", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_task_list_selector_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -877,10 +877,10 @@ class TestProtectedPages:
         assert r.status_code == 200
 
     async def test_task_list_statistics_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/task_list_statistics", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_task_list_statistics_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -888,10 +888,10 @@ class TestProtectedPages:
         assert r.status_code == 200
 
     async def test_student_attempts_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/student_attempts", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_student_attempts_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -899,10 +899,10 @@ class TestProtectedPages:
         assert r.status_code == 200
 
     async def test_student_task_statistics_unauthenticated(self, client):
-        """Should redirect to /index.html when not authenticated"""
+        """Should redirect to / when not authenticated"""
         r = await client.get("/student_task_statistics", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_student_task_statistics_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
@@ -1037,7 +1037,7 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_create_task_list_page_requires_authentication(self, client):
         r = await client.get("/create_task_list", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_create_task_list_page_returns_200_when_authenticated(self, client, test_teacher):
         r = await client.get("/create_task_list", headers=_auth(test_teacher.username))
@@ -1046,7 +1046,7 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_create_task_page_requires_authentication(self, client):
         r = await client.get("/create_task", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_create_task_page_returns_200_when_authenticated(self, client, test_teacher):
         r = await client.get("/create_task", headers=_auth(test_teacher.username))
@@ -1059,7 +1059,7 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_create_task_problem_page_requires_authentication(self, client):
         r = await client.get("/create_task_problem", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == "/index.html"
+        assert r.headers["location"] == "/"
 
     async def test_create_task_problem_page_returns_200_when_authenticated(self, client, test_teacher):
         r = await client.get("/create_task_problem", headers=_auth(test_teacher.username))

@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const params = new URLSearchParams(window.location.search);
@@ -426,7 +426,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	.then(r => {
 	if (!r.ok) {
 		if (r.status === 401) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 		return;
 		}
 		throw new Error('Failed to load statistics');
@@ -445,7 +445,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	.catch(err => {
 	console.error('Error loading statistics:', err);
 	if (err.message && err.message.includes('401')) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	} else {
 		showError(err.message);
 	}

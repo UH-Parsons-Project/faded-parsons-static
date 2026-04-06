@@ -4,7 +4,7 @@ initSignedInAs();
 
 initNavbarExercisesButton();
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 
 // Load exercise list
 const container = document.getElementById('problems-list');

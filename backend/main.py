@@ -233,11 +233,6 @@ async def index():
     index_path = BASE_DIR / "templates" / "index.html"
     return FileResponse(index_path)
 
-@app.get("/index.html", response_class=HTMLResponse)
-async def index_html():
-    index_path = BASE_DIR / "templates" / "index.html"
-    return FileResponse(index_path)
-
 
 @app.get("/problem.html", response_class=HTMLResponse)
 async def problem_page():
@@ -251,7 +246,7 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
@@ -267,7 +262,7 @@ async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     statics_path = BASE_DIR / "templates" / "statics_view.html"
@@ -282,7 +277,7 @@ async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     selector_path = BASE_DIR / "templates" / "task_list_selector.html"
@@ -297,7 +292,7 @@ async def create_task_list_page(request: Request, db: AsyncSession = Depends(get
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     create_path = BASE_DIR / "templates" / "create_task_list.html"
@@ -314,7 +309,7 @@ async def create_task_page(request: Request, db: AsyncSession = Depends(get_db))
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     create_path = BASE_DIR / "templates" / "create_task.html"
@@ -331,7 +326,7 @@ async def create_task_problem_page(request: Request, db: AsyncSession = Depends(
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     create_path = BASE_DIR / "templates" / "create_task_problem.html"
@@ -346,7 +341,7 @@ async def task_list_statistics(request: Request, db: AsyncSession = Depends(get_
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     stats_path = BASE_DIR / "templates" / "task_list_statistics.html"
@@ -361,7 +356,7 @@ async def student_attempts_page(request: Request, db: AsyncSession = Depends(get
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     attempts_path = BASE_DIR / "templates" / "student_attempts.html"
@@ -376,7 +371,7 @@ async def student_task_statistics_page(request: Request, db: AsyncSession = Depe
         await get_current_user(request, db)
     except HTTPException:
         return RedirectResponse(
-            url="/index.html", status_code=status.HTTP_303_SEE_OTHER
+            url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
     stats_path = BASE_DIR / "templates" / "student_task_statistics.html"
@@ -1225,7 +1220,7 @@ async def get_student_task_statistics(
 
     # Get all attempts by this student for this task, joined with TaskStart
     from .models import TaskStart
-    
+
     stmt = (
         select(TaskAttempt, TaskStart)
         .join(Student, Student.id == TaskAttempt.student_id)
@@ -1237,7 +1232,7 @@ async def get_student_task_statistics(
 
     result = await db.execute(stmt)
     attempts_with_starts = result.all()
-    
+
     # Unpack into list of (attempt, task_start) tuples for easier access
     attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
 
@@ -1350,7 +1345,7 @@ async def get_task_statistics(
 
     # Build attempts query, optionally filtered by problemset, joined with TaskStart
     from .models import TaskStart
-    
+
     attempts_query = (
         select(TaskAttempt, TaskStart)
         .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
@@ -1510,4 +1505,3 @@ async def get_task_statistics(
         "number_of_moves": None, # Not yet tracked — requires move_events table
         "common_mistakes": common_mistakes,
     }
-

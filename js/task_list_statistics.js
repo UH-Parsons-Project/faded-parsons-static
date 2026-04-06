@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const params = new URLSearchParams(window.location.search);
@@ -395,7 +395,7 @@ Promise.all([
 	.catch(err => {
 	console.error('Error loading data:', err);
 	if (err.message.includes('401') || err.status === 401) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	} else {
 		showError(err.message);
 	}

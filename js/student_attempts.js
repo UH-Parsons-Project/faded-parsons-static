@@ -1,6 +1,6 @@
 import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
 initSignedInAs();
-initProtectedPage('/index.html');
+initProtectedPage('/');
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
@@ -112,7 +112,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?list_id=${l
 	.then(r => {
 	if (!r.ok) {
 		if (r.status === 401) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 		return;
 		}
 		throw new Error('Failed to load student attempts');
@@ -126,7 +126,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?list_id=${l
 	.catch(err => {
 	console.error('Error loading attempts:', err);
 	if (err.message && err.message.includes('401')) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 	} else {
 		showError(err.message);
 	}

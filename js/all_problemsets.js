@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
 
-initProtectedPage('/index.html');
+initProtectedPage('/');
 initSignedInAs();
 
 const userNameEl = document.getElementById('user-name');
@@ -112,7 +112,7 @@ fetch('/api/all-problemsets', { credentials: 'include' })
 	.then(r => {
 	if (!r.ok) {
 		if (r.status === 401 || r.status === 403) {
-		window.location.href = '/index.html';
+		window.location.href = '/';
 		return;
 		}
 		throw new Error('Failed to load task lists');

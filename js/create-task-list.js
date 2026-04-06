@@ -1,6 +1,6 @@
 import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
     initSignedInAs();
-    initProtectedPage('/index.html');
+    initProtectedPage('/');
 
 /**
  * Task List Creation Form Module

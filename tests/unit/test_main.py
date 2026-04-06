@@ -132,13 +132,13 @@ class TestStaticPages:
         r = await client.get("/all-tasks", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_statics_view_unauthenticated_redirects(self, client):
-        r = await client.get("/statics_view", follow_redirects=False)
+    async def test_task_statistics_view_unauthenticated_redirects(self, client):
+        r = await client.get("/task-statistics", follow_redirects=False)
         assert r.status_code == 303
         assert "/" in r.headers["location"]
 
-    async def test_statics_view_authenticated_returns_200(self, client, test_teacher):
-        r = await client.get("/statics_view", headers=_auth(test_teacher.username))
+    async def test_task_statistics_view_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/task-statistics", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
 

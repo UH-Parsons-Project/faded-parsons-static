@@ -200,8 +200,8 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     return response
 
 
-@app.get("/statics_view", response_class=HTMLResponse)
-async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/task-statistics", response_class=HTMLResponse)
+async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -209,8 +209,8 @@ async def statics_view(request: Request, db: AsyncSession = Depends(get_db)):
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    statics_path = BASE_DIR / "templates" / "statics_view.html"
-    response = FileResponse(statics_path)
+    statistics_path = BASE_DIR / "templates" / "task_statistics.html"
+    response = FileResponse(statistics_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response

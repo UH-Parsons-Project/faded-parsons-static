@@ -7,8 +7,8 @@ from ...auth import get_current_user
 from .admin_api import router, BASE_DIR
 
 
-@router.get("/all-problemsets", response_class=HTMLResponse)
-async def all_problemsets_page(request: Request, db: AsyncSession = Depends(get_db)):
+@router.get("/all-tasksets", response_class=HTMLResponse)
+async def all_tasksets_page(request: Request, db: AsyncSession = Depends(get_db)):
 	"""Serve the page for viewing all problem sets (requires data access)."""
 	try:
 		current_user = await get_current_user(request, db)
@@ -19,15 +19,15 @@ async def all_problemsets_page(request: Request, db: AsyncSession = Depends(get_
 			url="/", status_code=status.HTTP_303_SEE_OTHER
 		)
 
-	all_problemsets_path = BASE_DIR / "templates" / "all_problemsets.html"
-	response = FileResponse(all_problemsets_path)
+	all_tasksets_path = BASE_DIR / "templates" / "all_tasksets.html"
+	response = FileResponse(all_tasksets_path)
 	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 	response.headers["Pragma"] = "no-cache"
 	return response
 
 
-@router.get("/admin_view", response_class=HTMLResponse)
-async def admin_view_page(request: Request, db: AsyncSession = Depends(get_db)):
+@router.get("/admin-dashboard", response_class=HTMLResponse)
+async def admin_dashboard_page(request: Request, db: AsyncSession = Depends(get_db)):
 	"""Serve the admin dashboard page (requires admin access)."""
 	try:
 		current_user = await get_current_user(request, db)
@@ -38,8 +38,8 @@ async def admin_view_page(request: Request, db: AsyncSession = Depends(get_db)):
 			url="/", status_code=status.HTTP_303_SEE_OTHER
 		)
 
-	admin_view_path = BASE_DIR / "templates" / "admin_view.html"
-	response = FileResponse(admin_view_path)
+	admin_dashboard_path = BASE_DIR / "templates" / "admin_dashboard.html"
+	response = FileResponse(admin_dashboard_path)
 	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 	response.headers["Pragma"] = "no-cache"
 	return response

@@ -273,7 +273,7 @@ function loadStatistics() {
 		});
 
 	// Total task lists
-	fetch('/api/all-problemsets', { credentials: 'include' })
+	fetch('/api/all-tasksets', { credentials: 'include' })
 		.then(r => r.ok ? r.json() : Promise.reject())
 		.then(data => {
 			if (Array.isArray(data)) {

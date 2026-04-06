@@ -539,7 +539,7 @@ function setupFormSubmission() {
 
     try {
       // Create task set
-      const createResponse = await fetch('/api/task_lists', {
+      const createResponse = await fetch('/api/create_task_set', {
         method: 'POST',
         credentials: 'include',
         headers: {

@@ -108,7 +108,7 @@ function showError(message) {
 
 // ==================== Page Initialization ====================
 
-fetch('/api/all-problemsets', { credentials: 'include' })
+fetch('/api/all-tasksets', { credentials: 'include' })
 	.then(r => {
 	if (!r.ok) {
 		if (r.status === 401 || r.status === 403) {

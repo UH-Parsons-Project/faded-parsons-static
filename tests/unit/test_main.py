@@ -1164,7 +1164,7 @@ class TestAdditionalProblemsetAndTaskListApis:
 
     async def test_create_task_set_rejects_unknown_task_id(self, client, test_teacher):
         r = await client.post(
-            "/api/task_lists",
+            "/api/create_task_set",
             headers=_auth(test_teacher.username),
             json={"title": "My New Set", "task_ids": [999999]},
         )
@@ -1172,7 +1172,7 @@ class TestAdditionalProblemsetAndTaskListApis:
 
     async def test_create_task_set_rejects_invalid_expiration(self, client, test_teacher):
         r = await client.post(
-            "/api/task_lists",
+            "/api/create_task_set",
             headers=_auth(test_teacher.username),
             json={"title": "Date Test Set", "expires_at": "invalid-date", "task_ids": []},
         )
@@ -1201,7 +1201,7 @@ class TestAdditionalProblemsetAndTaskListApis:
             "expires_at": "2027-01-01T00:00:00Z",
             "task_ids": [task.id, second.id],
         }
-        r = await client.post("/api/task_lists", headers=_auth(test_teacher.username), json=payload)
+        r = await client.post("/api/create_task_set", headers=_auth(test_teacher.username), json=payload)
 
         assert r.status_code == 200
         body = r.json()

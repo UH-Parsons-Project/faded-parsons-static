@@ -307,8 +307,8 @@ async def seed_mock_data_endpoint(
 		)
 
 
-@router.get("/api/all-problemsets", response_model=list[ProblemSetResponse])
-async def list_all_problemsets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+@router.get("/api/all-tasksets", response_model=list[ProblemSetResponse])
+async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
 	"""List all task lists from all teachers if the user has data access."""
 	if not current_user.has_data_access:
 		raise HTTPException(

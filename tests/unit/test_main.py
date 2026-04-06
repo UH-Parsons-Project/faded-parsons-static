@@ -115,7 +115,7 @@ class TestStaticPages:
         assert (await client.get("/")).status_code == 200
 
     async def test_problem_html_returns_200(self, client):
-        assert (await client.get("/task.html")).status_code == 200
+        assert (await client.get("/task")).status_code == 200
 
     async def test_register_page_returns_200(self, client):
         assert (await client.get("/register")).status_code == 200

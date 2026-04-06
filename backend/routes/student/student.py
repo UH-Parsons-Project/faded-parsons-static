@@ -120,7 +120,7 @@ async def problemset_task_start_page(
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    start_path = BASE_DIR / "templates" / "student_start_page.html"
+    start_path = BASE_DIR / "templates" / "student_start_task.html"
     response = FileResponse(start_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     response.headers["X-Task-Id"] = str(task_id)

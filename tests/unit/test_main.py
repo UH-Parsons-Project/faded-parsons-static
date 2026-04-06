@@ -120,8 +120,8 @@ class TestStaticPages:
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
 
-    async def test_student_start_page_returns_200(self, client):
-        assert (await client.get("/student_start_page")).status_code == 200
+    async def test_student_start_task_returns_200(self, client):
+        assert (await client.get("/student_start_task")).status_code == 200
 
     async def test_all_tasks_unauthenticated_redirects(self, client):
         r = await client.get("/all-tasks", follow_redirects=False)

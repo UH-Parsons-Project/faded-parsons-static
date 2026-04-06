@@ -120,8 +120,8 @@ class TestStaticPages:
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
 
-    async def test_student_start_page_returns_200(self, client):
-        assert (await client.get("/student_start_page")).status_code == 200
+    async def test_student_start_task_returns_200(self, client):
+        assert (await client.get("/student-start-task")).status_code == 200
 
     async def test_all_tasks_unauthenticated_redirects(self, client):
         r = await client.get("/all-tasks", follow_redirects=False)
@@ -1164,7 +1164,7 @@ class TestAdditionalProblemsetAndTaskListApis:
 
     async def test_create_task_set_rejects_unknown_task_id(self, client, test_teacher):
         r = await client.post(
-            "/api/task_lists",
+            "/api/create_task_set",
             headers=_auth(test_teacher.username),
             json={"title": "My New Set", "task_ids": [999999]},
         )
@@ -1172,7 +1172,7 @@ class TestAdditionalProblemsetAndTaskListApis:
 
     async def test_create_task_set_rejects_invalid_expiration(self, client, test_teacher):
         r = await client.post(
-            "/api/task_lists",
+            "/api/create_task_set",
             headers=_auth(test_teacher.username),
             json={"title": "Date Test Set", "expires_at": "invalid-date", "task_ids": []},
         )
@@ -1201,7 +1201,7 @@ class TestAdditionalProblemsetAndTaskListApis:
             "expires_at": "2027-01-01T00:00:00Z",
             "task_ids": [task.id, second.id],
         }
-        r = await client.post("/api/task_lists", headers=_auth(test_teacher.username), json=payload)
+        r = await client.post("/api/create_task_set", headers=_auth(test_teacher.username), json=payload)
 
         assert r.status_code == 200
         body = r.json()

@@ -17,9 +17,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 router = APIRouter()
 
 
-@router.get("/student_start_page", response_class=FileResponse)
+@router.get("/student-start-task", response_class=FileResponse)
 async def student_start_view():
-    index_path = BASE_DIR / "templates" / "student_start_page.html"
+    index_path = BASE_DIR / "templates" / "student_start_task.html"
     return FileResponse(index_path)
 
 
@@ -120,7 +120,7 @@ async def problemset_task_start_page(
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    start_path = BASE_DIR / "templates" / "student_start_page.html"
+    start_path = BASE_DIR / "templates" / "student_start_task.html"
     response = FileResponse(start_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     response.headers["X-Task-Id"] = str(task_id)

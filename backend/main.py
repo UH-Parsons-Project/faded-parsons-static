@@ -754,7 +754,7 @@ async def get_problemset_tasks(code: str, db: AsyncSession = Depends(get_db)):
     ]
 
 
-@app.post("/api/task_lists", response_model=TaskListResponse)
+@app.post("/api/create_task_set", response_model=TaskListResponse)
 async def create_task_set(
     request: CreateTaskListRequest,
     current_user: CurrentUser,

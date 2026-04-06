@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task List Statistics - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="/">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/teacher-dashboard"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Back to task lists
+      </a>
+            <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+      <span class="text-dark">
+        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
+      </span>
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <div id="list-header" class="loading-spinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading task list...</p>
+    </div>
+
+    <div id="content-container" style="display: none;">
+      <div class="statistics-layout">
+        <div class="tasks-column">
+          <h3 class="mb-3">Tasks</h3>
+          <div id="tasks-list"></div>
+        </div>
+
+        <div class="students-column">
+          <div class="students-section mb-4">
+            <h3 class="mb-3">Shared Viewers</h3>
+            <div class="form-group">
+              <label for="viewer-identifier" class="sr-only">Add viewer</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="viewer-identifier" placeholder="Username or email">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                    <i class="fas fa-user-plus"></i> Add
+                  </button>
+                </div>
+              </div>
+              <small class="form-text text-muted">Add teachers who can view this task list.</small>
+            </div>
+            <div id="viewers-list"></div>
+          </div>
+          <div class="students-section">
+            <h3 class="mb-3">Students (total: <span id="student-count"></span>)</h3>
+            <div id="students-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script type="module" src="/js/task_list_statistics.js"></script>
+
+</body>
+</html>

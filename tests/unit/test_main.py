@@ -865,15 +865,15 @@ class TestStatistics:
 # ---------------------------------------------------------------------------
 
 class TestProtectedPages:
-    async def test_task_list_selector_unauthenticated(self, client):
+    async def test_teacher_dashboard_unauthenticated(self, client):
         """Should redirect to / when not authenticated"""
-        r = await client.get("/task_list_selector", follow_redirects=False)
+        r = await client.get("/teacher-dashboard", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
-    async def test_task_list_selector_authenticated(self, client, test_teacher):
+    async def test_teacher_dashboard_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
-        r = await client.get("/task_list_selector", headers=_auth(test_teacher.username))
+        r = await client.get("/teacher-dashboard", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_task_list_statistics_unauthenticated(self, client):

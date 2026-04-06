@@ -600,7 +600,7 @@ function setupFormSubmission() {
       showSuccess(successMessage);
 
       setTimeout(() => {
-        window.location.href = `/task_list_selector`;
+        window.location.href = `/teacher-dashboard`;
       }, 1500);
     } catch (error) {
       console.error('Error creating task list:', error);

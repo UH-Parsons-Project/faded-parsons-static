@@ -19,7 +19,7 @@ test('teacher can register and then login from the main page', async ({ page }) 
   // Login from the main page with the just-created credentials
   await loginTeacher(page, username, password);
 
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 });
 
 test('teacher can logout after successful login', async ({ page }) => {
@@ -35,7 +35,7 @@ test('teacher can logout after successful login', async ({ page }) => {
   );
 
   await loginTeacher(page, username, password);
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await page.locator('#logout-btn').click();
   await expect(page).toHaveURL(/\/index\.html$/);

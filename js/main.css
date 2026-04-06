@@ -136,7 +136,7 @@
 }
 
 /* Task List Selector Styles */
-.task-list-selector-layout {
+.teacher-dashboard-layout {
   display: flex;
   gap: 2rem;
   align-items: flex-start;

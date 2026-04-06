@@ -9,7 +9,7 @@ const taskId = params.get('task_id');
 const listId = params.get('list_id');
 
 if (!studentUsername || !taskId || !listId) {
-	window.location.href = '/task_list_selector';
+	window.location.href = '/teacher-dashboard';
 }
 
 // Set up back button
@@ -399,7 +399,7 @@ function showError(message) {
 	<i class="fas fa-exclamation-triangle text-danger"></i>
 	<h4>Error Loading Data</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/task_list_selector" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
 	`;
 }
 

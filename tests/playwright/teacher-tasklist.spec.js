@@ -16,14 +16,14 @@ test('teacher can create a new task list by clicking "Create New Task List"', as
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
   await loginTeacher(page, username, password);
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Create a new task list
   await createTaskList(page, taskListTitle, studentDescription, teacherDescription);
 
   // Wait for redirect back to task list selector
-  await page.waitForURL(/\/task_list_selector$/, { timeout: 10000 });
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Verify the newly created task list is visible on the page
   await expect(page.locator('.task-list-title', { hasText: taskListTitle })).toBeVisible();

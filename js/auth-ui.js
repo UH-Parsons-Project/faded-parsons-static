@@ -176,7 +176,7 @@ export function initLoginPage() {
 					showUserInfo(userData.username, userData.role);
 
 					// Redirect to exercise list
-					window.location.href = '/task_list_selector';
+					window.location.href = '/teacher-dashboard';
 				} else {
 					showError('Failed to get user information');
 				}

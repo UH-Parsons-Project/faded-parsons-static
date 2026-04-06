@@ -21,7 +21,7 @@ test('teacher can see empty student submission in task list statistics under "st
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
   await loginTeacher(page, teacherUsername, teacherPassword);
-  await expect(page).toHaveURL(/\/task_list_selector$/);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskListWithTasks(
     page,
@@ -30,7 +30,7 @@ test('teacher can see empty student submission in task list statistics under "st
     `Teacher description for ${taskListTitle}`,
     ['add_in_range', 'greater_num']
   );
-  await page.waitForURL(/\/task_list_selector$/, { timeout: 10000 });
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
 
   // Get the student-facing URL
   const studentUrl = await getStudentUrl(page, taskListTitle);

@@ -215,8 +215,8 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
     response.headers["Pragma"] = "no-cache"
     return response
 
-@app.get("/task_list_selector", response_class=HTMLResponse)
-async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db)):
+@app.get("/teacher-dashboard", response_class=HTMLResponse)
+async def teacher_selector(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
     except HTTPException:
@@ -224,8 +224,8 @@ async def task_list_selector(request: Request, db: AsyncSession = Depends(get_db
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    selector_path = BASE_DIR / "templates" / "task_list_selector.html"
-    response = FileResponse(selector_path)
+    teacher_dashboard_path = BASE_DIR / "templates" / "teacher_dashboard.html"
+    response = FileResponse(teacher_dashboard_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response

@@ -141,7 +141,7 @@ function renderTaskLists(taskLists) {
 	container.appendChild(buttonWrapper);
 	} else {
 	const layout = document.createElement('div');
-	layout.className = 'task-list-selector-layout';
+	layout.className = 'teacher-dashboard-layout';
 
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-lists-column';

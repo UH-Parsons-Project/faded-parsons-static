@@ -1056,17 +1056,17 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.get("/create_task.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_create_task_problem_page_requires_authentication(self, client):
-        r = await client.get("/create_task_problem", follow_redirects=False)
+    async def test_create_task_editor_page_requires_authentication(self, client):
+        r = await client.get("/create-task-editor", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
-    async def test_create_task_problem_page_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_problem", headers=_auth(test_teacher.username))
+    async def test_create_task_editor_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create-task-editor", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
-    async def test_create_task_problem_html_alias_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_problem.html", headers=_auth(test_teacher.username))
+    async def test_create_task_editor_html_alias_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/create_task_editor.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_student_register_page_returns_200(self, client):

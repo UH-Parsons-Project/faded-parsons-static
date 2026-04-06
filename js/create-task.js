@@ -252,7 +252,7 @@
 
         localStorage.removeItem(TASK_CODE_DRAFT_KEY);
         localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
-        window.location.href = '/create_task_problem';
+        window.location.href = '/create-task-editor';
       } catch (error) {
         console.error('Task creation failed:', error);
         alert('Failed to submit task. Please try again.');

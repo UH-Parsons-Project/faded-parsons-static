@@ -263,8 +263,8 @@ async def create_task_page(request: Request, db: AsyncSession = Depends(get_db))
     return response
 
 
-@app.get("/create_task_problem", response_class=HTMLResponse)
-@app.get("/create_task_problem.html", response_class=HTMLResponse)
+@app.get("/create-task-editor", response_class=HTMLResponse)
+@app.get("/create_task_editor.html", response_class=HTMLResponse)
 async def create_task_problem_page(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
@@ -273,7 +273,7 @@ async def create_task_problem_page(request: Request, db: AsyncSession = Depends(
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    create_path = BASE_DIR / "templates" / "create_task_problem.html"
+    create_path = BASE_DIR / "templates" / "create_task_editor.html"
     response = FileResponse(create_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"

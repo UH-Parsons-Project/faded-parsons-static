@@ -114,13 +114,9 @@ export async function createTaskListWithTasks(page, taskListTitle, studentDescri
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {
-  // Click register and wait for the student register page to load (some pages navigate)
-  await Promise.all([
-    page.waitForURL(/student_register|\/student_register/),
-    page.locator('#register-btn').click(),
-  ]);
-
-  // Ensure the register form is present before interacting
+  // Click register and wait for the student register form to appear.
+  // Avoid waiting for URL navigation which can be aborted in some browsers.
+  await page.locator('#register-btn').click();
   await page.waitForSelector('#register-form', { timeout: 10000 });
 
   await page.locator('#username').fill(username);

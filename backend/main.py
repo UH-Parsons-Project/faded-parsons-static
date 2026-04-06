@@ -188,7 +188,7 @@ async def problem_page():
     return FileResponse(problem_path)
 
 
-@app.get("/exerciselist")
+@app.get("/all-tasks")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         await get_current_user(request, db)
@@ -197,8 +197,8 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
             url="/", status_code=status.HTTP_303_SEE_OTHER
         )
 
-    exerciselist_path = BASE_DIR / "templates" / "exerciselist.html"
-    response = FileResponse(exerciselist_path)
+    all_tasks_path = BASE_DIR / "templates" / "all_tasks.html"
+    response = FileResponse(all_tasks_path)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response

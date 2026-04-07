@@ -272,7 +272,7 @@ function loadStatistics() {
 			});
 		});
 
-	// Total task lists
+	// Total task sets
 	fetch('/api/all-tasksets', { credentials: 'include' })
 		.then(r => r.ok ? r.json() : Promise.reject())
 		.then(data => {

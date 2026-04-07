@@ -3,8 +3,8 @@ import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
     initProtectedPage('/');
 
 /**
- * Task List Creation Form Module
- * Handles form interactions, task selection, and task list creation
+ * Task Set Creation Form Module
+ * Handles form interactions, task selection, and task set creation
  */
 
 let allTasks = [];
@@ -441,7 +441,7 @@ function showError(message) {
  */
 function showDuplicateTitleModal(title) {
   const messageP = document.getElementById('duplicate-error-message');
-  messageP.innerHTML = `A task list with the title "<strong style="color: #dc3545;">${escapeHtml(title)}</strong>" already exists. Please choose a different name.`;
+  messageP.innerHTML = `A task set with the title "<strong style="color: #dc3545;">${escapeHtml(title)}</strong>" already exists. Please choose a different name.`;
 
   // Scroll to top to show the modal
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -453,8 +453,8 @@ function showDuplicateTitleModal(title) {
 
   // Focus back to the title input for easy editing after a brief delay
   setTimeout(() => {
-    document.getElementById('task-list-title').focus();
-    document.getElementById('task-list-title').select();
+    document.getElementById('task-set-title').focus();
+    document.getElementById('task-set-title').select();
   }, 500);
 }
 
@@ -479,7 +479,7 @@ function toggleDuplicateTitleModal(show) {
  */
 function closeDuplicateTitleModal() {
   toggleDuplicateTitleModal(false);
-  document.getElementById('task-list-title').focus();
+  document.getElementById('task-set-title').focus();
 }
 
 window.closeDuplicateTitleModal = closeDuplicateTitleModal;
@@ -513,7 +513,7 @@ function setupFormSubmission() {
   document.getElementById('create-task-set-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const title = document.getElementById('task-list-title').value.trim();
+    const title = document.getElementById('task-set-title').value.trim();
     const studentDescription = document.getElementById('student-description').value.trim();
     const teacherDescription = document.getElementById('teacher-description').value.trim();
     const expirationDate = document.getElementById('set-expiration').checked
@@ -524,7 +524,7 @@ function setupFormSubmission() {
     const viewersToShare = [...viewerIdentifiers];
 
     if (!title) {
-      showError('Please enter a task list title');
+      showError('Please enter a task set title');
       return;
     }
 
@@ -603,7 +603,7 @@ function setupFormSubmission() {
         window.location.href = `/teacher-dashboard`;
       }, 1500);
     } catch (error) {
-      console.error('Error creating task list:', error);
+      console.error('Error creating task set:', error);
       showError(error.message || 'Failed to create task set');
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Task Set';

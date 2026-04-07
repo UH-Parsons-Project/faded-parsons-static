@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database import get_db
-from ...models import Student, TaskList
+from ...models import Student, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
@@ -24,16 +24,16 @@ async def student_start_view():
 
 
 @router.get("/set/{unique_link_code}", response_class=FileResponse)
-async def problemset_page(
+async def task_set_page(
     unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not problemset:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
@@ -42,23 +42,23 @@ async def problemset_page(
     if student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
-    problemset_path = BASE_DIR / "templates" / "student_index.html"
-    response = FileResponse(problemset_path)
+    task_set_path = BASE_DIR / "templates" / "student_index.html"
+    response = FileResponse(task_set_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     return response
 
 
 @router.get("/set/{unique_link_code}/tasks", response_class=FileResponse)
-async def problemset_tasks_page(
+async def task_set_tasks_page(
     unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not problemset:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
@@ -67,24 +67,24 @@ async def problemset_tasks_page(
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
-    tasks_path = BASE_DIR / "templates" / "problemset.html"
+    tasks_path = BASE_DIR / "templates" / "task_set.html"
     response = FileResponse(tasks_path)
     response.headers["X-Problemset-Code"] = unique_link_code
     return response
 
 
 @router.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
-async def problemset_task_page(
+async def task_set_task_page(
     unique_link_code: str,
     task_id: int,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not problemset:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",
@@ -101,17 +101,17 @@ async def problemset_task_page(
 
 
 @router.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
-async def problemset_task_start_page(
+async def task_set_task_start_page(
     unique_link_code: str,
     task_id: int,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
-    problemset = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not problemset:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Problem set with code {unique_link_code} not found",

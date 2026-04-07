@@ -1,7 +1,7 @@
 import { initLoginPage } from '/js/auth-ui.js';
 initLoginPage();
 
-// Pass the problemset code to the register page so it can redirect back
+// Pass the task_set code to the register page so it can redirect back
 const pathParts = window.location.pathname.split('/');
 const code = pathParts[2];
 document.getElementById('register-btn').addEventListener('click', () => {

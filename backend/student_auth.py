@@ -10,12 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import get_db
-from .models import Student, StudentTaskListEnrollment
+from .models import Student, StudentTaskSetEnrollment
 
 STUDENT_SESSION_EXPIRE_HOURS = 8
 
 async def create_student_session(
-    task_list_id: int,
+    task_set_id: int,
     nickname: str,
     db: AsyncSession
 ) -> Student:
@@ -24,7 +24,7 @@ async def create_student_session(
     Returns the Student object persisted in the database.
 
     Args:
-        task_list_id: ID of the task list the student is working on
+        task_set_id: ID of the task set the student is working on
         nickname: Student's chosen nickname
         db: Database session
 
@@ -43,9 +43,9 @@ async def create_student_session(
     db.add(student)
     await db.flush()
 
-    enrollment = StudentTaskListEnrollment(
+    enrollment = StudentTaskSetEnrollment(
         student_id=student.id,
-        task_list_id=task_list_id,
+        task_set_id=task_set_id,
     )
     db.add(enrollment)
     await db.commit()

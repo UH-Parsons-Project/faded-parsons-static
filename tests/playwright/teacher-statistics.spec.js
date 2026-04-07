@@ -3,37 +3,37 @@ import { test, expect } from '@playwright/test';
 import {
   registerTeacher,
   loginTeacher,
-  createTaskListWithTasks,
+  createTaskSetWithTasks,
   registerStudent,
   loginStudent,
   getStudentUrl,
 } from './test-helpers.js';
 
-test('teacher can see empty student submission in task list statistics under "students"', async ({ page, browser }) => {
+test('teacher can see empty student submission in task set statistics under "students"', async ({ page, browser }) => {
   const unique = Date.now();
   const teacherUsername = `teacher_stat_${unique}`;
   const teacherEmail = `teacher_stat_${unique}@example.com`;
   const teacherPassword = 'password123';
-  const taskListTitle = `Stats Task List ${unique}`;
+  const taskSetTitle = `Stats Task Set ${unique}`;
 
-  // Teacher registers, logs in, and creates a task list with specific tasks
+  // Teacher registers, logs in, and creates a task set with specific tasks
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
   await loginTeacher(page, teacherUsername, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  await createTaskListWithTasks(
+  await createTaskSetWithTasks(
     page,
-    taskListTitle,
-    `Student description for ${taskListTitle}`,
-    `Teacher description for ${taskListTitle}`,
+    taskSetTitle,
+    `Student description for ${taskSetTitle}`,
+    `Teacher description for ${taskSetTitle}`,
     ['add_in_range', 'greater_num']
   );
   await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
 
   // Get the student-facing URL
-  const studentUrl = await getStudentUrl(page, taskListTitle);
+  const studentUrl = await getStudentUrl(page, taskSetTitle);
 
   // Student registers, logs in, and submits a task
   const studentContext = await browser.newContext();
@@ -53,7 +53,7 @@ test('teacher can see empty student submission in task list statistics under "st
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Click on the "add_in_range" task
-  await studentPage.locator('.task-list-item', { hasText: 'add_in_range' }).click();
+  await studentPage.locator('.task-set-item', { hasText: 'add_in_range' }).click();
 
   // Start the task
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });
@@ -67,10 +67,10 @@ test('teacher can see empty student submission in task list statistics under "st
   await studentPage.waitForSelector('test-results-element', { timeout: 30000 });
   await studentContext.close();
 
-  // Teacher navigates to task list statistics and checks for student submission
+  // Teacher navigates to task set statistics and checks for student submission
   await page.goto('/teacher-dashboard');
-  await page.waitForSelector('.task-list-title', { timeout: 10000 });
-  await page.locator('.task-list-title', { hasText: taskListTitle }).click();
+  await page.waitForSelector('.task-set-title', { timeout: 10000 });
+  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
 
   // Wait for the statistics page to load
   await page.waitForSelector('#students-list', { timeout: 10000 });

@@ -19,7 +19,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
-from backend.models import Parsons, Student, StudentTaskListEnrollment, TaskList, TaskListItem, Teacher, RegistrationToken
+from backend.models import Parsons, Student, StudentTaskSetEnrollment, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from utils import generate_token, hash_token
 
 
@@ -187,9 +187,9 @@ async def private_task(db_session, test_teacher) -> Parsons:
 
 
 @pytest_asyncio.fixture
-async def problemset(db_session, test_teacher) -> TaskList:
-    """A problem set (TaskList) owned by test_teacher."""
-    ps = TaskList(
+async def task_set(db_session, test_teacher) -> TaskSet:
+    """A task set (TaskSet) owned by test_teacher."""
+    ps = TaskSet(
         teacher_id=test_teacher.id,
         title="Week 1 Exercises",
         unique_link_code="WEEK1",
@@ -201,17 +201,17 @@ async def problemset(db_session, test_teacher) -> TaskList:
 
 
 @pytest_asyncio.fixture
-async def problemset_with_task(db_session, problemset, task) -> tuple[TaskList, Parsons]:
-    """A problem set that already contains *task*."""
-    item = TaskListItem(task_list_id=problemset.id, task_id=task.id)
+async def task_set_with_task(db_session, task_set, task) -> tuple[TaskSet, Parsons]:
+    """A task set that already contains *task*."""
+    item = TaskSetItem(task_set_id=task_set.id, task_id=task.id)
     db_session.add(item)
     await db_session.commit()
-    return problemset, task
+    return task_set, task
 
 
 @pytest_asyncio.fixture
-async def student_session(db_session, problemset) -> Student:
-    """A student account associated with *problemset*."""
+async def student_session(db_session, task_set) -> Student:
+    """A student account associated with *task_set*."""
     ss = Student(
         username="student1",
         email="student1@example.com",
@@ -219,7 +219,7 @@ async def student_session(db_session, problemset) -> Student:
     ss.set_password("studentpass123")
     db_session.add(ss)
     await db_session.flush()
-    db_session.add(StudentTaskListEnrollment(student_id=ss.id, task_list_id=problemset.id))
+    db_session.add(StudentTaskSetEnrollment(student_id=ss.id, task_set_id=task_set.id))
     await db_session.commit()
     await db_session.refresh(ss)
     return ss

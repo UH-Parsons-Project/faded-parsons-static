@@ -4,14 +4,14 @@ initProtectedPage('/');
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
-const listId = params.get('list_id');
+const setId = params.get('set_id');
 
-if (!studentUsername || !listId) {
+if (!studentUsername || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
 // Set up back button
-document.getElementById('back-btn').href = `/task-set-overview?list_id=${listId}`;
+document.getElementById('back-btn').href = `/task-set-overview?set_id=${setId}`;
 
 
 function formatDateTime(isoString) {
@@ -37,24 +37,24 @@ function renderHeader(username) {
 	container.className = 'mb-4';
 	container.innerHTML = `
 	<h2>Student: ${escapeHtml(username)}</h2>
-	<p class="text-muted">All tasks attempted by this student in this task list</p>
+	<p class="text-muted">All tasks attempted by this student in this task set</p>
 	`;
 }
 
 function createAttemptItem(attempt) {
 	const item = document.createElement('div');
-	item.className = 'task-list-item';
+	item.className = 'task-set-item';
 	item.style.cursor = 'pointer';
 	item.onclick = () => {
-	window.location.href = `/student_task_statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&list_id=${listId}`;
+	window.location.href = `/student_task_statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
+	title.className = 'task-set-title';
 	title.textContent = attempt.task_title;
 
 	const meta = document.createElement('div');
-	meta.className = 'task-list-meta';
+	meta.className = 'task-set-meta';
 
 	const statusIcon = attempt.success_count > 0
 	? '<i class="fas fa-check-circle" style="color: #28a745;"></i><span style="margin-right: 0.5rem;"> Success</span>'
@@ -101,12 +101,12 @@ function showError(message) {
 	<i class="fas fa-exclamation-triangle text-danger"></i>
 	<h4>Error Loading Data</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Sets</a>
 	`;
 }
 
 // Load student attempts
-fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?list_id=${listId}`, {
+fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?set_id=${setId}`, {
 	credentials: 'include'
 })
 	.then(r => {

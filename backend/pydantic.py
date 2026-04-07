@@ -26,7 +26,7 @@ class TaskResponse(BaseModel):
     created_at: str
 
 
-class ProblemSetResponse(BaseModel):
+class TaskSetResponse(BaseModel):
     id: int
     title: str
     unique_link_code: str
@@ -38,7 +38,7 @@ class ProblemSetResponse(BaseModel):
     expires_at: str | None
 
 
-class ProblemSetTaskResponse(BaseModel):
+class TaskSetTaskResponse(BaseModel):
     id: int
     title: str
     task_type: str
@@ -60,7 +60,7 @@ class StudentLoginRequest(BaseModel):
     username: str
     password: str
     unique_link_code: str | None = None
-class StudentInTaskListResponse(BaseModel):
+class StudentInTaskSetResponse(BaseModel):
     username: str
     started_at: str
     last_activity_at: str
@@ -128,7 +128,7 @@ class CreateProblemRequest(BaseModel):
     solutionCode: str
 
 
-class CreateTaskListRequest(BaseModel):
+class CreateTaskSetRequest(BaseModel):
     title: str
     student_description: str | None = None
     teacher_description: str | None = None
@@ -136,7 +136,7 @@ class CreateTaskListRequest(BaseModel):
     task_ids: list[int]
 
 
-class TaskListResponse(BaseModel):
+class TaskSetResponse(BaseModel):
     id: int
     title: str
     unique_link_code: str
@@ -147,13 +147,13 @@ class TaskListResponse(BaseModel):
     expires_at: str | None
 
 
-class TaskListViewerRequest(BaseModel):
+class TaskSetViewerRequest(BaseModel):
     identifier: str
 
 
-class TaskListViewerResponse(BaseModel):
+class TaskSetViewerResponse(BaseModel):
     id: int
-    task_list_id: int
+    task_set_id: int
     teacher_id: int
     username: str
     email: str

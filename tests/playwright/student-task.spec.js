@@ -3,37 +3,37 @@ import { test, expect } from '@playwright/test';
 import {
   registerTeacher,
   loginTeacher,
-  createTaskListWithTasks,
+  createTaskSetWithTasks,
   registerStudent,
   loginStudent,
   getStudentUrl,
 } from './test-helpers.js';
 
-test('student can open and submit a (empty) task from the task list', async ({ page, browser }) => {
+test('student can open and submit a (empty) task from the task set', async ({ page, browser }) => {
   const unique = Date.now();
   const teacherUsername = `teacher_st_${unique}`;
   const teacherEmail = `teacher_st_${unique}@example.com`;
   const teacherPassword = 'password123';
-  const taskListTitle = `Student Task List ${unique}`;
+  const taskSetTitle = `Student Task Set ${unique}`;
 
-  // Teacher registers, logs in, and creates a task list with specific tasks
+  // Teacher registers, logs in, and creates a task set with specific tasks
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
   await loginTeacher(page, teacherUsername, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  await createTaskListWithTasks(
+  await createTaskSetWithTasks(
     page,
-    taskListTitle,
-    `Student description for ${taskListTitle}`,
-    `Teacher description for ${taskListTitle}`,
+    taskSetTitle,
+    `Student description for ${taskSetTitle}`,
+    `Teacher description for ${taskSetTitle}`,
     ['add_in_range', 'greater_num']
   );
   await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
 
   // Get the student-facing URL
-  const studentUrl = await getStudentUrl(page, taskListTitle);
+  const studentUrl = await getStudentUrl(page, taskSetTitle);
 
   // Open a new browser context for the student
   const studentContext = await browser.newContext();
@@ -64,7 +64,7 @@ test('student can open and submit a (empty) task from the task list', async ({ p
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Click on the "add_in_range" task
-  await studentPage.locator('.task-list-item', { hasText: 'add_in_range' }).click();
+  await studentPage.locator('.task-set-item', { hasText: 'add_in_range' }).click();
 
   // Click "Start" on the start page
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });

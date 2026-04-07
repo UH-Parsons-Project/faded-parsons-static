@@ -66,17 +66,17 @@ async function loadSuccessRate(taskId, targetElement) {
 
 function createExerciseCard(item) {
 	const card = document.createElement('div');
-	card.className = 'task-list-item';
+	card.className = 'task-set-item';
 	card.onclick = () => {
 		window.location.href = '/task-statistics?id=' + encodeURIComponent(item.id);
 	};
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
+	title.className = 'task-set-title';
 	title.textContent = item.title;
 
 	const meta = document.createElement('div');
-	meta.className = 'task-list-meta';
+	meta.className = 'task-set-meta';
 
 	const metaParts = ['View global analytics'];
 	if (item.task_type) {
@@ -91,7 +91,7 @@ function createExerciseCard(item) {
 	card.appendChild(meta);
 
 	const successRate = document.createElement('div');
-	successRate.className = 'task-list-meta';
+	successRate.className = 'task-set-meta';
 	successRate.textContent = 'Success rate: Loading...';
 	card.appendChild(successRate);
 
@@ -100,7 +100,7 @@ function createExerciseCard(item) {
 	const teaserText = item.task_instructions || item.description;
 	if (teaserText) {
 		const teaser = document.createElement('div');
-		teaser.className = 'task-list-description';
+		teaser.className = 'task-set-description';
 		teaser.textContent = truncate(teaserText, 160);
 		teaser.title = teaserText;
 		card.appendChild(teaser);
@@ -124,7 +124,7 @@ function render(list) {
 	}
 
 	const cardsColumn = document.createElement('div');
-	cardsColumn.className = 'task-lists-column';
+	cardsColumn.className = 'task-sets-column';
 
 	list.forEach(function (item) {
 		cardsColumn.appendChild(createExerciseCard(item));

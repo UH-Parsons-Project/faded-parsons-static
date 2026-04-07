@@ -4,7 +4,7 @@ initProtectedPage('/');
 
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
-const problemsetCode = params.get('problemset');
+const task_setCode = params.get('task_set');
 
 function formatTime(seconds) {
 	if (seconds === null || seconds === undefined) return '—';
@@ -41,7 +41,7 @@ async function loadStatistics() {
 	}
 
 	let apiUrl = `/api/tasks/${taskId}/statistics`;
-	if (problemsetCode) apiUrl += `?problemset_code=${encodeURIComponent(problemsetCode)}`;
+	if (task_setCode) apiUrl += `?task_set_code=${encodeURIComponent(task_setCode)}`;
 
 	let response;
 	try {

@@ -44,46 +44,46 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
-function createTaskListItem(taskList) {
+function createTaskSetItem(taskSet) {
 	const item = document.createElement('div');
-	item.className = 'task-list-item';
+	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-set-overview?list_id=${taskList.id}`;
+	window.location.href = `/task-set-overview?set_id=${taskSet.id}`;
 	};
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
-	title.textContent = taskList.title;
+	title.className = 'task-set-title';
+	title.textContent = taskSet.title;
 
 	const meta = document.createElement('div');
-	meta.className = 'task-list-meta';
+	meta.className = 'task-set-meta';
 	meta.innerHTML = `
-	<i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
-	${taskList.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
+	<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
+	${taskSet.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}` : ''}
 	`;
 
 	item.appendChild(title);
 	item.appendChild(meta);
 
-	if (currentUsername && taskList.owner_username && taskList.owner_username !== currentUsername) {
+	if (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername) {
 		const sharedLabel = document.createElement('div');
 		sharedLabel.className = 'text-muted';
 		sharedLabel.style.fontSize = '0.8rem';
-		sharedLabel.textContent = `Shared by ${taskList.owner_username}`;
+		sharedLabel.textContent = `Shared by ${taskSet.owner_username}`;
 		item.appendChild(sharedLabel);
 	}
 
-	if (taskList.teacher_description) {
+	if (taskSet.teacher_description) {
 	const description = document.createElement('div');
-	description.className = 'task-list-description';
+	description.className = 'task-set-description';
 
 	// Truncate to 100 characters and add ellipsis if longer
-	let displayText = taskList.teacher_description;
+	let displayText = taskSet.teacher_description;
 	if (displayText.length > 100) {
 		displayText = displayText.substring(0, 100) + '...';
 	}
 	description.textContent = displayText;
-	description.title = taskList.teacher_description; // Show full text on hover
+	description.title = taskSet.teacher_description; // Show full text on hover
 
 	item.appendChild(description);
 	}
@@ -100,8 +100,8 @@ function createAddButton() {
 
 	button.innerHTML = `
 	<i class="fas fa-plus-circle"></i>
-	<div class="task-list-title">Create New Task List</div>
-	<p class="mb-0" style="font-size: 0.875rem;">Add a new task list</p>
+	<div class="task-set-title">Create New Task Set</div>
+	<p class="mb-0" style="font-size: 0.875rem;">Add a new task set</p>
 	`;
 
 	return button;
@@ -120,17 +120,17 @@ function createNewTaskButton() {
 	return wrapper;
 }
 
-function renderTaskLists(taskLists) {
-	const container = document.getElementById('task-lists-container');
+function renderTaskSets(taskSets) {
+	const container = document.getElementById('task-sets-container');
 	container.className = '';
 	container.innerHTML = '';
 
-	if (taskLists.length === 0) {
+	if (taskSets.length === 0) {
 	container.innerHTML = `
 		<div class="empty-state">
 		<i class="fas fa-folder-open"></i>
-		<h4>No Task Lists Yet</h4>
-		<p>Create your first task list to get started with organizing exercises and viewing statistics.</p>
+		<h4>No Task Sets Yet</h4>
+		<p>Create your first task set to get started with organizing exercises and viewing statistics.</p>
 		</div>
 	`;
 	const buttonWrapper = document.createElement('div');
@@ -144,39 +144,39 @@ function renderTaskLists(taskLists) {
 	layout.className = 'teacher-dashboard-layout';
 
 	const listsColumn = document.createElement('div');
-	listsColumn.className = 'task-lists-column';
+	listsColumn.className = 'task-sets-column';
 
 	const ownedLists = currentUsername
-		? taskLists.filter(taskList => taskList.owner_username === currentUsername)
-		: taskLists;
+		? taskSets.filter(taskSet => taskSet.owner_username === currentUsername)
+		: taskSets;
 	const sharedLists = currentUsername
-		? taskLists.filter(taskList => taskList.owner_username !== currentUsername)
+		? taskSets.filter(taskSet => taskSet.owner_username !== currentUsername)
 		: [];
 
 	const ownedSection = document.createElement('div');
-	ownedSection.className = 'task-list-section';
-	ownedSection.innerHTML = '<h4 class="mb-3">Your Task Lists</h4>';
+	ownedSection.className = 'task-set-section';
+	ownedSection.innerHTML = '<h4 class="mb-3">Your Task Sets</h4>';
 
 	const ownedContainer = document.createElement('div');
 	if (ownedLists.length === 0) {
-		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task lists yet.</div>';
+		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task sets yet.</div>';
 	} else {
-		ownedLists.forEach(taskList => {
-			ownedContainer.appendChild(createTaskListItem(taskList));
+		ownedLists.forEach(taskSet => {
+			ownedContainer.appendChild(createTaskSetItem(taskSet));
 		});
 	}
 	ownedSection.appendChild(ownedContainer);
 
 	const sharedSection = document.createElement('div');
-	sharedSection.className = 'task-list-section mt-4';
+	sharedSection.className = 'task-set-section mt-4';
 	sharedSection.innerHTML = '<h4 class="mb-3">Shared With You</h4>';
 
 	const sharedContainer = document.createElement('div');
 	if (sharedLists.length === 0) {
-		sharedContainer.innerHTML = '<div class="text-muted">No shared task lists.</div>';
+		sharedContainer.innerHTML = '<div class="text-muted">No shared task sets.</div>';
 	} else {
-		sharedLists.forEach(taskList => {
-			sharedContainer.appendChild(createTaskListItem(taskList));
+		sharedLists.forEach(taskSet => {
+			sharedContainer.appendChild(createTaskSetItem(taskSet));
 		});
 	}
 	sharedSection.appendChild(sharedContainer);
@@ -196,16 +196,16 @@ function renderTaskLists(taskLists) {
 }
 
 function showError(message) {
-	const container = document.getElementById('task-lists-container');
+	const container = document.getElementById('task-sets-container');
 	container.className = 'empty-state';
 	container.innerHTML = `
 	<i class="fas fa-exclamation-triangle text-danger"></i>
-	<h4>Error Loading Task Lists</h4>
+	<h4>Error Loading Task Sets</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred. Please try again later.')}</p>
 	`;
 }
 
-async function loadTaskLists() {
+async function loadTaskSets() {
 	try {
 		const response = await fetch('/api/my_sets', { credentials: 'include' });
 		if (!response.ok) {
@@ -213,19 +213,19 @@ async function loadTaskLists() {
 				window.location.href = '/';
 				return;
 			}
-			throw new Error('Failed to load task lists');
+			throw new Error('Failed to load task sets');
 		}
 		const data = await response.json();
-		renderTaskLists(data);
+		renderTaskSets(data);
 	} catch (err) {
-		console.error('Error loading task lists:', err);
+		console.error('Error loading task sets:', err);
 		showError(err.message);
 	}
 }
 
 async function initPage() {
 	await loadCurrentUser();
-	await loadTaskLists();
+	await loadTaskSets();
 }
 
 initPage();

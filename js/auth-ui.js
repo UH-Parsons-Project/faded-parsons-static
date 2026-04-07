@@ -118,7 +118,7 @@ export function initLoginPage() {
 		}
 
 		try {
-			// If we're on a problemset page (/set/<code>) use student login
+			// If we're on a task_set page (/set/<code>) use student login
 			const pathMatch = window.location.pathname.match(/^\/set\/([^/]+)/);
 			if (pathMatch) {
 				const code = pathMatch[1];

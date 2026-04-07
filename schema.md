@@ -21,7 +21,7 @@ CREATE TABLE parsons (
 	created_at TIMESTAMP
 );
 
-CREATE TABLE task_lists (
+CREATE TABLE task_sets (
 	id SERIAL PRIMARY KEY,
 	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
 	title VARCHAR(255) NOT NULL,
@@ -32,26 +32,26 @@ CREATE TABLE task_lists (
 	expires_at TIMESTAMP
 );
 
-CREATE TABLE task_list_viewers (
+CREATE TABLE task_set_viewers (
 	id SERIAL PRIMARY KEY,
-	task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
+	task_set_id INTEGER NOT NULL REFERENCES task_sets(id) ON DELETE CASCADE,
 	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	UNIQUE (task_list_id, teacher_id)
+	UNIQUE (task_set_id, teacher_id)
 );
 
-CREATE TABLE task_list_items (
+CREATE TABLE task_set_items (
 	id SERIAL PRIMARY KEY,
-	task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
+	task_set_id INTEGER NOT NULL REFERENCES task_sets(id) ON DELETE CASCADE,
 	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE
 );
 
-CREATE TABLE student_task_list_enrollments (
+CREATE TABLE student_task_set_enrollments (
     id SERIAL PRIMARY KEY,
     student_id INTEGER NOT NULL REFERENCES student(id) ON DELETE CASCADE,
-    task_list_id INTEGER NOT NULL REFERENCES task_lists(id) ON DELETE CASCADE,
+    task_set_id INTEGER NOT NULL REFERENCES task_sets(id) ON DELETE CASCADE,
     enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (student_id, task_list_id)
+    UNIQUE (student_id, task_set_id)
 );
 
 CREATE TABLE student (
@@ -62,7 +62,7 @@ CREATE TABLE student (
 	student_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	student_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	is_active BOOLEAN DEFAULT TRUE,
-	task_list_id INTEGER REFERENCES task_lists(id) ON DELETE SET NULL,
+	task_set_id INTEGER REFERENCES task_sets(id) ON DELETE SET NULL,
 	started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	last_activity_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

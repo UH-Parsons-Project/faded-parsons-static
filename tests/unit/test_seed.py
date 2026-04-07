@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from backend import seed as seed_module
-from backend.models import Parsons, TaskList, TaskListItem, Teacher
+from backend.models import Parsons, TaskSet, TaskSetItem, Teacher
 
 
 DEFAULT_SEED_USERNAME = "mattiruotsalainen"
@@ -101,13 +101,13 @@ class TestSeedDb:
             assert teacher_count == 1
 
             starter_list_result = await session.execute(
-                select(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             starter_list = starter_list_result.scalar_one_or_none()
             assert starter_list is not None
 
             items_result = await session.execute(
-                select(TaskListItem).where(TaskListItem.task_list_id == starter_list.id)
+                select(TaskSetItem).where(TaskSetItem.task_set_id == starter_list.id)
             )
             items = items_result.scalars().all()
             assert len(items) == 2
@@ -151,16 +151,16 @@ class TestSeedDb:
             await session.refresh(task1)
             await session.refresh(task2)
 
-            starter_list = TaskList(
+            starter_list = TaskSet(
                 teacher_id=teacher.id,
-                title="Starter Task List",
+                title="Starter Task Set",
                 unique_link_code="starter-list",
             )
             session.add(starter_list)
             await session.commit()
             await session.refresh(starter_list)
 
-            session.add(TaskListItem(task_list_id=starter_list.id, task_id=task1.id))
+            session.add(TaskSetItem(task_set_id=starter_list.id, task_id=task1.id))
             await session.commit()
 
         migrate_mock = AsyncMock()
@@ -175,17 +175,17 @@ class TestSeedDb:
             assert teacher_count == 1
 
             list_count = await session.scalar(
-                select(func.count()).select_from(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(func.count()).select_from(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             assert list_count == 1
 
             starter_list_result = await session.execute(
-                select(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             starter_list = starter_list_result.scalar_one_or_none()
 
             item_rows = await session.execute(
-                select(TaskListItem).where(TaskListItem.task_list_id == starter_list.id)
+                select(TaskSetItem).where(TaskSetItem.task_set_id == starter_list.id)
             )
             items = item_rows.scalars().all()
             assert len(items) == 2
@@ -194,7 +194,7 @@ class TestSeedDb:
         migrate_mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_seed_db_skips_task_list_when_teacher_missing(
+    async def test_seed_db_skips_task_set_when_teacher_missing(
         self, seed_sessionmaker, monkeypatch
     ):
         monkeypatch.setattr(seed_module, "async_session", seed_sessionmaker)
@@ -213,7 +213,7 @@ class TestSeedDb:
 
         async with seed_sessionmaker() as session:
             list_count = await session.scalar(
-                select(func.count()).select_from(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(func.count()).select_from(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             assert list_count == 0
 
@@ -255,9 +255,9 @@ class TestSeedDb:
             await session.refresh(task1)
             await session.refresh(task2)
 
-            starter = TaskList(
+            starter = TaskSet(
                 teacher_id=teacher.id,
-                title="Starter Task List",
+                title="Starter Task Set",
                 unique_link_code="starter-list",
             )
             session.add(starter)
@@ -266,8 +266,8 @@ class TestSeedDb:
 
             session.add_all(
                 [
-                    TaskListItem(task_list_id=starter.id, task_id=task1.id),
-                    TaskListItem(task_list_id=starter.id, task_id=task2.id),
+                    TaskSetItem(task_set_id=starter.id, task_id=task1.id),
+                    TaskSetItem(task_set_id=starter.id, task_id=task2.id),
                 ]
             )
             await session.commit()
@@ -279,12 +279,12 @@ class TestSeedDb:
 
         async with seed_sessionmaker() as session:
             starter_result = await session.execute(
-                select(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             starter = starter_result.scalar_one()
 
             items_result = await session.execute(
-                select(TaskListItem).where(TaskListItem.task_list_id == starter.id)
+                select(TaskSetItem).where(TaskSetItem.task_set_id == starter.id)
             )
             items = items_result.scalars().all()
             assert len(items) == 2
@@ -325,12 +325,12 @@ class TestSeedDb:
 
         async with seed_sessionmaker() as session:
             starter_result = await session.execute(
-                select(TaskList).where(TaskList.unique_link_code == "starter-list")
+                select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
             )
             starter = starter_result.scalar_one_or_none()
             assert starter is not None
 
             items_count = await session.scalar(
-                select(func.count()).select_from(TaskListItem).where(TaskListItem.task_list_id == starter.id)
+                select(func.count()).select_from(TaskSetItem).where(TaskSetItem.task_set_id == starter.id)
             )
             assert items_count == 0

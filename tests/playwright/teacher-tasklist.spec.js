@@ -1,15 +1,15 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { registerTeacher, loginTeacher, createTaskList } from './test-helpers.js';
+import { registerTeacher, loginTeacher, createTaskSet } from './test-helpers.js';
 
-test('teacher can create a new task list by clicking "Create New Task List"', async ({ page }) => {
+test('teacher can create a new task set by clicking "Create New Task Set"', async ({ page }) => {
   const unique = Date.now();
   const username = `teacher_${unique}`;
   const email = `teacher_${unique}@example.com`;
   const password = 'password123';
-  const taskListTitle = `Test Task List ${unique}`;
-  const studentDescription = `Student description for ${taskListTitle}.`;
-  const teacherDescription = `Teacher description for ${taskListTitle}.`;
+  const taskSetTitle = `Test Task Set ${unique}`;
+  const studentDescription = `Student description for ${taskSetTitle}.`;
+  const teacherDescription = `Teacher description for ${taskSetTitle}.`;
 
   // Register and login as a teacher
   await registerTeacher(page, username, email, password);
@@ -18,13 +18,13 @@ test('teacher can create a new task list by clicking "Create New Task List"', as
   await loginTeacher(page, username, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  // Create a new task list
-  await createTaskList(page, taskListTitle, studentDescription, teacherDescription);
+  // Create a new task set
+  await createTaskSet(page, taskSetTitle, studentDescription, teacherDescription);
 
-  // Wait for redirect back to task list selector
+  // Wait for redirect back to task set selector
   await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  // Verify the newly created task list is visible on the page
-  await expect(page.locator('.task-list-title', { hasText: taskListTitle })).toBeVisible();
+  // Verify the newly created task set is visible on the page
+  await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeVisible();
 });

@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskList, Teacher, Student, TaskAttempt
+from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt
 from ...pydantic import (
-	ProblemSetResponse,
+	TaskSetResponse,
 	CreateRegistrationTokenRequest,
 	RegistrationTokenResponse,
 	RegistrationTokenListItem,
@@ -307,9 +307,9 @@ async def seed_mock_data_endpoint(
 		)
 
 
-@router.get("/api/all-tasksets", response_model=list[ProblemSetResponse])
+@router.get("/api/all-tasksets", response_model=list[TaskSetResponse])
 async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
-	"""List all task lists from all teachers if the user has data access."""
+	"""List all task sets from all teachers if the user has data access."""
 	if not current_user.has_data_access:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
@@ -317,15 +317,15 @@ async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends
 		)
 
 	stmt = (
-		select(TaskList, Teacher.username)
-		.join(Teacher, Teacher.id == TaskList.teacher_id)
-		.order_by(TaskList.created_at.desc())
+		select(TaskSet, Teacher.username)
+		.join(Teacher, Teacher.id == TaskSet.teacher_id)
+		.order_by(TaskSet.created_at.desc())
 	)
 	result = await db.execute(stmt)
 	my_sets = result.all()
 
 	return [
-		ProblemSetResponse(
+		TaskSetResponse(
 			id=ps.id,
 			title=ps.title,
 			unique_link_code=ps.unique_link_code,

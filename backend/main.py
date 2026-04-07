@@ -25,19 +25,19 @@ from .pydantic import (
     Token,
     UserInfo,
     TaskResponse,
-    ProblemSetResponse,
-    ProblemSetTaskResponse,
+    TaskSetResponse,
+    TaskSetTaskResponse,
     NicknameRequest,
     StudentLoginRequest,
-    StudentInTaskListResponse,
+    StudentInTaskSetResponse,
     StudentTaskAttemptResponse,
     StudentTaskStatisticsResponse,
     SubmitTestResultRequest,
     CreateProblemRequest,
-    CreateTaskListRequest,
-    TaskListResponse,
-    TaskListViewerRequest,
-    TaskListViewerResponse,
+    CreateTaskSetRequest,
+    TaskSetResponse,
+    TaskSetViewerRequest,
+    TaskSetViewerResponse,
 )
 from sqlalchemy import Integer, delete, or_, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,7 +49,7 @@ from .auth import (
     get_current_user,
 )
 from .database import get_db, init_db
-from .models import Parsons, Student, StudentTaskListEnrollment, TaskAttempt, TaskList, TaskListItem, TaskListViewer, Teacher, RegistrationToken, ModelAnswer
+from .models import Parsons, Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, TaskSetItem, TaskSetViewer, Teacher, RegistrationToken, ModelAnswer
 from . import reset_db as reset_module
 from . import seed as seed_module
 from .student_auth import (
@@ -108,32 +108,32 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
     return result.scalar_one_or_none()
 # Helper utilities moved to utils package
 
-async def has_task_list_view_access(
-    task_list: TaskList,
+async def has_task_set_view_access(
+    task_set: TaskSet,
     current_user: Teacher,
     db: AsyncSession
 ) -> bool:
-    if current_user.has_data_access or task_list.teacher_id == current_user.id:
+    if current_user.has_data_access or task_set.teacher_id == current_user.id:
         return True
 
     result = await db.execute(
-        select(TaskListViewer).where(
-            TaskListViewer.task_list_id == task_list.id,
-            TaskListViewer.teacher_id == current_user.id,
+        select(TaskSetViewer).where(
+            TaskSetViewer.task_set_id == task_set.id,
+            TaskSetViewer.teacher_id == current_user.id,
         )
     )
     return result.scalar_one_or_none() is not None
 
 
-async def require_task_list_view_access(
-    task_list: TaskList,
+async def require_task_set_view_access(
+    task_set: TaskSet,
     current_user: Teacher,
     db: AsyncSession
 ) -> None:
-    if not await has_task_list_view_access(task_list, current_user, db):
+    if not await has_task_set_view_access(task_set, current_user, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this task list"
+            detail="You don't have permission to view this task set"
         )
 
 
@@ -206,13 +206,13 @@ from . import config
 
 # Taskset endpoints moved to `backend/routes/task/task_api.py`
 
-#### Who can view problem sets ####
-#### Who can view problem sets ####
+#### Who can view task sets ####
+#### Who can view task sets ####
 
 # Viewer-management endpoints have been moved to `backend/routes/task/task_api.py`.
 
 
-# `get_problemset_students` moved to `backend/routes/task/task_api.py`
+# `get_task_set_students` moved to `backend/routes/task/task_api.py`
 
 
 # Student attempts endpoints moved to `backend/routes/statistic/statistic_api.py`

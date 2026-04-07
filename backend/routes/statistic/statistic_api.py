@@ -6,10 +6,10 @@ from ...database import get_db
 from ...models import (
     Parsons,
     Student,
-    StudentTaskListEnrollment,
+    StudentTaskSetEnrollment,
     TaskAttempt,
-    TaskList,
-    TaskListItem,
+    TaskSet,
+    TaskSetItem,
     TaskStart,
     ModelAnswer,
 )
@@ -31,59 +31,59 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
     return result.scalar_one_or_none()
 
 
-async def has_task_list_view_access(
-    task_list: TaskList,
+async def has_task_set_view_access(
+    task_set: TaskSet,
     current_user: CurrentUser,
     db: AsyncSession
 ) -> bool:
-    from ...models import TaskListViewer
+    from ...models import TaskSetViewer
 
-    if current_user.has_data_access or task_list.teacher_id == current_user.id:
+    if current_user.has_data_access or task_set.teacher_id == current_user.id:
         return True
 
     result = await db.execute(
-        select(TaskListViewer).where(
-            TaskListViewer.task_list_id == task_list.id,
-            TaskListViewer.teacher_id == current_user.id,
+        select(TaskSetViewer).where(
+            TaskSetViewer.task_set_id == task_set.id,
+            TaskSetViewer.teacher_id == current_user.id,
         )
     )
     return result.scalar_one_or_none() is not None
 
 
-async def require_task_list_view_access(
-    task_list: TaskList,
+async def require_task_set_view_access(
+    task_set: TaskSet,
     current_user: CurrentUser,
     db: AsyncSession
 ) -> None:
-    if not await has_task_list_view_access(task_list, current_user, db):
+    if not await has_task_set_view_access(task_set, current_user, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this task list"
+            detail="You don't have permission to view this task set"
         )
 
 
 @router.get("/api/students/{student_username}/attempts", response_model=list[StudentTaskAttemptResponse])
 async def get_student_attempts(
     student_username: str,
-    list_id: int,
+    set_id: int,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
     from sqlalchemy import func
 
-    stmt = select(TaskList).where(TaskList.id == list_id)
+    stmt = select(TaskSet).where(TaskSet.id == set_id)
     result = await db.execute(stmt)
-    task_list = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not task_list:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {list_id} not found"
+            detail=f"Task list with id {set_id} not found"
         )
 
-    await require_task_list_view_access(task_list, current_user, db)
+    await require_task_set_view_access(task_set, current_user, db)
 
-    task_ids_stmt = select(TaskListItem.task_id).where(TaskListItem.task_list_id == list_id)
+    task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
     task_ids_result = await db.execute(task_ids_stmt)
     task_ids = [row[0] for row in task_ids_result.all()]
 
@@ -127,21 +127,21 @@ async def get_student_attempts(
 async def get_student_task_statistics(
     student_username: str,
     task_id: int,
-    list_id: int,
+    set_id: int,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(TaskList).where(TaskList.id == list_id)
+    stmt = select(TaskSet).where(TaskSet.id == set_id)
     result = await db.execute(stmt)
-    task_list = result.scalar_one_or_none()
+    task_set = result.scalar_one_or_none()
 
-    if not task_list:
+    if not task_set:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {list_id} not found"
+            detail=f"Task list with id {set_id} not found"
         )
 
-    await require_task_list_view_access(task_list, current_user, db)
+    await require_task_set_view_access(task_set, current_user, db)
 
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -251,7 +251,7 @@ async def get_student_task_statistics(
 async def get_task_statistics(
     task_id: int,
     current_user: CurrentUser,
-    problemset_code: str | None = None,
+    task_set_code: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
@@ -269,28 +269,28 @@ async def get_task_statistics(
         .where(TaskAttempt.task_id == task_id)
     )
 
-    if problemset_code:
-        problemset_result = await db.execute(
-            select(TaskList).where(TaskList.unique_link_code == problemset_code)
+    if task_set_code:
+        task_set_result = await db.execute(
+            select(TaskSet).where(TaskSet.unique_link_code == task_set_code)
         )
-        problemset = problemset_result.scalar_one_or_none()
+        task_set = task_set_result.scalar_one_or_none()
 
-        if not problemset:
+        if not task_set:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Problem set '{problemset_code}' not found",
+                detail=f"Problem set '{task_set_code}' not found",
             )
 
-        await require_task_list_view_access(problemset, current_user, db)
+        await require_task_set_view_access(task_set, current_user, db)
 
         attempts_query = (
             select(TaskAttempt, TaskStart)
             .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
             .join(Student, TaskAttempt.student_id == Student.id)
-            .join(StudentTaskListEnrollment, StudentTaskListEnrollment.student_id == Student.id)
+            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
             .where(
                 TaskAttempt.task_id == task_id,
-                StudentTaskListEnrollment.task_list_id == problemset.id
+                StudentTaskSetEnrollment.task_set_id == task_set.id
             )
         )
 

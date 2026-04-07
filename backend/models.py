@@ -67,10 +67,10 @@ class Parsons(Base):
     )
 
 
-class TaskList(Base):
+class TaskSet(Base):
     """Task list model."""
 
-    __tablename__ = "task_lists"
+    __tablename__ = "task_sets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     teacher_id: Mapped[int] = mapped_column(
@@ -84,14 +84,14 @@ class TaskList(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class TaskListViewer(Base):
-    """Teachers who can view a task list."""
+class TaskSetViewer(Base):
+    """Teachers who can view a task set."""
 
-    __tablename__ = "task_list_viewers"
+    __tablename__ = "task_set_viewers"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    task_list_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    task_set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_sets.id", ondelete="CASCADE"), nullable=False
     )
     teacher_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
@@ -99,14 +99,14 @@ class TaskListViewer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
-class TaskListItem(Base):
+class TaskSetItem(Base):
     """Task list item model."""
 
-    __tablename__ = "task_list_items"
+    __tablename__ = "task_set_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    task_list_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    task_set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_sets.id", ondelete="CASCADE"), nullable=False
     )
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
@@ -147,21 +147,21 @@ class Student(Base):
         )
 
 
-class StudentTaskListEnrollment(Base):
-    """Association between a student and a task list they have joined."""
+class StudentTaskSetEnrollment(Base):
+    """Association between a student and a task set they have joined."""
 
-    __tablename__ = "student_task_list_enrollments"
+    __tablename__ = "student_task_set_enrollments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
     )
-    task_list_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("task_lists.id", ondelete="CASCADE"), nullable=False
+    task_set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_sets.id", ondelete="CASCADE"), nullable=False
     )
     enrolled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
-    __table_args__ = (UniqueConstraint("student_id", "task_list_id"),)
+    __table_args__ = (UniqueConstraint("student_id", "task_set_id"),)
 
 
 class TaskStart(Base):

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...pydantic import SubmitTestResultRequest
 from ...database import get_db
-from ...models import Student, StudentTaskListEnrollment, TaskAttempt, TaskList, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
+from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -43,20 +43,20 @@ async def student_login(
         student.started_at = now
 
     if unique_link_code:
-        stmt = select(TaskList).where(TaskList.unique_link_code == unique_link_code)
+        stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
         result = await db.execute(stmt)
-        task_list = result.scalar_one_or_none()
-        if task_list:
+        task_set = result.scalar_one_or_none()
+        if task_set:
             enroll_result = await db.execute(
-                select(StudentTaskListEnrollment).where(
-                    StudentTaskListEnrollment.student_id == student.id,
-                    StudentTaskListEnrollment.task_list_id == task_list.id,
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == task_set.id,
                 )
             )
             if not enroll_result.scalar_one_or_none():
-                db.add(StudentTaskListEnrollment(
+                db.add(StudentTaskSetEnrollment(
                     student_id=student.id,
-                    task_list_id=task_list.id,
+                    task_set_id=task_set.id,
                 ))
 
     await db.commit()

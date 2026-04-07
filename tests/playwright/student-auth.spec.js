@@ -1,8 +1,8 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { registerTeacher, loginTeacher, createTaskList, registerStudent, loginStudent, getStudentUrl } from './test-helpers.js';
+import { registerTeacher, loginTeacher, createTaskSet, registerStudent, loginStudent, getStudentUrl } from './test-helpers.js';
 
-// Before testing student registration and login, we need to create a teacher account and a task list for the student to access
+// Before testing student registration and login, we need to create a teacher account and a task set for the student to access
 test.beforeEach(async ({ page }) => {
   const unique = Date.now();
   const teacherUsername = `teacher_${unique}`;
@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
   );
 
   await loginTeacher(page, teacherUsername, teacherPassword);
-  await createTaskList(
+  await createTaskSet(
     page,
     `Student Test List ${unique}`,
     `Student description for Student Test List ${unique}.`,
@@ -49,7 +49,7 @@ test('student cannot login with non-registered credentials', async ({ browser })
   );
 });
 
-test('student can register and then login from task list page', async ({ browser }) => {
+test('student can register and then login from task set page', async ({ browser }) => {
   // Get the tasklist URL from test.info().annotations
   const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
   if (!annotation) throw new Error('Student URL not found in test annotations');
@@ -72,7 +72,7 @@ test('student can register and then login from task list page', async ({ browser
     'Registration successful.'
   );
 
-  // After registration, the page redirects back to studentUrl (task list page) after a short delay. Wait for it to fully load.
+  // After registration, the page redirects back to studentUrl (task set page) after a short delay. Wait for it to fully load.
   await studentPage.waitForURL(studentUrl, { timeout: 10000 });
   await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 

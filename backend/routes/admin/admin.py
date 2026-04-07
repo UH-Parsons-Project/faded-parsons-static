@@ -9,7 +9,7 @@ from .admin_api import router, BASE_DIR
 
 @router.get("/all-tasksets", response_class=HTMLResponse)
 async def all_tasksets_page(request: Request, db: AsyncSession = Depends(get_db)):
-	"""Serve the page for viewing all problem sets (requires data access)."""
+	"""Serve the page for viewing all task sets (requires data access)."""
 	try:
 		current_user = await get_current_user(request, db)
 		if not current_user.has_data_access:

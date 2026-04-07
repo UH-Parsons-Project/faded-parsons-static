@@ -6,14 +6,14 @@ initSignedInAs();
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
 const taskId = params.get('task_id');
-const listId = params.get('list_id');
+const setId = params.get('set_id');
 
-if (!studentUsername || !taskId || !listId) {
+if (!studentUsername || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
 // Set up back button
-document.getElementById('back-btn').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&list_id=${listId}`;
+document.getElementById('back-btn').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${setId}`;
 
 function formatTime(seconds) {
 	if (!seconds) return '0s';
@@ -305,7 +305,7 @@ function renderReplayStep(states, events, stepIndex) {
 	renderReplayBoard(states[stepIndex], event.block_id);
 }
 
-async function initReplay(studentUsername, taskId, listId) {
+async function initReplay(studentUsername, taskId, setId) {
 	const loadingEl = document.getElementById('replay-loading');
 	const boardEl = document.getElementById('replay-board');
 	const controlsEl = document.getElementById('replay-controls');
@@ -313,7 +313,7 @@ async function initReplay(studentUsername, taskId, listId) {
 
 	try {
 		const response = await fetch(
-			`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/moves?list_id=${listId}`,
+			`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/moves?set_id=${setId}`,
 			{ credentials: 'include' }
 		);
 
@@ -399,7 +399,7 @@ function showError(message) {
 	<i class="fas fa-exclamation-triangle text-danger"></i>
 	<h4>Error Loading Data</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Sets</a>
 	`;
 }
 
@@ -420,7 +420,7 @@ document.getElementById('replay-header').addEventListener('click', () => {
 });
 
 // Load statistics
-fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/statistics?list_id=${listId}`, {
+fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/statistics?set_id=${setId}`, {
 	credentials: 'include'
 })
 	.then(r => {
@@ -439,7 +439,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	renderModelAnswer(data.model_answer);
 	renderAttempts(data.attempts_detail);
 	renderStatistics(data);
-	initReplay(studentUsername, taskId, listId);
+	initReplay(studentUsername, taskId, setId);
 	document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {

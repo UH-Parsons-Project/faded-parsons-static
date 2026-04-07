@@ -30,7 +30,7 @@
     <div class="ml-auto d-flex align-items-center">
       <a href="/teacher-dashboard"
          class="btn btn-outline-dark btn-sm mr-3">
-        Back to task lists
+        Back to task sets
       </a>
       <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
       <span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
@@ -39,7 +39,7 @@
   </nav>
 
   <div class="create-task-set-container">
-    <h1 class="mb-4">Create New Task List</h1>
+    <h1 class="mb-4">Create New Task Set</h1>
 
     <div id="error-container"></div>
 
@@ -49,7 +49,7 @@
         <div class="modal-content">
           <div class="modal-header border-bottom-2" style="border-color: #dc3545;">
             <h5 class="modal-title" id="duplicateTitleLabel">
-              <i class="fas fa-exclamation-triangle text-danger"></i> Task List Title Already Exists
+              <i class="fas fa-exclamation-triangle text-danger"></i> Task Set Title Already Exists
             </h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeDuplicateTitleModal()">
               <span aria-hidden="true">&times;</span>
@@ -76,17 +76,17 @@
       </div>
     </div>
 
-    <form id="create-task-set-form" class="task-list-form">
+    <form id="create-task-set-form" class="task-set-form">
       <!-- Basic Information -->
       <div class="form-section">
         <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
 
         <div class="form-group">
-          <label for="task-list-title">Task List Title</label>
-          <input type="text" class="form-control" id="task-list-title"
+          <label for="task-set-title">Task Set Title</label>
+          <input type="text" class="form-control" id="task-set-title"
                  placeholder="e.g., Python Basics - Week 1"
                  required>
-          <small class="form-text text-muted">Give your task list a name</small>
+          <small class="form-text text-muted">Give your task set a name</small>
         </div>
 
         <div class="form-group">
@@ -95,7 +95,7 @@
           </label>
           <textarea class="form-control" id="student-description"
                     rows="3"
-                    placeholder="What students will see when they start the task list"></textarea>
+                    placeholder="What students will see when they start the task set"></textarea>
           <small class="form-text text-muted">This is shown to students on the start page</small>
         </div>
 
@@ -122,7 +122,7 @@
               </button>
             </div>
           </div>
-          <small class="form-text text-muted">Add teachers who can view this task list.</small>
+          <small class="form-text text-muted">Add teachers who can view this task set.</small>
           <div id="viewer-errors" class="mt-2"></div>
           <div id="viewer-list" class="mt-2"></div>
         </div>

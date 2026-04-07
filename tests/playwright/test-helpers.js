@@ -67,20 +67,20 @@ export async function loginTeacher(page, username, password) {
 }
 
 /**
- * Create a task list with random tasks
+ * Create a task set with random tasks
  * @param {any} page - Playwright page object
- * @param {string} taskListTitle - Title of the task list
+ * @param {string} taskSetTitle - Title of the task set
  * @param {string} studentDescription - Description for students
  * @param {string} teacherDescription - Description for teachers
  */
-export async function createTaskList(
+export async function createTaskSet(
   page,
-  taskListTitle,
+  taskSetTitle,
   studentDescription,
   teacherDescription
 ) {
-  await page.locator('text=Create New Task List').click();
-  await page.locator('#task-list-title').fill(taskListTitle);
+  await page.locator('text=Create New Task Set').click();
+  await page.locator('#task-set-title').fill(taskSetTitle);
   await page.locator('#student-description').fill(studentDescription);
   await page.locator('#teacher-description').fill(teacherDescription);
   await page.waitForSelector('.task-item', { timeout: 10000 });
@@ -99,9 +99,9 @@ export async function createTaskList(
   await page.locator('#create-task-set-form button[type="submit"]').click();
 }
 
-export async function createTaskListWithTasks(page, taskListTitle, studentDescription, teacherDescription, taskNames) {
-  await page.locator('text=Create New Task List').click();
-  await page.locator('#task-list-title').fill(taskListTitle);
+export async function createTaskSetWithTasks(page, taskSetTitle, studentDescription, teacherDescription, taskNames) {
+  await page.locator('text=Create New Task Set').click();
+  await page.locator('#task-set-title').fill(taskSetTitle);
   await page.locator('#student-description').fill(studentDescription);
   await page.locator('#teacher-description').fill(teacherDescription);
   await page.waitForSelector('.task-item', { timeout: 10000 });
@@ -147,8 +147,8 @@ export async function loginStudent(page, username, password = 'password123') {
   await page.locator('#login-btn').click();
 }
 
-export async function getStudentUrl(page, taskListTitle) {
-  await page.locator('.task-list-title', { hasText: taskListTitle }).click();
+export async function getStudentUrl(page, taskSetTitle) {
+  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
   await page.waitForSelector('#link-code', { timeout: 10000 });
   const studentUrl = (await page.locator('#link-code').textContent()).trim();
   return studentUrl;

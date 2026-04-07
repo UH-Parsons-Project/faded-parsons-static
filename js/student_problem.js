@@ -9,7 +9,7 @@ initStudentLogout();
 // Initialize problem widget separately from auth UI.
 initWidget();
 
-// Set the back button to return to the task list
+// Set the back button to return to the task set
 // Path: /set/{unique_link_code}/tasks/{task_id}
 const pathParts = window.location.pathname.split('/').filter(p => p);
 const uniqueLinkCode = pathParts[1];

@@ -17,7 +17,7 @@ from backend.student_auth import (
     require_student_session,
     STUDENT_SESSION_EXPIRE_HOURS,
 )
-from backend.models import Student, StudentTaskListEnrollment, TaskList
+from backend.models import Student, StudentTaskSetEnrollment, TaskSet
 
 
 class TestCreateStudentSession:
@@ -27,19 +27,19 @@ class TestCreateStudentSession:
         self, db_session, test_teacher
     ):
         """Test that create_student_session creates a new session with required fields."""
-        # Create a task list first
-        task_list = TaskList(
+        # Create a task set first
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="CREATE01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         # Create student session
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="TestStudent",
             db=db_session,
         )
@@ -47,9 +47,9 @@ class TestCreateStudentSession:
         assert session.id is not None
         assert session.id is not None
         enrollment = await db_session.execute(
-            select(StudentTaskListEnrollment).where(
-                StudentTaskListEnrollment.student_id == session.id,
-                StudentTaskListEnrollment.task_list_id == task_list.id,
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.student_id == session.id,
+                StudentTaskSetEnrollment.task_set_id == task_set.id,
             )
         )
         assert enrollment.scalar_one_or_none() is not None
@@ -62,22 +62,22 @@ class TestCreateStudentSession:
         self, db_session, test_teacher
     ):
         """Test that each call generates a unique id."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="CREATE02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session1 = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="Student1",
             db=db_session,
         )
         session2 = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="Student2",
             db=db_session,
         )
@@ -88,17 +88,17 @@ class TestCreateStudentSession:
         self, db_session, test_teacher
     ):
         """Test that the created session is persisted to the database."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="CREATE03",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="PersistTest",
             db=db_session,
         )
@@ -144,17 +144,17 @@ class TestGetStudentSession:
     ):
         """Test that existing session is retrieved correctly."""
         # Create task set and session
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="GET01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         created_session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="RetrieveTest",
             db=db_session,
         )
@@ -173,17 +173,17 @@ class TestGetStudentSession:
     ):
         """Test that expired session returns None when check_expiry=True."""
         # Create task set and session
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="GET02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="ExpiredTest",
             db=db_session,
         )
@@ -206,17 +206,17 @@ class TestGetStudentSession:
         self, db_session, test_teacher
     ):
         """Test that valid session within expiry window is returned."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="GET03",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="ValidTest",
             db=db_session,
         )
@@ -238,17 +238,17 @@ class TestGetStudentSession:
         self, db_session, test_teacher
     ):
         """Test that last_activity_at is updated when update_activity=True."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="GET04",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="UpdateTest",
             db=db_session,
         )
@@ -280,17 +280,17 @@ class TestGetStudentSession:
         self, db_session, test_teacher
     ):
         """Test that last_activity_at is NOT updated when update_activity=False."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="GET05",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="NoUpdateTest",
             db=db_session,
         )
@@ -367,17 +367,17 @@ class TestGetCurrentStudentSessionDependency:
         self, db_session, test_teacher
     ):
         """Test that dependency returns valid session from cookie."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="DEP01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="DependencyTest",
             db=db_session,
         )
@@ -393,17 +393,17 @@ class TestGetCurrentStudentSessionDependency:
         self, db_session, test_teacher
     ):
         """Test that this dependency updates last_activity_at."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="DEP02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="ActivityUpdateTest",
             db=db_session,
         )
@@ -448,17 +448,17 @@ class TestGetCurrentStudentSessionNoUpdateDependency:
         self, db_session, test_teacher
     ):
         """Test that dependency returns valid session from cookie."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="DEPNOUP01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="NoUpdateDepTest",
             db=db_session,
         )
@@ -474,17 +474,17 @@ class TestGetCurrentStudentSessionNoUpdateDependency:
         self, db_session, test_teacher
     ):
         """Test that this dependency does NOT update last_activity_at."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="DEPNOUP02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="NoActivityUpdateTest",
             db=db_session,
         )
@@ -517,17 +517,17 @@ class TestRequireStudentSessionDependency:
         self, db_session, test_teacher
     ):
         """Test that dependency raises HTTPException when session is expired."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="REQ01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="ExpiredRequireTest",
             db=db_session,
         )
@@ -550,17 +550,17 @@ class TestRequireStudentSessionDependency:
         self, db_session, test_teacher
     ):
         """Test that dependency returns valid session."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="REQ02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="ValidRequireTest",
             db=db_session,
         )
@@ -588,17 +588,17 @@ class TestSessionExpiryEdgeCases:
         self, db_session, test_teacher
     ):
         """Test that function handles naive datetimes returned by SQLite."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="EDGE01",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="NaiveDatetimeTest",
             db=db_session,
         )
@@ -617,17 +617,17 @@ class TestSessionExpiryEdgeCases:
 
     async def test_get_student_session_at_expiry_boundary(self, db_session, test_teacher):
         """Test session behavior at the exact expiry boundary."""
-        task_list = TaskList(
+        task_set = TaskSet(
             title="Test List",
             unique_link_code="EDGE02",
             teacher_id=test_teacher.id,
         )
-        db_session.add(task_list)
+        db_session.add(task_set)
         await db_session.commit()
-        await db_session.refresh(task_list)
+        await db_session.refresh(task_set)
 
         session = await create_student_session(
-            task_list_id=task_list.id,
+            task_set_id=task_set.id,
             nickname="BoundaryTest",
             db=db_session,
         )

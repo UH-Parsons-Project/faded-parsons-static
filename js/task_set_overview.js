@@ -4,9 +4,9 @@ initProtectedPage('/');
 initSignedInAs();
 
 const params = new URLSearchParams(window.location.search);
-const listId = params.get('list_id');
+const setId = params.get('set_id');
 
-if (!listId) {
+if (!setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
@@ -113,7 +113,7 @@ function createViewerItem(viewer) {
 
 async function loadViewers() {
 	try {
-		const response = await fetch(`/api/my_sets/${listId}/viewers`, { credentials: 'include' });
+		const response = await fetch(`/api/my_sets/${setId}/viewers`, { credentials: 'include' });
 		if (!response.ok) {
 			const error = await response.json().catch(() => null);
 			const detail = error?.detail || 'Failed to load viewers';
@@ -129,7 +129,7 @@ async function loadViewers() {
 
 async function addViewer(identifier) {
 	try {
-		const response = await fetch(`/api/my_sets/${listId}/viewers`, {
+		const response = await fetch(`/api/my_sets/${setId}/viewers`, {
 			method: 'POST',
 			credentials: 'include',
 			headers: {
@@ -156,7 +156,7 @@ async function addViewer(identifier) {
 
 async function removeViewer(teacherId) {
 	try {
-		const response = await fetch(`/api/my_sets/${listId}/viewers/${teacherId}`, {
+		const response = await fetch(`/api/my_sets/${setId}/viewers/${teacherId}`, {
 			method: 'DELETE',
 			credentials: 'include'
 		});
@@ -174,16 +174,16 @@ async function removeViewer(teacherId) {
 	}
 }
 
-function renderListHeader(taskList) {
+function renderListHeader(taskSet) {
 	const container = document.getElementById('list-header');
 	container.className = 'mb-4';
 
 	let headerHTML = `
-	<h2 style="margin: 0 0 1rem 0;">${escapeHtml(taskList.title)}</h2>
+	<h2 style="margin: 0 0 1rem 0;">${escapeHtml(taskSet.title)}</h2>
 	<div class="mb-2">
 		<div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.25rem;">
 		<span id="link-code" style="font-family: monospace; font-size: 0.875rem; font-weight: normal;">
-			${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskList.unique_link_code)}
+			${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}
 		</span>
 		<button id="copy-btn" type="button" style="background: none; border: none; cursor: pointer; color: #6c757d; padding: 0; flex-shrink: 0;" title="Copy URL">
 			<i class="fas fa-copy" style="font-size: 0.9rem;"></i>
@@ -191,25 +191,25 @@ function renderListHeader(taskList) {
 		</div>
 	</div>
 	<div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
-		<i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
-		${taskList.expires_at ? ` • <i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
+		<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
+		${taskSet.expires_at ? ` • <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}` : ''}
 	</div>
 	`;
 
-	if (taskList.teacher_description) {
+	if (taskSet.teacher_description) {
 	headerHTML += `
-	<div class="task-list-description">
+	<div class="task-set-description">
 		<strong>Teacher Notes:</strong><br>
-		${escapeHtml(taskList.teacher_description)}
+		${escapeHtml(taskSet.teacher_description)}
 	</div>
 	`;
 	}
 
-	if (taskList.student_description) {
+	if (taskSet.student_description) {
 	headerHTML += `
 	<div class="alert alert-info mt-3 mb-3" role="alert" style="border-left: 4px solid #17a2b8;">
 		<strong>Student Instructions:</strong><br>
-		${escapeHtml(taskList.student_description)}
+		${escapeHtml(taskSet.student_description)}
 	</div>
 	`;
 	}
@@ -238,19 +238,19 @@ function renderListHeader(taskList) {
 	}
 }
 
-function createTaskItem(task, taskList) {
+function createTaskItem(task, taskSet) {
 	const item = document.createElement('div');
-	item.className = 'task-list-item';
+	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-statistics?id=${task.id}&problemset=${taskList.unique_link_code}`;
+	window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}`;
 	};
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
+	title.className = 'task-set-title';
 	title.textContent = task.title;
 
 	const meta = document.createElement('div');
-	meta.className = 'task-list-meta';
+	meta.className = 'task-set-meta';
 	meta.innerHTML = `
 	<i class="far fa-calendar"></i> ${formatDate(task.created_at)}
 	• <i class="fas fa-chart-line"></i> View Statistics
@@ -262,7 +262,7 @@ function createTaskItem(task, taskList) {
 	return item;
 }
 
-function renderTasks(tasks, taskList) {
+function renderTasks(tasks, taskSet) {
 	const tasksList = document.getElementById('tasks-list');
 
 	if (tasks.length === 0) {
@@ -270,13 +270,13 @@ function renderTasks(tasks, taskList) {
 		<div class="empty-state">
 		<i class="fas fa-tasks"></i>
 		<h4>No Tasks in This List</h4>
-		<p>This task list doesn't have any tasks yet.</p>
+		<p>This task set doesn't have any tasks yet.</p>
 		</div>
 	`;
 	} else {
 	tasksList.innerHTML = '';
 	tasks.forEach(task => {
-		tasksList.appendChild(createTaskItem(task, taskList));
+		tasksList.appendChild(createTaskItem(task, taskSet));
 	});
 	}
 }
@@ -297,7 +297,7 @@ function createStudentItem(student) {
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
 	item.onclick = () => {
-	window.location.href = `/student_attempts?student=${encodeURIComponent(student.username)}&list_id=${listId}`;
+	window.location.href = `/student_attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
 	};
 
 	const name = document.createElement('div');
@@ -364,30 +364,30 @@ function showError(message) {
 	container.className = 'empty-state';
 	container.innerHTML = `
 	<i class="fas fa-exclamation-triangle text-danger"></i>
-	<h4>Error Loading Task List</h4>
+	<h4>Error Loading Task Set</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Lists</a>
+	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Sets</a>
 	`;
 }
 
-// Load task list details, tasks, and students
+// Load task set details, tasks, and students
 Promise.all([
-	fetch(`/api/my_sets/${listId}`, { credentials: 'include' }).then(r => {
-	if (!r.ok) throw new Error('Failed to load task list details');
+	fetch(`/api/my_sets/${setId}`, { credentials: 'include' }).then(r => {
+	if (!r.ok) throw new Error('Failed to load task set details');
 	return r.json();
 	}),
-	fetch(`/api/my_sets/${listId}/tasks`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${setId}/tasks`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load tasks');
 	return r.json();
 	}),
-	fetch(`/api/my_sets/${listId}/students`, { credentials: 'include' }).then(r => {
+	fetch(`/api/my_sets/${setId}/students`, { credentials: 'include' }).then(r => {
 	if (!r.ok) throw new Error('Failed to load students');
 	return r.json();
 	})
 ])
-	.then(([taskList, tasks, students]) => {
-	renderListHeader(taskList);
-	renderTasks(tasks, taskList);
+	.then(([taskSet, tasks, students]) => {
+	renderListHeader(taskSet);
+	renderTasks(tasks, taskSet);
 	renderStudents(students);
 	loadViewers();
 	document.getElementById('content-container').style.display = 'block';

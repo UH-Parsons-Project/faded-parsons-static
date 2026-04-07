@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskList, TaskListItem, Teacher, RegistrationToken, Student, StudentTaskListEnrollment, TaskAttempt, TaskStart
+from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken, Student, StudentTaskSetEnrollment, TaskAttempt, TaskStart
 from .migrate_tasks import migrate_tasks
 from utils import hash_token
 
@@ -68,7 +68,7 @@ async def seed_db():
     print("\nMigrating tasks from parsons_probs/...")
     await migrate_tasks()
 
-    # Create a default task list for the test teacher
+    # Create a default task set for the test teacher
     async with async_session() as session:
         teacher_result = await session.execute(
             select(Teacher).where(Teacher.username == "mattiruotsalainen")
@@ -76,16 +76,16 @@ async def seed_db():
         test_teacher = teacher_result.scalar_one_or_none()
 
         if test_teacher is None:
-            print("Test teacher not found, skipping task list seed")
+            print("Test teacher not found, skipping task set seed")
             return
 
         list_result = await session.execute(
-            select(TaskList).where(TaskList.unique_link_code == "starter-list")
+            select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
         )
         existing_list = list_result.scalar_one_or_none()
 
         if existing_list is None:
-            default_list = TaskList(
+            default_list = TaskSet(
                 teacher_id=test_teacher.id,
                 title="Starter List",
                 unique_link_code="starter-list",
@@ -95,21 +95,21 @@ async def seed_db():
             session.add(default_list)
             try:
                 await session.commit()
-                print("Created default task list (unique_link_code: starter-list)")
+                print("Created default task set (unique_link_code: starter-list)")
             except IntegrityError:
                 await session.rollback()
-                print("Default task list already exists (race condition), skipping seed")
+                print("Default task set already exists (race condition), skipping seed")
         else:
-            print("Default task list already exists, skipping seed")
+            print("Default task set already exists, skipping seed")
 
         # Ensure starter list has two exercises
         starter_list_result = await session.execute(
-            select(TaskList).where(TaskList.unique_link_code == "starter-list")
+            select(TaskSet).where(TaskSet.unique_link_code == "starter-list")
         )
         starter_list = starter_list_result.scalar_one_or_none()
 
         if starter_list is None:
-            print("Starter task list not found, skipping exercise assignment")
+            print("Starter task set not found, skipping exercise assignment")
             return
 
         tasks_result = await session.execute(
@@ -122,7 +122,7 @@ async def seed_db():
             return
 
         existing_items_result = await session.execute(
-            select(TaskListItem).where(TaskListItem.task_list_id == starter_list.id)
+            select(TaskSetItem).where(TaskSetItem.task_set_id == starter_list.id)
         )
         existing_items = existing_items_result.scalars().all()
         existing_task_ids = {item.task_id for item in existing_items}
@@ -131,19 +131,19 @@ async def seed_db():
         for task in starter_tasks:
             if task.id not in existing_task_ids:
                 new_items.append(
-                    TaskListItem(task_list_id=starter_list.id, task_id=task.id)
+                    TaskSetItem(task_set_id=starter_list.id, task_id=task.id)
                 )
 
         if new_items:
             session.add_all(new_items)
             try:
                 await session.commit()
-                print(f"Added {len(new_items)} exercises to starter task list")
+                print(f"Added {len(new_items)} exercises to starter task set")
             except IntegrityError:
                 await session.rollback()
                 print("Could not add starter exercises (race condition), skipping")
         else:
-            print("Starter task list already has the seeded exercises")
+            print("Starter task set already has the seeded exercises")
 
 
 async def seed_mock_activity():
@@ -177,7 +177,7 @@ async def seed_mock_activity():
         await session.commit()
         print(f"Created {len(new_teachers)} mock teachers")
 
-        # Get first teacher (from seed) and a task list
+        # Get first teacher (from seed) and a task set
         result = await session.execute(select(Teacher).where(Teacher.username == "mattiruotsalainen"))
         admin_teacher = result.scalar_one_or_none()
 
@@ -185,21 +185,21 @@ async def seed_mock_activity():
             print("Could not find admin teacher, skipping mock student data")
             return
 
-        result = await session.execute(select(TaskList).limit(1))
-        task_list = result.scalar_one_or_none()
+        result = await session.execute(select(TaskSet).limit(1))
+        task_set = result.scalar_one_or_none()
 
-        if not task_list:
-            print("Could not find task list, skipping mock student data")
+        if not task_set:
+            print("Could not find task set, skipping mock student data")
             return
 
-        # Get tasks from the task list
+        # Get tasks from the task set
         result = await session.execute(
-            select(Parsons).join(TaskListItem).where(TaskListItem.task_list_id == task_list.id)
+            select(Parsons).join(TaskSetItem).where(TaskSetItem.task_set_id == task_set.id)
         )
         tasks = result.scalars().all()
 
         if not tasks:
-            print("No tasks in task list, skipping mock student data")
+            print("No tasks in task set, skipping mock student data")
             return
 
         # Create students and activity spread across last 7 days
@@ -225,10 +225,10 @@ async def seed_mock_activity():
                 await session.flush()  # Get the student ID
                 students_created += 1
 
-                # Enroll student in task list
-                enrollment = StudentTaskListEnrollment(
+                # Enroll student in task set
+                enrollment = StudentTaskSetEnrollment(
                     student_id=student.id,
-                    task_list_id=task_list.id,
+                    task_set_id=task_set.id,
                     enrolled_at=activity_date - timedelta(hours=j * 2),
                 )
                 session.add(enrollment)

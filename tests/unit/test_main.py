@@ -5,9 +5,9 @@ Uses shared fixtures from conftest.py:
   - test_teacher / inactive_teacher  (Teacher rows)
   - task                             (a public Parsons problem)
   - private_task                     (a non-public Parsons problem)
-  - problemset                       (TaskList with unique_link_code "WEEK1")
-  - problemset_with_task             (problemset + task linked via TaskListItem)
-  - student_session                  (StudentSession for problemset)
+  - task_set                       (TaskSet with unique_link_code "WEEK1")
+  - task_set_with_task             (task_set + task linked via TaskSetItem)
+  - student_session                  (StudentSession for task_set)
 
 SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
@@ -25,7 +25,7 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskListEnrollment, Teacher, TaskAttempt, TaskList, TaskStart, TaskListItem
+from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, TaskStart, TaskSetItem
 
 
 # ---------------------------------------------------------------------------
@@ -151,13 +151,13 @@ class TestProblemsetPages:
     async def test_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE")).status_code == 404
 
-    async def test_no_session_serves_nickname_page(self, client, problemset):
-        r = await client.get(f"/set/{problemset.unique_link_code}", follow_redirects=False)
+    async def test_no_session_serves_nickname_page(self, client, task_set):
+        r = await client.get(f"/set/{task_set.unique_link_code}", follow_redirects=False)
         assert r.status_code == 200
 
-    async def test_active_session_redirects_to_tasks(self, client, problemset, student_session):
+    async def test_active_session_redirects_to_tasks(self, client, task_set, student_session):
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.get(f"/set/{problemset.unique_link_code}", follow_redirects=False)
+        r = await client.get(f"/set/{task_set.unique_link_code}", follow_redirects=False)
         client.cookies.clear()
         assert r.status_code == 303
         assert "/tasks" in r.headers["location"]
@@ -165,32 +165,32 @@ class TestProblemsetPages:
     async def test_tasks_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks")).status_code == 404
 
-    async def test_tasks_page_redirects_without_session(self, client, problemset):
-        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+    async def test_tasks_page_redirects_without_session(self, client, task_set):
+        r = await client.get(f"/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_tasks_page_returns_200_with_session(self, client, problemset, student_session):
+    async def test_tasks_page_returns_200_with_session(self, client, task_set, student_session):
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.get(f"/set/{problemset.unique_link_code}/tasks", follow_redirects=False)
+        r = await client.get(f"/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
         client.cookies.clear()
         assert r.status_code == 200
 
     async def test_task_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_redirects_without_session(self, client, problemset, task):
+    async def test_task_page_redirects_without_session(self, client, task_set, task):
         r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
             follow_redirects=False,
         )
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_task_page_returns_200_with_session(self, client, problemset, task, student_session):
+    async def test_task_page_returns_200_with_session(self, client, task_set, task, student_session):
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
             follow_redirects=False,
         )
         client.cookies.clear()
@@ -199,18 +199,18 @@ class TestProblemsetPages:
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_redirects_without_session(self, client, problemset, task):
+    async def test_start_page_redirects_without_session(self, client, task_set, task):
         r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
             follow_redirects=False,
         )
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{problemset.unique_link_code}"
+        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_start_page_returns_200_with_session(self, client, problemset, task, student_session):
+    async def test_start_page_returns_200_with_session(self, client, task_set, task, student_session):
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{problemset.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
             follow_redirects=False,
         )
         client.cookies.clear()
@@ -474,20 +474,20 @@ class TestListTasks:
 
 @pytest.mark.asyncio
 class TestGetProblemset:
-    async def test_returns_problemset_data(self, client, problemset, test_teacher):
+    async def test_returns_task_set_data(self, client, task_set, test_teacher):
         r = await client.get(
-            f"/api/my_sets/{problemset.id}",
+            f"/api/my_sets/{task_set.id}",
             headers=_auth(test_teacher.username),
         )
         assert r.status_code == 200
         body = r.json()
-        assert body["id"] == problemset.id
+        assert body["id"] == task_set.id
         assert body["unique_link_code"] == "WEEK1"
         assert body["expires_at"] is None
 
-    async def test_problemset_with_expires_at(self, client, db_session, test_teacher):
+    async def test_task_set_with_expires_at(self, client, db_session, test_teacher):
         from datetime import timezone
-        ps = TaskList(
+        ps = TaskSet(
             teacher_id=test_teacher.id, title="Expiring", unique_link_code="EXP01",
             expires_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
         )
@@ -511,21 +511,21 @@ class TestGetProblemset:
 
 @pytest.mark.asyncio
 class TestGetProblemsetTasks:
-    async def test_get_by_string_code(self, client, problemset_with_task):
-        ps, task = problemset_with_task
+    async def test_get_by_string_code(self, client, task_set_with_task):
+        ps, task = task_set_with_task
         r = await client.get(f"/api/my_sets/{ps.unique_link_code}/tasks")
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
-    async def test_get_by_numeric_id(self, client, problemset_with_task):
-        ps, task = problemset_with_task
+    async def test_get_by_numeric_id(self, client, task_set_with_task):
+        ps, task = task_set_with_task
         r = await client.get(f"/api/my_sets/{ps.id}/tasks")
         assert r.status_code == 200
         assert r.json()[0]["id"] == task.id
 
     async def test_numeric_unique_link_code_is_resolved_as_code(self, client, db_session, test_teacher, task):
-        ps = TaskList(
+        ps = TaskSet(
             teacher_id=test_teacher.id,
             title="Numeric Code List",
             unique_link_code="303",
@@ -534,7 +534,7 @@ class TestGetProblemsetTasks:
         await db_session.commit()
         await db_session.refresh(ps)
 
-        db_session.add(TaskListItem(task_list_id=ps.id, task_id=task.id))
+        db_session.add(TaskSetItem(task_set_id=ps.id, task_id=task.id))
         await db_session.commit()
 
         r = await client.get("/api/my_sets/303/tasks")
@@ -548,8 +548,8 @@ class TestGetProblemsetTasks:
     async def test_unknown_id_returns_404(self, client):
         assert (await client.get("/api/my_sets/99999/tasks")).status_code == 404
 
-    async def test_empty_problemset_returns_empty_list(self, client, problemset):
-        r = await client.get(f"/api/my_sets/{problemset.unique_link_code}/tasks")
+    async def test_empty_task_set_returns_empty_list(self, client, task_set):
+        r = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
         assert r.status_code == 200
         assert r.json() == []
 
@@ -697,7 +697,7 @@ class TestStatistics:
         assert body["time_to_first_success"]["avg"] == 0
 
     async def test_multiple_students_aggregated(
-        self, client, task, problemset, test_teacher, db_session
+        self, client, task, task_set, test_teacher, db_session
     ):
         for i in range(3):
             ss = Student(
@@ -707,7 +707,7 @@ class TestStatistics:
             ss.set_password("studentpass123")
             db_session.add(ss)
             await db_session.flush()
-            db_session.add(StudentTaskListEnrollment(student_id=ss.id, task_list_id=problemset.id))
+            db_session.add(StudentTaskSetEnrollment(student_id=ss.id, task_set_id=task_set.id))
             await db_session.commit()
             await db_session.refresh(ss)
             await _add_attempt(db_session, ss.id, task.id, success=True,
@@ -822,11 +822,11 @@ class TestStatistics:
                                   headers=_auth(test_teacher.username))).json()
         assert body["common_mistakes"] == []
 
-    async def test_filter_by_problemset_isolates_students(
-        self, client, task, problemset, student_session, test_teacher, db_session
+    async def test_filter_by_task_set_isolates_students(
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        # second problemset + student
-        ps2 = TaskList(
+        # second task_set + student
+        ps2 = TaskSet(
             teacher_id=test_teacher.id, title="PS2", unique_link_code="WEEK2"
         )
         db_session.add(ps2)
@@ -836,7 +836,7 @@ class TestStatistics:
         ss2.set_password("studentpass123")
         db_session.add(ss2)
         await db_session.flush()
-        db_session.add(StudentTaskListEnrollment(student_id=ss2.id, task_list_id=ps2.id))
+        db_session.add(StudentTaskSetEnrollment(student_id=ss2.id, task_set_id=ps2.id))
         await db_session.commit()
         await db_session.refresh(ss2)
 
@@ -844,7 +844,7 @@ class TestStatistics:
         await _add_attempt(db_session, ss2.id, task.id, success=True)
 
         body = (await client.get(
-            f"/api/tasks/{task.id}/statistics?problemset_code={problemset.unique_link_code}",
+            f"/api/tasks/{task.id}/statistics?task_set_code={task_set.unique_link_code}",
             headers=_auth(test_teacher.username),
         )).json()
         assert body["students_attempted"] == 1
@@ -854,7 +854,7 @@ class TestStatistics:
     ):
         await _add_attempt(db_session, student_session.id, task.id, success=True)
         response = await client.get(
-            f"/api/tasks/{task.id}/statistics?problemset_code=NOCODE",
+            f"/api/tasks/{task.id}/statistics?task_set_code=NOCODE",
             headers=_auth(test_teacher.username),
         )
         assert response.status_code == 404
@@ -1081,11 +1081,11 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
 
-    async def test_student_login_sets_cookie_and_can_rebind_task_list(
-        self, client, student_session, db_session, problemset
+    async def test_student_login_sets_cookie_and_can_rebind_task_set(
+        self, client, student_session, db_session, task_set
     ):
-        other_list = TaskList(
-            teacher_id=problemset.teacher_id,
+        other_list = TaskSet(
+            teacher_id=task_set.teacher_id,
             title="Week 2 Exercises",
             unique_link_code="WEEK2",
         )
@@ -1106,9 +1106,9 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert "student_session" in r.cookies
 
         enrollment = await db_session.execute(
-            select(StudentTaskListEnrollment).where(
-                StudentTaskListEnrollment.student_id == student_session.id,
-                StudentTaskListEnrollment.task_list_id == other_list.id,
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.student_id == student_session.id,
+                StudentTaskSetEnrollment.task_set_id == other_list.id,
             )
         )
         assert enrollment.scalar_one_or_none() is not None
@@ -1120,13 +1120,13 @@ class TestAdditionalMainPagesAndStudentAuth:
 
 
 @pytest.mark.asyncio
-class TestAdditionalProblemsetAndTaskListApis:
+class TestAdditionalProblemsetAndTaskSetApis:
     async def test_my_sets_requires_authentication(self, client):
         r = await client.get("/api/my_sets")
         assert r.status_code == 401
 
     async def test_my_sets_returns_current_teacher_my_sets(
-        self, client, test_teacher, problemset, db_session
+        self, client, test_teacher, task_set, db_session
     ):
         other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
         other_teacher.set_password("testpassword123")
@@ -1135,7 +1135,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         await db_session.refresh(other_teacher)
 
         db_session.add(
-            TaskList(
+            TaskSet(
                 teacher_id=other_teacher.id,
                 title="Other Teacher List",
                 unique_link_code="OTHER1",
@@ -1145,7 +1145,7 @@ class TestAdditionalProblemsetAndTaskListApis:
 
         r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
         assert r.status_code == 200
-        assert {item["unique_link_code"] for item in r.json()} == {problemset.unique_link_code}
+        assert {item["unique_link_code"] for item in r.json()} == {task_set.unique_link_code}
 
     async def test_student_register_success_and_duplicate_rejected(self, client):
         payload = {
@@ -1195,7 +1195,7 @@ class TestAdditionalProblemsetAndTaskListApis:
         await db_session.refresh(second)
 
         payload = {
-            "title": "Brand New Task List",
+            "title": "Brand New Task Set",
             "student_description": "Student-facing",
             "teacher_description": "Teacher-facing",
             "expires_at": "2027-01-01T00:00:00Z",
@@ -1205,6 +1205,6 @@ class TestAdditionalProblemsetAndTaskListApis:
 
         assert r.status_code == 200
         body = r.json()
-        assert body["title"] == "Brand New Task List"
-        assert body["unique_link_code"] == "brand-new-task-list"
+        assert body["title"] == "Brand New Task Set"
+        assert body["unique_link_code"] == "brand-new-task-set"
         assert body["expires_at"] is not None

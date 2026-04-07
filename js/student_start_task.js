@@ -59,7 +59,7 @@ async function checkAndRedirectIfStarted() {
 hidePageContent();
 checkAndRedirectIfStarted();
 
-// Set the back button to return to the task list
+// Set the back button to return to the task set
 const backButton = document.getElementById('back-to-list');
 if (backButton) {
 	backButton.href = `/set/${uniqueLinkCode}/tasks`;

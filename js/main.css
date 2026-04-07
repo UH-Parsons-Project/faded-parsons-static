@@ -135,14 +135,14 @@
   white-space: pre;
 }
 
-/* Task List Selector Styles */
+/* Task Set Selector Styles */
 .teacher-dashboard-layout {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
 }
 
-.task-lists-column {
+.task-sets-column {
   flex: 1;
   order: 1;
 }
@@ -153,7 +153,7 @@
   order: 2;
 }
 
-.task-list-item {
+.task-set-item {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 2px solid #dee2e6;
@@ -164,20 +164,20 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
-.task-list-item:hover {
+.task-set-item:hover {
   border-color: #007bff;
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
   transform: translateY(-2px);
 }
 
-.task-list-title {
+.task-set-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #333;
 }
 
-.task-list-code {
+.task-set-code {
   font-family: 'Courier New', monospace;
   background-color: #f8f9fa;
   padding: 0.25rem 0.5rem;
@@ -187,13 +187,13 @@
   border: 1px solid #dee2e6;
 }
 
-.task-list-meta {
+.task-set-meta {
   font-size: 0.875rem;
   color: #6c757d;
   margin-top: 0.5rem;
 }
 
-.task-list-description {
+.task-set-description {
   font-size: 0.95rem;
   color: #555;
   margin: 1rem 0 0 0;
@@ -258,7 +258,7 @@
   font-weight: 600;
 }
 
-/* Task List Statistics - Two Column Layout */
+/* Task Set Statistics - Two Column Layout */
 .statistics-layout {
   display: flex;
   gap: 2rem;
@@ -276,7 +276,7 @@
   order: 2;
 }
 
-/* Task List Statistics - Students Section */
+/* Task Set Statistics - Students Section */
 .students-section {
   position: sticky;
   top: 1rem;
@@ -529,7 +529,7 @@
   margin: 2rem auto;
 }
 
-.task-list-form {
+.task-set-form {
   background: #f8f9fa;
   padding: 2rem;
   border-radius: 8px;
@@ -943,13 +943,13 @@
   }
 }
 
-/* Problemset (student task list) page */
-.problemset-layout {
+/* Problemset (student task set) page */
+.task_set-layout {
   display: flex;
   min-height: calc(100vh - 56px);
 }
 
-.problemset-sidebar {
+.task_set-sidebar {
   width: 480px;
   flex-shrink: 0;
   background: #f8f9fa;
@@ -957,12 +957,12 @@
   padding: 2rem 1.5rem;
 }
 
-.problemset-sidebar-sticky {
+.task_set-sidebar-sticky {
   position: sticky;
   top: 2rem;
 }
 
-.problemset-sidebar-heading {
+.task_set-sidebar-heading {
   margin-bottom: 1.5rem;
   font-weight: 700;
   font-size: 1.1rem;
@@ -1009,7 +1009,7 @@
   font-weight: 400;
 }
 
-.problemset-progress-bar-wrap {
+.task_set-progress-bar-wrap {
   height: 1.25rem;
   margin-bottom: 1rem;
   background-color: #e9ecef;
@@ -1017,7 +1017,7 @@
   overflow: hidden;
 }
 
-.problemset-progress-bar {
+.task_set-progress-bar {
   width: 0%;
   transition: width 0.4s ease;
   display: flex;
@@ -1036,7 +1036,7 @@
   font-weight: 500;
 }
 
-.problemset-divider {
+.task_set-divider {
   margin: 1.75rem 0;
   border: none;
   border-top: 1px solid #dee2e6;
@@ -1099,7 +1099,7 @@
   background: #6c757d;
 }
 
-.problemset-info-heading {
+.task_set-info-heading {
   font-weight: 700;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
@@ -1109,27 +1109,27 @@
   margin-top: 0;
 }
 
-.problemset-info-text {
+.task_set-info-text {
   font-size: 1rem;
   color: #6c757d;
   line-height: 1.65;
   margin: 0;
 }
 
-.problemset-content {
+.task_set-content {
   flex: 1;
   padding: 3rem 2.5rem 2rem 2.5rem;
   min-width: 0;
 }
 
-.problemset-title {
+.task_set-title {
   font-size: 2rem;
   font-weight: 700;
   color: #212529;
 }
 
-/* Numbered task card layout (problemset page only) */
-.problemset-content .task-list-item {
+/* Numbered task card layout (task_set page only) */
+.task_set-content .task-set-item {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -1139,12 +1139,12 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 
-.problemset-content .task-list-title {
+.task_set-content .task-set-title {
   font-size: 1rem;
   margin-bottom: 0.25rem;
 }
 
-.task-list-item-number {
+.task-set-item-number {
   flex-shrink: 0;
   width: 2rem;
   height: 2rem;
@@ -1159,29 +1159,29 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.problemset-content .task-list-item:hover .task-list-item-number {
+.task_set-content .task-set-item:hover .task-set-item-number {
   background: #007bff;
   color: white;
 }
 
-.task-list-item-number.completed {
+.task-set-item-number.completed {
   background: #28a745;
   color: white;
 }
 
-.task-list-item-body {
+.task-set-item-body {
   flex: 1;
   min-width: 0;
 }
 
-.task-list-item-chevron {
+.task-set-item-chevron {
   flex-shrink: 0;
   color: #ced4da;
   font-size: 0.9rem;
   transition: color 0.2s, transform 0.2s;
 }
 
-.problemset-content .task-list-item:hover .task-list-item-chevron {
+.task_set-content .task-set-item:hover .task-set-item-chevron {
   color: #007bff;
   transform: translateX(3px);
 }

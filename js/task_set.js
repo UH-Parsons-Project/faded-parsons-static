@@ -6,7 +6,7 @@ initStudentLogout();
 
 initNavbarExercisesButton();
 
-// Load problem list for this problemset
+// Load problem list for this task_set
 const container = document.getElementById('problems-list');
 const pathParts = window.location.pathname.split('/');
 const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}/tasks
@@ -43,7 +43,7 @@ async function loadProblemsetInfo() {
 			infoSection.appendChild(description);
 		}
 	} catch (error) {
-		console.error('Failed to load problemset info:', error);
+		console.error('Failed to load task_set info:', error);
 	}
 }
 
@@ -62,12 +62,12 @@ async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElem
 		const studentCompleted = Number(stats.student_completed || 0);
 
 		if (studentCompleted > 0) {
-			statusElement.className = 'task-list-meta task-completed';
+			statusElement.className = 'task-set-meta task-completed';
 			statusElement.innerHTML = '<i class="fas fa-check-circle"></i>Completed';
 			if (numberElement) numberElement.classList.add('completed');
 			tasksList[itemIndex].isCompleted = true;
 		} else if (studentAttempts > 0) {
-			statusElement.className = 'task-list-meta task-in-progress';
+			statusElement.className = 'task-set-meta task-in-progress';
 			statusElement.innerHTML = '<i class="fas fa-clock"></i>In Progress';
 			tasksList[itemIndex].isCompleted = false;
 		} else {
@@ -84,33 +84,33 @@ async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElem
 
 function createTaskCard(item, index) {
 	const card = document.createElement('div');
-	card.className = 'task-list-item';
+	card.className = 'task-set-item';
 	card.onclick = () => {
 		window.location.href = `/set/${uniqueLinkCode}/tasks/${item.id}/start`;
 	};
 
 	const number = document.createElement('div');
-	number.className = 'task-list-item-number';
+	number.className = 'task-set-item-number';
 	number.textContent = index + 1;
 	card.appendChild(number);
 
 	const body = document.createElement('div');
-	body.className = 'task-list-item-body';
+	body.className = 'task-set-item-body';
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
+	title.className = 'task-set-title';
 	title.textContent = item.title;
 	body.appendChild(title);
 
 	const status = document.createElement('div');
-	status.className = 'task-list-meta';
+	status.className = 'task-set-meta';
 	status.style.minHeight = '1.5rem';
 	body.appendChild(status);
 
 	card.appendChild(body);
 
 	const chevron = document.createElement('i');
-	chevron.className = 'fas fa-chevron-right task-list-item-chevron';
+	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
 	loadCompletionStatus(item.id, status, index, number);
@@ -148,7 +148,7 @@ function render(list) {
 	}
 
 	const cardsColumn = document.createElement('div');
-	cardsColumn.className = 'task-lists-column';
+	cardsColumn.className = 'task-sets-column';
 
 	list.forEach(function (item, index) {
 		cardsColumn.appendChild(createTaskCard(item, index));
@@ -159,10 +159,10 @@ function render(list) {
 }
 
 if (uniqueLinkCode) {
-	// Load problemset info (title and description)
+	// Load task_set info (title and description)
 	loadProblemsetInfo();
 
-	// Fetch problems for this problemset
+	// Fetch problems for this task_set
 	fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
 		.then(function (resp) {
 			if (!resp.ok) throw new Error('Network response not ok');
@@ -181,7 +181,7 @@ if (uniqueLinkCode) {
 			container.innerHTML = `
 				<i class="fas fa-exclamation-triangle text-danger"></i>
 				<h4>Error Loading Tasks</h4>
-				<p>Unable to load task list.</p>
+				<p>Unable to load task set.</p>
 			`;
 			console.error(error);
 		});

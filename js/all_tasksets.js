@@ -36,32 +36,32 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
-// ==================== Task Lists ====================
+// ==================== Task Sets ====================
 
-function createTaskListItem(taskList) {
+function createTaskSetItem(taskSet) {
 	const item = document.createElement('div');
-	item.className = 'task-list-item';
+	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-set-overview?list_id=${taskList.id}`;
+	window.location.href = `/task-set-overview?set_id=${taskSet.id}`;
 	};
 
 	const title = document.createElement('div');
-	title.className = 'task-list-title';
-	title.textContent = taskList.title;
+	title.className = 'task-set-title';
+	title.textContent = taskSet.title;
 
 	const code = document.createElement('div');
 	code.className = 'mb-2';
 	const codeSpan = document.createElement('span');
-	codeSpan.className = 'task-list-code';
-	codeSpan.textContent = taskList.unique_link_code;
+	codeSpan.className = 'task-set-code';
+	codeSpan.textContent = taskSet.unique_link_code;
 	code.appendChild(codeSpan);
 
 	const meta = document.createElement('div');
-	meta.className = 'task-list-meta';
+	meta.className = 'task-set-meta';
 	meta.innerHTML = `
-	<i class="far fa-user"></i> Teacher ID: ${taskList.teacher_id}<br>
-	<i class="far fa-calendar"></i> Created ${formatDate(taskList.created_at)}
-	${taskList.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskList.expires_at)}` : ''}
+	<i class="far fa-user"></i> Teacher ID: ${taskSet.teacher_id}<br>
+	<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
+	${taskSet.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}` : ''}
 	`;
 
 	item.appendChild(title);
@@ -71,25 +71,25 @@ function createTaskListItem(taskList) {
 	return item;
 }
 
-function renderTaskLists(taskLists) {
-	const container = document.getElementById('task-lists-container');
+function renderTaskSets(taskSets) {
+	const container = document.getElementById('task-sets-container');
 	container.className = '';
 	container.innerHTML = '';
 
-	if (taskLists.length === 0) {
+	if (taskSets.length === 0) {
 	container.innerHTML = `
 		<div class="empty-state">
 		<i class="fas fa-folder-open"></i>
-		<h4>No Task Lists Found</h4>
-		<p>There are no task lists in the system yet.</p>
+		<h4>No Task Sets Found</h4>
+		<p>There are no task sets in the system yet.</p>
 		</div>
 	`;
 	} else {
 	const listsColumn = document.createElement('div');
-	listsColumn.className = 'task-lists-column';
+	listsColumn.className = 'task-sets-column';
 
-	taskLists.forEach(taskList => {
-		listsColumn.appendChild(createTaskListItem(taskList));
+	taskSets.forEach(taskSet => {
+		listsColumn.appendChild(createTaskSetItem(taskSet));
 	});
 
 	container.appendChild(listsColumn);
@@ -97,11 +97,11 @@ function renderTaskLists(taskLists) {
 }
 
 function showError(message) {
-	const container = document.getElementById('task-lists-container');
+	const container = document.getElementById('task-sets-container');
 	container.className = 'empty-state';
 	container.innerHTML = `
 	<i class="fas fa-exclamation-triangle text-danger"></i>
-	<h4>Error Loading Task Lists</h4>
+	<h4>Error Loading Task Sets</h4>
 	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
 	`;
 }
@@ -115,16 +115,16 @@ fetch('/api/all-tasksets', { credentials: 'include' })
 		window.location.href = '/';
 		return;
 		}
-		throw new Error('Failed to load task lists');
+		throw new Error('Failed to load task sets');
 	}
 	return r.json();
 	})
 	.then(data => {
 	if (data) {
-		renderTaskLists(data);
+		renderTaskSets(data);
 	}
 	})
 	.catch(err => {
-	console.error('Error loading task lists:', err);
+	console.error('Error loading task sets:', err);
 	showError(err.message);
 	});

@@ -915,12 +915,44 @@ class TestProtectedPages:
 # ---------------------------------------------------------------------------
 
 class TestMainHelpers:
-    def test_clean_mistake_code_normalizes_and_trims_empty_edges(self):
-        raw = "\r\n   \r\nprint(1)  \r\nprint(2)\r\n\r\n"
-        assert utils._clean_mistake_code(raw) == "print(1)\nprint(2)"
+    def test_clean_mistake_code_trims_empty_edges(self):
+        raw = "\r\n   \r\nx = 1  \r\ny = 2\r\n\r\n"
+        assert utils._clean_mistake_code(raw) == "x = 1\ny = 2"
+
+    def test_clean_mistake_code_strips_comment_only_lines(self):
+        raw = "# this is a comment\nx = 1\n# another comment\n"
+        assert utils._clean_mistake_code(raw) == "x = 1"
+
+    def test_clean_mistake_code_strips_print_lines(self):
+        raw = "x = 1\nprint(x)\ny = 2\n"
+        assert utils._clean_mistake_code(raw) == "x = 1\ny = 2"
+
+    def test_clean_mistake_code_strips_trailing_semicolons(self):
+        raw = "x = 1;\ny = 2;\n"
+        assert utils._clean_mistake_code(raw) == "x = 1\ny = 2"
 
     def test_mistake_code_fingerprint_empty_code_returns_empty_tuple(self):
         assert utils._mistake_code_fingerprint("\n\n  \n") == tuple()
+
+    def test_mistake_code_fingerprint_ignores_comments(self):
+        with_comment = "x = 1  # set x"
+        without_comment = "x = 1"
+        assert utils._mistake_code_fingerprint(with_comment) == utils._mistake_code_fingerprint(without_comment)
+
+    def test_mistake_code_fingerprint_ignores_string_content_and_quotes(self):
+        double_quotes = 'greet = "hello"'
+        single_quotes = "greet = 'world'"
+        assert utils._mistake_code_fingerprint(double_quotes) == utils._mistake_code_fingerprint(single_quotes)
+
+    def test_mistake_code_fingerprint_ignores_semicolons(self):
+        semicolon_style = "x = 1; y = 2"
+        newline_style = "x = 1\ny = 2"
+        assert utils._mistake_code_fingerprint(semicolon_style) == utils._mistake_code_fingerprint(newline_style)
+
+    def test_mistake_code_fingerprint_ignores_print(self):
+        with_print = "x = 1\nprint(x)\n"
+        without_print = "x = 1\n"
+        assert utils._mistake_code_fingerprint(with_print) == utils._mistake_code_fingerprint(without_print)
 
     def test_mistake_code_fingerprint_fallback_on_token_error(self, monkeypatch):
         def _raise_token_error(_):

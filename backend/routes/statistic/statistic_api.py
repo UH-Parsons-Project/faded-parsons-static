@@ -223,6 +223,16 @@ async def get_student_task_statistics(
 
     attempts_data = filtered_attempts_data
 
+    # Count only block move events (not blank edits)
+    move_count_stmt = (
+        select(func.count(MoveEvent.id))
+        .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+        .join(Student, Student.id == TaskAttempt.student_id)
+        .where(Student.username == student_username)
+        .where(TaskAttempt.task_id == task_id)
+    )
+    move_count = (await db.execute(move_count_stmt)).scalar() or 0
+
     if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -236,6 +246,7 @@ async def get_student_task_statistics(
             time_to_first_success=None,
             time_to_first_fail=None,
             thinking_time=thinking_time,
+            move_count=move_count,
             attempts_detail=[]
         )
 
@@ -283,6 +294,7 @@ async def get_student_task_statistics(
         time_to_first_success=time_to_first_success,
         time_to_first_fail=time_to_first_fail,
         thinking_time=thinking_time,
+        move_count=move_count,
         attempts_detail=attempts_detail
     )
 

@@ -393,6 +393,10 @@ function renderStatistics(data) {
 	document.getElementById('thinking-time').textContent =
 		formatTime(data.thinking_time.seconds);
 	}
+
+	if (data.move_count !== null && data.move_count !== undefined) {
+	document.getElementById('move-count').textContent = data.move_count;
+	}
 }
 
 function showError(message) {

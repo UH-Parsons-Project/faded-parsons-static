@@ -89,6 +89,7 @@ class StudentTaskStatisticsResponse(BaseModel):
     time_to_first_success: dict | None
     time_to_first_fail: dict | None
     thinking_time: dict | None
+    move_count: int | None
     attempts_detail: list[dict]
 
 

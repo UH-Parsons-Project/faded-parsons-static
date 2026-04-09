@@ -112,7 +112,7 @@ function createNewTaskButton() {
 	wrapper.className = 'mb-3';
 
 	const link = document.createElement('a');
-	link.href = '/create_task';
+	link.href = '/create-task';
 	link.className = 'btn btn-success btn-block';
 	link.textContent = 'New task';
 

@@ -495,11 +495,16 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/api/tasks")
 async def list_tasks(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Parsons).where(Parsons.is_public))
-    tasks = result.scalars().all()
+    result = await db.execute(
+        select(Parsons, Teacher.username)
+        .join(Teacher, Teacher.id == Parsons.created_by_teacher_id)
+        .where(Parsons.is_public)
+        .order_by(Parsons.created_at.desc())
+    )
+    tasks = result.all()
 
     task_set = []
-    for task in tasks:
+    for task, creator_username in tasks:
         instructions_text = ""
         try:
             instructions_data = json.loads(task.task_instructions)
@@ -528,6 +533,8 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
                 "task_instructions": instructions_text,
                 "description": description_text,
                 "task_type": task.task_type,
+                "created_by_teacher_id": task.created_by_teacher_id,
+                "creator_username": creator_username,
                 "created_at": task.created_at.isoformat(),
             }
         )

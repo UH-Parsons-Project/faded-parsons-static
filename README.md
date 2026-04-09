@@ -19,6 +19,41 @@ docker compose --profile web up --build
 
 The website can be accessed at http://localhost:8000/.
 
+## Database migrations
+
+This project uses Alembic for schema migrations.
+
+### Developer workflow
+
+1. Update SQLAlchemy models in `backend/models.py`.
+2. Generate a migration:
+
+```bash
+docker compose exec -w /usr/src/app web alembic revision --autogenerate -m "describe change"
+```
+
+3. Review the generated file under `alembic/versions/`.
+4. Apply migrations locally:
+
+```bash
+docker compose exec -w /usr/src/app web alembic upgrade head
+```
+
+5. Commit both model changes and migration file.
+
+### OpenShift-native automatic migrations
+
+In staging and production, each new pod runs Alembic migrations before the app starts.
+
+- `manifest/staging/deployment.yaml`
+- `manifest/production/deployment.yaml`
+
+Container startup command:
+
+```bash
+alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
 ### Run all tests at once:
 
 Run Pytest unittests and Playwright E2E-tests simultaneously.

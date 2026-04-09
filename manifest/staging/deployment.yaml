@@ -20,6 +20,9 @@ spec:
         - name: faded-parsons-staging
           image: quay.io/tike/ohtu-faded-parsons:staging
           imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - alembic upgrade head && exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
           env:
             - name: DATABASE_URL
               valueFrom:

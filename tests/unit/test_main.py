@@ -1053,7 +1053,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 200
 
     async def test_create_task_html_alias_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task.html", headers=_auth(test_teacher.username))
+        r = await client.get("/create-task.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_create_task_editor_page_requires_authentication(self, client):
@@ -1066,7 +1066,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 200
 
     async def test_create_task_editor_html_alias_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task_editor.html", headers=_auth(test_teacher.username))
+        r = await client.get("/create-task-editor.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_student_register_page_returns_200(self, client):

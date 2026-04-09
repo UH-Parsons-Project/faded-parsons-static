@@ -683,9 +683,6 @@ initProtectedPage('/');
       : (draftPayload?.taskCode || '');
     const currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
 
-    console.log('Saving code to session:', currentCode);
-    console.log('Saving tests to session:', currentTests);
-
     localStorage.setItem('create_task_draft_code', currentCode);
     localStorage.setItem('create_task_draft_tests', currentTests);
 
@@ -696,7 +693,7 @@ initProtectedPage('/');
         taskTests: currentTests,
         savedAt: new Date().toISOString(),
       };
-      console.log('Updated draft payload:', updatedDraft);
+
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(updatedDraft));
     }
   }
@@ -718,7 +715,7 @@ initProtectedPage('/');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         saveCodeToSession();
-        window.location.href = '/create_task';
+        window.location.href = '/create-task';
       });
     }
 
@@ -849,7 +846,7 @@ initProtectedPage('/');
     const draft = readDraftPayload();
     if (!draft || !draft.taskCode) {
       alert('No draft task found. Redirecting to task editor.');
-      window.location.href = '/create_task';
+      window.location.href = '/create-task';
       return;
     }
 

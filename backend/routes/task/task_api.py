@@ -236,6 +236,7 @@ async def create_task_set(
         title=task_set.title,
         unique_link_code=task_set.unique_link_code,
         teacher_id=task_set.teacher_id,
+        owner_username=current_user.username,
         student_description=task_set.student_description,
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),

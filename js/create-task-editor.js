@@ -718,7 +718,7 @@ initProtectedPage('/');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         saveCodeToSession();
-        window.location.href = '/create_task';
+        window.location.href = '/create-task';
       });
     }
 
@@ -849,7 +849,7 @@ initProtectedPage('/');
     const draft = readDraftPayload();
     if (!draft || !draft.taskCode) {
       alert('No draft task found. Redirecting to task editor.');
-      window.location.href = '/create_task';
+      window.location.href = '/create-task';
       return;
     }
 

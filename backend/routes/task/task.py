@@ -33,7 +33,7 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 
-@router.get("/create_task", response_class=HTMLResponse)
+@router.get("/create-task", response_class=HTMLResponse)
 @router.get("/create_task.html", response_class=HTMLResponse)
 async def create_task_page(request: Request, db: AsyncSession = Depends(get_db)):
 	try:
@@ -89,4 +89,3 @@ async def create_task_set_page(request: Request, db: AsyncSession = Depends(get_
 	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 	response.headers["Pragma"] = "no-cache"
 	return response
-

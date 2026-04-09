@@ -10,6 +10,10 @@ function setExercisesButtonVisible(visible) {
 	if (exercisesBtn) {
 		exercisesBtn.style.display = visible ? 'inline-block' : 'none';
 	}
+	const globalStatsBtn = document.getElementById('global-stats-btn');
+	if (globalStatsBtn) {
+		globalStatsBtn.style.display = visible ? 'inline-block' : 'none';
+	}
 }
 
 /**

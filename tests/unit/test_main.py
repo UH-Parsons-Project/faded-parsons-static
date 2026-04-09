@@ -1044,12 +1044,12 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 200
 
     async def test_create_task_page_requires_authentication(self, client):
-        r = await client.get("/create_task", follow_redirects=False)
+        r = await client.get("/create-task", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
     async def test_create_task_page_returns_200_when_authenticated(self, client, test_teacher):
-        r = await client.get("/create_task", headers=_auth(test_teacher.username))
+        r = await client.get("/create-task", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_create_task_html_alias_returns_200_when_authenticated(self, client, test_teacher):

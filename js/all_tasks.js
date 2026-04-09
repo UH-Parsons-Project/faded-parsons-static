@@ -91,7 +91,7 @@ function createExerciseCard(item) {
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 
-	const metaParts = ['View global analytics'];
+	const metaParts = ['View global statistics (anonymous)'];
 	if (item.task_type) {
 		metaParts.push(item.task_type);
 	}

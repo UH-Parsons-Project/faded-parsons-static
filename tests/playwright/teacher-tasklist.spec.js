@@ -106,7 +106,11 @@ test('teacher can add a new task', async ({ page }) => {
   await page.locator('#close-student-preview').click();
   await expect(page.locator('#student-preview-modal')).toBeHidden();
 
-  // Click "Add to Problem List"
+  // Click "Add to Problem List" — accept the success/failure alert dialog
+  page.on('dialog', dialog => dialog.accept());
   await page.locator('#add-to-problem-list').click();
+
+  // Verify redirect to teacher dashboard after successful submission
+  await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
 });
 

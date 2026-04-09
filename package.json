@@ -25,6 +25,9 @@
 		"js-yaml": "^4.1.0",
 		"lit": "^2.2.4"
 	},
+	"overrides": {
+		"serialize-javascript": ">=7.0.5"
+	},
 	"scripts": {
 		"lint": "npm run lint:lit-analyzer && npm run lint:eslint",
 		"lint:eslint": "eslint 'js/*.js' 'js-parsons/*.js'",

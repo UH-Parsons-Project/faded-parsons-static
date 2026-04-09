@@ -34,7 +34,7 @@ async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/create-task", response_class=HTMLResponse)
-@router.get("/create_task.html", response_class=HTMLResponse)
+@router.get("/create-task.html", response_class=HTMLResponse)
 async def create_task_page(request: Request, db: AsyncSession = Depends(get_db)):
 	try:
 		await get_current_user(request, db)
@@ -49,7 +49,7 @@ async def create_task_page(request: Request, db: AsyncSession = Depends(get_db))
 
 
 @router.get("/create-task-editor", response_class=HTMLResponse)
-@router.get("/create_task_editor.html", response_class=HTMLResponse)
+@router.get("/create-task-editor.html", response_class=HTMLResponse)
 async def create_task_problem_page(request: Request, db: AsyncSession = Depends(get_db)):
 	try:
 		await get_current_user(request, db)

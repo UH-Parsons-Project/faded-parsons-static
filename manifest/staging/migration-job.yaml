@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: faded-parsons-staging-db-migrate
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-staging
+    component: db-migration
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: faded-parsons-staging
+        component: db-migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-migrate
+          image: quay.io/tike/ohtu-faded-parsons:staging
+          imagePullPolicy: Always
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: DATABASE_URL

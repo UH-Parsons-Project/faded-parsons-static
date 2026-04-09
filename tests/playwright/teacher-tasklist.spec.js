@@ -46,8 +46,8 @@ test('teacher can add a new task', async ({ page }) => {
   await page.locator('a.btn-success', { hasText: 'New task' }).click();
 
   // Verify we are on the create task page
-  await page.waitForURL(/\/create_task$/, { timeout: 10000 });
-  await expect(page).toHaveURL(/\/create_task$/);
+  await page.waitForURL(/\/create-task$/, { timeout: 10000 });
+  await expect(page).toHaveURL(/\/create-task$/);
 
   // Verify create task page elements are visible
   await expect(page.locator('.page-title')).toHaveText('Create a New Task');

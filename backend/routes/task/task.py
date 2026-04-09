@@ -89,4 +89,3 @@ async def create_task_set_page(request: Request, db: AsyncSession = Depends(get_
 	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 	response.headers["Pragma"] = "no-cache"
 	return response
-

@@ -1,7 +1,8 @@
-import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+import {initProtectedPage, initSignedInAs, initBurgerMenu} from '/js/auth-ui.js';
 
 initProtectedPage('/');
 initSignedInAs();
+initBurgerMenu();
 
 // Load user info
 const userNameEl = document.getElementById('user-name');

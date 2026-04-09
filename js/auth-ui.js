@@ -10,6 +10,14 @@ function setExercisesButtonVisible(visible) {
 	if (exercisesBtn) {
 		exercisesBtn.style.display = visible ? 'inline-block' : 'none';
 	}
+	const globalStatsBtn = document.getElementById('global-stats-btn');
+	if (globalStatsBtn) {
+		globalStatsBtn.style.display = visible ? 'inline-block' : 'none';
+	}
+	const burgerMenu = document.getElementById('navbar-burger-menu');
+	if (burgerMenu) {
+		burgerMenu.style.display = visible ? 'inline-block' : 'none';
+	}
 }
 
 /**
@@ -71,7 +79,7 @@ export function initLoginPage() {
 	function showUserInfo(username, role) {
 		loginForm.style.display = 'none';
 		if (userInfo) {
-			userInfo.style.display = 'block';
+			userInfo.style.display = 'flex';
 			const userNameElement = document.getElementById('user-name');
 			if (userNameElement) {
 				userNameElement.textContent = username;
@@ -279,8 +287,22 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Call logout endpoint to clear cookie
 			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
-			// Redirect to the configured login page URL (usually `/`).
-			window.location.href = loginPageUrl;
+			
+			// Hide user info elements immediately
+			const userInfo = document.getElementById('user-info');
+			if (userInfo) userInfo.style.display = 'none';
+			
+			// Hide user-name span and logout button if not in user-info div
+			const userNameSpan = document.querySelector('#user-name')?.parentElement;
+			if (userNameSpan && !userInfo?.contains(userNameSpan)) {
+				userNameSpan.style.display = 'none';
+			}
+			if (logoutBtn && !userInfo?.contains(logoutBtn)) {
+				logoutBtn.style.display = 'none';
+			}
+			
+			// Redirect with cache-busting query parameter to force page reload
+			window.location.href = loginPageUrl + '?' + new Date().getTime();
 		});
 	}
 }
@@ -308,6 +330,11 @@ export async function displayAuthStatus() {
 		if (loginForm) loginForm.style.display = 'none';
 		setExercisesButtonVisible(true);
 	} else {
+		const userInfo = document.getElementById('user-info');
+		const loginForm = document.getElementById('login-form');
+
+		if (userInfo) userInfo.style.display = 'none';
+		if (loginForm) loginForm.style.display = 'flex';
 		setExercisesButtonVisible(false);
 	}
 
@@ -408,5 +435,39 @@ export function initStudentLogout({
 		const pathParts = window.location.pathname.split('/').filter(Boolean);
 		const uniqueLinkCode = pathParts[1];
 		window.location.href = uniqueLinkCode ? `/set/${uniqueLinkCode}` : redirectFallback;
+	});
+}
+
+/**
+ * Initialize burger menu for teacher pages
+ */
+export function initBurgerMenu() {
+	const toggle = document.getElementById('navbar-burger-toggle');
+	const dropdown = document.getElementById('navbar-burger-dropdown');
+
+	if (!toggle || !dropdown) return;
+
+	// Toggle dropdown on button click
+	toggle.addEventListener('click', (e) => {
+		e.stopPropagation();
+		dropdown.classList.toggle('show');
+		toggle.setAttribute('aria-expanded', dropdown.classList.contains('show'));
+	});
+
+	// Close dropdown when clicking on a link
+	const links = dropdown.querySelectorAll('.navbar-burger-item');
+	links.forEach(link => {
+		link.addEventListener('click', () => {
+			dropdown.classList.remove('show');
+			toggle.setAttribute('aria-expanded', 'false');
+		});
+	});
+
+	// Close dropdown when clicking outside
+	document.addEventListener('click', (e) => {
+		if (!e.target.closest('.navbar-burger-menu')) {
+			dropdown.classList.remove('show');
+			toggle.setAttribute('aria-expanded', 'false');
+		}
 	});
 }

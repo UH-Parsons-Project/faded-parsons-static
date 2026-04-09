@@ -88,6 +88,8 @@ class StudentTaskStatisticsResponse(BaseModel):
     empty_attempts: int
     time_to_first_success: dict | None
     time_to_first_fail: dict | None
+    thinking_time: dict | None
+    move_count: int | None
     attempts_detail: list[dict]
 
 
@@ -135,16 +137,6 @@ class CreateTaskSetRequest(BaseModel):
     expires_at: str | None = None
     task_ids: list[int]
 
-
-class TaskSetResponse(BaseModel):
-    id: int
-    title: str
-    unique_link_code: str
-    teacher_id: int
-    student_description: str | None
-    teacher_description: str | None
-    created_at: str
-    expires_at: str | None
 
 
 class TaskSetViewerRequest(BaseModel):

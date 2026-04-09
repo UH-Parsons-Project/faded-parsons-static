@@ -24,8 +24,9 @@ test('shows login form on front page', async ({ page }) => {
 test('hides exercises button when logged out', async ({ page }) => {
   await page.goto('/');
 
-  // Check that the exercises button is hidden when not logged in
+  // Check that the exercises buttons are hidden when not logged in
   await expect(page.locator('#exercises-btn')).toBeHidden();
+  await expect(page.locator('#global-stats-btn')).toBeHidden();
 });
 
 test('login form blocks submit when username and/or password missing', async ({ page }) => {

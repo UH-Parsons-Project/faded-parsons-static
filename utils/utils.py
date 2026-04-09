@@ -4,7 +4,14 @@ import tokenize
 import re
 
 def _clean_mistake_code(code: str) -> str:
-    normalized_lines = [line.rstrip() for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    normalized_lines = []
+    for line in code.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        stripped = line.strip()
+        # Drop comment-only lines
+        if stripped.startswith("#"):
+            continue
+        # Strip trailing semicolons and trailing whitespace
+        normalized_lines.append(line.rstrip().rstrip(";"))
 
     while normalized_lines and not normalized_lines[0].strip():
         normalized_lines.pop(0)
@@ -25,21 +32,36 @@ def _mistake_code_fingerprint(code: str) -> tuple:
     if not cleaned_code:
         return tuple()
 
+    _IGNORED_TOKEN_TYPES = {
+        token.INDENT,
+        token.DEDENT,
+        token.NEWLINE,
+        token.COMMENT,
+        tokenize.NL,
+        tokenize.ENDMARKER,
+    }
+    _IGNORED_OPS = {";"}
+
     try:
         tokens = tokenize.generate_tokens(io.StringIO(cleaned_code).readline)
-        return tuple(
-            (current_token.type, current_token.string)
-            for current_token in tokens
-            if current_token.type not in {
-                token.INDENT,
-                token.DEDENT,
-                token.NEWLINE,
-                tokenize.NL,
-                tokenize.ENDMARKER,
-            }
-        )
+        result = []
+        for current_token in tokens:
+            if current_token.type in _IGNORED_TOKEN_TYPES:
+                continue
+            if current_token.type == token.OP and current_token.string in _IGNORED_OPS:
+                continue
+            if current_token.type == token.NAME and current_token.string == "print":
+                continue
+            if current_token.type == token.STRING:
+                # Normalize quote style: treat 'x' and "x" as the same
+                normalized = current_token.string.replace("'", '"')
+                result.append((current_token.type, normalized))
+                continue
+            result.append((current_token.type, current_token.string))
+        return tuple(result)
     except (IndentationError, SyntaxError, tokenize.TokenError):
-        return tuple(cleaned_code.split())
+        words = cleaned_code.split()
+        return tuple(w for w in words if w not in {"print", ";"})
 
 
 def generate_slug(text: str) -> str:

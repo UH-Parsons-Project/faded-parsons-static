@@ -11,3 +11,4 @@ pytest-asyncio==0.25.2
 httpx==0.28.1
 pytest-cov==6.0.0
 aiosqlite==0.20.0
+alembic==1.16.5

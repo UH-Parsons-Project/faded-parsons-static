@@ -1,10 +1,12 @@
-import {initNavbarExercisesButton, initSignedInAs, initProtectedPage} from '/js/auth-ui.js';
+import {initNavbarExercisesButton, initSignedInAs, initProtectedPage, initBurgerMenu} from '/js/auth-ui.js';
 
 initSignedInAs();
 
 initNavbarExercisesButton();
 
 initProtectedPage('/');
+
+initBurgerMenu();
 
 // Load exercise list
 const container = document.getElementById('problems-list');

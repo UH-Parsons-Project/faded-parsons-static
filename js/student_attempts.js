@@ -1,6 +1,7 @@
-import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
+import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.js';
 initSignedInAs();
 initProtectedPage('/');
+initBurgerMenu();
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
@@ -8,10 +9,14 @@ const setId = params.get('set_id');
 
 if (!studentUsername || !setId) {
 	window.location.href = '/teacher-dashboard';
+	throw new Error('Missing required query params: student or set_id');
 }
 
 // Set up back button
-document.getElementById('back-btn').href = `/task-set-overview?set_id=${setId}`;
+const backBtn = document.getElementById('back-btn');
+if (backBtn) {
+	backBtn.href = `/task-set-overview?set_id=${setId}`;
+}
 
 
 function formatDateTime(isoString) {

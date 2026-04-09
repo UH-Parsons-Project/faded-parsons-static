@@ -20,17 +20,28 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/all-tasks"
-         class="btn btn-outline-dark btn-sm mr-3">
-         Global Statistics
-      </a>
-      <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
       <span class="text-dark">
         <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
       </span>
       <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
         Logout
       </button>
+      <div class="navbar-burger-menu" style="margin-left: 1rem;">
+        <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
+          <a href="/all-tasks" class="navbar-burger-item">
+            <i class="fas fa-chart-bar"></i> Global Statistics
+          </a>
+          <a href="/teacher-dashboard" class="navbar-burger-item">
+            <i class="fas fa-chalkboard-teacher"></i> Teacher Dashboard
+          </a>
+          <a href="/instructions" class="navbar-burger-item">
+            <i class="fas fa-info-circle"></i> Instructions
+          </a>
+        </div>
+      </div>
     </div>
   </nav>
 

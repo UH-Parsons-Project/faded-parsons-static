@@ -1,6 +1,7 @@
-import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
+import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.js';
 initSignedInAs();
 initProtectedPage('/');
+initBurgerMenu();
 
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');

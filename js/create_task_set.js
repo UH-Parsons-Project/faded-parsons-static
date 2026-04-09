@@ -1,6 +1,7 @@
-import { initSignedInAs, initProtectedPage } from '/js/auth-ui.js';
+import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.js';
     initSignedInAs();
     initProtectedPage('/');
+    initBurgerMenu();
 
 /**
  * Task Set Creation Form Module

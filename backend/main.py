@@ -83,7 +83,9 @@ from .routes.statistic.statistic_api import router as statistic_api_router
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
-    await init_db()
+    auto_init_db = os.getenv("AUTO_INIT_DB", "false").lower() == "true"
+    if auto_init_db:
+        await init_db()
     await seed_module.seed_db()
     yield
 

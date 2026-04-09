@@ -26,6 +26,8 @@ spec:
                 secretKeyRef:
                   name: database-credentials
                   key: DATABASE_URL
+            - name: AUTO_INIT_DB
+              value: "false"
             - name: TEACHER_REGISTRATION_TOKEN
               valueFrom:
                 secretKeyRef:

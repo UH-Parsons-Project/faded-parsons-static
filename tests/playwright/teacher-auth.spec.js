@@ -38,8 +38,13 @@ test('teacher can logout after successful login', async ({ page }) => {
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await page.locator('#logout-btn').click();
-  await expect(page).toHaveURL(/\/$/);
+  // Allow URL with cache-busting query parameter: /?timestamp
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
+
+  // After logout, wait for login form to appear and verify burger menu is hidden
+  await page.waitForSelector('#login-form', { timeout: 10000 });
   await expect(page.locator('#login-form')).toBeVisible();
+  await expect(page.locator('#navbar-burger-menu')).toHaveCSS('display', 'none');
 });
 
 test('registration shows error for duplicate username', async ({ page }) => {

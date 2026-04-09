@@ -18,14 +18,14 @@ async def problem_page():
 	return FileResponse(problem_path)
 
 
-@router.get("/all-tasks")
+@router.get("/global-statistics")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 	try:
 		await get_current_user(request, db)
 	except HTTPException:
 		return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-	all_tasks_path = BASE_DIR / "templates" / "all_tasks.html"
+	all_tasks_path = BASE_DIR / "templates" / "global_statistics.html"
 	response = FileResponse(all_tasks_path)
 	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
 	response.headers["Pragma"] = "no-cache"

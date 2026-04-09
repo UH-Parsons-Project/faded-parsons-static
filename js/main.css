@@ -372,8 +372,19 @@
 
 .attempts-header-title {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.attempts-header-title h4 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+.attempts-header-title .expand-icon {
+  position: absolute;
+  right: 0;
 }
 
 .attempts-header h4 {
@@ -1244,4 +1255,158 @@
 .replay-block.debug {
   opacity: 0.35;
   font-style: italic;
+}
+
+/* ── Student Task Statistics page ─────────────────────────────────────── */
+
+.sts-outer {
+  padding-left: 6rem;
+  padding-right: 6rem;
+}
+
+/* Page header */
+.sts-page-header {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-left: 5px solid rgb(168, 180, 247);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+}
+
+.sts-task-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #212529;
+  flex: 1;
+}
+
+.sts-student-badge {
+  background: rgb(168, 180, 247);
+  color: #2d3148;
+  padding: 0.4rem 1.1rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Widen the stats column to fit the 2-col metric layout */
+.statistics-column {
+  width: 460px !important;
+}
+
+/* Shared box title */
+.sts-box-title {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6c757d !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* Summary box */
+.sts-summary-box {
+  border-top: 3px solid rgb(168, 180, 247);
+}
+
+.sts-summary-grid {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sts-summary-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 0.4rem;
+  padding: 0.8rem 0.5rem 0.65rem;
+  border: 1px solid #e9ecef;
+}
+
+.sts-summary-cell.sts-cell-success {
+  background: #f0fbf3;
+  border-color: #c3e6cb;
+}
+
+.sts-summary-cell.sts-cell-fail {
+  background: #fff5f5;
+  border-color: #f5c6cb;
+}
+
+.sts-big-num {
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #343a40;
+}
+
+.sts-cell-success .sts-big-num { color: #28a745; }
+.sts-cell-fail    .sts-big-num { color: #dc3545; }
+
+.sts-cell-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c757d;
+  margin-top: 0.3rem;
+}
+
+/* 2-column metric layout under summary */
+.sts-metrics-cols {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.sts-metric-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sts-metric-col .stat-box {
+  margin-bottom: 1rem;
+}
+
+.sts-metric-box {
+  text-align: center;
+}
+
+.sts-green-box { border-top: 3px solid #28a745; }
+.sts-red-box   { border-top: 3px solid #dc3545; }
+.sts-blue-box  { border-top: 3px solid #4a90e2; }
+.sts-gray-box  { border-top: 3px solid #adb5bd; }
+
+.sts-metric-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #343a40;
+  line-height: 1.1;
+  margin: 0.2rem 0 0.1rem;
+}
+
+.sts-green-box .sts-metric-value { color: #1e7e34; }
+.sts-red-box   .sts-metric-value { color: #c82333; }
+.sts-blue-box  .sts-metric-value { color: #1a6fb5; }
+
+.sts-metric-sub {
+  font-size: 0.68rem;
+  color: #adb5bd;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  .statistics-layout { flex-direction: column; }
+  .statistics-column { width: 100% !important; }
 }

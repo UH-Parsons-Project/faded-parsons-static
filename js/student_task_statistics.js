@@ -44,10 +44,10 @@ function escapeHtml(text) {
 
 function renderHeader(data) {
 	const container = document.getElementById('page-header');
-	container.className = 'mb-4';
+	container.className = 'sts-page-header mb-4';
 	container.innerHTML = `
-	<h2>${escapeHtml(data.task_name)}</h2>
-	<p class="text-muted">Student: <strong>${escapeHtml(data.student_username)}</strong></p>
+	<h2 class="sts-task-title"><i class="fas fa-code mr-2"></i>${escapeHtml(data.task_name)}</h2>
+	<span class="sts-student-badge"><i class="fas fa-user-graduate mr-1"></i>${escapeHtml(data.student_username)}</span>
 	`;
 }
 
@@ -380,15 +380,18 @@ function renderStatistics(data) {
 	}
 
 	if (data.time_to_first_success) {
-	document.getElementById('time-to-success-box').style.display = 'block';
 	document.getElementById('time-to-success').textContent =
 		formatTime(data.time_to_first_success.seconds);
 	}
 
 	if (data.time_to_first_fail) {
-	document.getElementById('time-to-fail-box').style.display = 'block';
 	document.getElementById('time-to-fail').textContent =
 		formatTime(data.time_to_first_fail.seconds);
+	}
+
+	if (data.thinking_time) {
+	document.getElementById('thinking-time').textContent =
+		formatTime(data.thinking_time.seconds);
 	}
 }
 

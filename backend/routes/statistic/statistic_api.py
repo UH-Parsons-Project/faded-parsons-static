@@ -20,8 +20,10 @@ from ...pydantic import (
     StudentTaskStatisticsResponse,
 )
 from ...auth import CurrentUser
-from utils import has_user_added_own_code, _clean_mistake_code, _mistake_code_fingerprint
+from backend.utils import has_user_added_own_code, _clean_mistake_code, _mistake_code_fingerprint
 from datetime import datetime, timezone
+from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
+from ..utils.commons import get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
 
 router = APIRouter()
 
@@ -33,35 +35,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
     return result.scalar_one_or_none()
 
 
-async def has_task_set_view_access(
-    task_set: TaskSet,
-    current_user: CurrentUser,
-    db: AsyncSession
-) -> bool:
-    from ...models import TaskSetViewer
-
-    if current_user.has_data_access or task_set.teacher_id == current_user.id:
-        return True
-
-    result = await db.execute(
-        select(TaskSetViewer).where(
-            TaskSetViewer.task_set_id == task_set.id,
-            TaskSetViewer.teacher_id == current_user.id,
-        )
-    )
-    return result.scalar_one_or_none() is not None
-
-
-async def require_task_set_view_access(
-    task_set: TaskSet,
-    current_user: CurrentUser,
-    db: AsyncSession
-) -> None:
-    if not await has_task_set_view_access(task_set, current_user, db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this task set"
-        )
+# use shared helpers from utils.taskset
 
 
 @router.get("/api/students/{student_username}/attempts", response_model=list[StudentTaskAttemptResponse])
@@ -73,56 +47,45 @@ async def get_student_attempts(
 ):
     from sqlalchemy import func
 
-    stmt = select(TaskSet).where(TaskSet.id == set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {set_id} not found"
-        )
-
+    task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
     task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
-    task_ids_result = await db.execute(task_ids_stmt)
-    task_ids = [row[0] for row in task_ids_result.all()]
 
-    if not task_ids:
-        return []
-
-    stmt = (
-        select(
-            Parsons.id,
-            Parsons.title,
-            Parsons.task_type,
-            func.count(TaskAttempt.id).label('attempts'),
-            func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
-            func.max(TaskAttempt.completed_at).label('last_attempt_at')
+    async def _handler(task_ids):
+        stmt = (
+            select(
+                Parsons.id,
+                Parsons.title,
+                Parsons.task_type,
+                func.count(TaskAttempt.id).label('attempts'),
+                func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
+                func.max(TaskAttempt.completed_at).label('last_attempt_at')
+            )
+            .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
+            .join(Student, Student.id == TaskAttempt.student_id)
+            .where(Student.username == student_username)
+            .where(Parsons.id.in_(task_ids))
+            .group_by(Parsons.id, Parsons.title, Parsons.task_type)
+            .order_by(func.max(TaskAttempt.completed_at).desc())
         )
-        .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
-        .join(Student, Student.id == TaskAttempt.student_id)
-        .where(Student.username == student_username)
-        .where(Parsons.id.in_(task_ids))
-        .group_by(Parsons.id, Parsons.title, Parsons.task_type)
-        .order_by(func.max(TaskAttempt.completed_at).desc())
-    )
 
-    result = await db.execute(stmt)
-    attempts = result.all()
+        result = await db.execute(stmt)
+        attempts = result.all()
 
-    return [
-        StudentTaskAttemptResponse(
-            task_id=attempt.id,
-            task_title=attempt.title,
-            task_type=attempt.task_type,
-            attempts=attempt.attempts,
-            success_count=attempt.success_count or 0,
-            last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else ""
-        )
-        for attempt in attempts
-    ]
+        return [
+            StudentTaskAttemptResponse(
+                task_id=attempt.id,
+                task_title=attempt.title,
+                task_type=attempt.task_type,
+                attempts=attempt.attempts,
+                success_count=attempt.success_count or 0,
+                last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else ""
+            )
+            for attempt in attempts
+        ]
+
+    return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
 
 
 @router.get("/api/students/{student_username}/tasks/{task_id}/statistics", response_model=StudentTaskStatisticsResponse)
@@ -133,16 +96,7 @@ async def get_student_task_statistics(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(TaskSet).where(TaskSet.id == set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {set_id} not found"
-        )
-
+    task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))

@@ -21,40 +21,13 @@ from ...pydantic import (
     StudentInTaskSetResponse,
 )
 from ...auth import CurrentUser
-from utils import generate_slug
+from backend.utils import generate_slug
 from datetime import datetime
 
 # router already declared above
 router = APIRouter()
-
-
-async def has_task_set_view_access(
-    task_set: TaskSet,
-    current_user: Teacher,
-    db: AsyncSession
-) -> bool:
-    if current_user.has_data_access or task_set.teacher_id == current_user.id:
-        return True
-
-    result = await db.execute(
-        select(TaskSetViewer).where(
-            TaskSetViewer.task_set_id == task_set.id,
-            TaskSetViewer.teacher_id == current_user.id,
-        )
-    )
-    return result.scalar_one_or_none() is not None
-
-
-async def require_task_set_view_access(
-    task_set: TaskSet,
-    current_user: Teacher,
-    db: AsyncSession
-) -> None:
-    if not await has_task_set_view_access(task_set, current_user, db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this task set"
-        )
+from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
+from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
@@ -73,20 +46,7 @@ async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get
     result = await db.execute(stmt)
     my_sets = result.all()
 
-    return [
-        TaskSetResponse(
-            id=ps.id,
-            title=ps.title,
-            unique_link_code=ps.unique_link_code,
-            teacher_id=ps.teacher_id,
-            owner_username=owner_username,
-            student_description=ps.student_description,
-            teacher_description=ps.teacher_description,
-            created_at=ps.created_at.isoformat(),
-            expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
-        )
-        for ps, owner_username in my_sets
-    ]
+    return build_taskset_response_list(my_sets)
 
 
 @router.get("/api/my_sets/{task_set_id}", response_model=TaskSetResponse)
@@ -250,16 +210,7 @@ async def list_task_set_viewers(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(TaskSet).where(TaskSet.id == task_set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {task_set_id} not found"
-        )
-
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
     stmt = (
@@ -298,15 +249,7 @@ async def add_task_set_viewer(
             detail="username or email is required"
         )
 
-    stmt = select(TaskSet).where(TaskSet.id == task_set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {task_set_id} not found"
-        )
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
     if task_set.teacher_id != current_user.id and not current_user.has_data_access:
         raise HTTPException(
@@ -373,15 +316,7 @@ async def remove_task_set_viewer(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
-    stmt = select(TaskSet).where(TaskSet.id == task_set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {task_set_id} not found"
-        )
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
     if task_set.teacher_id != current_user.id and not current_user.has_data_access:
         raise HTTPException(
@@ -419,55 +354,43 @@ async def get_task_set_students(
 ):
     """Get all students who have attempted at least one task in this task set."""
     # Verify task set exists and belongs to current user
-    stmt = select(TaskSet).where(TaskSet.id == task_set_id)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task list with id {task_set_id} not found"
-        )
-
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
-    # Get all tasks in this task set
     task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == task_set_id)
-    task_ids_result = await db.execute(task_ids_stmt)
-    task_ids = [row[0] for row in task_ids_result.all()]
 
-    if not task_ids:
-        return []
-
-    stmt = (
-        select(
-            Student.username,
-            StudentTaskSetEnrollment.enrolled_at.label('started_at'),
-            func.max(TaskAttempt.completed_at).label('last_activity_at'),
-            func.count(TaskAttempt.id).label('total_attempts'),
-            func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
+    async def _handler(task_ids):
+        stmt = (
+            select(
+                Student.username,
+                StudentTaskSetEnrollment.enrolled_at.label('started_at'),
+                func.max(TaskAttempt.completed_at).label('last_activity_at'),
+                func.count(TaskAttempt.id).label('total_attempts'),
+                func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
+            )
+            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
+            .join(TaskAttempt, (TaskAttempt.student_id == Student.id) & (TaskAttempt.task_id.in_(task_ids)))
+            .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+            .where(Student.username.isnot(None))
+            .group_by(Student.id, Student.username, StudentTaskSetEnrollment.enrolled_at)
+            .order_by(func.max(TaskAttempt.completed_at).desc())
         )
-        .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
-        .join(TaskAttempt, (TaskAttempt.student_id == Student.id) & (TaskAttempt.task_id.in_(task_ids)))
-        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
-        .where(Student.username.isnot(None))
-        .group_by(Student.id, Student.username, StudentTaskSetEnrollment.enrolled_at)
-        .order_by(func.max(TaskAttempt.completed_at).desc())
-    )
 
-    result = await db.execute(stmt)
-    students = result.all()
+        result = await db.execute(stmt)
+        students = result.all()
 
-    return [
-        StudentInTaskSetResponse(
-            username=student.username,
-            started_at=student.started_at.isoformat(),
-            last_activity_at=student.last_activity_at.isoformat() if student.last_activity_at else student.started_at.isoformat(),
-            total_attempts=student.total_attempts,
-            tasks_attempted=student.tasks_attempted
-        )
-        for student in students
-    ]
+        return [
+            StudentInTaskSetResponse(
+                username=student.username,
+                started_at=student.started_at.isoformat(),
+                last_activity_at=student.last_activity_at.isoformat() if student.last_activity_at else student.started_at.isoformat(),
+                total_attempts=student.total_attempts,
+                tasks_attempted=student.tasks_attempted
+            )
+            for student in students
+        ]
+
+    return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):

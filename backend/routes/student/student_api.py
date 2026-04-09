@@ -14,6 +14,8 @@ from ...student_auth import (
     get_current_student_session_no_update,
 )
 
+from ..utils.commons import validate_registration_basic, ensure_unique_user
+
 router = APIRouter()
 
 
@@ -83,44 +85,12 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
 
-    if not username or not password or not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username, password and email are required",
-        )
+    # Basic validation (lengths, presence, password match)
+    validate_registration_basic(username, password, password_confirm, email,
+                                username_max=20, email_max=100)
 
-    if password != password_confirm:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwords do not match",
-        )
-
-    if len(username) > 20 or len(email) > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username or email too long",
-        )
-
-    if len(username) < 5:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username must have a minimum length of 5 characters",
-        )
-
-    if len(password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="password must have a minimum length of 8 characters",
-        )
-
-    stmt = select(Student).where((Student.username == username) | (Student.email == email))
-    result = await db.execute(stmt)
-    existing = result.scalar_one_or_none()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
-        )
+    # Ensure uniqueness in DB
+    await ensure_unique_user(db, Student, username, email)
 
     student = Student(username=username, email=email)
     student.set_password(password)

@@ -11,6 +11,7 @@ from ...models import Student, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
+from ..utils.commons import get_task_set_by_code_or_404
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -29,15 +30,7 @@ async def task_set_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
@@ -54,15 +47,7 @@ async def task_set_tasks_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -80,15 +65,7 @@ async def task_set_task_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -107,15 +84,7 @@ async def task_set_task_start_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    result = await db.execute(stmt)
-    task_set = result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set with code {unique_link_code} not found",
-        )
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)

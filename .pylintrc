@@ -21,11 +21,31 @@ disable=C0114,
         useless-suppression,
         deprecated-pragma,
         use-symbolic-message-instead,
+        use-implicit-booleaness-not-comparison-to-string,
+        use-implicit-booleaness-not-comparison-to-zero,
         missing-module-docstring,
         missing-function-docstring,
         missing-class-docstring,
         too-few-public-methods,
-        too-many-instance-attributes
+        too-many-instance-attributes,
+        C0305,
+        C0413,
+        C0301,
+        R0915,
+        C0411,
+        W0611,
+        W0404,
+        W0311,
+        R0402,
+        C0415,
+        W0707,
+        R0914,
+        C0304,
+        W0613,
+        W0621
+
+# Enable a few useful checkers from the provided config
+enable=c-extension-no-member
 
 [FORMAT]
 max-line-length=120

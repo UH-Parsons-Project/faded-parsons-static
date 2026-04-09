@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
 from sqlalchemy import select
 
 from ...models import Teacher, RegistrationToken
-from utils import verify_token
+from backend.utils import verify_token
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ...pydantic import Token, UserInfo
+from ..utils.commons import validate_registration_basic, ensure_unique_user
 
 router = APIRouter()
 
@@ -110,46 +111,12 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
             detail="Invalid registration token",
         )
 
-    if not username or not password or not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username, password and email are required",
-        )
+    # Basic validation (lengths, presence, password match)
+    validate_registration_basic(username, password, password_confirm, email,
+                                username_max=50, email_max=100)
 
-    if password != password_confirm:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwords do not match",
-        )
-
-    # Basic length checks consistent with model limits
-    if len(username) > 50 or len(email) > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username or email too long",
-        )
-
-    if len(username) < 5:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username must have a minimum length of 5 characters",
-        )
-
-    if len(password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="password must have a minimum length of 8 characters",
-        )
-
-    # Check uniqueness
-    stmt = select(Teacher).where((Teacher.username == username) | (Teacher.email == email))
-    result = await db.execute(stmt)
-    existing = result.scalar_one_or_none()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
-        )
+    # Ensure uniqueness in DB
+    await ensure_unique_user(db, Teacher, username, email)
 
     teacher = Teacher(username=username, email=email)
     teacher.set_password(password)

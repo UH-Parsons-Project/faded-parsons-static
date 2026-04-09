@@ -20,7 +20,7 @@ except ImportError:
 from backend.database import Base, get_db
 from backend.main import app
 from backend.models import Parsons, Student, StudentTaskSetEnrollment, TaskSet, TaskSetItem, Teacher, RegistrationToken
-from utils import generate_token, hash_token
+from backend.utils import generate_token, hash_token
 
 
 @pytest_asyncio.fixture

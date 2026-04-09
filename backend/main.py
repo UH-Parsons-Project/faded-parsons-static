@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .database import init_db
 from .models import Parsons, TaskSetViewer, TaskSet, Teacher, ModelAnswer
 from . import seed as seed_module
+from .utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
@@ -61,32 +62,7 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
     )
     return result.scalar_one_or_none()
 
-async def has_task_set_view_access(
-    task_set: TaskSet,
-    current_user: Teacher,
-    db: AsyncSession
-) -> bool:
-    if current_user.has_data_access or task_set.teacher_id == current_user.id:
-        return True
-
-    result = await db.execute(
-        select(TaskSetViewer).where(
-            TaskSetViewer.task_set_id == task_set.id,
-            TaskSetViewer.teacher_id == current_user.id,
-        )
-    )
-    return result.scalar_one_or_none() is not None
-
-async def require_task_set_view_access(
-    task_set: TaskSet,
-    current_user: Teacher,
-    db: AsyncSession
-) -> None:
-    if not await has_task_set_view_access(task_set, current_user, db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to view this task set"
-        )
+# task set access helpers moved to `backend/utils/taskset.py`
 
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"

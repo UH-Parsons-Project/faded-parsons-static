@@ -761,6 +761,115 @@
   border-radius: 6px;
 }
 
+.task-filter-menu {
+  margin-bottom: 1rem;
+}
+
+.task-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.task-filter-toggle i {
+  font-size: 0.85rem;
+}
+
+#task-filter-panel {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.filter-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-scopes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-scope-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.scope-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.custom-control {
+  display: flex;
+  align-items: center;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.custom-control-input {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+}
+
+.custom-checkbox .custom-control-label {
+  margin-bottom: 0;
+  padding-left: 0;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+}
+
+.task-filters {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) minmax(220px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.task-filters label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.teacher-name-filter-group {
+  min-width: 220px;
+}
+
+.own-only-filter-group {
+  padding-bottom: 0.4rem;
+}
+
+.task-item-meta {
+  font-size: 0.8rem;
+  color: #495057;
+}
+
+@media (max-width: 768px) {
+  .task-filters {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .own-only-filter-group {
+    padding-bottom: 0;
+  }
+
+  .scope-checkboxes {
+    grid-template-columns: 1fr;
+  }
+}
+
 .error-message {
   background: #f8d7da;
   border: 1px solid #f5c6cb;

@@ -41,6 +41,50 @@
 			</div>
 		</nav>
 		<div class="container py-4">
+			<h2 class="mb-4">Exercise List</h2>
+			<p class="text-muted mb-4">Select an exercise to view its global analytics.</p>
+			<div class="task-filter-menu mb-4">
+				<button
+					class="btn btn-outline-secondary task-filter-toggle"
+					type="button"
+					id="task-filter-toggle"
+					aria-expanded="false"
+					aria-controls="task-filter-panel"
+				>
+					<i class="fas fa-bars"></i> Search & Filter
+				</button>
+
+				<div class="collapse mt-2" id="task-filter-panel">
+					<div class="filter-panel-content">
+						<div class="form-group mb-3">
+							<input type="text" class="form-control" id="task-search" placeholder="Search tasks...">
+							<small class="form-text text-muted mt-1">Select fields below to search in specific areas</small>
+						</div>
+
+						<div class="filter-scopes">
+							<label class="filter-scope-label">Search in:</label>
+							<div class="scope-checkboxes">
+								<div class="custom-control custom-checkbox">
+									<input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
+									<label class="custom-control-label" for="scope-title">Title</label>
+								</div>
+								<div class="custom-control custom-checkbox">
+									<input type="checkbox" class="custom-control-input filter-scope" id="scope-teacher" value="teacher">
+									<label class="custom-control-label" for="scope-teacher">Teacher</label>
+								</div>
+								<div class="custom-control custom-checkbox">
+									<input type="checkbox" class="custom-control-input filter-scope" id="scope-type" value="type">
+									<label class="custom-control-label" for="scope-type">Type</label>
+								</div>
+								<div class="custom-control custom-checkbox">
+									<input type="checkbox" class="custom-control-input filter-scope" id="scope-my-exercises" value="my-exercises">
+									<label class="custom-control-label" for="scope-my-exercises">My exercises</label>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 			<h2 class="mb-4">Global Statistics <span class="badge badge-secondary ml-2" style="font-size: 0.5em; vertical-align: middle;">Anonymous</span></h2>
 			<p class="text-muted mb-4">Select an exercise to view global anonymous statistics</p>
 			<div id="problems-list" class="loading-spinner">

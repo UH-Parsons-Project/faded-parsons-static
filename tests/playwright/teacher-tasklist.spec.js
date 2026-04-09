@@ -42,11 +42,17 @@ test('teacher can add a new task', async ({ page }) => {
   await loginTeacher(page, username, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  // Click the "New task" button
-  await page.locator('a.btn-success', { hasText: 'New task' }).click();
+  // Click the "New task" link and wait for navigation together
+  const newTaskLink = page.getByRole('link', { name: /new task/i });
+  await expect(newTaskLink).toBeVisible();
+  await expect(newTaskLink).toBeEnabled();
+
+  await Promise.all([
+    page.waitForURL(/\/create-task$/, { timeout: 20000 }),
+    newTaskLink.click(),
+  ]);
 
   // Verify we are on the create task page
-  await page.waitForURL(/\/create-task$/, { timeout: 10000 });
   await expect(page).toHaveURL(/\/create-task$/);
 
   // Verify create task page elements are visible

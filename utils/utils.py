@@ -10,9 +10,6 @@ def _clean_mistake_code(code: str) -> str:
         # Drop comment-only lines
         if stripped.startswith("#"):
             continue
-        # Drop print statement lines
-        if stripped.startswith("print(") or stripped.startswith("print "):
-            continue
         # Strip trailing semicolons and trailing whitespace
         normalized_lines.append(line.rstrip().rstrip(";"))
 
@@ -40,7 +37,6 @@ def _mistake_code_fingerprint(code: str) -> tuple:
         token.DEDENT,
         token.NEWLINE,
         token.COMMENT,
-        token.STRING,
         tokenize.NL,
         tokenize.ENDMARKER,
     }
@@ -55,6 +51,11 @@ def _mistake_code_fingerprint(code: str) -> tuple:
             if current_token.type == token.OP and current_token.string in _IGNORED_OPS:
                 continue
             if current_token.type == token.NAME and current_token.string == "print":
+                continue
+            if current_token.type == token.STRING:
+                # Normalize quote style: treat 'x' and "x" as the same
+                normalized = current_token.string.replace("'", '"')
+                result.append((current_token.type, normalized))
                 continue
             result.append((current_token.type, current_token.string))
         return tuple(result)

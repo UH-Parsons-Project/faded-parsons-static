@@ -923,9 +923,9 @@ class TestMainHelpers:
         raw = "# this is a comment\nx = 1\n# another comment\n"
         assert utils._clean_mistake_code(raw) == "x = 1"
 
-    def test_clean_mistake_code_strips_print_lines(self):
+    def test_clean_mistake_code_keeps_print_lines(self):
         raw = "x = 1\nprint(x)\ny = 2\n"
-        assert utils._clean_mistake_code(raw) == "x = 1\ny = 2"
+        assert utils._clean_mistake_code(raw) == "x = 1\nprint(x)\ny = 2"
 
     def test_clean_mistake_code_strips_trailing_semicolons(self):
         raw = "x = 1;\ny = 2;\n"
@@ -939,20 +939,22 @@ class TestMainHelpers:
         without_comment = "x = 1"
         assert utils._mistake_code_fingerprint(with_comment) == utils._mistake_code_fingerprint(without_comment)
 
-    def test_mistake_code_fingerprint_ignores_string_content_and_quotes(self):
+    def test_mistake_code_fingerprint_normalizes_quote_style(self):
         double_quotes = 'greet = "hello"'
-        single_quotes = "greet = 'world'"
+        single_quotes = "greet = 'hello'"
         assert utils._mistake_code_fingerprint(double_quotes) == utils._mistake_code_fingerprint(single_quotes)
+
+    def test_mistake_code_fingerprint_keeps_string_content_distinct(self):
+        assert utils._mistake_code_fingerprint('"a b"') != utils._mistake_code_fingerprint('"ab"')
 
     def test_mistake_code_fingerprint_ignores_semicolons(self):
         semicolon_style = "x = 1; y = 2"
         newline_style = "x = 1\ny = 2"
         assert utils._mistake_code_fingerprint(semicolon_style) == utils._mistake_code_fingerprint(newline_style)
 
-    def test_mistake_code_fingerprint_ignores_print(self):
-        with_print = "x = 1\nprint(x)\n"
-        without_print = "x = 1\n"
-        assert utils._mistake_code_fingerprint(with_print) == utils._mistake_code_fingerprint(without_print)
+    def test_mistake_code_fingerprint_excludes_print_name(self):
+        fingerprint = utils._mistake_code_fingerprint("x = 1\nprint(x)\n")
+        assert not any(tok_str == "print" for _, tok_str in fingerprint)
 
     def test_mistake_code_fingerprint_fallback_on_token_error(self, monkeypatch):
         def _raise_token_error(_):

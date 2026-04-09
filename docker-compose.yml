@@ -71,6 +71,8 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./backend:/usr/src/app/backend
+      - ./utils:/usr/src/app/utils
+      - ./templates:/usr/src/app/templates
       - ./htmlcov:/usr/src/app/htmlcov
 
   # Playwright test runner

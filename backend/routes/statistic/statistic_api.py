@@ -4,6 +4,8 @@ from sqlalchemy import select, Integer, func
 
 from ...database import get_db
 from ...models import (
+    EditEvent,
+    MoveEvent,
     Parsons,
     Student,
     StudentTaskSetEnrollment,
@@ -164,6 +166,42 @@ async def get_student_task_statistics(
     result = await db.execute(stmt)
     attempts_with_starts = result.all()
 
+    # Compute thinking time: time between TaskStart.started_at and first move/edit event
+    task_start_stmt = (
+        select(TaskStart)
+        .join(Student, Student.id == TaskStart.student_id)
+        .where(Student.username == student_username)
+        .where(TaskStart.task_id == task_id)
+    )
+    task_start_result = await db.execute(task_start_stmt)
+    task_start_record = task_start_result.scalar_one_or_none()
+
+    thinking_time = None
+    if task_start_record and task_start_record.started_at:
+        first_move_stmt = (
+            select(func.min(MoveEvent.event_time))
+            .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+            .join(Student, Student.id == TaskAttempt.student_id)
+            .where(Student.username == student_username)
+            .where(TaskAttempt.task_id == task_id)
+        )
+        first_edit_stmt = (
+            select(func.min(EditEvent.event_time))
+            .join(TaskAttempt, TaskAttempt.id == EditEvent.attempt_id)
+            .join(Student, Student.id == TaskAttempt.student_id)
+            .where(Student.username == student_username)
+            .where(TaskAttempt.task_id == task_id)
+        )
+        first_move_time = (await db.execute(first_move_stmt)).scalar()
+        first_edit_time = (await db.execute(first_edit_stmt)).scalar()
+
+        candidates = [t for t in [first_move_time, first_edit_time] if t is not None]
+        if candidates:
+            first_event_time = min(candidates)
+            seconds = (first_event_time - task_start_record.started_at).total_seconds()
+            if seconds >= 0:
+                thinking_time = {"seconds": seconds}
+
     attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
 
     empty_attempts_count = 0
@@ -185,6 +223,16 @@ async def get_student_task_statistics(
 
     attempts_data = filtered_attempts_data
 
+    # Count only block move events (not blank edits)
+    move_count_stmt = (
+        select(func.count(MoveEvent.id))
+        .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+        .join(Student, Student.id == TaskAttempt.student_id)
+        .where(Student.username == student_username)
+        .where(TaskAttempt.task_id == task_id)
+    )
+    move_count = (await db.execute(move_count_stmt)).scalar() or 0
+
     if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -197,6 +245,8 @@ async def get_student_task_statistics(
             empty_attempts=0,
             time_to_first_success=None,
             time_to_first_fail=None,
+            thinking_time=thinking_time,
+            move_count=move_count,
             attempts_detail=[]
         )
 
@@ -243,6 +293,8 @@ async def get_student_task_statistics(
         empty_attempts=empty_attempts_count,
         time_to_first_success=time_to_first_success,
         time_to_first_fail=time_to_first_fail,
+        thinking_time=thinking_time,
+        move_count=move_count,
         attempts_detail=attempts_detail
     )
 

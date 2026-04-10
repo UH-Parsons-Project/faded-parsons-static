@@ -1,25 +1,9 @@
-from .utils import (
-    _clean_mistake_code,
-    _mistake_code_fingerprint,
-    generate_slug,
-    has_user_added_own_code,
-)
-from .token_utils import (
-    generate_token,
-    hash_token,
-    verify_token,
-)
-import token as token
-import tokenize as tokenize
+"""Compatibility shim for legacy imports.
 
-__all__ = [
-    "_clean_mistake_code",
-    "_mistake_code_fingerprint",
-    "generate_slug",
-    "has_user_added_own_code",
-    "generate_token",
-    "hash_token",
-    "verify_token",
-    "token",
-    "tokenize",
-]
+Some tests and modules import the top-level `utils` package. The project
+now exposes utilities under `backend.utils`. This module re-exports the
+important symbols so old imports continue to work.
+"""
+from backend.utils import *  # noqa: F401,F403
+
+__all__ = getattr(__import__("backend.utils", fromlist=["__all__"]), "__all__", [])

@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from .database import async_session
 from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken, Student, StudentTaskSetEnrollment, TaskAttempt, TaskStart
 from .migrate_tasks import migrate_tasks
-from utils import hash_token
+from backend.utils import hash_token
 
 
 async def seed_db():

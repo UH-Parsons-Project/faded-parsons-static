@@ -19,8 +19,9 @@ from ...pydantic import (
 	DailyActiveUser,
 	MonthlyActiveUser,
 )
-from utils import generate_token, hash_token
+from backend.utils import generate_token, hash_token
 import backend.config as config
+from ..utils.commons import build_taskset_response_list
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -324,17 +325,4 @@ async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends
 	result = await db.execute(stmt)
 	my_sets = result.all()
 
-	return [
-		TaskSetResponse(
-			id=ps.id,
-			title=ps.title,
-			unique_link_code=ps.unique_link_code,
-			teacher_id=ps.teacher_id,
-			owner_username=owner_username,
-			student_description=ps.student_description,
-			teacher_description=ps.teacher_description,
-			created_at=ps.created_at.isoformat(),
-			expires_at=ps.expires_at.isoformat() if ps.expires_at else None,
-		)
-		for ps, owner_username in my_sets
-	]
+	return build_taskset_response_list(my_sets)

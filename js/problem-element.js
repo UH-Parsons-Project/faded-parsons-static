@@ -61,6 +61,15 @@ export class ProblemElement extends LitElement {
 		// Default results placeholder until tests are run
 		let results =
 			'Test results will appear here after clicking "Run Tests" above.';
+		const generalGuidance = html`
+			<ul class="mb-0 pl-3">
+				<li>Read the problem statement first and identify what the final program should do.</li>
+				<li>Drag blocks from the left area into the solution area on the right.</li>
+				<li>Use every gray block. Blue blocks are optional and can be ignored if not needed.</li>
+				<li>Run tests often and use the feedback to fix ordering, indentation, or missing lines.</li>
+				<li>When all tests pass, move on to the next task.</li>
+			</ul>
+		`;
 		if (this.resultsStatus) {
 			// Render the test results component with current status
 			results = html`<test-results-element
@@ -72,14 +81,24 @@ export class ProblemElement extends LitElement {
 
 		return html`
 
-			<!-- Problem description card -->
-			<div class="row mt-3">
-				<div class="col-sm-12">
-					<div class="card">
+			<!-- Top row: problem statement + general guidance -->
+			<div class="row mt-3 align-items-stretch">
+				<div class="col-12 col-lg-9 mb-3 mb-lg-0">
+					<div class="card h-100">
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
 						<div class="card-body">${unsafeHTML(this.taskInstructions)}</div>
+					</div>
+				</div>
+				<div class="col-12 col-lg-3">
+					<div class="card h-100">
+						<div class="card-header">
+							<h4>General Guidance</h4>
+						</div>
+						<div class="card-body">
+							${generalGuidance}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -87,7 +106,7 @@ export class ProblemElement extends LitElement {
 			<!-- Content container with Parsons widget and test results side by side -->
 			<div class="row mt-4 align-items-start">
 				<!-- Parsons widget area: starter (trash) and solution columns -->
-				<div class="col-12 col-lg-8 mb-4 mb-lg-0">
+				<div class="col-12 col-lg-9 mb-4 mb-lg-0">
 					<div class="card">
 						<div class="card-body">
 							<div
@@ -120,8 +139,9 @@ export class ProblemElement extends LitElement {
 					</div>
 				</div>
 
-				<!-- Test results card -->
-				<div class="col-12 col-lg-4">
+				<!-- Right column: test results -->
+				<div class="col-12 col-lg-3">
+					<!-- Test results card -->
 					<div class="card">
 						<div class="card-header">
 							<h4>Test Cases</h4>

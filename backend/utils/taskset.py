@@ -11,7 +11,7 @@ async def has_task_set_view_access(task_set, current_user, db: AsyncSession) -> 
     Kept as a small shared helper to avoid duplicated implementations across
     multiple modules.
     """
-    if getattr(current_user, "has_data_access", False) or task_set.teacher_id == current_user.id:
+    if getattr(current_user, "is_admin_teacher", False) or task_set.teacher_id == current_user.id:
         return True
 
     result = await db.execute(

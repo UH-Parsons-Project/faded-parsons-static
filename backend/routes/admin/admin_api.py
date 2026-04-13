@@ -119,7 +119,7 @@ async def get_user_activity_statistics(
 ):
 	"""Get user activity statistics for students and teachers. Admin only."""
 	# Check admin access via data access flag
-	if not current_user.has_data_access:
+	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	# Helper function to calculate stats
@@ -282,7 +282,7 @@ async def seed_mock_data_endpoint(
 ):
 	"""Seed mock activity data for the last 7 days. Admin only. Development only."""
 	# Check admin access
-	if not current_user.has_data_access:
+	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	# Prevent running on production
@@ -311,7 +311,7 @@ async def seed_mock_data_endpoint(
 @router.get("/api/all-tasksets", response_model=list[TaskSetResponse])
 async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
 	"""List all task sets from all teachers if the user has data access."""
-	if not current_user.has_data_access:
+	if not current_user.is_admin_teacher:
 		raise HTTPException(
 			status_code=status.HTTP_403_FORBIDDEN,
 			detail="You do not have permission to access this resource.",

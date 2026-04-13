@@ -54,12 +54,12 @@ async def login_access_token(
 
 @router.get("/api/me", response_model=UserInfo)
 async def get_current_user_info(current_user: CurrentUser):
-    role = "Admin" if current_user.has_data_access else "Teacher"
+    role = "Admin" if current_user.is_admin_teacher else "Teacher"
     return UserInfo(
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
-        has_data_access=current_user.has_data_access,
+        is_admin_teacher=current_user.is_admin_teacher,
         role=role,
     )
 

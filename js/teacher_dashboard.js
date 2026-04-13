@@ -21,7 +21,7 @@ async function loadCurrentUser() {
 			userNameEl.textContent = data.username;
 			localStorage.setItem('username', data.username);
 		}
-		if (data?.has_data_access) {
+		if (data?.is_admin_teacher) {
 			allSetsButtonContainer.style.display = 'block';
 		}
 	} catch (error) {

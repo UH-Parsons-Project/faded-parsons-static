@@ -251,7 +251,7 @@ async def add_task_set_viewer(
 
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.has_data_access:
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"
@@ -318,7 +318,7 @@ async def remove_task_set_viewer(
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.has_data_access:
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"

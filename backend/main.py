@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .database import init_db
 from .models import Parsons, TaskSetViewer, TaskSet, Teacher, ModelAnswer
 from . import seed as seed_module
+from . import config
 from .utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 from .routes.student.student import router as student_router

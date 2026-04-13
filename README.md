@@ -19,6 +19,14 @@ docker compose --profile web up --build
 
 The website can be accessed at http://localhost:8000/.
 
+### Run all tests at once:
+
+Run Pytest unittests and Playwright E2E-tests simultaneously.
+
+```
+./scripts/run-all-tests.sh
+```
+
 ## Database migrations
 
 This project uses Alembic for schema migrations.
@@ -52,14 +60,6 @@ Container startup command:
 
 ```bash
 alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000
-```
-
-### Run all tests at once:
-
-Run Pytest unittests and Playwright E2E-tests simultaneously.
-
-```
-./scripts/run-all-tests.sh
 ```
 
 ## Project Wiki

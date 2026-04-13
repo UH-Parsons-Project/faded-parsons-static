@@ -684,9 +684,6 @@ initBurgerMenu();
       : (draftPayload?.taskCode || '');
     const currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
 
-    console.log('Saving code to session:', currentCode);
-    console.log('Saving tests to session:', currentTests);
-
     localStorage.setItem('create_task_draft_code', currentCode);
     localStorage.setItem('create_task_draft_tests', currentTests);
 
@@ -697,7 +694,7 @@ initBurgerMenu();
         taskTests: currentTests,
         savedAt: new Date().toISOString(),
       };
-      console.log('Updated draft payload:', updatedDraft);
+
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify(updatedDraft));
     }
   }

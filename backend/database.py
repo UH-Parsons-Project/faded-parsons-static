@@ -13,8 +13,11 @@ DATABASE_URL = os.getenv(
     "postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons"
 )
 
-# Engine manages the connection pool to the database. echo=True logs all SQL statements (useful for debugging).
-engine = create_async_engine(DATABASE_URL, echo=True)
+# Engine manages the connection pool to the database.
+# By default `echo` is disabled to avoid noisy SQL logs in normal runs.
+# Set environment variable `SQL_ECHO=true` to enable SQL statement logging for debugging.
+echo_flag = os.getenv("SQL_ECHO", "false").lower() in ("1", "true", "yes")
+engine = create_async_engine(DATABASE_URL, echo=echo_flag)
 
 # Session factory creates new database sessions. expire_on_commit=False keeps objects usable after commit.
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

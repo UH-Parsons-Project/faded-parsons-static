@@ -3,7 +3,6 @@ FastAPI backend for Faded Parsons Problems.
 Provides endpoints for each page.
 """
 
-import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -59,6 +58,7 @@ from .student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
+from . import config
 from utils import verify_token
 from utils import (
     _clean_mistake_code,
@@ -83,8 +83,7 @@ from .routes.statistic.statistic_api import router as statistic_api_router
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
-    auto_init_db = os.getenv("AUTO_INIT_DB", "false").lower() == "true"
-    if auto_init_db:
+    if config.AUTO_INIT_DB:
         await init_db()
     await seed_module.seed_db()
     yield
@@ -179,10 +178,6 @@ app.include_router(statistic_api_router)
 from .routes.test.test_api import router as test_router
 app.include_router(test_router)
 
-
-
-# Feature flags (moved to backend/config.py)
-from . import config
 
 
 # Index route moved to `backend/routes/teacher/teacher.py`

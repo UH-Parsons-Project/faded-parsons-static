@@ -23,5 +23,5 @@ if (backButton && uniqueLinkCode) {
 }
 
 if (taskId) {
-	initInactivityTimer(taskId, dashboardUrl);
+	initInactivityTimer(taskId, dashboardUrl).catch(console.error);
 }

@@ -177,9 +177,21 @@ class TaskStart(Base):
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    __table_args__ = (UniqueConstraint("student_id", "task_id"),)
+
+
+class TaskSession(Base):
+    """One visit to a task page — records entry and exit time."""
+
+    __tablename__ = "task_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_start_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_starts.id", ondelete="CASCADE"), nullable=False
+    )
+    entered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     exited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     exit_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    __table_args__ = (UniqueConstraint("student_id", "task_id"),)
 
 
 class TaskAttempt(Base):

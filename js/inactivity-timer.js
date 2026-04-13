@@ -1,14 +1,25 @@
 const WARN_AFTER_MS = 25 * 60 * 1000;    // show warning at 25 min
 const REDIRECT_AFTER_MS = 30 * 60 * 1000; // redirect at 30 min
 
-export function initInactivityTimer(taskId, dashboardUrl) {
+export async function initInactivityTimer(taskId, dashboardUrl) {
 	let warnTimer = null;
 	let redirectTimer = null;
 	let pendingExitReason = null;
+	let sessionId = null;
+
+	// Record entry and get session_id
+	try {
+		const res = await fetch(`/api/tasks/${taskId}/enter`, { method: 'POST' });
+		if (res.ok) sessionId = (await res.json()).session_id;
+	} catch (_) {}
 
 	const sendExitBeacon = (reason) => {
 		const payload = new Blob(
-			[JSON.stringify({ exited_at: new Date().toISOString(), exit_reason: reason })],
+			[JSON.stringify({
+				session_id: sessionId,
+				exited_at: new Date().toISOString(),
+				exit_reason: reason,
+			})],
 			{ type: 'application/json' }
 		);
 		navigator.sendBeacon(`/api/tasks/${taskId}/record-exit`, payload);
@@ -52,6 +63,7 @@ export function initInactivityTimer(taskId, dashboardUrl) {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
+						session_id: sessionId,
 						exited_at: new Date().toISOString(),
 						exit_reason: 'inactivity_timeout',
 					}),

@@ -13,6 +13,7 @@ from ...models import (
     TaskSet,
     TaskSetItem,
     TaskStart,
+    TaskSession,
     ModelAnswer,
 )
 from ...pydantic import (
@@ -187,6 +188,32 @@ async def get_student_task_statistics(
     )
     move_count = (await db.execute(move_count_stmt)).scalar() or 0
 
+    # Fetch all sessions for this student+task
+    sessions_data = []
+    total_time_seconds = None
+    if task_start_record:
+        sessions_stmt = (
+            select(TaskSession)
+            .where(TaskSession.task_start_id == task_start_record.id)
+            .order_by(TaskSession.entered_at.asc())
+        )
+        sessions_result = await db.execute(sessions_stmt)
+        task_sessions = sessions_result.scalars().all()
+        total_secs = 0.0
+        for s in task_sessions:
+            duration = None
+            if s.exited_at:
+                duration = (s.exited_at - s.entered_at).total_seconds()
+                total_secs += duration
+            sessions_data.append({
+                "entered_at": s.entered_at.isoformat(),
+                "exited_at": s.exited_at.isoformat() if s.exited_at else None,
+                "exit_reason": s.exit_reason,
+                "duration_seconds": duration,
+            })
+        if total_secs > 0:
+            total_time_seconds = total_secs
+
     if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -201,32 +228,49 @@ async def get_student_task_statistics(
             time_to_first_fail=None,
             thinking_time=thinking_time,
             move_count=move_count,
-            attempts_detail=[]
+            attempts_detail=[],
+            total_time_seconds=total_time_seconds,
+            sessions=sessions_data,
         )
 
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
     failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
 
     first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
+    def active_time_to(target_dt):
+        """Sum session durations up to target_dt (active page time only)."""
+        if not target_dt or not task_sessions:
+            return None
+        total = 0.0
+        for s in task_sessions:
+            if s.entered_at >= target_dt:
+                break
+            end = min(s.exited_at, target_dt) if s.exited_at else target_dt
+            total += (end - s.entered_at).total_seconds()
+        return total if total > 0 else None
+
     time_to_first_success = None
+    first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
     if first_success_pair:
-        attempt, task_start = first_success_pair
-        if task_start and task_start.started_at and attempt.completed_at:
-            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
-            time_to_first_success = {"seconds": seconds}
+        attempt, _ = first_success_pair
+        if attempt.completed_at:
+            secs = active_time_to(attempt.completed_at)
+            if secs is not None:
+                time_to_first_success = {"seconds": secs}
 
     first_fail_pair = next(((a, ts) for a, ts in attempts_data if not a.success), None)
     time_to_first_fail = None
     if first_fail_pair:
-        attempt, task_start = first_fail_pair
-        if task_start and task_start.started_at and attempt.completed_at:
-            seconds = (attempt.completed_at - task_start.started_at).total_seconds()
-            time_to_first_fail = {"seconds": seconds}
+        attempt, _ = first_fail_pair
+        if attempt.completed_at:
+            secs = active_time_to(attempt.completed_at)
+            if secs is not None:
+                time_to_first_fail = {"seconds": secs}
 
     attempts_detail = []
     for i, (attempt, task_start) in enumerate(attempts_data, 1):
-        time_taken = (attempt.completed_at - task_start.started_at).total_seconds() \
-            if task_start and task_start.started_at and attempt.completed_at else None
+        time_taken = active_time_to(attempt.completed_at) \
+            if attempt.completed_at else None
         detail = {
             "attempt_number": i,
             "success": attempt.success,
@@ -249,7 +293,9 @@ async def get_student_task_statistics(
         time_to_first_fail=time_to_first_fail,
         thinking_time=thinking_time,
         move_count=move_count,
-        attempts_detail=attempts_detail
+        attempts_detail=attempts_detail,
+        total_time_seconds=total_time_seconds,
+        sessions=sessions_data,
     )
 
 
@@ -329,7 +375,7 @@ async def get_task_statistics(
             "time_to_first_success": {"avg": 0, "min": 0, "max": 0},
             "thinking_time": None,
             "number_of_moves": None,
-            "common_mistakes": []
+            "common_mistakes": [],
         }
 
     successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]
@@ -337,6 +383,31 @@ async def get_task_statistics(
 
     students_attempted = len(set(a.student_id for a, _ in attempts_data))
     students_completed = len(set(a.student_id for a, _ in successful_attempts))
+
+    # Fetch all sessions for this task, grouped by task_start_id
+    task_start_ids = list({ts.id for _, ts in attempts_data})
+    sessions_result = await db.execute(
+        select(TaskSession)
+        .where(TaskSession.task_start_id.in_(task_start_ids))
+        .order_by(TaskSession.entered_at.asc())
+    )
+    all_sessions = sessions_result.scalars().all()
+    sessions_by_start: dict = {}
+    for s in all_sessions:
+        sessions_by_start.setdefault(s.task_start_id, []).append(s)
+
+    def active_time_to(task_start_id, target_dt):
+        """Sum session durations up to target_dt for a given task_start."""
+        if not target_dt:
+            return None
+        slist = sessions_by_start.get(task_start_id, [])
+        total = 0.0
+        for s in slist:
+            if s.entered_at >= target_dt:
+                break
+            end = min(s.exited_at, target_dt) if s.exited_at else target_dt
+            total += (end - s.entered_at).total_seconds()
+        return total if total > 0 else None
 
     student_attempts: dict = {}
     for attempt, task_start in attempts_data:
@@ -362,8 +433,10 @@ async def get_task_statistics(
             key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
         )
         for attempt, task_start in sorted_attempts:
-            if not attempt.success and attempt.completed_at and task_start and task_start.started_at:
-                tff_values.append((attempt.completed_at - task_start.started_at).total_seconds())
+            if not attempt.success and attempt.completed_at:
+                secs = active_time_to(task_start.id, attempt.completed_at)
+                if secs is not None:
+                    tff_values.append(secs)
                 break
     tff = {
         "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
@@ -378,8 +451,10 @@ async def get_task_statistics(
             key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
         )
         for attempt, task_start in sorted_attempts:
-            if attempt.success and attempt.completed_at and task_start and task_start.started_at:
-                tfs_values.append((attempt.completed_at - task_start.started_at).total_seconds())
+            if attempt.success and attempt.completed_at:
+                secs = active_time_to(task_start.id, attempt.completed_at)
+                if secs is not None:
+                    tfs_values.append(secs)
                 break
 
     tfs = {

@@ -168,7 +168,27 @@
             </div>
 
           </div>
+
+          <!-- Session log -->
+          <div class="stat-box mt-2 p-0" id="sessions-box">
+            <div class="attempts-header" id="sessions-header" style="border-radius:8px;">
+              <div class="attempts-header-title">
+                <h4 style="font-size:1rem;margin:0;"><i class="fas fa-clock mr-2"></i>Session Log (<span id="sessions-count">0</span>)</h4>
+                <i class="fas fa-chevron-down expand-icon" id="sessions-expand-icon"></i>
+              </div>
+            </div>
+            <div class="attempts-list" id="sessions-list"></div>
+          </div>
+
+          <!-- Session exit -->
+          <div class="stat-box sts-metric-box" id="exit-info-box" style="display:none;">
+            <h5 class="sts-box-title">Session Exit</h5>
+            <div class="sts-metric-sub" id="exit-reason-label">—</div>
+            <div class="sts-metric-sub text-muted small" id="exit-time-label"></div>
+          </div>
+
         </div>
+      </div>
 
       </div>
     </div>

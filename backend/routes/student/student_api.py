@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...pydantic import SubmitTestResultRequest, RecordExitRequest
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse
 from ...database import get_db
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
+from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, TaskStart, TaskSession, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -258,12 +258,11 @@ async def submit_test_result(
     }
 
 
-@router.post("/api/tasks/{task_id}/record-exit")
-async def record_task_exit(
+@router.post("/api/tasks/{task_id}/enter", response_model=EnterTaskResponse)
+async def enter_task(
     task_id: int,
-    body: RecordExitRequest,
     db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    student_session: Student | None = Depends(get_current_student_session),
 ):
     if not student_session:
         raise HTTPException(
@@ -279,10 +278,49 @@ async def record_task_exit(
     task_start = result.scalar_one_or_none()
 
     if not task_start:
-        raise HTTPException(status_code=404, detail="Task not started")
+        task_start = TaskStart(student_id=student_session.id, task_id=task_id)
+        db.add(task_start)
+        await db.flush()
 
-    task_start.exited_at = datetime.fromisoformat(body.exited_at)
-    task_start.exit_reason = body.exit_reason
+    session = TaskSession(task_start_id=task_start.id)
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+
+    return EnterTaskResponse(
+        session_id=session.id,
+        entered_at=session.entered_at.isoformat(),
+    )
+
+
+@router.post("/api/tasks/{task_id}/record-exit")
+async def record_task_exit(
+    task_id: int,
+    body: RecordExitRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required"
+        )
+
+    stmt = (
+        select(TaskSession)
+        .join(TaskStart, TaskStart.id == TaskSession.task_start_id)
+        .where(TaskSession.id == body.session_id)
+        .where(TaskStart.student_id == student_session.id)
+        .where(TaskStart.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session.exited_at = datetime.fromisoformat(body.exited_at)
+    session.exit_reason = body.exit_reason
     await db.commit()
     return {"status": "success"}
 

@@ -29,7 +29,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/usr/src/app
+      - .:/app
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
       AUTO_INIT_DB: "true"
@@ -50,7 +50,7 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - .:/usr/src/app
+      - .:/app
     env_file:
       - .env
     environment:

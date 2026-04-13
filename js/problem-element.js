@@ -32,7 +32,7 @@ export class ProblemElement extends LitElement {
 	};
 
 	static styles = css`
-		/* Layout proportions for the two Parsons columns */
+		/* Layout proportions for the two Parsons columns within the widget */
 		.starter {
 			width: 40%;
 		}
@@ -84,9 +84,10 @@ export class ProblemElement extends LitElement {
 				</div>
 			</div>
 
-			<!-- Parsons widget area: starter (trash) and solution columns -->
-			<div class="row mt-4">
-				<div class="col-sm-12">
+			<!-- Content container with Parsons widget and test results side by side -->
+			<div class="row mt-4 align-items-start">
+				<!-- Parsons widget area: starter (trash) and solution columns -->
+				<div class="col-12 col-lg-8 mb-4 mb-lg-0">
 					<div class="card">
 						<div class="card-body">
 							<div
@@ -118,11 +119,9 @@ export class ProblemElement extends LitElement {
 						</div>
 					</div>
 				</div>
-			</div>
 
-			<!-- Test results card -->
-			<div class="row mt-4">
-				<div class="col-sm-12">
+				<!-- Test results card -->
+				<div class="col-12 col-lg-4">
 					<div class="card">
 						<div class="card-header">
 							<h4>Test Cases</h4>

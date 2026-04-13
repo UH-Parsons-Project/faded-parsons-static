@@ -379,7 +379,17 @@ async def get_task_moves(
         for edit in edits
     ]
 
-    all_events = sorted(move_events + edit_events, key=lambda e: e["event_time"])
+    run_events = [
+        {
+            "type": "run",
+            "success": attempt.success,
+            "event_time": attempt.completed_at.isoformat(),
+        }
+        for attempt in attempts
+        if attempt.completed_at is not None and attempt.success is not None
+    ]
+
+    all_events = sorted(move_events + edit_events + run_events, key=lambda e: e["event_time"])
 
     return {
         "events": all_events,

@@ -261,6 +261,7 @@ function applyEvent(state, event) {
 			}
 		}
 	}
+	// 'run' events carry no state change — the board stays as-is
 
 	return next;
 }
@@ -304,6 +305,20 @@ function renderReplayStep(states, events, stepIndex) {
 	}
 
 	const event = events[stepIndex - 1];
+	const board = document.getElementById('replay-board');
+
+	if (event.type === 'run') {
+		const success = event.success;
+		labelEl.innerHTML = success
+			? '<span class="replay-run-badge replay-run-success"><i class="fas fa-check mr-1"></i>Ran code — Passed</span>'
+			: '<span class="replay-run-badge replay-run-fail"><i class="fas fa-times mr-1"></i>Ran code — Failed</span>';
+		board.className = 'replay-board ' + (success ? 'replay-run-success-board' : 'replay-run-fail-board');
+		renderReplayBoard(states[stepIndex], null);
+		return;
+	}
+
+	board.className = 'replay-board';
+
 	const rawCode = (event.block_code || event.block_id).replace(/!BLANK/g, '___');
 	const blockLabel = `<span class="replay-block replay-block-inline">${escapeHtml(rawCode)}</span>`;
 

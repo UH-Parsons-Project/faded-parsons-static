@@ -1461,6 +1461,36 @@
   vertical-align: baseline;
 }
 
+.replay-run-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.replay-run-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.replay-run-fail {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.replay-run-success-board .replay-column {
+  border-color: #c3e6cb;
+  outline: 2px solid #c3e6cb;
+}
+
+.replay-run-fail-board .replay-column {
+  border-color: #f5c6cb;
+  outline: 2px solid #f5c6cb;
+}
+
 /* ── Student Task Statistics page ─────────────────────────────────────── */
 
 .sts-outer {

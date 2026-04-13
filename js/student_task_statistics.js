@@ -191,8 +191,17 @@ function buildInitialState(initialBlocks) {
 	const nonGiven = initialBlocks.filter(b => !b.given);
 	const given = initialBlocks.filter(b => b.given);
 
-	// Mirror alphabetize() — sort non-given blocks by code
-	const sorted = [...nonGiven].sort((a, b) => a.code.localeCompare(b.code));
+	// Mirror alphabetize() — same compare logic as parsons.js alphabetize()
+	function alphabetizeCompare(a, b) {
+		const aCode = a.code;
+		const bCode = b.code;
+		if (aCode.startsWith('#') || aCode.startsWith('print(') || aCode.startsWith('p !BLANK')) return 1;
+		if (bCode.startsWith('#') || bCode.startsWith('print(') || bCode.startsWith('p !BLANK')) return -1;
+		if (aCode > bCode) return 1;
+		if (aCode < bCode) return -1;
+		return 0;
+	}
+	const sorted = [...nonGiven].sort(alphabetizeCompare);
 
 	for (const b of sorted) {
 		starter.push({
@@ -257,7 +266,7 @@ function applyEvent(state, event) {
 }
 
 function renderReplayBoard(state, highlightBlockId) {
-	const renderColumn = (blocks, containerId) => {
+	const renderColumn = (blocks, containerId, noIndent) => {
 		const el = document.getElementById(containerId);
 		el.innerHTML = '';
 		if (blocks.length === 0) {
@@ -270,14 +279,14 @@ function renderReplayBoard(state, highlightBlockId) {
 				+ (block.block_id === highlightBlockId ? ' highlight' : '')
 				+ (block.given ? ' given' : '')
 				+ (block.debug ? ' debug' : '');
-			div.style.marginLeft = (block.indent * 20) + 'px';
+			div.style.marginLeft = noIndent ? '0' : (block.indent * 20) + 'px';
 			div.innerHTML = renderBlockCode(block.code, block.blanks);
 			el.appendChild(div);
 		}
 	};
 
-	renderColumn(state.starter, 'replay-starter-blocks');
-	renderColumn(state.solution, 'replay-solution-blocks');
+	renderColumn(state.starter, 'replay-starter-blocks', true);
+	renderColumn(state.solution, 'replay-solution-blocks', false);
 }
 
 function renderReplayStep(states, events, stepIndex) {
@@ -295,12 +304,32 @@ function renderReplayStep(states, events, stepIndex) {
 	}
 
 	const event = events[stepIndex - 1];
-	const blockLabel = event.block_code ? `"${escapeHtml(event.block_code)}"` : event.block_id;
+	const rawCode = (event.block_code || event.block_id).replace(/!BLANK/g, '___');
+	const blockLabel = `<span class="replay-block replay-block-inline">${escapeHtml(rawCode)}</span>`;
 
 	if (event.type === 'edit') {
-		labelEl.innerHTML = `[edit] ${blockLabel} blank[${event.blank_index}] ← "<strong>${escapeHtml(event.value)}</strong>"`;
+		const blankNum = event.blank_index + 1;
+		const val = escapeHtml(event.value);
+		labelEl.innerHTML = val
+			? `Typed <strong>"${val}"</strong> into blank ${blankNum} of ${blockLabel}`
+			: `Cleared blank ${blankNum} of ${blockLabel}`;
 	} else {
-		labelEl.innerHTML = `[move] ${blockLabel}: ${event.from_container}[${event.from_index}] → ${event.to_container}[${event.to_index}](indent=${event.to_indent})`;
+		const sameContainer = event.from_container === event.to_container;
+		const sameIndex = event.from_index === event.to_index;
+		const indentLabel = event.to_indent > 0
+			? `, indent ${event.to_indent}` : '';
+
+		let msg;
+		if (sameContainer && sameIndex) {
+			msg = `Indented ${blockLabel} to level ${event.to_indent}`;
+		} else if (event.from_container === 'starter') {
+			msg = `Moved ${blockLabel} to solution${indentLabel}`;
+		} else if (event.to_container === 'starter') {
+			msg = `Returned ${blockLabel} to starter`;
+		} else {
+			msg = `Reordered ${blockLabel} in solution${indentLabel}`;
+		}
+		labelEl.innerHTML = msg;
 	}
 
 	renderReplayBoard(states[stepIndex], event.block_id);
@@ -344,21 +373,30 @@ async function initReplay(studentUsername, taskId, setId) {
 			states.push(applyEvent(states[states.length - 1], event));
 		}
 
+		const slider = document.getElementById('replay-slider');
+		slider.max = events.length;
+		slider.value = 0;
+		slider.disabled = events.length === 0;
+
+		function goToStep(step) {
+			currentStep = step;
+			slider.value = step;
+			renderReplayStep(states, events, step);
+		}
+
 		let currentStep = 0;
 		renderReplayStep(states, events, currentStep);
 
 		document.getElementById('replay-prev').addEventListener('click', () => {
-			if (currentStep > 0) {
-				currentStep--;
-				renderReplayStep(states, events, currentStep);
-			}
+			if (currentStep > 0) goToStep(currentStep - 1);
 		});
 
 		document.getElementById('replay-next').addEventListener('click', () => {
-			if (currentStep < events.length) {
-				currentStep++;
-				renderReplayStep(states, events, currentStep);
-			}
+			if (currentStep < events.length) goToStep(currentStep + 1);
+		});
+
+		slider.addEventListener('input', () => {
+			goToStep(parseInt(slider.value, 10));
 		});
 
 		document.getElementById('replay-prev').disabled = false;

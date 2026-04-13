@@ -1370,15 +1370,45 @@
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  align-items: stretch;
+}
+
+.replay-column-inner {
+  height: 300px;
+  overflow-y: auto;
+}
+
+.replay-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.replay-slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: #6c757d;
+}
+
+.replay-controls-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .replay-column {
   flex: 1;
   min-height: 60px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #efefff;
+  border: 1px solid #efefff;
   border-radius: 4px;
   padding: 8px;
+}
+
+.replay-column:last-child {
+  background: #ffffaa;
+  border-color: #ffffaa;
 }
 
 .replay-column-header {
@@ -1391,9 +1421,9 @@
 }
 
 .replay-block {
-  background: white;
-  border: 1px solid #ced4da;
-  border-radius: 3px;
+  background: #efefef;
+  border: 1px solid lightgray;
+  border-radius: 10px;
   padding: 3px 8px;
   margin: 3px 0;
   font-family: monospace;
@@ -1423,6 +1453,12 @@
 .replay-block.debug {
   opacity: 0.35;
   font-style: italic;
+}
+
+.replay-block-inline {
+  display: inline;
+  padding: 1px 6px;
+  vertical-align: baseline;
 }
 
 /* ── Student Task Statistics page ─────────────────────────────────────── */

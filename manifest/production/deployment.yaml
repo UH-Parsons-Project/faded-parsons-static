@@ -22,12 +22,17 @@ spec:
         - name: faded-parsons-production
           image: quay.io/tike/ohtu-faded-parsons:production
           imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - alembic upgrade head && exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: database-credentials
                   key: DATABASE_URL
+            - name: AUTO_INIT_DB
+              value: "false"
             - name: TEACHER_REGISTRATION_TOKEN
               valueFrom:
                 secretKeyRef:

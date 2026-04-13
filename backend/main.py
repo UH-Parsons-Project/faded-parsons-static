@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .database import init_db
 from .models import Parsons, TaskSetViewer, TaskSet, Teacher, ModelAnswer
 from . import seed as seed_module
+from . import config
 from .utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 from .routes.student.student import router as student_router
@@ -39,7 +40,8 @@ from .routes.test.test_api import router as test_router
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
-    await init_db()
+    if config.AUTO_INIT_DB:
+        await init_db()
     await seed_module.seed_db()
     yield
 

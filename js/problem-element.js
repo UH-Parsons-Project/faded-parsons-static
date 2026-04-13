@@ -207,6 +207,7 @@ export class ProblemElement extends LitElement {
 					to_indent: toIndent,
 					event_time: new Date().toISOString(),
 				});
+				document.dispatchEvent(new CustomEvent('student-activity'));
 
 				pendingMove = null;
 			},
@@ -262,6 +263,7 @@ export class ProblemElement extends LitElement {
 				value,
 				event_time: new Date().toISOString(),
 			});
+			document.dispatchEvent(new CustomEvent('student-activity'));
 		};
 
 		const attachEditTracking = (containerEl) => {

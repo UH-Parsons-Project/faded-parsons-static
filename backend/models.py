@@ -177,6 +177,8 @@ class TaskStart(Base):
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    exited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    exit_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     __table_args__ = (UniqueConstraint("student_id", "task_id"),)
 
 

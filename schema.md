@@ -72,6 +72,8 @@ CREATE TABLE task_starts (
 	student_id INTEGER NOT NULL REFERENCES student(id) ON DELETE CASCADE,
 	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE,
 	started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	exited_at TIMESTAMP,
+	exit_reason VARCHAR(50),
 	UNIQUE (student_id, task_id)
 );
 

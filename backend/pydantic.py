@@ -111,6 +111,11 @@ class EditEventData(BaseModel):
     event_time: str
 
 
+class RecordExitRequest(BaseModel):
+    exited_at: str   # ISO 8601 datetime
+    exit_reason: str  # "inactivity_timeout" | "manual_navigation" | "page_close"
+
+
 class SubmitTestResultRequest(BaseModel):
     task_id: int
     success: bool

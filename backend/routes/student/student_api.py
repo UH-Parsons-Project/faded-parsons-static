@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...pydantic import SubmitTestResultRequest
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
@@ -256,6 +256,35 @@ async def submit_test_result(
         "message": "Test result saved",
         "attempt_id": new_attempt.id
     }
+
+
+@router.post("/api/tasks/{task_id}/record-exit")
+async def record_task_exit(
+    task_id: int,
+    body: RecordExitRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required"
+        )
+
+    stmt = select(TaskStart).where(
+        (TaskStart.student_id == student_session.id) &
+        (TaskStart.task_id == task_id)
+    )
+    result = await db.execute(stmt)
+    task_start = result.scalar_one_or_none()
+
+    if not task_start:
+        raise HTTPException(status_code=404, detail="Task not started")
+
+    task_start.exited_at = datetime.fromisoformat(body.exited_at)
+    task_start.exit_reason = body.exit_reason
+    await db.commit()
+    return {"status": "success"}
 
 
 @router.get("/api/students/{student_username}/tasks/{task_id}/moves")

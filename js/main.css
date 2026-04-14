@@ -317,6 +317,110 @@
   font-weight: 600;
 }
 
+.student-problem-page {
+  padding-bottom: 30px;
+}
+
+.top-info-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.top-info-card .card-header h3,
+.top-info-card .card-header h4 {
+  margin: 0;
+}
+
+.test-results-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.test-results-card .card-header h4 {
+  margin: 0;
+}
+
+.starter {
+  width: 40%;
+}
+
+.solution {
+  width: 58%;
+  margin-left: 2%;
+}
+
+.test-results-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.test-results-card > .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+test-results-element {
+  display: block;
+  min-height: 0;
+}
+
+.test-results-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.test-result-summary {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.test-result-summary.full-pass {
+  background: #d4edda;
+  border-color: #b7df9f;
+  color: #000000;
+}
+
+.test-result-summary.partial-pass {
+  background: #fff9c4;
+  border-color: #f4e28a;
+  color: #000000;
+}
+
+.test-result-summary.no-pass {
+  background: #f8d7da;
+  border-color: #f1b0b7;
+  color: #000000;
+}
+
+.test-results-details {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.1rem 0.1rem;
+}
+
+.test-details-line {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 0 0.35rem 0;
+}
+
 /* Task Set Statistics - Two Column Layout */
 .statistics-layout {
   display: flex;

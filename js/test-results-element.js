@@ -23,16 +23,40 @@ export class TestResultsElement extends LitElement {
 				lineClass += ' test-details-line-fail';
 			}
 
-			return html`${index > 0 ? '\n' : ''}<span class=${lineClass}>${line}</span>`;
+			return html`<div class=${lineClass}>${line}</div>`;
 		});
 	}
 
 	render() {
-		return html`<div class="testcase ${this.status}">
-						<span class="msg">${this.header}</span>
-						</div>
-						<pre><code>${this.renderDetails()}</code></pre></div>
-					</div>`;
+		const header = this.header || '';
+		const summaryMatch = header.match(/^(\d+) of (\d+) tests passed$/i);
+		let summaryVariant = 'unknown';
+		if (summaryMatch) {
+			const passedCount = Number(summaryMatch[1]);
+			const totalCount = Number(summaryMatch[2]);
+			if (passedCount > 0 && passedCount === totalCount) {
+				summaryVariant = 'full-pass';
+			} else if (passedCount > 0) {
+				summaryVariant = 'partial-pass';
+			} else {
+				summaryVariant = 'no-pass';
+			}
+		} else if ((this.status || '').toLowerCase() === 'fail') {
+			summaryVariant = 'no-pass';
+		} else if ((this.status || '').toLowerCase() === 'pass') {
+			summaryVariant = 'full-pass';
+		}
+		const summaryClass = [
+			'test-result-summary',
+			summaryVariant,
+		]
+			.filter(Boolean)
+			.join(' ');
+
+		return html`<div class="test-results-panel">
+					<div class=${summaryClass}>${this.header}</div>
+					<div class="test-results-details">${this.renderDetails()}</div>
+				</div>`;
 	}
 }
 

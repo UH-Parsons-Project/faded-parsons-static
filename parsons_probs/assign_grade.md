@@ -1,0 +1,1 @@
+def assign_grade(score):\n    if score > 89:\n        return "A"\n    elif score > 79:\n        return "B"\n    elif score > 69:\n        return "C"\n    elif score > 64:\n        return "D"\n    else:\n        return "F"

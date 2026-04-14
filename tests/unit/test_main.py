@@ -1242,3 +1242,62 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert body["title"] == "Brand New Task Set"
         assert body["unique_link_code"] == "brand-new-task-set"
         assert body["expires_at"] is not None
+
+
+@pytest.mark.asyncio
+class TestCreateProblemApi:
+    async def test_create_problem_with_blank_marks_faded_and_stores_placeholder(
+        self, client, test_teacher, db_session
+    ):
+        payload = {
+            "taskTitle": "Add In Range From Editor",
+            "description": "Return the sum between start and stop.",
+            "startDescription": "Practice while loops.",
+            "tests": "assert add_in_range(1, 3) == 6",
+            "solutionCode": "def add_in_range(start, stop):\n    total = !BLANK\n    while start <= stop:\n        total += start\n        start += 1\n    return total",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        assert created_task.task_type == "Faded"
+        blocks = created_task.code_blocks["blocks"]
+        assert any(block["faded"] is True for block in blocks)
+        faded_block = next(block for block in blocks if block["faded"] is True)
+        assert "___" in faded_block["code"]
+        assert "!BLANK" not in faded_block["code"]
+        assert created_task.correct_solution["solution_code"].count("!BLANK") == 1
+
+    async def test_create_problem_without_blank_stays_normal(self, client, test_teacher, db_session):
+        payload = {
+            "taskTitle": "Double Value From Editor",
+            "description": "Return doubled value.",
+            "startDescription": "Practice function basics.",
+            "tests": "assert double_value(4) == 8",
+            "solutionCode": "def double_value(x):\n    return x * 2",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        assert created_task.task_type == "normal"
+        blocks = created_task.code_blocks["blocks"]
+        assert all(block["faded"] is False for block in blocks)

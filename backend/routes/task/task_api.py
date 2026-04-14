@@ -513,14 +513,21 @@ async def create_problem(
         )
 
     blocks = []
+    has_faded = False
     for line_index, line in enumerate(lines, start=1):
         indent_count = len(line) - len(line.lstrip())
+        stripped_line = line.strip()
+        is_faded = "!BLANK" in stripped_line
+        if is_faded:
+            has_faded = True
+
+        clean_code = stripped_line.replace("!BLANK", "___")
         blocks.append(
             {
                 "id": f"block_{line_index}",
-                "code": line.strip(),
+                "code": clean_code,
                 "indent": indent_count // 4,
-                "faded": False,
+                "faded": is_faded,
                 "given": False,
             }
         )
@@ -538,7 +545,7 @@ async def create_problem(
         title=final_title,
         task_instructions=task_instructions_payload,
         description=start_description,
-        task_type="normal",
+        task_type="Faded" if has_faded else "normal",
         code_blocks={
             "blocks": blocks,
             "function_header": lines[0],

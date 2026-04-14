@@ -127,6 +127,48 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
     ]
 
 
+@router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
+async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
+    """Get info for a task set by unique link code or integer ID."""
+    code_str = str(code)
+    stmt = (
+        select(TaskSet, Teacher.username)
+        .join(Teacher, Teacher.id == TaskSet.teacher_id)
+        .where(TaskSet.unique_link_code == code_str)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if row is None and code_str.isdigit():
+        stmt = (
+            select(TaskSet, Teacher.username)
+            .join(Teacher, Teacher.id == TaskSet.teacher_id)
+            .where(TaskSet.id == int(code_str))
+        )
+        result = await db.execute(stmt)
+        row = result.first()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set '{code}' not found",
+        )
+
+    task_set, owner_username = row
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=owner_username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+    )
+
+
 @router.post("/api/create_task_set", response_model=TaskSetResponse)
 async def create_task_set(
     request: CreateTaskSetRequest,

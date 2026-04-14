@@ -28,7 +28,7 @@ export async function initInactivityTimer(taskId, uniqueLinkCode, dashboardUrl) 
 			})],
 			{ type: 'application/json' }
 		);
-		navigator.sendBeacon(`/api/tasks/${taskId}/record-exit`, payload);
+		navigator.sendBeacon(`/api/sets/${uniqueLinkCode}/tasks/${taskId}/record-exit`, payload);
 	};
 
 	const hideWarning = () => {

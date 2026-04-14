@@ -1370,15 +1370,45 @@
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  align-items: stretch;
+}
+
+.replay-column-inner {
+  height: 300px;
+  overflow-y: auto;
+}
+
+.replay-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.replay-slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: #6c757d;
+}
+
+.replay-controls-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .replay-column {
   flex: 1;
   min-height: 60px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #efefff;
+  border: 1px solid #efefff;
   border-radius: 4px;
   padding: 8px;
+}
+
+.replay-column:last-child {
+  background: #ffffaa;
+  border-color: #ffffaa;
 }
 
 .replay-column-header {
@@ -1391,9 +1421,9 @@
 }
 
 .replay-block {
-  background: white;
-  border: 1px solid #ced4da;
-  border-radius: 3px;
+  background: #efefef;
+  border: 1px solid lightgray;
+  border-radius: 10px;
   padding: 3px 8px;
   margin: 3px 0;
   font-family: monospace;
@@ -1423,6 +1453,42 @@
 .replay-block.debug {
   opacity: 0.35;
   font-style: italic;
+}
+
+.replay-block-inline {
+  display: inline;
+  padding: 1px 6px;
+  vertical-align: baseline;
+}
+
+.replay-run-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.replay-run-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.replay-run-fail {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.replay-run-success-board .replay-column {
+  border-color: #c3e6cb;
+  outline: 2px solid #c3e6cb;
+}
+
+.replay-run-fail-board .replay-column {
+  border-color: #f5c6cb;
+  outline: 2px solid #f5c6cb;
 }
 
 /* ── Student Task Statistics page ─────────────────────────────────────── */

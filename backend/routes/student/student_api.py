@@ -13,7 +13,8 @@ from ...student_auth import (
     get_current_student_session,
     get_current_student_session_no_update,
 )
-
+from ...auth import CurrentUser
+from ...utils.taskset import require_task_set_view_access
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 
 router = APIRouter()
@@ -262,9 +263,15 @@ async def submit_test_result(
 async def get_task_moves(
     student_username: str,
     task_id: int,
+    set_id: int,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_student_session_no_update),
 ):
+    task_set = await db.get(TaskSet, set_id)
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+    await require_task_set_view_access(task_set, current_user, db)
+
     stmt = select(Student).where(Student.username == student_username)
     result = await db.execute(stmt)
     student = result.scalar_one_or_none()
@@ -372,7 +379,17 @@ async def get_task_moves(
         for edit in edits
     ]
 
-    all_events = sorted(move_events + edit_events, key=lambda e: e["event_time"])
+    run_events = [
+        {
+            "type": "run",
+            "success": attempt.success,
+            "event_time": attempt.completed_at.isoformat(),
+        }
+        for attempt in attempts
+        if attempt.completed_at is not None and attempt.success is not None
+    ]
+
+    all_events = sorted(move_events + edit_events + run_events, key=lambda e: e["event_time"])
 
     return {
         "events": all_events,

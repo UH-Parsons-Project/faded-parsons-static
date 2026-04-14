@@ -91,23 +91,31 @@
             </div>
             <div class="attempts-list" id="replay-content">
               <div class="p-3">
-                <div id="replay-controls" class="d-flex align-items-center mb-2" style="gap: 8px;">
-                  <button class="btn btn-sm btn-outline-secondary" id="replay-prev" disabled>&#9664; Prev</button>
-                  <span id="replay-step-label" class="text-muted small">Step 0 / 0</span>
-                  <button class="btn btn-sm btn-outline-secondary" id="replay-next" disabled>Next &#9654;</button>
-                </div>
-                <div id="replay-event-label" class="mb-2 small" style="min-height: 1.4em;"></div>
+                <div id="replay-event-label" class="mb-2 small text-muted" style="min-height: 1.4em;"></div>
                 <div id="replay-board" class="replay-board">
                   <div class="replay-column">
                     <div class="replay-column-header">Starter</div>
-                    <div id="replay-starter-blocks"></div>
+                    <div class="replay-column-inner">
+                      <div id="replay-starter-blocks"></div>
+                    </div>
                   </div>
                   <div class="replay-column">
                     <div class="replay-column-header">Solution</div>
-                    <div id="replay-solution-blocks"></div>
+                    <div class="replay-column-inner">
+                      <div id="replay-solution-blocks"></div>
+                    </div>
                   </div>
                 </div>
                 <div id="replay-loading"><em class="text-muted">Loading replay...</em></div>
+                <div id="replay-controls" class="replay-controls mt-3">
+                  <input type="range" id="replay-slider" min="0" max="0" value="0" disabled
+                    class="replay-slider">
+                  <div class="replay-controls-buttons">
+                    <button class="btn btn-sm btn-outline-secondary" id="replay-prev" disabled>&#9664; Prev</button>
+                    <span id="replay-step-label" class="text-muted small">Step 0 / 0</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="replay-next" disabled>Next &#9654;</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

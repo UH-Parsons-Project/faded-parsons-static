@@ -50,11 +50,11 @@ async function loadProblemsetInfo() {
 async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
   try {
     const encodedTaskId = encodeURIComponent(taskId);
-    const [completionResponse, startedResponse] = await Promise.all([
-      fetch(/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status, {
+		const [completionResponse, startedResponse] = await Promise.all([
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`, {
         credentials: 'include'
       }),
-      fetch(/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started, {
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started`, {
         credentials: 'include'
       }),
     ]);

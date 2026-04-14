@@ -63,9 +63,9 @@ async def get_student_attempts(
                 func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
                 func.max(TaskAttempt.completed_at).label('last_attempt_at')
             )
-            .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
-            .join(Student, Student.id == TaskAttempt.student_id)
-            .where(Student.username == student_username)
+            .join(StudentTaskEnrollment, (StudentTaskEnrollment.task_id == Parsons.id) & (StudentTaskEnrollment.task_set_id == set_id))
+            .join(Student, (Student.id == StudentTaskEnrollment.student_id) & (Student.username == student_username))
+            .join(TaskAttempt, (TaskAttempt.task_id == Parsons.id) & (TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id))
             .where(Parsons.id.in_(task_ids))
             .group_by(Parsons.id, Parsons.title, Parsons.task_type)
             .order_by(func.max(TaskAttempt.completed_at).desc())

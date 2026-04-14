@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, and_
 import json
 
 from ...database import get_db
@@ -8,7 +8,7 @@ from ...models import Parsons
 from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser
 from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt
+from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
 from ...pydantic import (
     TaskResponse,
     CreateProblemRequest,
@@ -410,9 +410,17 @@ async def get_task_set_students(
                 func.count(TaskAttempt.id).label('total_attempts'),
                 func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
             )
-            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
-            .join(TaskAttempt, (TaskAttempt.student_id == Student.id) & (TaskAttempt.task_id.in_(task_ids)))
-            .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+            .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
+            .outerjoin(TaskAttempt, and_(
+                TaskAttempt.student_id == Student.id,
+                TaskAttempt.task_id.in_(task_ids),
+                TaskAttempt.task_id.in_(
+                    select(StudentTaskEnrollment.task_id).where(
+                        (StudentTaskEnrollment.student_id == Student.id) &
+                        (StudentTaskEnrollment.task_set_id == task_set_id)
+                    )
+                )
+            ))
             .where(Student.username.isnot(None))
             .group_by(Student.id, Student.username, StudentTaskSetEnrollment.enrolled_at)
             .order_by(func.max(TaskAttempt.completed_at).desc())

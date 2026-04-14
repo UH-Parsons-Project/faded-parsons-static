@@ -845,7 +845,7 @@ initBurgerMenu();
 
   function initializeBuilder() {
     const draft = readDraftPayload();
-    if (!draft || !draft.taskCode) {
+    if (!draft) {
       alert('No draft task found. Redirecting to task editor.');
       window.location.href = '/create-task';
       return;

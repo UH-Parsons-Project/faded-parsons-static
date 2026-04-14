@@ -91,6 +91,8 @@ class StudentTaskStatisticsResponse(BaseModel):
     thinking_time: dict | None
     move_count: int | None
     attempts_detail: list[dict]
+    total_time_seconds: float | None = None
+    sessions: list[dict] = []
 
 
 class MoveData(BaseModel):
@@ -109,6 +111,23 @@ class EditEventData(BaseModel):
     blank_index: int
     value: str
     event_time: str
+
+
+class StartTaskResponse(BaseModel):
+    started_at: str
+    session_id: int
+    entered_at: str
+
+
+class EnterTaskResponse(BaseModel):
+    session_id: int
+    entered_at: str
+
+
+class RecordExitRequest(BaseModel):
+    session_id: int
+    exited_at: str   # ISO 8601 datetime
+    exit_reason: str  # "inactivity_timeout" | "manual_navigation" | "page_close"
 
 
 class SubmitTestResultRequest(BaseModel):

@@ -142,6 +142,45 @@ function createAttemptItem(attempt) {
 	return item;
 }
 
+const EXIT_REASON_LABELS = {
+	inactivity_timeout: 'Inactivity timeout',
+	manual_navigation: 'Navigated away',
+	page_close: 'Closed tab/window',
+};
+
+function renderSessions(sessions) {
+	const list = document.getElementById('sessions-list');
+	const count = document.getElementById('sessions-count');
+	count.textContent = sessions.length;
+
+	if (sessions.length === 0) {
+		list.innerHTML = '<div class="p-3"><em class="text-muted">No sessions recorded.</em></div>';
+		return;
+	}
+
+	list.innerHTML = '';
+	sessions.forEach((s, i) => {
+		const div = document.createElement('div');
+		div.className = 'attempt-item';
+		const duration = s.duration_seconds != null
+			? formatTime(s.duration_seconds)
+			: '—';
+		const exitLabel = EXIT_REASON_LABELS[s.exit_reason] ?? (s.exit_reason || 'No exit recorded');
+		div.innerHTML = `
+			<div class="attempt-header">
+				<span class="attempt-number">Session #${i + 1}</span>
+				<span class="text-muted small">${duration}</span>
+			</div>
+			<div class="attempt-meta">
+				Entered: ${formatDateTime(s.entered_at)}
+				${s.exited_at ? ` &bull; Exited: ${formatDateTime(s.exited_at)}` : ' &bull; <em>Still active</em>'}
+			</div>
+			<div class="attempt-meta">Exit: ${exitLabel}</div>
+		`;
+		list.appendChild(div);
+	});
+}
+
 function renderAttempts(attempts) {
 	const attemptsList = document.getElementById('attempts-list');
 	const attemptsCount = document.getElementById('attempts-count');
@@ -451,6 +490,22 @@ function renderStatistics(data) {
 	if (data.move_count !== null && data.move_count !== undefined) {
 	document.getElementById('move-count').textContent = data.move_count;
 	}
+
+	if (data.exit_reason || data.exited_at) {
+		const reasonLabels = {
+			inactivity_timeout: 'Inactivity timeout',
+			manual_navigation: 'Navigated away',
+			page_close: 'Closed tab/window',
+		};
+		const box = document.getElementById('exit-info-box');
+		box.style.display = 'block';
+		document.getElementById('exit-reason-label').textContent =
+			reasonLabels[data.exit_reason] ?? (data.exit_reason || 'Unknown');
+		if (data.exited_at) {
+			document.getElementById('exit-time-label').textContent =
+				formatDateTime(data.exited_at);
+		}
+	}
 }
 
 function showError(message) {
@@ -472,6 +527,12 @@ const expandIcon = document.getElementById('expand-icon');
 attemptsHeader.addEventListener('click', () => {
 	attemptsList.classList.toggle('expanded');
 	expandIcon.classList.toggle('expanded');
+});
+
+// Toggle session log
+document.getElementById('sessions-header').addEventListener('click', () => {
+	document.getElementById('sessions-list').classList.toggle('expanded');
+	document.getElementById('sessions-expand-icon').classList.toggle('expanded');
 });
 
 // Toggle replay
@@ -499,6 +560,7 @@ fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/stat
 	renderTaskInstructions(data.task_instructions);
 	renderModelAnswer(data.model_answer);
 	renderAttempts(data.attempts_detail);
+	renderSessions(data.sessions || []);
 	renderStatistics(data);
 	initReplay(studentUsername, taskId, setId);
 	document.getElementById('content-container').style.display = 'block';

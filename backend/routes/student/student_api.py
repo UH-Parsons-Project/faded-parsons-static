@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...pydantic import SubmitTestResultRequest
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse
 from ...database import get_db
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, TaskStart, EditEvent, Parsons, Parsons, EditEvent
+from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -18,6 +18,68 @@ from ...utils.taskset import require_task_set_view_access
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 
 router = APIRouter()
+
+
+@router.get("/api/student/me")
+async def get_student_me(
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+    return {"username": student_session.username}
+
+
+@router.post("/api/sets/{unique_link_code}/join")
+async def join_task_set(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Student session required")
+
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    existing_stmt = select(StudentTaskSetEnrollment).where(
+        StudentTaskSetEnrollment.student_id == student_session.id,
+        StudentTaskSetEnrollment.task_set_id == task_set.id,
+    )
+    existing_result = await db.execute(existing_stmt)
+    if not existing_result.scalar_one_or_none():
+        db.add(StudentTaskSetEnrollment(
+            student_id=student_session.id,
+            task_set_id=task_set.id,
+        ))
+        await db.commit()
+
+    return {"status": "enrolled"}
+
+
+@router.get("/api/sets/{unique_link_code}/is-enrolled")
+async def check_enrollment(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        return {"enrolled": False}
+
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        return {"enrolled": False}
+
+    stmt = select(StudentTaskSetEnrollment).where(
+        StudentTaskSetEnrollment.student_id == student_session.id,
+        StudentTaskSetEnrollment.task_set_id == task_set.id,
+    )
+    result = await db.execute(stmt)
+    return {"enrolled": result.scalar_one_or_none() is not None}
 
 
 @router.post("/api/student_login")
@@ -103,33 +165,48 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     return {"status": "success", "id": student.id}
 
 
-@router.get("/api/tasks/{task_id}/has-started")
+@router.get("/api/sets/{unique_link_code}/tasks/{task_id}/has-started")
 async def check_task_has_started(
     task_id: int,
+    unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session),
 ):
     if not student_session:
         return {"has_started": False}
 
-    stmt = select(TaskStart).where(
-        (TaskStart.student_id == student_session.id) &
-        (TaskStart.task_id == task_id)
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    stmt = select(StudentTaskEnrollment).where(
+        (StudentTaskEnrollment.student_id == student_session.id) &
+        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
-    existing_start = result.scalar_one_or_none()
+    existing_enrollment = result.scalar_one_or_none()
 
-    return {"has_started": existing_start is not None}
+    return {"has_started": existing_enrollment is not None}
 
 
-@router.get("/api/tasks/{task_id}/my-completion-status")
+@router.get("/api/sets/{unique_link_code}/tasks/{task_id}/my-completion-status")
 async def get_my_completion_status(
     task_id: int,
+    unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     if not student_session:
         return {"student_attempts": 0, "student_completed": 0}
+
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
 
     stmt = select(TaskAttempt).where(
         (TaskAttempt.student_id == student_session.id) &
@@ -144,9 +221,10 @@ async def get_my_completion_status(
     return {"student_attempts": student_attempts, "student_completed": student_completed}
 
 
-@router.post("/api/tasks/{task_id}/start")
+@router.post("/api/sets/{unique_link_code}/tasks/{task_id}/start", response_model=StartTaskResponse)
 async def start_task(
     task_id: int,
+    unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session),
 ):
@@ -156,36 +234,45 @@ async def start_task(
             detail="Student session required to start a task"
         )
 
-    stmt = select(TaskStart).where(
-        (TaskStart.student_id == student_session.id) &
-        (TaskStart.task_id == task_id)
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    stmt = select(StudentTaskEnrollment).where(
+        (StudentTaskEnrollment.student_id == student_session.id) &
+        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
-    task_start = result.scalar_one_or_none()
+    enrollment = result.scalar_one_or_none()
 
-    if task_start:
-        return {
-            "status": "success",
-            "started_at": task_start.started_at.isoformat()
-        }
+    if not enrollment:
+        enrollment = StudentTaskEnrollment(
+            student_id=student_session.id,
+            task_id=task_id,
+            task_set_id=task_set.id
+        )
+        db.add(enrollment)
+        await db.flush()
 
-    new_start = TaskStart(
-        student_id=student_session.id,
-        task_id=task_id
-    )
-    db.add(new_start)
+    session = TaskSession(student_task_enrollment_id=enrollment.id)
+    db.add(session)
     await db.commit()
-    await db.refresh(new_start)
+    await db.refresh(session)
 
-    return {
-        "status": "success",
-        "started_at": new_start.started_at.isoformat()
-    }
+    return StartTaskResponse(
+        started_at=enrollment.started_at.isoformat(),
+        session_id=session.id,
+        entered_at=session.entered_at.isoformat(),
+    )
 
 
-@router.post("/api/tasks/{task_id}/submit-result")
+@router.post("/api/sets/{unique_link_code}/tasks/{task_id}/submit-result")
 async def submit_test_result(
     task_id: int,
+    unique_link_code: str,
     result: SubmitTestResultRequest,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session),
@@ -196,25 +283,44 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    start_stmt = select(TaskStart).where(
-        (TaskStart.student_id == student_session.id) &
-        (TaskStart.task_id == task_id)
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    start_stmt = select(StudentTaskEnrollment).where(
+        (StudentTaskEnrollment.student_id == student_session.id) &
+        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     start_result = await db.execute(start_stmt)
-    task_start = start_result.scalar_one_or_none()
+    enrollment = start_result.scalar_one_or_none()
 
-    if not task_start:
-        task_start = TaskStart(
+    if not enrollment:
+        enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
-            task_id=task_id
+            task_id=task_id,
+            task_set_id=task_set.id
         )
-        db.add(task_start)
+        db.add(enrollment)
         await db.flush()
+
+    open_session_stmt = (
+        select(TaskSession)
+        .where(TaskSession.student_task_enrollment_id == enrollment.id)
+        .where(TaskSession.exited_at == None)  # noqa: E711
+        .order_by(TaskSession.entered_at.desc())
+        .limit(1)
+    )
+    open_session_result = await db.execute(open_session_stmt)
+    open_session = open_session_result.scalar_one_or_none()
 
     new_attempt = TaskAttempt(
         student_id=student_session.id,
         task_id=task_id,
-        task_start_id=task_start.id,
+        student_task_enrollment_id=enrollment.id,
+        task_session_id=open_session.id if open_session else None,
         completed_at=datetime.now(timezone.utc),
         success=result.success,
         submitted_inputs={"code": result.submitted_code}
@@ -257,6 +363,93 @@ async def submit_test_result(
         "message": "Test result saved",
         "attempt_id": new_attempt.id
     }
+
+
+@router.post("/api/sets/{unique_link_code}/tasks/{task_id}/enter", response_model=EnterTaskResponse)
+async def enter_task(
+    task_id: int,
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required"
+        )
+
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    stmt = select(StudentTaskEnrollment).where(
+        (StudentTaskEnrollment.student_id == student_session.id) &
+        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_set_id == task_set.id)
+    )
+    result = await db.execute(stmt)
+    enrollment = result.scalar_one_or_none()
+
+    if not enrollment:
+        enrollment = StudentTaskEnrollment(
+            student_id=student_session.id,
+            task_id=task_id,
+            task_set_id=task_set.id
+        )
+        db.add(enrollment)
+        await db.flush()
+
+    session = TaskSession(student_task_enrollment_id=enrollment.id)
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+
+    return EnterTaskResponse(
+        session_id=session.id,
+        entered_at=session.entered_at.isoformat(),
+    )
+
+
+@router.post("/api/sets/{unique_link_code}/tasks/{task_id}/record-exit")
+async def record_task_exit(
+    task_id: int,
+    unique_link_code: str,
+    body: RecordExitRequest,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Student session required"
+        )
+
+    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+    task_set_result = await db.execute(task_set_stmt)
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Task set not found")
+
+    stmt = (
+        select(TaskSession)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskSession.student_task_enrollment_id)
+        .where(TaskSession.id == body.session_id)
+        .where(StudentTaskEnrollment.student_id == student_session.id)
+        .where(StudentTaskEnrollment.task_id == task_id)
+        .where(StudentTaskEnrollment.task_set_id == task_set.id)
+    )
+    result = await db.execute(stmt)
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session.exited_at = datetime.fromisoformat(body.exited_at)
+    session.exit_reason = body.exit_reason
+    await db.commit()
+    return {"status": "success"}
 
 
 @router.get("/api/students/{student_username}/tasks/{task_id}/moves")

@@ -6,8 +6,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from ...database import get_db
-from ...models import Student, TaskSet
+from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
@@ -33,7 +35,14 @@ async def task_set_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
+        enrollment = await db.execute(
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.student_id == student_session.id,
+                StudentTaskSetEnrollment.task_set_id == task_set.id,
+            )
+        )
+        if enrollment.scalar_one_or_none():
+            return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
     task_set_path = BASE_DIR / "templates" / "student_index.html"
     response = FileResponse(task_set_path)

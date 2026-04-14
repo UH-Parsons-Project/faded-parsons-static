@@ -48,20 +48,20 @@ async function loadProblemsetInfo() {
 }
 
 async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
-	try {
-		const encodedTaskId = encodeURIComponent(taskId);
+  try {
+    const encodedTaskId = encodeURIComponent(taskId);
 		const [completionResponse, startedResponse] = await Promise.all([
-			fetch('/api/tasks/' + encodedTaskId + '/my-completion-status', {
-				credentials: 'include'
-			}),
-			fetch('/api/tasks/' + encodedTaskId + '/has-started', {
-				credentials: 'include'
-			}),
-		]);
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`, {
+        credentials: 'include'
+      }),
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started`, {
+        credentials: 'include'
+      }),
+    ]);
 
-		if (!completionResponse.ok || !startedResponse.ok) {
-			return;
-		}
+    if (!completionResponse.ok || !startedResponse.ok) {
+      return;
+    }
 
 		const stats = await completionResponse.json();
 		const startedData = await startedResponse.json();
@@ -167,31 +167,39 @@ function render(list) {
 }
 
 if (uniqueLinkCode) {
-	// Load task_set info (title and description)
-	loadProblemsetInfo();
-
-	// Fetch problems for this task_set
-	fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
-		.then(function (resp) {
-			if (!resp.ok) throw new Error('Network response not ok');
-			return resp.json();
-		})
-		.then(function (json) {
-			// Log to see the structure
-			console.log('Tasks response:', json);
-			if (json && json.length > 0) {
-				console.log('First task object:', json[0]);
+	fetch(`/api/sets/${uniqueLinkCode}/is-enrolled`, { credentials: 'include' })
+		.then(r => r.ok ? r.json() : { enrolled: false })
+		.then(data => {
+			if (!data.enrolled) {
+				window.location.href = `/set/${uniqueLinkCode}`;
+				return;
 			}
-			render(json);
+
+			// Load task_set info (title and description)
+			loadProblemsetInfo();
+
+			// Fetch problems for this task_set
+			fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
+				.then(function (resp) {
+					if (!resp.ok) throw new Error('Network response not ok');
+					return resp.json();
+				})
+				.then(function (json) {
+					render(json);
+				})
+				.catch(function (error) {
+					container.className = 'empty-state';
+					container.innerHTML = `
+						<i class="fas fa-exclamation-triangle text-danger"></i>
+						<h4>Error Loading Tasks</h4>
+						<p>Unable to load task set.</p>
+					`;
+					console.error(error);
+				});
 		})
 		.catch(function (error) {
-			container.className = 'empty-state';
-			container.innerHTML = `
-				<i class="fas fa-exclamation-triangle text-danger"></i>
-				<h4>Error Loading Tasks</h4>
-				<p>Unable to load task set.</p>
-			`;
-			console.error(error);
+			console.error('Enrollment check failed:', error);
+			window.location.href = `/set/${uniqueLinkCode}`;
 		});
 } else {
 	container.className = 'empty-state';

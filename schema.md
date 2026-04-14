@@ -75,6 +75,14 @@ CREATE TABLE task_starts (
 	UNIQUE (student_id, task_id)
 );
 
+CREATE TABLE task_sessions (
+	id SERIAL PRIMARY KEY,
+	task_start_id INTEGER NOT NULL REFERENCES task_starts(id) ON DELETE CASCADE,
+	entered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	exited_at TIMESTAMPTZ,
+	exit_reason VARCHAR(50)
+);
+
 CREATE TABLE task_attempts (
 	id SERIAL PRIMARY KEY,
 	student_id INTEGER NOT NULL REFERENCES student(id) ON DELETE CASCADE,

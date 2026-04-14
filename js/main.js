@@ -17,8 +17,8 @@ let probEl;
 // Global variable to store task ID for local storage operations
 let globalTaskId;
 
-// Global variable to store task start time
-let globalTaskStartTime;
+// Global variable to store unique_link_code for API calls
+let globalUniqueLinkCode;
 
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
@@ -33,6 +33,7 @@ export async function initWidget() {
 		// Path format: set/unique_link_code/tasks/task_id
 		if (pathParts.length >= 4 && pathParts[2] === 'tasks') {
 			globalTaskId = pathParts[3];
+			globalUniqueLinkCode = pathParts[1];
 		}
 	}
 
@@ -51,9 +52,6 @@ export async function initWidget() {
 		}
 
 		const task = await response.json();
-
-		// Retrieve task start time from localStorage (set when user clicked Start button)
-		globalTaskStartTime = localStorage.getItem(`task_${globalTaskId}_start_time`);
 
 		// Parse task instructions JSON
 		let parsedInstructions = {};
@@ -222,7 +220,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader) {
 		edits: edits || [] // Include recorded blank edits with the submission
 		};
 
-		const response = await fetch(`/api/tasks/${globalTaskId}/submit-result`, {
+		const response = await fetch(`/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}/submit-result`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -231,8 +229,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader) {
 		});
 
 		if (response.ok) {
-			const data = await response.json();
-			console.log('Test results and moves saved to backend with attempt ID:', data.attempt_id);
+			await response.json();
 			// Clean up the start time from localStorage after successful submission
 			localStorage.removeItem(`task_${globalTaskId}_start_time`);
 		} else {

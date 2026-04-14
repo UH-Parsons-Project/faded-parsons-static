@@ -38,7 +38,7 @@ function showPageContent() {
 // Check if the user has already started this task in the database
 async function checkAndRedirectIfStarted() {
 	try {
-		const response = await fetch(`/api/tasks/${taskId}/has-started`, { credentials: 'include' });
+		const response = await fetch(`/api/sets/${uniqueLinkCode}/tasks/${taskId}/has-started`, { credentials: 'include' });
 		if (response.ok) {
 			const data = await response.json();
 			if (data.has_started) {
@@ -73,18 +73,21 @@ if (startBtn) {
 			startBtn.disabled = true;
 			startBtn.textContent = 'Starting...';
 
-			// Call the backend to create the TaskStart record
-			const response = await fetch(`/api/tasks/${taskId}/start`, {
+			// Call the backend to create the enrollment record and first session
+			const response = await fetch(`/api/sets/${uniqueLinkCode}/tasks/${taskId}/start`, {
 				method: 'POST',
 				credentials: 'include',
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
-			
+
 			if (!response.ok) {
 				throw new Error('Failed to start task. Please try again.');
 			}
+
+			const data = await response.json();
+			sessionStorage.setItem(`task_session_${taskId}`, data.session_id);
 
 			// On success, navigate to the task page
 			window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;

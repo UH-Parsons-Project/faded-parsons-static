@@ -61,7 +61,7 @@ test('teacher can see empty student submission in task set statistics under "stu
 
   // Wait for problem page and submit
   await studentPage.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
-  await studentPage.locator('.btn.btn-primary').click();
+  await studentPage.getByRole('button', { name: 'Run Tests' }).click();
 
   // Wait for submission to complete
   await studentPage.waitForSelector('test-results-element', { timeout: 30000 });

@@ -90,8 +90,8 @@ async function loadStatistics() {
 	document.getElementById('avg-tries').textContent = data.avg_tries ?? 0;
 
 	if (data.model_answer) {
-		document.getElementById('model-answer-box').style.display = 'block';
-		document.getElementById('model-answer-code').textContent = data.model_answer;
+		document.getElementById('model-answer-content').innerHTML =
+			`<pre class="model-answer-code mb-0"><code>${escapeHtml(data.model_answer)}</code></pre>`;
 	}
 
 	if (data.time_to_first_fail) setStatGroup('tff-avg', 'tff-min', 'tff-max', data.time_to_first_fail);

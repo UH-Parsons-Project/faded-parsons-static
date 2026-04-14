@@ -65,11 +65,6 @@
         <div id="task-instructions-content" class="mt-2"></div>
       </div>
 
-      <div class="stat-box mb-3" id="model-answer-box" style="display: none;">
-        <h5>Model Answer</h5>
-        <pre class="attempt-code model-answer-code mb-0"><code id="model-answer-content"></code></pre>
-      </div>
-
       <div class="statistics-layout">
 
         <!-- Left: collapsible panels -->
@@ -125,6 +120,17 @@
         <div class="statistics-column">
           <div class="statistics-sticky">
 
+            <!-- Model answer -->
+            <div class="attempts-header" id="model-answer-header">
+              <div class="attempts-header-title">
+                <h4 style="font-size:1rem;margin:0;"><i class="fas fa-check-square mr-2"></i>Model Answer</h4>
+                <i class="fas fa-chevron-down expand-icon" id="model-answer-expand-icon"></i>
+              </div>
+            </div>
+            <div class="attempts-list mb-2" id="model-answer-content" style="display:none;">
+              <div class="p-3"><em class="text-muted">No model answer available.</em></div>
+            </div>
+
             <!-- Summary -->
             <div class="stat-box sts-summary-box">
               <h5 class="sts-box-title">Summary</h5>
@@ -178,15 +184,13 @@
           </div>
 
           <!-- Session log -->
-          <div class="stat-box mt-2 p-0" id="sessions-box">
-            <div class="attempts-header" id="sessions-header" style="border-radius:8px;">
-              <div class="attempts-header-title">
-                <h4 style="font-size:1rem;margin:0;"><i class="fas fa-clock mr-2"></i>Session Log (<span id="sessions-count">0</span>)</h4>
-                <i class="fas fa-chevron-down expand-icon" id="sessions-expand-icon"></i>
-              </div>
+          <div class="attempts-header" id="sessions-header">
+            <div class="attempts-header-title">
+              <h4 style="font-size:1rem;margin:0;"><i class="fas fa-clock mr-2"></i>Session Log (<span id="sessions-count">0</span>)</h4>
+              <i class="fas fa-chevron-down expand-icon" id="sessions-expand-icon"></i>
             </div>
-            <div class="attempts-list" id="sessions-list"></div>
           </div>
+          <div class="attempts-list" id="sessions-list"></div>
 
           <!-- Session exit -->
           <div class="stat-box sts-metric-box" id="exit-info-box" style="display:none;">

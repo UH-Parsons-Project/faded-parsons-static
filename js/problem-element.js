@@ -1,7 +1,7 @@
 /* global ParsonsWidget */
 
 // Lit web component base + templating and styling utilities
-import {LitElement, html, css} from 'lit';
+import {LitElement, html} from 'lit';
 // Allows rendering HTML strings safely for trusted content
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 // Ref helpers to access rendered DOM nodes
@@ -31,18 +31,9 @@ export class ProblemElement extends LitElement {
 		resultsDetails: {type: String},
 	};
 
-	static styles = css`
-		/* Layout proportions for the two Parsons columns within the widget */
-		.starter {
-			width: 40%;
-		}
-		.solution {
-			width: 58%;
-			margin-left: 2%;
-		}
-	`;
-
 	// Refs to the container elements bound to the Parsons widget
+	taskCardRef = createRef();
+	testResultsCardRef = createRef();
 	starterRef = createRef();
 	solutionRef = createRef();
 
@@ -107,7 +98,7 @@ export class ProblemElement extends LitElement {
 			<div class="row mt-4 align-items-start">
 				<!-- Parsons widget area: starter (trash) and solution columns -->
 				<div class="col-12 col-lg-9 mb-4 mb-lg-0">
-					<div class="card">
+						<div class="card" ${ref(this.taskCardRef)}>
 						<div class="card-body">
 							<div
 								${ref(this.starterRef)}
@@ -142,13 +133,11 @@ export class ProblemElement extends LitElement {
 				<!-- Right column: test results -->
 				<div class="col-12 col-lg-3">
 					<!-- Test results card -->
-					<div class="card">
+					<div class="card test-results-card" ${ref(this.testResultsCardRef)}>
 						<div class="card-header">
 							<h4>Test Cases</h4>
 						</div>
-						<div id="test_description">
-							<div class="card-body">${results}</div>
-						</div>
+						<div id="test_description" class="card-body">${results}</div>
 					</div>
 				</div>
 			</div>
@@ -161,7 +150,27 @@ export class ProblemElement extends LitElement {
 		console.log('Move recorded locally:', moveData);
 	};
 
+	syncTestCardHeight = () => {
+		const taskCard = this.taskCardRef.value;
+		const testCard = this.testResultsCardRef.value;
+		if (!taskCard || !testCard) {
+			return;
+		}
+
+		testCard.style.height = `${taskCard.offsetHeight}px`;
+	};
+
 	firstUpdated() {
+		this.syncTestCardHeight();
+		window.addEventListener('resize', this.syncTestCardHeight);
+
+		if (window.ResizeObserver && this.taskCardRef.value) {
+			this.taskCardResizeObserver = new ResizeObserver(() => {
+				this.syncTestCardHeight();
+			});
+			this.taskCardResizeObserver.observe(this.taskCardRef.value);
+		}
+
 		const getListName = (listEl) => {
 			if (!listEl) {
 				return 'unknown';
@@ -307,6 +316,26 @@ export class ProblemElement extends LitElement {
 
 		attachEditTracking(this.solutionRef.value);
 		attachEditTracking(this.starterRef.value);
+	}
+
+		updated(changedProperties) {
+			super.updated(changedProperties);
+			if (
+				changedProperties.has('resultsStatus') ||
+				changedProperties.has('resultsHeader') ||
+				changedProperties.has('resultsDetails')
+			) {
+				requestAnimationFrame(() => this.syncTestCardHeight());
+			}
+		}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		window.removeEventListener('resize', this.syncTestCardHeight);
+		if (this.taskCardResizeObserver) {
+			this.taskCardResizeObserver.disconnect();
+			this.taskCardResizeObserver = null;
+		}
 	}
 
 	onRun() {

@@ -233,13 +233,8 @@
     });
 
     submitBtn.addEventListener('click', async () => {
-      const taskCode = taskCodeInput.value.trim();
-      const taskTests = taskTestsInput.value.trim();
-
-      if (!taskCode || !taskTests) {
-        alert('Please fill in both the task code and the tests.');
-        return;
-      }
+      const taskCode = taskCodeInput.value;
+      const taskTests = taskTestsInput.value;
 
       try {
         const draftPayload = {

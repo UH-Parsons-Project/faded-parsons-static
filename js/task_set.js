@@ -49,15 +49,23 @@ async function loadProblemsetInfo() {
 
 async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
 	try {
-		const response = await fetch('/api/tasks/' + encodeURIComponent(taskId) + '/my-completion-status', {
-			credentials: 'include'
-		});
+		const encodedTaskId = encodeURIComponent(taskId);
+		const [completionResponse, startedResponse] = await Promise.all([
+			fetch('/api/tasks/' + encodedTaskId + '/my-completion-status', {
+				credentials: 'include'
+			}),
+			fetch('/api/tasks/' + encodedTaskId + '/has-started', {
+				credentials: 'include'
+			}),
+		]);
 
-		if (!response.ok) {
+		if (!completionResponse.ok || !startedResponse.ok) {
 			return;
 		}
 
-		const stats = await response.json();
+		const stats = await completionResponse.json();
+		const startedData = await startedResponse.json();
+		const hasStarted = Boolean(startedData.has_started);
 		const studentAttempts = Number(stats.student_attempts || 0);
 		const studentCompleted = Number(stats.student_completed || 0);
 
@@ -66,7 +74,7 @@ async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElem
 			statusElement.innerHTML = '<i class="fas fa-check-circle"></i>Completed';
 			if (numberElement) numberElement.classList.add('completed');
 			tasksList[itemIndex].isCompleted = true;
-		} else if (studentAttempts > 0) {
+		} else if (hasStarted) {
 			statusElement.className = 'task-set-meta task-in-progress';
 			statusElement.innerHTML = '<i class="fas fa-clock"></i>In Progress';
 			tasksList[itemIndex].isCompleted = false;

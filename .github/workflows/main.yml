@@ -5,41 +5,6 @@ on:
   pull_request:
 
 jobs:
-  build-test-images:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      web_test_image: ${{ steps.image-meta.outputs.web_test_image }}
-      playwright_test_image: ${{ steps.image-meta.outputs.playwright_test_image }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Compute image tags
-        id: image-meta
-        run: |
-          set -euo pipefail
-          image_repo="ghcr.io/${GITHUB_REPOSITORY,,}"
-          echo "web_test_image=${image_repo}-web-test:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          echo "playwright_test_image=${image_repo}-playwright-test:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Build and push web-test image
-        run: |
-          set -euo pipefail
-          docker build -f dockerfile -t "${{ steps.image-meta.outputs.web_test_image }}" .
-          docker push "${{ steps.image-meta.outputs.web_test_image }}"
-
-      - name: Build and push Playwright test image
-        run: |
-          set -euo pipefail
-          docker build -f Dockerfile.test -t "${{ steps.image-meta.outputs.playwright_test_image }}" .
-          docker push "${{ steps.image-meta.outputs.playwright_test_image }}"
-
   unit-tests:
     runs-on: ubuntu-latest
 
@@ -70,20 +35,12 @@ jobs:
           verbose: true
 
   playwright-tests:
-    if: ${{ always() && needs.unit-tests.result == 'success' }}
     timeout-minutes: 60
     runs-on: ubuntu-latest
-    needs: [unit-tests, build-test-images]
-    permissions:
-      contents: read
-      packages: read
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    env:
-      WEB_TEST_IMAGE: ${{ needs.build-test-images.outputs.web_test_image }}
-      PLAYWRIGHT_TEST_IMAGE: ${{ needs.build-test-images.outputs.playwright_test_image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -94,40 +51,12 @@ jobs:
       - name: Clean up Docker resources
         run: docker compose down -v
         continue-on-error: true
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Pull prebuilt test images
-        id: pull-images
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          docker pull "$WEB_TEST_IMAGE"
-          docker pull "$PLAYWRIGHT_TEST_IMAGE"
-
-      - name: Enable local build fallback
-        if: ${{ steps.pull-images.outcome != 'success' }}
-        run: |
-          echo "FALLBACK_BUILD=true" >> "$GITHUB_ENV"
-          # Force compose to use local default image names when registry images are unavailable.
-          echo "WEB_TEST_IMAGE=parsons-code-lab-web-test" >> "$GITHUB_ENV"
-          echo "PLAYWRIGHT_TEST_IMAGE=parsons-code-lab-test" >> "$GITHUB_ENV"
-
-      - name: Start web stack for Playwright shard (prebuilt images)
-        if: ${{ steps.pull-images.outcome == 'success' }}
-        run: docker compose --profile test up -d --no-build db web-test
-
-      - name: Build and start web stack for Playwright shard (fallback)
-        if: ${{ steps.pull-images.outcome != 'success' }}
-        run: docker compose --profile test up -d --build db web-test
-
-      - name: Build Playwright test image (fallback)
-        if: ${{ steps.pull-images.outcome != 'success' }}
-        run: docker compose --profile test build test
+      
+      - name: Start web stack for Playwright shard
+        run: docker compose --profile test up --build -d db web-test
 
       - name: Run Playwright shard
-        run: docker compose --profile test run --rm --no-build --no-deps test npx playwright test --shard=${{ matrix.shard }}/2
+        run: docker compose --profile test run --rm test npx playwright test --shard=${{ matrix.shard }}/2
 
       - name: Tear down Docker resources
         if: always()

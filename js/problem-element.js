@@ -75,7 +75,7 @@ export class ProblemElement extends LitElement {
 			<!-- Top row: problem statement + general guidance -->
 			<div class="row mt-3 align-items-stretch">
 				<div class="col-12 col-lg-9 mb-3 mb-lg-0">
-					<div class="card h-100">
+					<div class="card h-100 top-info-card">
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
@@ -83,7 +83,7 @@ export class ProblemElement extends LitElement {
 					</div>
 				</div>
 				<div class="col-12 col-lg-3">
-					<div class="card h-100">
+					<div class="card h-100 top-info-card">
 						<div class="card-header">
 							<h4>General Guidance</h4>
 						</div>

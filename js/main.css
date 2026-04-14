@@ -321,6 +321,27 @@
   padding-bottom: 30px;
 }
 
+.top-info-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.top-info-card .card-header h3,
+.top-info-card .card-header h4 {
+  margin: 0;
+}
+
+.test-results-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.test-results-card .card-header h4 {
+  margin: 0;
+}
+
 .starter {
   width: 40%;
 }

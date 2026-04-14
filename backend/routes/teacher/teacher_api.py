@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 from datetime import timedelta
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
@@ -101,7 +102,10 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
 
     valid_token = None
     for token_obj in all_tokens:
-        if verify_token(registration_token, token_obj.token_hash):
+        # bcrypt verification is CPU-bound; offload so the event loop remains responsive
+        # large ammount of tokens is currently causing a crash
+        # probably need to move to a system where the tokens use a different hash algorithm
+        if await asyncio.to_thread(verify_token, registration_token, token_obj.token_hash):
             valid_token = token_obj
             break
 

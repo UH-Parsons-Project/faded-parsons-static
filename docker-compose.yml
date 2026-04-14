@@ -43,6 +43,7 @@ services:
 
   # Web app instance for running tests against
   web-test:
+    image: ${WEB_TEST_IMAGE:-parsons-code-lab-web-test}
     build:
       context: .
       dockerfile: dockerfile
@@ -80,6 +81,7 @@ services:
   # Playwright test runner
   test:
     profiles: ["test"]
+    image: ${PLAYWRIGHT_TEST_IMAGE:-parsons-code-lab-test}
     build:
       context: .
       dockerfile: Dockerfile.test
@@ -92,3 +94,4 @@ services:
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
+      - ./playwright-report:/usr/src/app/playwright-report

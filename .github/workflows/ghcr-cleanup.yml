@@ -1,0 +1,76 @@
+name: GHCR Cleanup
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup-ghcr-images:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Delete old GHCR image versions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const packageType = 'container';
+            const packageNames = [
+              'parsons-code-lab-web-test',
+              'parsons-code-lab-playwright-test'
+            ];
+            const keepLatest = 30;
+            const maxAgeDays = 30;
+            const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+
+            for (const packageName of packageNames) {
+              core.info(`Checking package ${packageName}`);
+
+              let versions = [];
+              try {
+                versions = await github.paginate(
+                  github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg,
+                  {
+                    package_type: packageType,
+                    package_name: packageName,
+                    org: owner,
+                    per_page: 100,
+                  }
+                );
+              } catch (err) {
+                core.warning(`Skipping ${packageName}: ${err.message}`);
+                continue;
+              }
+
+              versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              const protectedIds = new Set(versions.slice(0, keepLatest).map(v => v.id));
+              let deleted = 0;
+
+              for (const version of versions) {
+                const created = new Date(version.created_at).getTime();
+                const isProtected = protectedIds.has(version.id);
+                const isOld = created < cutoff;
+
+                if (!isProtected && isOld) {
+                  try {
+                    await github.rest.packages.deletePackageVersionForOrg({
+                      package_type: packageType,
+                      package_name: packageName,
+                      org: owner,
+                      package_version_id: version.id,
+                    });
+                    deleted += 1;
+                    core.info(`Deleted ${packageName} version id=${version.id}`);
+                  } catch (err) {
+                    core.warning(`Failed to delete ${packageName} version id=${version.id}: ${err.message}`);
+                  }
+                }
+              }
+
+              core.info(`Cleanup done for ${packageName}. Deleted ${deleted} old versions.`);
+            }

@@ -1,17 +1,23 @@
 const WARN_AFTER_MS = 25 * 60 * 1000;    // show warning at 25 min
 const REDIRECT_AFTER_MS = 30 * 60 * 1000; // redirect at 30 min
 
-export async function initInactivityTimer(taskId, dashboardUrl) {
+export async function initInactivityTimer(taskId, uniqueLinkCode, dashboardUrl) {
 	let warnTimer = null;
 	let redirectTimer = null;
 	let pendingExitReason = null;
 	let sessionId = null;
 
-	// Record entry and get session_id
-	try {
-		const res = await fetch(`/api/tasks/${taskId}/enter`, { method: 'POST' });
-		if (res.ok) sessionId = (await res.json()).session_id;
-	} catch (_) {}
+	// Use session created by /start (first visit) or create a new one via /enter (return visits)
+	const storedSessionId = sessionStorage.getItem(`task_session_${taskId}`);
+	if (storedSessionId) {
+		sessionId = parseInt(storedSessionId, 10);
+		sessionStorage.removeItem(`task_session_${taskId}`);
+	} else {
+		try {
+			const res = await fetch(`/api/sets/${uniqueLinkCode}/tasks/${taskId}/enter`, { method: 'POST' });
+			if (res.ok) sessionId = (await res.json()).session_id;
+		} catch (_e) { /* session unavailable */ }
+	}
 
 	const sendExitBeacon = (reason) => {
 		const payload = new Blob(
@@ -59,7 +65,7 @@ export async function initInactivityTimer(taskId, dashboardUrl) {
 		redirectTimer = setTimeout(async () => {
 			pendingExitReason = 'inactivity_timeout';
 			try {
-				await fetch(`/api/tasks/${taskId}/record-exit`, {
+				await fetch(`/api/sets/${uniqueLinkCode}/tasks/${taskId}/record-exit`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -68,7 +74,7 @@ export async function initInactivityTimer(taskId, dashboardUrl) {
 						exit_reason: 'inactivity_timeout',
 					}),
 				});
-			} catch (_) {}
+			} catch (_e) { /* best-effort — redirect regardless */ }
 			window.location.href = dashboardUrl;
 		}, REDIRECT_AFTER_MS);
 	};
@@ -93,8 +99,7 @@ export async function initInactivityTimer(taskId, dashboardUrl) {
 
 	// Page close / tab close / navigation away
 	window.addEventListener('pagehide', () => {
-		if (!pendingExitReason) pendingExitReason = 'page_close';
-		sendExitBeacon(pendingExitReason);
+		sendExitBeacon(pendingExitReason || 'page_close');
 	});
 
 	reset(); // start the timer

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken, Student, StudentTaskSetEnrollment, TaskAttempt, TaskStart
+from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken, Student, StudentTaskSetEnrollment, TaskAttempt, StudentTaskEnrollment
 from .migrate_tasks import migrate_tasks
 from backend.utils import hash_token
 
@@ -234,21 +234,22 @@ async def seed_mock_activity():
                 session.add(enrollment)
                 await session.flush()
 
-                # Create task start
+                # Create task enrollment
                 task = tasks[j % len(tasks)]
-                task_start = TaskStart(
+                enrollment = StudentTaskEnrollment(
                     student_id=student.id,
                     task_id=task.id,
+                    task_set_id=task_set.id,
                     started_at=activity_date - timedelta(hours=j * 2)
                 )
-                session.add(task_start)
+                session.add(enrollment)
                 await session.flush()
 
                 # Create task attempt (submission)
                 attempt = TaskAttempt(
                     student_id=student.id,
                     task_id=task.id,
-                    task_start_id=task_start.id,
+                    student_task_enrollment_id=enrollment.id,
                     completed_at=activity_date - timedelta(hours=j * 2, minutes=30),
                     success=j % 3 != 0,  # 2/3 success rate
                     submitted_order={},

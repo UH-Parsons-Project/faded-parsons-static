@@ -12,7 +12,7 @@ from ...models import (
     TaskAttempt,
     TaskSet,
     TaskSetItem,
-    TaskStart,
+    StudentTaskEnrollment,
     TaskSession,
     ModelAnswer,
 )
@@ -110,29 +110,31 @@ async def get_student_task_statistics(
         )
 
     stmt = (
-        select(TaskAttempt, TaskStart)
+        select(TaskAttempt, StudentTaskEnrollment)
         .join(Student, Student.id == TaskAttempt.student_id)
-        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
         .where(Student.username == student_username)
         .where(TaskAttempt.task_id == task_id)
+        .where(StudentTaskEnrollment.task_set_id == task_set.id)
         .order_by(TaskAttempt.completed_at.asc())
     )
 
     result = await db.execute(stmt)
-    attempts_with_starts = result.all()
+    attempts_with_enrollments = result.all()
 
-    # Compute thinking time: time between TaskStart.started_at and first move/edit event
-    task_start_stmt = (
-        select(TaskStart)
-        .join(Student, Student.id == TaskStart.student_id)
+    # Compute thinking time: time between StudentTaskEnrollment.started_at and first move/edit event
+    enrollment_stmt = (
+        select(StudentTaskEnrollment)
+        .join(Student, Student.id == StudentTaskEnrollment.student_id)
         .where(Student.username == student_username)
-        .where(TaskStart.task_id == task_id)
+        .where(StudentTaskEnrollment.task_id == task_id)
+        .where(StudentTaskEnrollment.task_set_id == task_set.id)
     )
-    task_start_result = await db.execute(task_start_stmt)
-    task_start_record = task_start_result.scalar_one_or_none()
+    enrollment_result = await db.execute(enrollment_stmt)
+    enrollment_record = enrollment_result.scalar_one_or_none()
 
     thinking_time = None
-    if task_start_record and task_start_record.started_at:
+    if enrollment_record and enrollment_record.started_at:
         first_move_stmt = (
             select(func.min(MoveEvent.event_time))
             .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
@@ -153,26 +155,26 @@ async def get_student_task_statistics(
         candidates = [t for t in [first_move_time, first_edit_time] if t is not None]
         if candidates:
             first_event_time = min(candidates)
-            seconds = (first_event_time - task_start_record.started_at).total_seconds()
+            seconds = (first_event_time - enrollment_record.started_at).total_seconds()
             if seconds >= 0:
                 thinking_time = {"seconds": seconds}
 
-    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_with_starts]
+    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_with_enrollments]
 
     empty_attempts_count = 0
     filtered_attempts_data = []
-    for attempt, task_start in attempts_data:
+    for attempt, enrollment in attempts_data:
         if not (
             attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
         ):
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
         elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
         else:
             empty_attempts_count += 1
 
@@ -191,10 +193,10 @@ async def get_student_task_statistics(
     # Fetch all sessions for this student+task
     sessions_data = []
     total_time_seconds = None
-    if task_start_record:
+    if enrollment_record:
         sessions_stmt = (
             select(TaskSession)
-            .where(TaskSession.task_start_id == task_start_record.id)
+            .where(TaskSession.student_task_enrollment_id == enrollment_record.id)
             .order_by(TaskSession.entered_at.asc())
         )
         sessions_result = await db.execute(sessions_stmt)
@@ -236,7 +238,7 @@ async def get_student_task_statistics(
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
     failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
 
-    first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
+    first_success_pair = next(((a, en) for a, en in attempts_data if a.success), None)
     def active_time_to(target_dt):
         """Sum session durations up to target_dt (active page time only)."""
         if not target_dt or not task_sessions:
@@ -250,7 +252,7 @@ async def get_student_task_statistics(
         return total if total > 0 else None
 
     time_to_first_success = None
-    first_success_pair = next(((a, ts) for a, ts in attempts_data if a.success), None)
+    first_success_pair = next(((a, en) for a, en in attempts_data if a.success), None)
     if first_success_pair:
         attempt, _ = first_success_pair
         if attempt.completed_at:
@@ -258,7 +260,7 @@ async def get_student_task_statistics(
             if secs is not None:
                 time_to_first_success = {"seconds": secs}
 
-    first_fail_pair = next(((a, ts) for a, ts in attempts_data if not a.success), None)
+    first_fail_pair = next(((a, en) for a, en in attempts_data if not a.success), None)
     time_to_first_fail = None
     if first_fail_pair:
         attempt, _ = first_fail_pair
@@ -268,7 +270,7 @@ async def get_student_task_statistics(
                 time_to_first_fail = {"seconds": secs}
 
     attempts_detail = []
-    for i, (attempt, task_start) in enumerate(attempts_data, 1):
+    for i, (attempt, enrollment) in enumerate(attempts_data, 1):
         time_taken = active_time_to(attempt.completed_at) \
             if attempt.completed_at else None
         detail = {
@@ -316,8 +318,8 @@ async def get_task_statistics(
         )
 
     attempts_query = (
-        select(TaskAttempt, TaskStart)
-        .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
+        select(TaskAttempt, StudentTaskEnrollment)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
         .where(TaskAttempt.task_id == task_id)
     )
 
@@ -336,30 +338,28 @@ async def get_task_statistics(
         await require_task_set_view_access(task_set, current_user, db)
 
         attempts_query = (
-            select(TaskAttempt, TaskStart)
-            .join(TaskStart, TaskStart.id == TaskAttempt.task_start_id)
-            .join(Student, TaskAttempt.student_id == Student.id)
-            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
+            select(TaskAttempt, StudentTaskEnrollment)
+            .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
             .where(
                 TaskAttempt.task_id == task_id,
-                StudentTaskSetEnrollment.task_set_id == task_set.id
+                StudentTaskEnrollment.task_set_id == task_set.id
             )
         )
 
     attempts_result = await db.execute(attempts_query)
-    attempts_data = [(attempt, task_start) for attempt, task_start in attempts_result.all()]
+    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_result.all()]
 
     filtered_attempts_data = []
-    for attempt, task_start in attempts_data:
+    for attempt, enrollment in attempts_data:
         if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
             continue
 
         code = attempt.submitted_inputs.get("code", "")
         if not code:
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
         elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts_data.append((attempt, task_start))
+            filtered_attempts_data.append((attempt, enrollment))
 
     attempts_data = filtered_attempts_data
 
@@ -384,23 +384,23 @@ async def get_task_statistics(
     students_attempted = len(set(a.student_id for a, _ in attempts_data))
     students_completed = len(set(a.student_id for a, _ in successful_attempts))
 
-    # Fetch all sessions for this task, grouped by task_start_id
-    task_start_ids = list({ts.id for _, ts in attempts_data})
+    # Fetch all sessions for this task, grouped by student_task_enrollment_id
+    enrollment_ids = list({en.id for _, en in attempts_data})
     sessions_result = await db.execute(
         select(TaskSession)
-        .where(TaskSession.task_start_id.in_(task_start_ids))
+        .where(TaskSession.student_task_enrollment_id.in_(enrollment_ids))
         .order_by(TaskSession.entered_at.asc())
     )
     all_sessions = sessions_result.scalars().all()
-    sessions_by_start: dict = {}
+    sessions_by_enrollment: dict = {}
     for s in all_sessions:
-        sessions_by_start.setdefault(s.task_start_id, []).append(s)
+        sessions_by_enrollment.setdefault(s.student_task_enrollment_id, []).append(s)
 
-    def active_time_to(task_start_id, target_dt):
-        """Sum session durations up to target_dt for a given task_start."""
+    def active_time_to(enrollment_id, target_dt):
+        """Sum session durations up to target_dt for a given enrollment."""
         if not target_dt:
             return None
-        slist = sessions_by_start.get(task_start_id, [])
+        slist = sessions_by_enrollment.get(enrollment_id, [])
         total = 0.0
         for s in slist:
             if s.entered_at >= target_dt:
@@ -410,8 +410,8 @@ async def get_task_statistics(
         return total if total > 0 else None
 
     student_attempts: dict = {}
-    for attempt, task_start in attempts_data:
-        student_attempts.setdefault(attempt.student_id, []).append((attempt, task_start))
+    for attempt, enrollment in attempts_data:
+        student_attempts.setdefault(attempt.student_id, []).append((attempt, enrollment))
 
     tries_before_success = []
     for session_attempts in student_attempts.values():
@@ -432,9 +432,9 @@ async def get_task_statistics(
             session_attempts,
             key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
         )
-        for attempt, task_start in sorted_attempts:
+        for attempt, enrollment in sorted_attempts:
             if not attempt.success and attempt.completed_at:
-                secs = active_time_to(task_start.id, attempt.completed_at)
+                secs = active_time_to(enrollment.id, attempt.completed_at)
                 if secs is not None:
                     tff_values.append(secs)
                 break
@@ -450,9 +450,9 @@ async def get_task_statistics(
             session_attempts,
             key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
         )
-        for attempt, task_start in sorted_attempts:
+        for attempt, enrollment in sorted_attempts:
             if attempt.success and attempt.completed_at:
-                secs = active_time_to(task_start.id, attempt.completed_at)
+                secs = active_time_to(enrollment.id, attempt.completed_at)
                 if secs is not None:
                     tfs_values.append(secs)
                 break

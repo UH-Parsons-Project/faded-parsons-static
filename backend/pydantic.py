@@ -113,6 +113,12 @@ class EditEventData(BaseModel):
     event_time: str
 
 
+class StartTaskResponse(BaseModel):
+    started_at: str
+    session_id: int
+    entered_at: str
+
+
 class EnterTaskResponse(BaseModel):
     session_id: int
     entered_at: str

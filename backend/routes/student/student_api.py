@@ -208,9 +208,14 @@ async def get_my_completion_status(
     if not task_set:
         raise HTTPException(status_code=404, detail="Task set not found")
 
-    stmt = select(TaskAttempt).where(
-        (TaskAttempt.student_id == student_session.id) &
-        (TaskAttempt.task_id == task_id)
+    stmt = (
+        select(TaskAttempt)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
+        .where(
+            (TaskAttempt.student_id == student_session.id) &
+            (TaskAttempt.task_id == task_id) &
+            (StudentTaskEnrollment.task_set_id == task_set.id)
+        )
     )
     result = await db.execute(stmt)
     attempts = result.scalars().all()

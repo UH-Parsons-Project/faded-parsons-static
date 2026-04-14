@@ -45,7 +45,10 @@ export async function initWidget() {
 
 	try {
 		// Fetch task from API
-		const response = await fetch(`/api/tasks/${globalTaskId}`);
+		const taskApiUrl = globalUniqueLinkCode
+			? `/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}`
+			: `/api/tasks/${globalTaskId}`;
+		const response = await fetch(taskApiUrl);
 
 		if (!response.ok) {
 			throw new Error(`Failed to fetch task: ${response.statusText}`);

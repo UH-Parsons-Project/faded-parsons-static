@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import RedirectResponse
 from typing import Callable, Any
 
+from ...models import TaskSetItem
+
 
 async def get_task_set_or_404(db: AsyncSession, task_set_model, task_set_id: int):
     stmt = select(task_set_model).where(task_set_model.id == task_set_id)
@@ -30,6 +32,33 @@ async def get_task_set_by_code_or_404(db: AsyncSession, task_set_model, unique_l
             detail=f"Problem set with code {unique_link_code} not found",
         )
     return task_set
+
+
+async def resolve_task_id_in_set_or_404(db: AsyncSession, task_set, task_position: int) -> int:
+    """Resolve a 1-based task position inside a set to the underlying task id."""
+    if task_position < 1:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this set",
+        )
+
+    stmt = (
+        select(TaskSetItem.task_id)
+        .where(TaskSetItem.task_set_id == task_set.id)
+        .order_by(TaskSetItem.id.asc())
+        .offset(task_position - 1)
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    task_id = result.scalar_one_or_none()
+
+    if task_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this set",
+        )
+
+    return task_id
 
 
 def build_taskset_response_list(rows: Iterable):

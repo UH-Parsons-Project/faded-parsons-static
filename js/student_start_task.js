@@ -103,7 +103,7 @@ if (startBtn) {
 }
 
 // Fetch task instructions and render them
-fetch(`/api/tasks/${taskId}`, { credentials: 'include' })
+fetch(`/api/sets/${uniqueLinkCode}/tasks/${taskId}`, { credentials: 'include' })
 	.then((response) => {
 		if (!response.ok) {
 			throw new Error('Failed to load task instructions.');

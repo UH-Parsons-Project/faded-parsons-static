@@ -290,7 +290,7 @@ class TestGetMe:
             "id": test_teacher.id,
             "username": "testteacher",
             "email": "test@example.com",
-            "has_data_access": False,
+            "is_admin_teacher": False,
             "role": "Teacher",
         }
 

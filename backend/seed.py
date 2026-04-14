@@ -30,7 +30,7 @@ async def seed_db():
             test = Teacher(
                 username="mattiruotsalainen",
                 email="matti.ruotsalainen@example.com",
-                has_data_access=True
+                is_admin_teacher=True
             )
             test.set_password("test1234")  # Change in production!
 

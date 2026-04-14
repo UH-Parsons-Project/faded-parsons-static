@@ -10,7 +10,7 @@ class UserInfo(BaseModel):
     id: int
     username: str
     email: str
-    has_data_access: bool
+    is_admin_teacher: bool
     role: str
 
 

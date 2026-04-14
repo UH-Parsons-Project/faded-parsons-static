@@ -463,6 +463,9 @@
 		}
 
 		var that = this;
+		// True when stop already called onSortableUpdate (same-container drop).
+		// Prevents update from calling it a second time for the same interaction.
+		var _stopHandledUpdate = false;
 
 		var sortable = $(this.options.sortableId.querySelector('ul')).sortable({
 			stop: function (event, ui) {
@@ -474,6 +477,14 @@
 					ui.item[0].id
 				);
 				that.updateHTMLIndent(ui.item[0].id);
+				// Call onSortableUpdate here so indent-only changes (where update
+				// never fires because DOM order didn't change) are captured too.
+				_stopHandledUpdate = true;
+				that.options.onSortableUpdate(event);
+				// Reset flag after current tick — if update fires synchronously
+				// after stop (position change), it will see the flag and skip.
+				// If update never fires (indent-only), setTimeout resets it cleanly.
+				setTimeout(() => { _stopHandledUpdate = false; }, 0);
 			},
 			receive: function (event, ui) {
 				that.updateIndent(
@@ -484,7 +495,13 @@
 			},
 			update: (e) => {
 				this.setLineNumbers();
-				this.options.onSortableUpdate(e);
+				// For cross-list moves (starter→solution), stop fires on the source
+				// and returns early, so _stopHandledUpdate is never set — call here.
+				// For same-container moves, stop already called it — skip.
+				if (!_stopHandledUpdate) {
+					this.options.onSortableUpdate(e);
+				}
+				_stopHandledUpdate = false;
 			},
 			grid: that.options.can_indent ? [that.options.x_indent, 1] : false,
 		});

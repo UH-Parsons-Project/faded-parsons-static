@@ -317,6 +317,110 @@
   font-weight: 600;
 }
 
+.student-problem-page {
+  padding-bottom: 30px;
+}
+
+.top-info-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.top-info-card .card-header h3,
+.top-info-card .card-header h4 {
+  margin: 0;
+}
+
+.test-results-card .card-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.test-results-card .card-header h4 {
+  margin: 0;
+}
+
+.starter {
+  width: 40%;
+}
+
+.solution {
+  width: 58%;
+  margin-left: 2%;
+}
+
+.test-results-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.test-results-card > .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+test-results-element {
+  display: block;
+  min-height: 0;
+}
+
+.test-results-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.test-result-summary {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.test-result-summary.full-pass {
+  background: #d4edda;
+  border-color: #b7df9f;
+  color: #000000;
+}
+
+.test-result-summary.partial-pass {
+  background: #fff9c4;
+  border-color: #f4e28a;
+  color: #000000;
+}
+
+.test-result-summary.no-pass {
+  background: #f8d7da;
+  border-color: #f1b0b7;
+  color: #000000;
+}
+
+.test-results-details {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.1rem 0.1rem;
+}
+
+.test-details-line {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 0 0.35rem 0;
+}
+
 /* Task Set Statistics - Two Column Layout */
 .statistics-layout {
   display: flex;
@@ -1370,15 +1474,45 @@
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  align-items: stretch;
+}
+
+.replay-column-inner {
+  height: 300px;
+  overflow-y: auto;
+}
+
+.replay-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.replay-slider {
+  width: 100%;
+  cursor: pointer;
+  accent-color: #6c757d;
+}
+
+.replay-controls-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .replay-column {
   flex: 1;
   min-height: 60px;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #efefff;
+  border: 1px solid #efefff;
   border-radius: 4px;
   padding: 8px;
+}
+
+.replay-column:last-child {
+  background: #ffffaa;
+  border-color: #ffffaa;
 }
 
 .replay-column-header {
@@ -1391,9 +1525,9 @@
 }
 
 .replay-block {
-  background: white;
-  border: 1px solid #ced4da;
-  border-radius: 3px;
+  background: #efefef;
+  border: 1px solid lightgray;
+  border-radius: 10px;
   padding: 3px 8px;
   margin: 3px 0;
   font-family: monospace;
@@ -1423,6 +1557,42 @@
 .replay-block.debug {
   opacity: 0.35;
   font-style: italic;
+}
+
+.replay-block-inline {
+  display: inline;
+  padding: 1px 6px;
+  vertical-align: baseline;
+}
+
+.replay-run-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.replay-run-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.replay-run-fail {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.replay-run-success-board .replay-column {
+  border-color: #c3e6cb;
+  outline: 2px solid #c3e6cb;
+}
+
+.replay-run-fail-board .replay-column {
+  border-color: #f5c6cb;
+  outline: 2px solid #f5c6cb;
 }
 
 /* ── Student Task Statistics page ─────────────────────────────────────── */

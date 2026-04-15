@@ -499,9 +499,14 @@ async def get_task_moves(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    stmt = select(TaskAttempt).where(
-        (TaskAttempt.student_id == student.id) &
-        (TaskAttempt.task_id == task_id)
+    stmt = (
+        select(TaskAttempt)
+        .join(StudentTaskEnrollment, TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+        .where(
+            (TaskAttempt.student_id == student.id) &
+            (TaskAttempt.task_id == task_id) &
+            (StudentTaskEnrollment.task_set_id == set_id)
+        )
     )
     result = await db.execute(stmt)
     attempts = result.scalars().all()

@@ -366,16 +366,16 @@ async def submit_test_result(
 
     if result.moves:
         for move_data in result.moves:
-            move_kwargs = dict(
-                attempt_id=new_attempt.id,
-                block_id=move_data.block_id,
-                from_container=move_data.from_container,
-                to_container=move_data.to_container,
-                from_index=move_data.from_index,
-                to_index=move_data.to_index,
-                from_indent=move_data.from_indent,
-                to_indent=move_data.to_indent,
-            )
+            move_kwargs = {
+                "attempt_id": new_attempt.id,
+                "block_id": move_data.block_id,
+                "from_container": move_data.from_container,
+                "to_container": move_data.to_container,
+                "from_index": move_data.from_index,
+                "to_index": move_data.to_index,
+                "from_indent": move_data.from_indent,
+                "to_indent": move_data.to_indent,
+            }
             if move_data.event_time:
                 move_kwargs["event_time"] = datetime.fromisoformat(move_data.event_time)
             db.add(MoveEvent(**move_kwargs))

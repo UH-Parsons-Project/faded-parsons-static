@@ -159,7 +159,7 @@ async def get_student_task_statistics(
             if seconds >= 0:
                 thinking_time = {"seconds": seconds}
 
-    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_with_enrollments]
+    attempts_data = list(attempts_with_enrollments)
 
     empty_attempts_count = 0
     filtered_attempts_data = []
@@ -347,7 +347,7 @@ async def get_task_statistics(
         )
 
     attempts_result = await db.execute(attempts_query)
-    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_result.all()]
+    attempts_data = attempts_result.all()
 
     filtered_attempts_data = []
     for attempt, enrollment in attempts_data:

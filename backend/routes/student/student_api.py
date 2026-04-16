@@ -20,6 +20,12 @@ from ..utils.commons import validate_registration_basic, ensure_unique_user
 router = APIRouter()
 
 
+def _parse_iso_datetime(value: str):
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    return datetime.fromisoformat(value)
+
+
 @router.get("/api/student/me")
 async def get_student_me(
     student_session: Student | None = Depends(get_current_student_session_no_update),
@@ -347,7 +353,7 @@ async def submit_test_result(
                 to_indent=move_data.to_indent,
             )
             if move_data.event_time:
-                move_kwargs["event_time"] = datetime.fromisoformat(move_data.event_time)
+                move_kwargs["event_time"] = _parse_iso_datetime(move_data.event_time)
             db.add(MoveEvent(**move_kwargs))
 
     if result.edits:
@@ -357,7 +363,7 @@ async def submit_test_result(
                 block_id=edit_data.block_id,
                 blank_index=edit_data.blank_index,
                 value=edit_data.value,
-                event_time=datetime.fromisoformat(edit_data.event_time),
+                event_time=_parse_iso_datetime(edit_data.event_time),
             )
             db.add(edit)
 

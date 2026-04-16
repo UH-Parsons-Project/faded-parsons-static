@@ -11,6 +11,6 @@ __all__ += getattr(_utils, "__all__", [])
 __all__ += getattr(_token_utils, "__all__", [])
 
 # Also expose the token/tokenize modules for callers that previously used them
-import token as token  # pragma: no cover
-import tokenize as tokenize  # pragma: no cover
+import token  # pragma: no cover
+import tokenize  # pragma: no cover
 __all__ += ["token", "tokenize"]

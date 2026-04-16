@@ -1,14 +1,16 @@
 import asyncio
 from typing import Annotated
 from datetime import timedelta
-from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
-from sqlalchemy import select
 
-from ...models import Teacher, RegistrationToken
-from backend.utils import verify_token
+# Third-party
+from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Local
+from ...models import Teacher, RegistrationToken
+from backend.utils import verify_token
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ...pydantic import Token, UserInfo
@@ -30,7 +32,8 @@ async def login_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
-    elif not user.is_active:
+
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )

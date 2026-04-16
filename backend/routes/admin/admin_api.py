@@ -1,4 +1,3 @@
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -10,14 +9,14 @@ from ...auth import CurrentUser
 from ...database import get_db
 from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt
 from ...pydantic import (
-	TaskSetResponse,
-	CreateRegistrationTokenRequest,
-	RegistrationTokenResponse,
-	RegistrationTokenListItem,
-	UserActivityResponse,
-	UserActivityStats,
-	DailyActiveUser,
-	MonthlyActiveUser,
+    TaskSetResponse,
+    CreateRegistrationTokenRequest,
+    RegistrationTokenResponse,
+    RegistrationTokenListItem,
+    UserActivityResponse,
+    UserActivityStats,
+    DailyActiveUser,
+    MonthlyActiveUser,
 )
 from backend.utils import generate_token, hash_token
 import backend.config as config

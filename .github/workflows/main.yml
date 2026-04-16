@@ -56,8 +56,25 @@ jobs:
         run: docker compose down -v
         continue-on-error: true
       
-      - name: Start web stack for Playwright shard
-        run: docker compose --profile test up --build -d db web-test
+      - name: Start web stack for Playwright shard (retry on transient pull/build failures)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "Starting Playwright stack (attempt ${attempt}/3)"
+            if docker compose --profile test up --build -d db web-test; then
+              exit 0
+            fi
+
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "Compose startup failed, retrying in 20s..."
+              docker compose down -v --remove-orphans || true
+              sleep 20
+            fi
+          done
+
+          echo "Compose startup failed after 3 attempts"
+          exit 1
 
       - name: Run Playwright shard
         run: docker compose --profile test run --rm test npx playwright test --shard=${{ matrix.shard }}/4

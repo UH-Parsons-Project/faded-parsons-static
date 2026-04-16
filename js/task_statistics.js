@@ -6,6 +6,16 @@ initBurgerMenu();
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
 const task_setCode = params.get('task_set');
+const setId = params.get('set_id');
+
+const backBtn = document.getElementById('back-btn');
+if (backBtn) {
+	if (setId) {
+		backBtn.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
+	} else {
+		backBtn.href = '/teacher-dashboard';
+	}
+}
 
 function formatTime(seconds) {
 	if (seconds === null || seconds === undefined) return '—';

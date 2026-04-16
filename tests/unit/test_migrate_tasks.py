@@ -121,6 +121,26 @@ def hello():
 
         assert result == ["a_task", "b_task"]
 
+    def test_load_model_answer_file_unescapes_newlines(self, tmp_path, monkeypatch):
+        probs_dir = tmp_path / "parsons_probs"
+        probs_dir.mkdir()
+        (probs_dir / "hello_world.md").write_text("def hello():\\n    return 'hi'\\n")
+
+        monkeypatch.setattr(migrate_tasks, "PARSONS_PROBS_DIR", probs_dir)
+
+        result = migrate_tasks.load_model_answer_file("hello_world")
+
+        assert result == "def hello():\n    return 'hi'\n"
+
+    def test_load_model_answer_file_missing_returns_none(self, tmp_path, monkeypatch):
+        probs_dir = tmp_path / "parsons_probs"
+        probs_dir.mkdir()
+        monkeypatch.setattr(migrate_tasks, "PARSONS_PROBS_DIR", probs_dir)
+
+        result = migrate_tasks.load_model_answer_file("missing")
+
+        assert result is None
+
 
 class _FakeSession:
     def __init__(self, fail_flush: bool = False):
@@ -224,6 +244,11 @@ class TestMigrationFlow:
         monkeypatch.setattr(migrate_tasks, "load_task_file", fake_load_task_file)
         monkeypatch.setattr(
             migrate_tasks,
+            "load_model_answer_file",
+            lambda title: None if title == "existing" else "def model():\n    pass",
+        )
+        monkeypatch.setattr(
+            migrate_tasks,
             "async_session",
             lambda: _FakeSessionContext(fake_session),
         )
@@ -232,8 +257,9 @@ class TestMigrationFlow:
 
         assert fake_session.flush_count == 1
         assert fake_session.commit_count == 1
-        assert len(fake_session.added) == 1
+        assert len(fake_session.added) == 2
         assert fake_session.added[0].title == "new"
+        assert fake_session.added[1].answer_code == "def model():\n    pass"
 
     @pytest.mark.asyncio
     async def test_migrate_tasks_rolls_back_on_flush_error(self, monkeypatch):
@@ -259,6 +285,7 @@ class TestMigrationFlow:
                 "correct_solution": {"correct_order": [], "test_function": "test_fail"},
             },
         )
+        monkeypatch.setattr(migrate_tasks, "load_model_answer_file", lambda _: "def model():\n    pass")
         monkeypatch.setattr(
             migrate_tasks,
             "async_session",

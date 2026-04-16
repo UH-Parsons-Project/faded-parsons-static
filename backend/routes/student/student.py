@@ -6,12 +6,14 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from ...database import get_db
-from ...models import Student, TaskSet
+from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
-from ..utils.commons import get_task_set_by_code_or_404
+from ..utils.commons import get_task_set_by_code_or_404, resolve_task_id_in_set_or_404
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -33,7 +35,14 @@ async def task_set_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
+        enrollment = await db.execute(
+            select(StudentTaskSetEnrollment).where(
+                StudentTaskSetEnrollment.student_id == student_session.id,
+                StudentTaskSetEnrollment.task_set_id == task_set.id,
+            )
+        )
+        if enrollment.scalar_one_or_none():
+            return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
     task_set_path = BASE_DIR / "templates" / "student_index.html"
     response = FileResponse(task_set_path)
@@ -66,6 +75,7 @@ async def task_set_task_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -73,7 +83,8 @@ async def task_set_task_page(
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
     response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
+    response.headers["X-Task-Id"] = str(resolved_task_id)
+    response.headers["X-Task-Number"] = str(task_id)
     return response
 
 
@@ -85,6 +96,7 @@ async def task_set_task_start_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -92,7 +104,8 @@ async def task_set_task_start_page(
     start_path = BASE_DIR / "templates" / "student_start_task.html"
     response = FileResponse(start_path)
     response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(task_id)
+    response.headers["X-Task-Id"] = str(resolved_task_id)
+    response.headers["X-Task-Number"] = str(task_id)
     return response
 
 

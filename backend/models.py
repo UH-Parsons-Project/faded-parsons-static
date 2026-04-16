@@ -30,7 +30,7 @@ class Teacher(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    has_data_access: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_admin_teacher: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
@@ -164,10 +164,10 @@ class StudentTaskSetEnrollment(Base):
     __table_args__ = (UniqueConstraint("student_id", "task_set_id"),)
 
 
-class TaskStart(Base):
-    """Record of when a student started a task."""
+class StudentTaskEnrollment(Base):
+    """Student enrollment in a task within a task set."""
 
-    __tablename__ = "task_starts"
+    __tablename__ = "student_task_enrollments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(
@@ -176,8 +176,25 @@ class TaskStart(Base):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
+    task_set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("task_sets.id", ondelete="CASCADE"), nullable=False
+    )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-    __table_args__ = (UniqueConstraint("student_id", "task_id"),)
+    __table_args__ = (UniqueConstraint("student_id", "task_id", "task_set_id"),)
+
+
+class TaskSession(Base):
+    """One visit to a task page — records entry and exit time."""
+
+    __tablename__ = "task_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_task_enrollment_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student_task_enrollments.id", ondelete="CASCADE"), nullable=False
+    )
+    entered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    exited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    exit_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class TaskAttempt(Base):
@@ -192,8 +209,11 @@ class TaskAttempt(Base):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
-    task_start_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("task_starts.id", ondelete="CASCADE"), nullable=False
+    student_task_enrollment_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student_task_enrollments.id", ondelete="CASCADE"), nullable=False
+    )
+    task_session_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("task_sessions.id", ondelete="SET NULL"), nullable=True
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     success: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

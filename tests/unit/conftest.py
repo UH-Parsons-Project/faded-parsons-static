@@ -21,6 +21,12 @@ from backend.database import Base, get_db
 from backend.main import app
 from backend.models import Parsons, Student, StudentTaskSetEnrollment, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from backend.utils import generate_token, hash_token
+import importlib
+import sys
+
+# Allow legacy `import utils` used by some tests to continue working by
+# aliasing `backend.utils` as `utils` in sys.modules for the test run.
+sys.modules.setdefault('utils', importlib.import_module('backend.utils'))
 
 
 @pytest_asyncio.fixture

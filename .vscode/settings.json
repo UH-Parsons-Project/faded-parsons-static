@@ -1,5 +1,4 @@
 {
 	"editor.insertSpaces": false,
-	"robotcode.disableExtension": true,
-	"python-envs.pythonProjects": []
+	"robotcode.disableExtension": true
 }

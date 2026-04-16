@@ -47,17 +47,25 @@ async function loadProblemsetInfo() {
 	}
 }
 
-async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
-	try {
-		const response = await fetch('/api/tasks/' + encodeURIComponent(taskId) + '/my-completion-status', {
-			credentials: 'include'
-		});
+async function loadCompletionStatus(taskNumber, statusElement, itemIndex, numberElement) {
+  try {
+		const encodedTaskNumber = encodeURIComponent(taskNumber);
+		const [completionResponse, startedResponse] = await Promise.all([
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/my-completion-status`, {
+        credentials: 'include'
+      }),
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/has-started`, {
+        credentials: 'include'
+      }),
+    ]);
 
-		if (!response.ok) {
-			return;
-		}
+    if (!completionResponse.ok || !startedResponse.ok) {
+      return;
+    }
 
-		const stats = await response.json();
+		const stats = await completionResponse.json();
+		const startedData = await startedResponse.json();
+		const hasStarted = Boolean(startedData.has_started);
 		const studentAttempts = Number(stats.student_attempts || 0);
 		const studentCompleted = Number(stats.student_completed || 0);
 
@@ -66,7 +74,7 @@ async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElem
 			statusElement.innerHTML = '<i class="fas fa-check-circle"></i>Completed';
 			if (numberElement) numberElement.classList.add('completed');
 			tasksList[itemIndex].isCompleted = true;
-		} else if (studentAttempts > 0) {
+		} else if (hasStarted) {
 			statusElement.className = 'task-set-meta task-in-progress';
 			statusElement.innerHTML = '<i class="fas fa-clock"></i>In Progress';
 			tasksList[itemIndex].isCompleted = false;
@@ -85,8 +93,9 @@ async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElem
 function createTaskCard(item, index) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
+	const taskNumber = index + 1;
 	card.onclick = () => {
-		window.location.href = `/set/${uniqueLinkCode}/tasks/${item.id}/start`;
+		window.location.href = `/set/${uniqueLinkCode}/tasks/${taskNumber}/start`;
 	};
 
 	const number = document.createElement('div');
@@ -113,7 +122,7 @@ function createTaskCard(item, index) {
 	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
-	loadCompletionStatus(item.id, status, index, number);
+	loadCompletionStatus(taskNumber, status, index, number);
 
 	return card;
 }
@@ -159,31 +168,39 @@ function render(list) {
 }
 
 if (uniqueLinkCode) {
-	// Load task_set info (title and description)
-	loadProblemsetInfo();
-
-	// Fetch problems for this task_set
-	fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
-		.then(function (resp) {
-			if (!resp.ok) throw new Error('Network response not ok');
-			return resp.json();
-		})
-		.then(function (json) {
-			// Log to see the structure
-			console.log('Tasks response:', json);
-			if (json && json.length > 0) {
-				console.log('First task object:', json[0]);
+	fetch(`/api/sets/${uniqueLinkCode}/is-enrolled`, { credentials: 'include' })
+		.then(r => r.ok ? r.json() : { enrolled: false })
+		.then(data => {
+			if (!data.enrolled) {
+				window.location.href = `/set/${uniqueLinkCode}`;
+				return;
 			}
-			render(json);
+
+			// Load task_set info (title and description)
+			loadProblemsetInfo();
+
+			// Fetch problems for this task_set
+			fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
+				.then(function (resp) {
+					if (!resp.ok) throw new Error('Network response not ok');
+					return resp.json();
+				})
+				.then(function (json) {
+					render(json);
+				})
+				.catch(function (error) {
+					container.className = 'empty-state';
+					container.innerHTML = `
+						<i class="fas fa-exclamation-triangle text-danger"></i>
+						<h4>Error Loading Tasks</h4>
+						<p>Unable to load task set.</p>
+					`;
+					console.error(error);
+				});
 		})
 		.catch(function (error) {
-			container.className = 'empty-state';
-			container.innerHTML = `
-				<i class="fas fa-exclamation-triangle text-danger"></i>
-				<h4>Error Loading Tasks</h4>
-				<p>Unable to load task set.</p>
-			`;
-			console.error(error);
+			console.error('Enrollment check failed:', error);
+			window.location.href = `/set/${uniqueLinkCode}`;
 		});
 } else {
 	container.className = 'empty-state';

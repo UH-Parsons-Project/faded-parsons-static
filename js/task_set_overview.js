@@ -343,7 +343,7 @@ function renderStudents(students) {
 		<div class="empty-state">
 		<i class="fas fa-user-slash"></i>
 		<h4>No Students Yet</h4>
-		<p>No students have attempted tasks in this list yet.</p>
+		<p>No students have enrolled in this task set yet.</p>
 		</div>
 	`;
 	} else {

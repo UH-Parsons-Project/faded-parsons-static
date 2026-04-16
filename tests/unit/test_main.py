@@ -25,7 +25,7 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, TaskStart, TaskSetItem
+from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem
 
 
 # ---------------------------------------------------------------------------
@@ -53,29 +53,42 @@ def _submit(task_id: int, *, success=True, code="print(1)",
     return payload
 
 
-async def _add_attempt(db_session, ss_id: int, task_id: int, *,
+async def _add_attempt(db_session, ss_id: int, task_id: int, task_set_id: int, *,
                         success: bool, code="x",
                         start_time=None, end=None) -> TaskAttempt:
     start = start_time or datetime(2026, 1, 1, 0, 0, 0)
     end = end or datetime(2026, 1, 1, 0, 1, 0)
 
     result = await db_session.execute(
-        select(TaskStart).where(
-            TaskStart.student_id == ss_id,
-            TaskStart.task_id == task_id
+        select(StudentTaskEnrollment).where(
+            StudentTaskEnrollment.student_id == ss_id,
+            StudentTaskEnrollment.task_id == task_id,
+            StudentTaskEnrollment.task_set_id == task_set_id,
         )
     )
-    task_start = result.scalar_one_or_none()
-    if not task_start:
-        task_start = TaskStart(student_id=ss_id, task_id=task_id, started_at=start)
-        db_session.add(task_start)
+    enrollment = result.scalar_one_or_none()
+    if not enrollment:
+        enrollment = StudentTaskEnrollment(
+            student_id=ss_id, task_id=task_id,
+            task_set_id=task_set_id, started_at=start
+        )
+        db_session.add(enrollment)
         await db_session.commit()
-        await db_session.refresh(task_start)
+        await db_session.refresh(enrollment)
+
+    session = TaskSession(
+        student_task_enrollment_id=enrollment.id,
+        entered_at=start,
+        exited_at=end,
+    )
+    db_session.add(session)
+    await db_session.flush()
 
     a = TaskAttempt(
         student_id=ss_id,
         task_id=task_id,
-        task_start_id=task_start.id,
+        student_task_enrollment_id=enrollment.id,
+        task_session_id=session.id,
         completed_at=end,
         success=success,
         submitted_inputs={"code": code},
@@ -179,38 +192,52 @@ class TestProblemsetPages:
     async def test_task_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_redirects_without_session(self, client, task_set, task):
+    async def test_task_page_redirects_without_session(self, client, task_set_with_task):
+        task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         assert r.status_code == 303
         assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_task_page_returns_200_with_session(self, client, task_set, task, student_session):
+    async def test_task_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         client.cookies.clear()
         assert r.status_code == 200
 
+    async def test_task_page_out_of_range_returns_404(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{task_set.unique_link_code}/tasks/2",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 404
+
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_redirects_without_session(self, client, task_set, task):
+    async def test_start_page_redirects_without_session(self, client, task_set_with_task):
+        task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         assert r.status_code == 303
         assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_start_page_returns_200_with_session(self, client, task_set, task, student_session):
+    async def test_start_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         client.cookies.clear()
@@ -277,7 +304,7 @@ class TestGetMe:
             "id": test_teacher.id,
             "username": "testteacher",
             "email": "test@example.com",
-            "has_data_access": False,
+            "is_admin_teacher": False,
             "role": "Teacher",
         }
 
@@ -560,44 +587,50 @@ class TestGetProblemsetTasks:
 
 @pytest.mark.asyncio
 class TestSubmitResult:
-    async def test_no_session_returns_401(self, client, task):
-        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+    async def test_no_session_returns_401(self, client, task, task_set_with_task):
+        task_set, _ = task_set_with_task
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id))
         assert r.status_code == 401
 
-    async def test_success_with_iso_start_time(self, client, task, student_session):
+    async def test_success_with_iso_start_time(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, success=True,
                                             start_time="2026-03-01T10:00:00"))
         client.cookies.clear()
         assert r.status_code == 200
         assert r.json()["status"] == "success"
 
-    async def test_success_with_z_suffix_timestamp(self, client, task, student_session):
+    async def test_success_with_z_suffix_timestamp(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, start_time="2026-03-01T10:00:00Z"))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_invalid_start_time_falls_back_to_now(self, client, task, student_session):
+    async def test_invalid_start_time_falls_back_to_now(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, start_time="not-a-date"))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_missing_start_time_uses_now(self, client, task, student_session):
+    async def test_missing_start_time_uses_now(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_attempt_persisted_in_db(self, client, task, student_session, db_session):
+    async def test_attempt_persisted_in_db(self, client, task, task_set_with_task, student_session, db_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        await client.post(f"/api/tasks/{task.id}/submit-result",
+        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                           json=_submit(task.id, success=True, code="my_answer",
                                        start_time="2026-01-01T00:00:00"))
         client.cookies.clear()
@@ -607,11 +640,12 @@ class TestSubmitResult:
         attempt = result.scalar_one()
         assert attempt.success is True
         assert attempt.submitted_inputs["code"] == "my_answer"
-        assert attempt.task_start_id is not None
+        assert attempt.student_task_enrollment_id is not None
 
-    async def test_failure_attempt_persisted(self, client, task, student_session, db_session):
+    async def test_failure_attempt_persisted(self, client, task, task_set_with_task, student_session, db_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        await client.post(f"/api/tasks/{task.id}/submit-result",
+        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                           json=_submit(task.id, success=False, code="wrong",
                                        start_time="2026-01-01T00:00:00"))
         client.cookies.clear()
@@ -620,7 +654,7 @@ class TestSubmitResult:
         )
         attempt = result.scalar_one()
         assert attempt.success is False
-        assert attempt.task_start_id is not None
+        assert attempt.student_task_enrollment_id is not None
 
 
 # ---------------------------------------------------------------------------
@@ -651,9 +685,9 @@ class TestStatistics:
         assert body["time_to_first_success"] == {"avg": 0, "min": 0, "max": 0}
 
     async def test_single_success_calculates_time_correctly(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        await _add_attempt(db_session, student_session.id, task.id, success=True,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=True,
                             start_time=datetime(2026, 1, 1, 0, 0, 0),
                             end=datetime(2026, 1, 1, 0, 2, 0))
         r = await client.get(f"/api/tasks/{task.id}/statistics",
@@ -665,14 +699,14 @@ class TestStatistics:
         assert body["time_to_first_success"]["avg"] == 120.0
 
     async def test_failures_before_success_counted_correctly(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
         for i in range(2):
-            await _add_attempt(db_session, student_session.id, task.id, success=False,
+            await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                                 code=f"wrong_{i}",
                                 start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
-        await _add_attempt(db_session, student_session.id, task.id, success=True,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=True,
                             start_time=datetime(2026, 1, 1, 0, 3, 0),
                             end=datetime(2026, 1, 1, 0, 4, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
@@ -683,10 +717,10 @@ class TestStatistics:
         assert body["time_to_first_fail"]["avg"] == 30.0
 
     async def test_all_failures_no_completions(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
         for i in range(3):
-            await _add_attempt(db_session, student_session.id, task.id, success=False,
+            await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                                 code="wrong",
                                 start_time=datetime(2026, 1, 1, 0, i, 0),
                                 end=datetime(2026, 1, 1, 0, i, 30))
@@ -710,7 +744,7 @@ class TestStatistics:
             db_session.add(StudentTaskSetEnrollment(student_id=ss.id, task_set_id=task_set.id))
             await db_session.commit()
             await db_session.refresh(ss)
-            await _add_attempt(db_session, ss.id, task.id, success=True,
+            await _add_attempt(db_session, ss.id, task.id, task_set.id, success=True,
                                 start_time=datetime(2026, 1, 1, 0, 0, 0),
                                 end=datetime(2026, 1, 1, 0, i + 1, 0))
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
@@ -722,12 +756,12 @@ class TestStatistics:
         assert body["time_to_first_success"]["avg"] == 120.0
 
     async def test_common_mistakes_sorted_by_frequency(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        await _add_attempt(db_session, student_session.id, task.id, success=False, code="bad")
-        await _add_attempt(db_session, student_session.id, task.id, success=False, code="bad")
-        await _add_attempt(db_session, student_session.id, task.id, success=False, code="worse")
-        await _add_attempt(db_session, student_session.id, task.id, success=True, code="good")
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False, code="bad")
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False, code="bad")
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False, code="worse")
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=True, code="good")
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
         mistakes = body["common_mistakes"]
@@ -735,23 +769,23 @@ class TestStatistics:
         assert mistakes[0]["count"] == 2
 
     async def test_common_mistakes_capped_at_five(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
         for i in range(7):
-            await _add_attempt(db_session, student_session.id, task.id,
+            await _add_attempt(db_session, student_session.id, task.id, task_set.id,
                                 success=False, code=f"mistake_{i}")
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
                                   headers=_auth(test_teacher.username))).json()
         assert len(body["common_mistakes"]) <= 5
 
     async def test_common_mistakes_group_whitespace_only_variants(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        await _add_attempt(db_session, student_session.id, task.id, success=False,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                             code="print(1)")
-        await _add_attempt(db_session, student_session.id, task.id, success=False,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                             code="\nprint(1)   \n")
-        await _add_attempt(db_session, student_session.id, task.id, success=False,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                             code="print( 1 )")
 
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
@@ -762,11 +796,11 @@ class TestStatistics:
         assert mistakes[0]["code"] in {"print(1)", "print( 1 )"}
 
     async def test_common_mistakes_keep_string_whitespace_distinct(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        await _add_attempt(db_session, student_session.id, task.id, success=False,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                             code='print("a b")')
-        await _add_attempt(db_session, student_session.id, task.id, success=False,
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=False,
                             code='print("ab")')
 
         body = (await client.get(f"/api/tasks/{task.id}/statistics",
@@ -777,20 +811,21 @@ class TestStatistics:
         assert {mistake["code"] for mistake in mistakes} == {'print("a b")', 'print("ab")'}
 
     async def test_attempt_missing_code_key_not_a_mistake(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        task_start = TaskStart(
+        enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
             task_id=task.id,
+            task_set_id=task_set.id,
             started_at=datetime(2026, 1, 1),
         )
-        db_session.add(task_start)
+        db_session.add(enrollment)
         await db_session.commit()
-        await db_session.refresh(task_start)
+        await db_session.refresh(enrollment)
 
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
+            student_task_enrollment_id=enrollment.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs={},   # no "code" key
         )
         db_session.add(a)
@@ -800,20 +835,21 @@ class TestStatistics:
         assert body["common_mistakes"] == []
 
     async def test_attempt_with_null_submitted_inputs(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        task_start = TaskStart(
+        enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
             task_id=task.id,
+            task_set_id=task_set.id,
             started_at=datetime(2026, 1, 1),
         )
-        db_session.add(task_start)
+        db_session.add(enrollment)
         await db_session.commit()
-        await db_session.refresh(task_start)
+        await db_session.refresh(enrollment)
 
         a = TaskAttempt(
             student_id=student_session.id, task_id=task.id,
-            task_start_id=task_start.id, completed_at=datetime(2026, 1, 1, 0, 1),
+            student_task_enrollment_id=enrollment.id, completed_at=datetime(2026, 1, 1, 0, 1),
             success=False, submitted_inputs=None,
         )
         db_session.add(a)
@@ -840,8 +876,8 @@ class TestStatistics:
         await db_session.commit()
         await db_session.refresh(ss2)
 
-        await _add_attempt(db_session, student_session.id, task.id, success=True)
-        await _add_attempt(db_session, ss2.id, task.id, success=True)
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=True)
+        await _add_attempt(db_session, ss2.id, task.id, ps2.id, success=True)
 
         body = (await client.get(
             f"/api/tasks/{task.id}/statistics?task_set_code={task_set.unique_link_code}",
@@ -850,9 +886,9 @@ class TestStatistics:
         assert body["students_attempted"] == 1
 
     async def test_filter_by_nonexistent_code_returns_all(
-        self, client, task, student_session, test_teacher, db_session
+        self, client, task, task_set, student_session, test_teacher, db_session
     ):
-        await _add_attempt(db_session, student_session.id, task.id, success=True)
+        await _add_attempt(db_session, student_session.id, task.id, task_set.id, success=True)
         response = await client.get(
             f"/api/tasks/{task.id}/statistics?task_set_code=NOCODE",
             headers=_auth(test_teacher.username),
@@ -1242,3 +1278,62 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert body["title"] == "Brand New Task Set"
         assert body["unique_link_code"] == "brand-new-task-set"
         assert body["expires_at"] is not None
+
+
+@pytest.mark.asyncio
+class TestCreateProblemApi:
+    async def test_create_problem_with_blank_marks_faded_and_stores_placeholder(
+        self, client, test_teacher, db_session
+    ):
+        payload = {
+            "taskTitle": "Add In Range From Editor",
+            "description": "Return the sum between start and stop.",
+            "startDescription": "Practice while loops.",
+            "tests": "assert add_in_range(1, 3) == 6",
+            "solutionCode": "def add_in_range(start, stop):\n    total = !BLANK\n    while start <= stop:\n        total += start\n        start += 1\n    return total",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        assert created_task.task_type == "Faded"
+        blocks = created_task.code_blocks["blocks"]
+        assert any(block["faded"] is True for block in blocks)
+        faded_block = next(block for block in blocks if block["faded"] is True)
+        assert "___" in faded_block["code"]
+        assert "!BLANK" not in faded_block["code"]
+        assert created_task.correct_solution["solution_code"].count("!BLANK") == 1
+
+    async def test_create_problem_without_blank_stays_normal(self, client, test_teacher, db_session):
+        payload = {
+            "taskTitle": "Double Value From Editor",
+            "description": "Return doubled value.",
+            "startDescription": "Practice function basics.",
+            "tests": "assert double_value(4) == 8",
+            "solutionCode": "def double_value(x):\n    return x * 2",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        assert created_task.task_type == "normal"
+        blocks = created_task.code_blocks["blocks"]
+        assert all(block["faded"] is False for block in blocks)

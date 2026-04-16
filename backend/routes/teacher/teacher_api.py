@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 from datetime import timedelta
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
@@ -54,12 +55,12 @@ async def login_access_token(
 
 @router.get("/api/me", response_model=UserInfo)
 async def get_current_user_info(current_user: CurrentUser):
-    role = "Admin" if current_user.has_data_access else "Teacher"
+    role = "Admin" if current_user.is_admin_teacher else "Teacher"
     return UserInfo(
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
-        has_data_access=current_user.has_data_access,
+        is_admin_teacher=current_user.is_admin_teacher,
         role=role,
     )
 
@@ -101,7 +102,10 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
 
     valid_token = None
     for token_obj in all_tokens:
-        if verify_token(registration_token, token_obj.token_hash):
+        # bcrypt verification is CPU-bound; offload so the event loop remains responsive
+        # large ammount of tokens is currently causing a crash
+        # probably need to move to a system where the tokens use a different hash algorithm
+        if await asyncio.to_thread(verify_token, registration_token, token_obj.token_hash):
             valid_token = token_obj
             break
 

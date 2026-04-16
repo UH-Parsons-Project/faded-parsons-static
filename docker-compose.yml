@@ -32,6 +32,7 @@ services:
       - .:/usr/src/app
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+      AUTO_INIT_DB: "true"
       # Allow manual DB reset and seeding via /api/reset-db and /api/seed-db endpoints
       DEVELOPMENT_MODE: "true"
       TEST_MODE: "true"
@@ -54,6 +55,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+      AUTO_INIT_DB: "true"
       TEST_MODE: "true"
     depends_on:
       db:

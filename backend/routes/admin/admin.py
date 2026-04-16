@@ -12,7 +12,7 @@ async def all_tasksets_page(request: Request, db: AsyncSession = Depends(get_db)
 	"""Serve the page for viewing all task sets (requires data access)."""
 	try:
 		current_user = await get_current_user(request, db)
-		if not current_user.has_data_access:
+		if not current_user.is_admin_teacher:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 	except HTTPException:
 		return RedirectResponse(
@@ -31,7 +31,7 @@ async def admin_dashboard_page(request: Request, db: AsyncSession = Depends(get_
 	"""Serve the admin dashboard page (requires admin access)."""
 	try:
 		current_user = await get_current_user(request, db)
-		if not current_user.has_data_access:
+		if not current_user.is_admin_teacher:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 	except HTTPException:
 		return RedirectResponse(

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, and_
 import json
 
 from ...database import get_db
@@ -8,7 +8,7 @@ from ...models import Parsons
 from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser
 from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt
+from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
 from ...pydantic import (
     TaskResponse,
     CreateProblemRequest,
@@ -125,6 +125,48 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
         )
         for task in tasks
     ]
+
+
+@router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
+async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
+    """Get info for a task set by unique link code or integer ID."""
+    code_str = str(code)
+    stmt = (
+        select(TaskSet, Teacher.username)
+        .join(Teacher, Teacher.id == TaskSet.teacher_id)
+        .where(TaskSet.unique_link_code == code_str)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if row is None and code_str.isdigit():
+        stmt = (
+            select(TaskSet, Teacher.username)
+            .join(Teacher, Teacher.id == TaskSet.teacher_id)
+            .where(TaskSet.id == int(code_str))
+        )
+        result = await db.execute(stmt)
+        row = result.first()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Problem set '{code}' not found",
+        )
+
+    task_set, owner_username = row
+
+    return TaskSetResponse(
+        id=task_set.id,
+        title=task_set.title,
+        unique_link_code=task_set.unique_link_code,
+        teacher_id=task_set.teacher_id,
+        owner_username=owner_username,
+        student_description=task_set.student_description,
+        teacher_description=task_set.teacher_description,
+        created_at=task_set.created_at.isoformat(),
+        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+    )
 
 
 @router.post("/api/create_task_set", response_model=TaskSetResponse)
@@ -251,7 +293,7 @@ async def add_task_set_viewer(
 
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.has_data_access:
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"
@@ -318,7 +360,7 @@ async def remove_task_set_viewer(
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.has_data_access:
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"
@@ -368,9 +410,17 @@ async def get_task_set_students(
                 func.count(TaskAttempt.id).label('total_attempts'),
                 func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
             )
-            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
-            .join(TaskAttempt, (TaskAttempt.student_id == Student.id) & (TaskAttempt.task_id.in_(task_ids)))
-            .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+            .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
+            .outerjoin(TaskAttempt, and_(
+                TaskAttempt.student_id == Student.id,
+                TaskAttempt.task_id.in_(task_ids),
+                TaskAttempt.task_id.in_(
+                    select(StudentTaskEnrollment.task_id).where(
+                        (StudentTaskEnrollment.student_id == Student.id) &
+                        (StudentTaskEnrollment.task_set_id == task_set_id)
+                    )
+                )
+            ))
             .where(Student.username.isnot(None))
             .group_by(Student.id, Student.username, StudentTaskSetEnrollment.enrolled_at)
             .order_by(func.max(TaskAttempt.completed_at).desc())
@@ -513,14 +563,21 @@ async def create_problem(
         )
 
     blocks = []
+    has_faded = False
     for line_index, line in enumerate(lines, start=1):
         indent_count = len(line) - len(line.lstrip())
+        stripped_line = line.strip()
+        is_faded = "!BLANK" in stripped_line
+        if is_faded:
+            has_faded = True
+
+        clean_code = stripped_line.replace("!BLANK", "___")
         blocks.append(
             {
                 "id": f"block_{line_index}",
-                "code": line.strip(),
+                "code": clean_code,
                 "indent": indent_count // 4,
-                "faded": False,
+                "faded": is_faded,
                 "given": False,
             }
         )
@@ -538,7 +595,7 @@ async def create_problem(
         title=final_title,
         task_instructions=task_instructions_payload,
         description=start_description,
-        task_type="normal",
+        task_type="Faded" if has_faded else "normal",
         code_blocks={
             "blocks": blocks,
             "function_header": lines[0],

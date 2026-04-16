@@ -1,0 +1,1 @@
+def double_time(sequence):\n    i = 0\n    while i < len(sequence):\n        sequence[i] *= 2\n        i += 1

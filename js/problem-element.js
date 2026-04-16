@@ -1,7 +1,7 @@
-/* global ParsonsWidget */
+/* global ParsonsWidget, $ */
 
 // Lit web component base + templating and styling utilities
-import {LitElement, html, css} from 'lit';
+import {LitElement, html} from 'lit';
 // Allows rendering HTML strings safely for trusted content
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 // Ref helpers to access rendered DOM nodes
@@ -31,18 +31,9 @@ export class ProblemElement extends LitElement {
 		resultsDetails: {type: String},
 	};
 
-	static styles = css`
-		/* Layout proportions for the two Parsons columns */
-		.starter {
-			width: 40%;
-		}
-		.solution {
-			width: 58%;
-			margin-left: 2%;
-		}
-	`;
-
 	// Refs to the container elements bound to the Parsons widget
+	taskCardRef = createRef();
+	testResultsCardRef = createRef();
 	starterRef = createRef();
 	solutionRef = createRef();
 
@@ -51,6 +42,9 @@ export class ProblemElement extends LitElement {
 
 	// Array to store blank field edits locally as they happen
 	recordedEdits = [];
+
+	// Saved arrangement to restore on init (set from main.js before element mounts)
+	savedArrangement = null;
 
 	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
@@ -61,6 +55,15 @@ export class ProblemElement extends LitElement {
 		// Default results placeholder until tests are run
 		let results =
 			'Test results will appear here after clicking "Run Tests" above.';
+		const generalGuidance = html`
+			<ul class="mb-0 pl-3">
+				<li>Read the problem statement first and identify what the final program should do.</li>
+				<li>Drag blocks from the left area into the solution area on the right.</li>
+				<li>Use every gray block. Blue blocks are optional and can be ignored if not needed.</li>
+				<li>Run tests often and use the feedback to fix ordering, indentation, or missing lines.</li>
+				<li>When all tests pass, move on to the next task.</li>
+			</ul>
+		`;
 		if (this.resultsStatus) {
 			// Render the test results component with current status
 			results = html`<test-results-element
@@ -72,22 +75,33 @@ export class ProblemElement extends LitElement {
 
 		return html`
 
-			<!-- Problem description card -->
-			<div class="row mt-3">
-				<div class="col-sm-12">
-					<div class="card">
+			<!-- Top row: problem statement + general guidance -->
+			<div class="row mt-3 align-items-stretch">
+				<div class="col-12 col-lg-9 mb-3 mb-lg-0">
+					<div class="card h-100 top-info-card">
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
 						<div class="card-body">${unsafeHTML(this.taskInstructions)}</div>
 					</div>
 				</div>
+				<div class="col-12 col-lg-3">
+					<div class="card h-100 top-info-card">
+						<div class="card-header">
+							<h4>General Guidance</h4>
+						</div>
+						<div class="card-body">
+							${generalGuidance}
+						</div>
+					</div>
+				</div>
 			</div>
 
-			<!-- Parsons widget area: starter (trash) and solution columns -->
-			<div class="row mt-4">
-				<div class="col-sm-12">
-					<div class="card">
+			<!-- Content container with Parsons widget and test results side by side -->
+			<div class="row mt-4 align-items-start">
+				<!-- Parsons widget area: starter (trash) and solution columns -->
+				<div class="col-12 col-lg-9 mb-4 mb-lg-0">
+						<div class="card" ${ref(this.taskCardRef)}>
 						<div class="card-body">
 							<div
 								${ref(this.starterRef)}
@@ -118,18 +132,15 @@ export class ProblemElement extends LitElement {
 						</div>
 					</div>
 				</div>
-			</div>
 
-			<!-- Test results card -->
-			<div class="row mt-4">
-				<div class="col-sm-12">
-					<div class="card">
+				<!-- Right column: test results -->
+				<div class="col-12 col-lg-3">
+					<!-- Test results card -->
+					<div class="card test-results-card" ${ref(this.testResultsCardRef)}>
 						<div class="card-header">
 							<h4>Test Cases</h4>
 						</div>
-						<div id="test_description">
-							<div class="card-body">${results}</div>
-						</div>
+						<div id="test_description" class="card-body">${results}</div>
 					</div>
 				</div>
 			</div>
@@ -139,10 +150,92 @@ export class ProblemElement extends LitElement {
 	recordBlockMove = (moveData) => {
 		// Store move locally instead of sending to server immediately
 		this.recordedMoves.push(moveData);
-		console.log('Move recorded locally:', moveData);
+		this.dispatchEvent(new CustomEvent('arrangement-changed', {
+			detail: { arrangement: this.getCurrentArrangement() },
+			bubbles: true,
+		}));
+	};
+
+	// Returns a stable arrangement snapshot: solution block IDs (in order),
+	// indent levels, and blank values. Block IDs here are always the original
+	// sortable-codelineN IDs from the first fresh init, so they stay consistent
+	// with what the replay's initial_blocks uses.
+	getCurrentArrangement = () => {
+		if (!this.parsonsWidget || !this.solutionRef.value) return null;
+		const solutionUl = this.solutionRef.value.querySelector('ul');
+		if (!solutionUl) return null;
+
+		const solutionIds = Array.from(solutionUl.querySelectorAll('li[id]')).map(li => li.id);
+		const indents = {};
+		const blanks = {};
+
+		for (const id of solutionIds) {
+			const line = this.parsonsWidget.getLineById(id);
+			if (line) indents[id] = line.indent;
+		}
+
+		for (const line of this.parsonsWidget.modified_lines) {
+			const el = document.getElementById(line.id);
+			if (!el) continue;
+			const inputs = Array.from(el.querySelectorAll('input.text-box'));
+			if (inputs.length > 0) blanks[line.id] = inputs.map(inp => inp.value);
+		}
+
+		return { solutionIds, indents, blanks };
+	};
+
+	// Applies a previously saved arrangement to an already-initialised widget.
+	// Must be called after parsonsWidget.init() + alphabetize() and before the
+	// sortable <ul> references are captured (so listeners land on the right node).
+	applySavedArrangement = (arrangement) => {
+		if (!arrangement || !this.parsonsWidget) return;
+		const { solutionIds, indents, blanks } = arrangement;
+
+		const solutionSet = new Set(solutionIds);
+		const allIds = this.parsonsWidget.modified_lines.map(l => l.id);
+		const starterIds = allIds.filter(id => !solutionSet.has(id));
+
+		this.parsonsWidget.createHTMLFromLists(solutionIds, starterIds);
+
+		for (const [id, indent] of Object.entries(indents || {})) {
+			const line = this.parsonsWidget.getLineById(id);
+			if (line) {
+				line.indent = indent;
+				this.parsonsWidget.updateHTMLIndent(id);
+			}
+		}
+
+		for (const [id, blockBlanks] of Object.entries(blanks || {})) {
+			const el = document.getElementById(id);
+			if (!el) continue;
+			const inputs = el.querySelectorAll('input.text-box');
+			blockBlanks.forEach((val, i) => {
+				if (inputs[i]) inputs[i].value = val;
+			});
+		}
+	};
+
+	syncTestCardHeight = () => {
+		const taskCard = this.taskCardRef.value;
+		const testCard = this.testResultsCardRef.value;
+		if (!taskCard || !testCard) {
+			return;
+		}
+
+		testCard.style.height = `${taskCard.offsetHeight}px`;
 	};
 
 	firstUpdated() {
+		this.syncTestCardHeight();
+		window.addEventListener('resize', this.syncTestCardHeight);
+
+		if (window.ResizeObserver && this.taskCardRef.value) {
+			this.taskCardResizeObserver = new ResizeObserver(() => {
+				this.syncTestCardHeight();
+			});
+			this.taskCardResizeObserver.observe(this.taskCardRef.value);
+		}
+
 		const getListName = (listEl) => {
 			if (!listEl) {
 				return 'unknown';
@@ -207,14 +300,21 @@ export class ProblemElement extends LitElement {
 					to_indent: toIndent,
 					event_time: new Date().toISOString(),
 				});
+				document.dispatchEvent(new CustomEvent('student-activity'));
 
 				pendingMove = null;
 			},
 		});
 		// Load the initial code blocks into the widget
 		this.parsonsWidget.init(this.codeLines);
-		// Optional: sort blocks alphabetically for consistent starting state
+		// Sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
+		// Restore a previously saved arrangement (if any) — must happen after
+		// alphabetize() and before sortableList is queried, so that listeners
+		// attach to the correct <ul> elements.
+		if (this.savedArrangement) {
+			this.applySavedArrangement(this.savedArrangement);
+		}
 
 		const sortableList = this.solutionRef.value?.querySelector('ul');
 		const starterList = this.starterRef.value?.querySelector('ul');
@@ -252,7 +352,6 @@ export class ProblemElement extends LitElement {
 			const value = input.value;
 
 			// Skip if value unchanged from last recorded edit for this block+blank
-			const key = `${blockId}:${blankIndex}`;
 			const last = this.recordedEdits.findLast?.(e => e.block_id === blockId && e.blank_index === blankIndex);
 			if (last && last.value === value) return;
 
@@ -262,6 +361,11 @@ export class ProblemElement extends LitElement {
 				value,
 				event_time: new Date().toISOString(),
 			});
+			document.dispatchEvent(new CustomEvent('student-activity'));
+			this.dispatchEvent(new CustomEvent('arrangement-changed', {
+				detail: { arrangement: this.getCurrentArrangement() },
+				bubbles: true,
+			}));
 		};
 
 		const attachEditTracking = (containerEl) => {
@@ -288,6 +392,26 @@ export class ProblemElement extends LitElement {
 
 		attachEditTracking(this.solutionRef.value);
 		attachEditTracking(this.starterRef.value);
+	}
+
+		updated(changedProperties) {
+			super.updated(changedProperties);
+			if (
+				changedProperties.has('resultsStatus') ||
+				changedProperties.has('resultsHeader') ||
+				changedProperties.has('resultsDetails')
+			) {
+				requestAnimationFrame(() => this.syncTestCardHeight());
+			}
+		}
+
+	disconnectedCallback() {
+		super.disconnectedCallback();
+		window.removeEventListener('resize', this.syncTestCardHeight);
+		if (this.taskCardResizeObserver) {
+			this.taskCardResizeObserver.disconnect();
+			this.taskCardResizeObserver = null;
+		}
 	}
 
 	onRun() {

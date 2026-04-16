@@ -74,7 +74,7 @@ test('student can open and submit a (empty) task from the task set', async ({ pa
   await studentPage.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
 
   // Click "Run Tests" to submit the task
-  await studentPage.locator('.btn.btn-primary').click();
+  await studentPage.getByRole('button', { name: 'Run Tests' }).click();
 
   // Verify test results appear
   await studentPage.waitForSelector('test-results-element', { timeout: 30000 });

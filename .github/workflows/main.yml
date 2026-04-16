@@ -25,6 +25,10 @@ jobs:
 
       - name: Run unit tests
         run: pytest tests/unit/ -v -n auto --dist=loadscope --cov=backend --cov-report=xml --cov-report=term
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///:memory:
+          AUTO_INIT_DB: "false"
+          TEST_MODE: "true"
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -90,9 +90,9 @@ async def client(db_session):
     app.dependency_overrides[get_db] = override_get_db
 
     async with AsyncClient(
-        # Keep unit tests deterministic: don't run app lifespan startup hooks
-        # (init/seed) that use the global DB session.
-        transport=ASGITransport(app=app, lifespan="off"),
+        # Keep unit tests deterministic: with this httpx transport setup,
+        # app lifespan startup hooks are not executed.
+        transport=ASGITransport(app=app),
         base_url="http://test"
     ) as ac:
         yield ac

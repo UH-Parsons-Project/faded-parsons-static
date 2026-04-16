@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Pause before unit tests
+        run: sleep 30
+
       - name: Run unit tests
         run: pytest tests/unit/ -v -n auto --dist=loadscope --cov=backend --cov-report=xml --cov-report=term
       

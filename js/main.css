@@ -550,11 +550,13 @@ test-results-element {
   width: 400px;
   flex-shrink: 0;
   order: 2;
+  position: sticky;
+  top: calc(80px + 1rem);
+  align-self: flex-start;
 }
 
 .statistics-sticky {
-  position: sticky;
-  top: 1rem;
+  position: static;
 }
 
 .attempts-header {
@@ -1675,6 +1677,9 @@ test-results-element {
 /* Widen the stats column to fit the 2-col metric layout */
 .statistics-column {
   width: 460px !important;
+  position: sticky;
+  top: calc(80px + 1rem);
+  align-self: flex-start;
 }
 
 /* Shared box title */
@@ -1786,6 +1791,14 @@ test-results-element {
 @media (max-width: 900px) {
   .statistics-layout { flex-direction: column; }
   .statistics-column { width: 100% !important; }
+  .statistics-column {
+    position: static;
+    top: auto;
+    align-self: auto;
+  }
+  .statistics-sticky {
+    position: static;
+  }
 }
 
 /* Admin Dashboard */

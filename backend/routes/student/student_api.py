@@ -344,7 +344,7 @@ async def submit_test_result(
     open_session_stmt = (
         select(TaskSession)
         .where(TaskSession.student_task_enrollment_id == enrollment.id)
-        .where(TaskSession.exited_at == None)  # noqa: E711
+        .where(TaskSession.exited_at.is_(None))
         .order_by(TaskSession.entered_at.desc())
         .limit(1)
     )

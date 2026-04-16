@@ -6,8 +6,6 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select
-
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import (
@@ -56,7 +54,7 @@ async def task_set_tasks_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+    await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)

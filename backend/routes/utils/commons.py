@@ -1,10 +1,9 @@
-from typing import Iterable
+from typing import Iterable, Callable, Any
 
 from fastapi import HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import RedirectResponse
-from typing import Callable, Any
 
 from ...models import TaskSetItem
 

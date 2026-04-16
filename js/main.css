@@ -95,10 +95,29 @@
 
 .screenshots {
   display: block;
+  margin: auto;
   height: 500px;
   width: auto;
-  margin: auto;
   border: 3px solid black;
+}
+
+.screenshot_column {
+  display: block;
+  width: auto;
+  height: auto;
+  border: 3px solid black;
+  padding: 5px;
+  float: left;
+}
+
+.screenshot_row {
+  margin-bottom: 1.25rem;
+}
+
+.screenshot_row::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 
 .title-main {

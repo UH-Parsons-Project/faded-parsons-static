@@ -90,8 +90,6 @@ async def client(db_session):
     app.dependency_overrides[get_db] = override_get_db
 
     async with AsyncClient(
-        # Keep unit tests deterministic: with this httpx transport setup,
-        # app lifespan startup hooks are not executed.
         transport=ASGITransport(app=app),
         base_url="http://test"
     ) as ac:

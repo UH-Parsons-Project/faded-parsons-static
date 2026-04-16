@@ -10,6 +10,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
 from httpx import AsyncClient, ASGITransport
 
+# Hard-pin unit tests to an isolated SQLite DB so they can never hit the
+# Playwright/Postgres database, regardless of outer environment.
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["AUTO_INIT_DB"] = "false"
+os.environ["TEST_MODE"] = "true"
+
 # Handle different SQLAlchemy versions
 try:
     from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -27,6 +33,16 @@ import sys
 # Allow legacy `import utils` used by some tests to continue working by
 # aliasing `backend.utils` as `utils` in sys.modules for the test run.
 sys.modules.setdefault('utils', importlib.import_module('backend.utils'))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _assert_unit_tests_use_sqlite() -> None:
+    """Safety check: prevent unit tests from ever using Postgres test DB."""
+    from backend import database as db_module
+
+    assert db_module.DATABASE_URL.startswith("sqlite+aiosqlite://"), (
+        f"Unit tests must use SQLite, got DATABASE_URL={db_module.DATABASE_URL!r}"
+    )
 
 
 @pytest_asyncio.fixture

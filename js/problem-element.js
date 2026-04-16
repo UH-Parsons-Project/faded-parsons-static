@@ -1,4 +1,4 @@
-/* global ParsonsWidget */
+/* global ParsonsWidget, $ */
 
 // Lit web component base + templating and styling utilities
 import {LitElement, html} from 'lit';
@@ -42,6 +42,9 @@ export class ProblemElement extends LitElement {
 
 	// Array to store blank field edits locally as they happen
 	recordedEdits = [];
+
+	// Saved arrangement to restore on init (set from main.js before element mounts)
+	savedArrangement = null;
 
 	// Opt-out of Shadow DOM to allow existing CSS frameworks to style content
 	createRenderRoot() {
@@ -147,7 +150,69 @@ export class ProblemElement extends LitElement {
 	recordBlockMove = (moveData) => {
 		// Store move locally instead of sending to server immediately
 		this.recordedMoves.push(moveData);
-		console.log('Move recorded locally:', moveData);
+		this.dispatchEvent(new CustomEvent('arrangement-changed', {
+			detail: { arrangement: this.getCurrentArrangement() },
+			bubbles: true,
+		}));
+	};
+
+	// Returns a stable arrangement snapshot: solution block IDs (in order),
+	// indent levels, and blank values. Block IDs here are always the original
+	// sortable-codelineN IDs from the first fresh init, so they stay consistent
+	// with what the replay's initial_blocks uses.
+	getCurrentArrangement = () => {
+		if (!this.parsonsWidget || !this.solutionRef.value) return null;
+		const solutionUl = this.solutionRef.value.querySelector('ul');
+		if (!solutionUl) return null;
+
+		const solutionIds = Array.from(solutionUl.querySelectorAll('li[id]')).map(li => li.id);
+		const indents = {};
+		const blanks = {};
+
+		for (const id of solutionIds) {
+			const line = this.parsonsWidget.getLineById(id);
+			if (line) indents[id] = line.indent;
+		}
+
+		for (const line of this.parsonsWidget.modified_lines) {
+			const el = document.getElementById(line.id);
+			if (!el) continue;
+			const inputs = Array.from(el.querySelectorAll('input.text-box'));
+			if (inputs.length > 0) blanks[line.id] = inputs.map(inp => inp.value);
+		}
+
+		return { solutionIds, indents, blanks };
+	};
+
+	// Applies a previously saved arrangement to an already-initialised widget.
+	// Must be called after parsonsWidget.init() + alphabetize() and before the
+	// sortable <ul> references are captured (so listeners land on the right node).
+	applySavedArrangement = (arrangement) => {
+		if (!arrangement || !this.parsonsWidget) return;
+		const { solutionIds, indents, blanks } = arrangement;
+
+		const solutionSet = new Set(solutionIds);
+		const allIds = this.parsonsWidget.modified_lines.map(l => l.id);
+		const starterIds = allIds.filter(id => !solutionSet.has(id));
+
+		this.parsonsWidget.createHTMLFromLists(solutionIds, starterIds);
+
+		for (const [id, indent] of Object.entries(indents || {})) {
+			const line = this.parsonsWidget.getLineById(id);
+			if (line) {
+				line.indent = indent;
+				this.parsonsWidget.updateHTMLIndent(id);
+			}
+		}
+
+		for (const [id, blockBlanks] of Object.entries(blanks || {})) {
+			const el = document.getElementById(id);
+			if (!el) continue;
+			const inputs = el.querySelectorAll('input.text-box');
+			blockBlanks.forEach((val, i) => {
+				if (inputs[i]) inputs[i].value = val;
+			});
+		}
 	};
 
 	syncTestCardHeight = () => {
@@ -242,8 +307,14 @@ export class ProblemElement extends LitElement {
 		});
 		// Load the initial code blocks into the widget
 		this.parsonsWidget.init(this.codeLines);
-		// Optional: sort blocks alphabetically for consistent starting state
+		// Sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
+		// Restore a previously saved arrangement (if any) — must happen after
+		// alphabetize() and before sortableList is queried, so that listeners
+		// attach to the correct <ul> elements.
+		if (this.savedArrangement) {
+			this.applySavedArrangement(this.savedArrangement);
+		}
 
 		const sortableList = this.solutionRef.value?.querySelector('ul');
 		const starterList = this.starterRef.value?.querySelector('ul');
@@ -281,7 +352,6 @@ export class ProblemElement extends LitElement {
 			const value = input.value;
 
 			// Skip if value unchanged from last recorded edit for this block+blank
-			const key = `${blockId}:${blankIndex}`;
 			const last = this.recordedEdits.findLast?.(e => e.block_id === blockId && e.blank_index === blankIndex);
 			if (last && last.value === value) return;
 
@@ -292,6 +362,10 @@ export class ProblemElement extends LitElement {
 				event_time: new Date().toISOString(),
 			});
 			document.dispatchEvent(new CustomEvent('student-activity'));
+			this.dispatchEvent(new CustomEvent('arrangement-changed', {
+				detail: { arrangement: this.getCurrentArrangement() },
+				bubbles: true,
+			}));
 		};
 
 		const attachEditTracking = (containerEl) => {

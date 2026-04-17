@@ -65,6 +65,7 @@ class Parsons(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+    custom_error_messages: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class TaskSet(Base):

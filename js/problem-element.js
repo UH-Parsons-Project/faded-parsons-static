@@ -29,6 +29,7 @@ export class ProblemElement extends LitElement {
 		resultsStatus: {type: String},
 		resultsHeader: {type: String},
 		resultsDetails: {type: String},
+		resultsMessageSource: {type: String},
 	};
 
 	// Refs to the container elements bound to the Parsons widget
@@ -70,6 +71,7 @@ export class ProblemElement extends LitElement {
 				status=${this.resultsStatus}
 				header=${this.resultsHeader}
 				details=${this.resultsDetails}
+				source=${this.resultsMessageSource || 'system'}
 			></test-results-element>`;
 		}
 

@@ -527,6 +527,7 @@ async def create_problem(
     description = request.description.strip()
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
+    custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
 
     if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(

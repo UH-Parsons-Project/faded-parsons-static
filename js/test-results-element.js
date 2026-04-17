@@ -5,6 +5,7 @@ export class TestResultsElement extends LitElement {
 		status: {type: String},
 		header: {type: String},
 		details: {type: String},
+		source: {type: String},
 	};
 
 	createRenderRoot() {
@@ -52,9 +53,15 @@ export class TestResultsElement extends LitElement {
 		]
 			.filter(Boolean)
 			.join(' ');
+		const isTeacherMessage = (this.source || '').toLowerCase() === 'teacher';
 
 		return html`<div class="test-results-panel">
-					<div class=${summaryClass}>${this.header}</div>
+					<div class=${summaryClass}>
+						${this.header}
+						${isTeacherMessage
+							? html`<span class="badge badge-info ml-2" title="Shown from teacher custom error rules">Teacher hint</span>`
+							: ''}
+					</div>
 					<div class="test-results-details">${this.renderDetails()}</div>
 				</div>`;
 	}

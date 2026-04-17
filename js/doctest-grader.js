@@ -147,6 +147,90 @@ function extractPassedExamples(resultsStr) {
 	return passedExamples;
 }
 
+function normalizeCustomErrorRules(rawRules) {
+	if (!rawRules) {
+		return [];
+	}
+
+	let parsed = rawRules;
+	if (typeof rawRules === 'string') {
+		try {
+			parsed = JSON.parse(rawRules);
+		} catch (e) {
+			console.warn('Failed to parse custom error rules JSON:', e);
+			return [];
+		}
+	}
+
+	if (!Array.isArray(parsed)) {
+		return [];
+	}
+
+	return parsed.filter((rule) => {
+		if (!rule || typeof rule !== 'object') {
+			return false;
+		}
+		const pattern = typeof rule.pattern === 'string' ? rule.pattern.trim() : '';
+		const message = typeof rule.message === 'string' ? rule.message.trim() : '';
+		return Boolean(pattern && message);
+	});
+}
+
+function applyCustomErrorMessageRules(testResults, rawRules) {
+	if (!testResults || testResults.status !== 'fail') {
+		return testResults;
+	}
+
+	const rules = normalizeCustomErrorRules(rawRules);
+	if (rules.length === 0) {
+		return testResults;
+	}
+
+	const header = typeof testResults.header === 'string' ? testResults.header : '';
+	const details = typeof testResults.details === 'string' ? testResults.details : '';
+	const haystack = `${header}\n${details}`;
+	const haystackLower = haystack.toLowerCase();
+
+	for (const rule of rules) {
+		const matchType = (typeof rule.match_type === 'string' ? rule.match_type : 'contains').toLowerCase();
+		const pattern = typeof rule.pattern === 'string' ? rule.pattern.trim() : '';
+		const message = typeof rule.message === 'string' ? rule.message.trim() : '';
+
+		if (!pattern || !message) {
+			continue;
+		}
+
+		let isMatch = false;
+		if (matchType === 'regex') {
+			try {
+				const regex = new RegExp(pattern, 'i');
+				isMatch = regex.test(haystack);
+			} catch (e) {
+				console.warn('Invalid custom error regex pattern:', pattern, e);
+				continue;
+			}
+		} else {
+			isMatch = haystackLower.includes(pattern.toLowerCase());
+		}
+
+		if (isMatch) {
+			const customHeader =
+				typeof rule.header === 'string' && rule.header.trim()
+					? rule.header.trim()
+					: testResults.header;
+
+			return {
+				...testResults,
+				header: customHeader,
+				details: message,
+				messageSource: 'teacher',
+			};
+		}
+	}
+
+	return testResults;
+}
+
 export function prepareCode(submittedCode, codeHeader) {
 	submittedCode += '\n';
 	let lines = codeHeader.split('\n');
@@ -197,7 +281,7 @@ export function prepareCode(submittedCode, codeHeader) {
 	};
 }
 
-export function processTestResults(outputStr) {
+export function processTestResults(outputStr, customErrorRules = []) {
 	const summaryRe = /(\d+)\spassed\sand\s(\d+)\sfailed./;
 	const summaryMatches = outputStr.match(summaryRe);
 	if (summaryMatches) {
@@ -210,40 +294,45 @@ export function processTestResults(outputStr) {
 			? passedExamples.map((example) => `✅ Passed test\n${example}`).join('\n\n')
 			: '';
 		const doctestResults = [passedDetails, failedDetails].filter(Boolean).join('\n\n');
-		return {
+		return applyCustomErrorMessageRules({
 			status: successCount == totalCount ? 'pass' : 'fail',
 			header: `${successCount} of ${totalCount} tests passed`,
 			details: doctestResults,
-		};
+			messageSource: 'system',
+		}, customErrorRules);
 	}
 
-	return {
+	return applyCustomErrorMessageRules({
 		status: 'fail',
 		header: 'Unable to parse test results',
 		details: outputStr || 'No test output received.',
-	};
+		messageSource: 'system',
+	}, customErrorRules);
 }
 
-export function processTestError(error, startLine) {
+export function processTestError(error, startLine, customErrorRules = []) {
 	const message = error?.message || '';
 
 	if (message.startsWith('Traceback')) {
-		return {
+		return applyCustomErrorMessageRules({
 			status: 'fail',
 			header: 'Syntax error',
 			details: extractError(message, startLine),
-		};
+			messageSource: 'system',
+		}, customErrorRules);
 	} else if (message == 'Infinite loop') {
-		return {
+		return applyCustomErrorMessageRules({
 			status: 'fail',
 			header: 'Infinite loop',
 			details:
 				'Your code did not finish executing within 60 seconds. Please look to see if you accidentally coded an infinite loop.',
-		};
+			messageSource: 'system',
+		}, customErrorRules);
 	}
-	return {
+	return applyCustomErrorMessageRules({
 		status: 'fail',
 		header: 'Unexpected error occurred',
 		details: message || 'No error details were provided.',
-	};
+		messageSource: 'system',
+	}, customErrorRules);
 }

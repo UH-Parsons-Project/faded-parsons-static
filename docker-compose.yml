@@ -19,6 +19,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    profiles: ["web"]
 
   # Main web application
   web:
@@ -41,6 +42,22 @@ services:
         condition: service_healthy
     profiles: ["web"]
 
+  # Isolated PostgreSQL instance used exclusively by the test profile
+  db-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: faded_parsons_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+    profiles: ["test"]
+
   # Web app instance for running tests against
   web-test:
     build:
@@ -54,12 +71,14 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/faded_parsons
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db-test:5432/faded_parsons_test
       AUTO_INIT_DB: "true"
       TEST_MODE: "true"
     depends_on:
-      db:
+      db-test:
         condition: service_healthy
+    networks:
+      - test-network
     profiles: ["test"]  # Only starts with: docker compose --profile test
 
   # Unit test runner
@@ -89,6 +108,12 @@ services:
       - .env
     environment:
       BASE_URL: http://web-test:8000
+    networks:
+      - test-network
     volumes:
       - ./tests:/usr/src/app/tests
       - ./playwright.config.js:/usr/src/app/playwright.config.js
+
+networks:
+  test-network:
+    driver: bridge

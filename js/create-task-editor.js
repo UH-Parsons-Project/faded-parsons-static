@@ -194,11 +194,11 @@ initBurgerMenu();
       const normalizedSource = normalizeSourceCode(sourceCode || '');
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
       }
 
       if (typeof rawSource !== 'string' || rawSource !== normalizedSource) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
       }
 
       const parsed = JSON.parse(raw);
@@ -207,15 +207,16 @@ initBurgerMenu();
         description: typeof parsed.description === 'string' ? parsed.description : '',
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
+        customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { taskTitle: '', description: '', startDescription: '', tests: '' };
+      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
     }
   }
 
-  function saveMetaToSession(taskTitle, description, startDescription, tests) {
-    sessionStorage.setItem(META_KEY, JSON.stringify({ taskTitle, description, startDescription, tests }));
+  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages) {
+    sessionStorage.setItem(META_KEY, JSON.stringify({ taskTitle, description, startDescription, tests, customErrorMessages }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
@@ -602,6 +603,7 @@ initBurgerMenu();
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
     const startDescriptionInput = document.getElementById('start-description');
+    const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
     const solutionList = document.querySelector('#solution-sortable ul');
 
@@ -613,13 +615,14 @@ initBurgerMenu();
     const taskTitle = taskTitleInput.value.trim();
     const description = descriptionInput.value.trim();
     const startDescription = startDescriptionInput.value.trim();
+    const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
     const solutionCode = modelAnswerCode;
 
-    saveMetaToSession(taskTitle, description, startDescription, tests);
+    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages);
 
     if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
-      alert('Please ensure all fields are filled out and set a model answer before adding the problem.');
+      alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
       return;
     }
 
@@ -637,6 +640,7 @@ initBurgerMenu();
       taskTitle,
       description,
       startDescription,
+      customErrorMessages,
       tests,
       solutionCode,
     };
@@ -663,7 +667,7 @@ initBurgerMenu();
             detail = '';
           }
 
-          saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+          saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
           taskTitleInput.focus();
 
           alert(`Failed to add the problem.${detail}`);
@@ -704,7 +708,9 @@ initBurgerMenu();
     const clearBtn = document.getElementById('clear-blocks');
     const addCustomBtn = document.getElementById('add-custom-block');
     const addToListBtn = document.getElementById('add-to-problem-list');
+    const addCustomErrorBtn = document.getElementById('add-custom-error-messages');
     const customBlockInput = document.getElementById('custom-block-input');
+    const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
     const startDescriptionInput = document.getElementById('start-description');
@@ -742,6 +748,7 @@ initBurgerMenu();
         const descriptionInput = document.getElementById('problem-description');
         const startDescriptionInput = document.getElementById('start-description');
         const testsInput = document.getElementById('tests-input');
+        const customErrorMessagesInput = document.getElementById('custom-error-messages');
         const taskTitleInput = document.getElementById('task-title');
         if (taskTitleInput) {
           taskTitleInput.value = extractDefaultTitleFromCode(draftPayload?.taskCode || '');
@@ -754,6 +761,12 @@ initBurgerMenu();
         }
         if (testsInput) {
           testsInput.value = draftPayload?.taskTests || '';
+        }
+        if (customErrorMessagesInput) {
+          customErrorMessagesInput.value = draftPayload?.customErrorMessages || '';
+        }
+        if (customErrorMessagesInput) {
+          customErrorMessagesInput.value = '';
         }
       });
     }
@@ -806,26 +819,26 @@ initBurgerMenu();
     if (taskTitleInput && descriptionInput && startDescriptionInput && testsInput) {
       taskTitleInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
         updateAddToListState();
       });
 
       descriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
         updateAddToListState();
       });
 
       startDescriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
         updateAddToListState();
       });
 
       testsInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
         testsPassed = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value);
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
         updateAddToListState();
       });
     }
@@ -839,6 +852,16 @@ initBurgerMenu();
     if (addToListBtn) {
       addToListBtn.addEventListener('click', () => {
         addToProblemList();
+      });
+    }
+
+    if (addCustomErrorBtn && customErrorMessagesInput) {
+      addCustomErrorBtn.addEventListener('click', () => {
+        // customErrorMessagesInput.focus();
+        hasOpenedStudentPreview = false;
+        testsPassed = false;
+        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        updateAddToListState();
       });
     }
   }
@@ -860,6 +883,7 @@ initBurgerMenu();
     const descriptionInput = document.getElementById('problem-description');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
+    const customErrorMessagesInput = document.getElementById('custom-error-messages');
 
     const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
     if (taskTitleInput) {
@@ -874,6 +898,9 @@ initBurgerMenu();
     }
     if (testsInput) {
       testsInput.value = meta.tests || draft.taskTests || '';
+    }
+    if (customErrorMessagesInput) {
+      customErrorMessagesInput.value = meta.customErrorMessages || '';
     }
 
     const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);

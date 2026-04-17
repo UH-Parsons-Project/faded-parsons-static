@@ -6,7 +6,7 @@ set -euo pipefail
 compose_cmd=(docker compose --profile test)
 
 # Start only infrastructure in background.
-"${compose_cmd[@]}" up --build -d db web-test
+"${compose_cmd[@]}" up --build -d db-test web-test
 
 # Run both test services concurrently and wait for both to finish.
 set +e

@@ -605,6 +605,7 @@ async def create_problem(
             "correct_order": [block["id"] for block in blocks],
             "teacher_tests": tests,
             "solution_code": solution_code,
+            "custom_error_messages": custom_error_messages,
         },
         is_public=True,
     )

@@ -233,6 +233,8 @@ async def get_student_task_statistics(
             attempts_detail=[],
             total_time_seconds=total_time_seconds,
             sessions=sessions_data,
+            task_set_name=task_set.title,
+            task_set_code=task_set.unique_link_code,
         )
 
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
@@ -298,6 +300,8 @@ async def get_student_task_statistics(
         attempts_detail=attempts_detail,
         total_time_seconds=total_time_seconds,
         sessions=sessions_data,
+        task_set_name=task_set.title,
+        task_set_code=task_set.unique_link_code,
     )
 
 
@@ -370,6 +374,7 @@ async def get_task_statistics(
             "total_completions": 0,
             "students_attempted": 0,
             "students_completed": 0,
+            "students_not_started": 0,
             "avg_tries": 0,
             "time_to_first_fail": {"avg": 0, "min": 0, "max": 0},
             "time_to_first_success": {"avg": 0, "min": 0, "max": 0},
@@ -425,6 +430,8 @@ async def get_task_statistics(
                 break
 
     avg_tries = sum(tries_before_success) / len(tries_before_success) if tries_before_success else 0
+    min_tries = min(tries_before_success) if tries_before_success else None
+    max_tries = max(tries_before_success) if tries_before_success else None
 
     tff_values = []
     for session_attempts in student_attempts.values():
@@ -463,6 +470,64 @@ async def get_task_statistics(
         "max": round(max(tfs_values), 2) if tfs_values else 0,
     }
 
+    # Thinking time: time from enrollment.started_at to first move/edit per student
+    enrollment_ids_map = {en.id: en for _, en in attempts_data}
+    thinking_values = []
+    for enrollment in enrollment_ids_map.values():
+        if not enrollment.started_at:
+            continue
+        first_move_res = await db.execute(
+            select(func.min(MoveEvent.event_time))
+            .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+            .where(TaskAttempt.student_task_enrollment_id == enrollment.id)
+        )
+        first_edit_res = await db.execute(
+            select(func.min(EditEvent.event_time))
+            .join(TaskAttempt, TaskAttempt.id == EditEvent.attempt_id)
+            .where(TaskAttempt.student_task_enrollment_id == enrollment.id)
+        )
+        candidates = [t for t in [first_move_res.scalar(), first_edit_res.scalar()] if t is not None]
+        if candidates:
+            secs = (min(candidates) - enrollment.started_at).total_seconds()
+            if 0 <= secs < 3600:  # ignore implausible values
+                thinking_values.append(secs)
+
+    thinking_time = None
+    if thinking_values:
+        thinking_time = {
+            "avg": round(sum(thinking_values) / len(thinking_values), 2),
+            "min": round(min(thinking_values), 2),
+            "max": round(max(thinking_values), 2),
+        }
+
+    # Number of moves per student: avg/min/max
+    move_counts_per_student = []
+    for enrollment in enrollment_ids_map.values():
+        count_res = await db.execute(
+            select(func.count(MoveEvent.id))
+            .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+            .where(TaskAttempt.student_task_enrollment_id == enrollment.id)
+        )
+        cnt = count_res.scalar() or 0
+        move_counts_per_student.append(cnt)
+
+    number_of_moves = None
+    if move_counts_per_student:
+        number_of_moves = {
+            "avg": round(sum(move_counts_per_student) / len(move_counts_per_student), 1),
+            "min": min(move_counts_per_student),
+            "max": max(move_counts_per_student),
+        }
+
+    # Students enrolled in the task set but never attempted this task (not started)
+    students_not_started = 0
+    if task_set_code and task_set:
+        students_in_set = (await db.execute(
+            select(func.count(StudentTaskSetEnrollment.student_id))
+            .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+        )).scalar() or 0
+        students_not_started = max(0, students_in_set - students_attempted)
+
     mistake_counts: dict = {}
     for attempt, _ in failed_attempts:
         if attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict):
@@ -491,10 +556,13 @@ async def get_task_statistics(
         "total_completions": len(attempts_data),
         "students_attempted": students_attempted,
         "students_completed": students_completed,
+        "students_not_started": students_not_started,
         "avg_tries": round(avg_tries, 2),
+        "min_tries": min_tries,
+        "max_tries": max_tries,
         "time_to_first_fail": tff,
         "time_to_first_success": tfs,
-        "thinking_time": None,
-        "number_of_moves": None,
+        "thinking_time": thinking_time,
+        "number_of_moves": number_of_moves,
         "common_mistakes": common_mistakes,
     }

@@ -24,7 +24,7 @@ from ...auth import CurrentUser
 from backend.utils import has_user_added_own_code, _clean_mistake_code, _mistake_code_fingerprint
 from datetime import datetime, timezone
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
-from ..utils.commons import get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
+from ..utils.commons import get_task_set_or_404, run_with_task_ids_or_empty
 
 router = APIRouter()
 
@@ -46,8 +46,6 @@ async def get_student_attempts(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
-    from sqlalchemy import func
-
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
@@ -59,8 +57,8 @@ async def get_student_attempts(
                 Parsons.id,
                 Parsons.title,
                 Parsons.task_type,
-                func.count(TaskAttempt.id).label('attempts'),
-                func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
+                func.count(TaskAttempt.id).label('attempts'),  # pylint: disable=not-callable
+                func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),  # pylint: disable=not-callable
                 func.max(TaskAttempt.completed_at).label('last_attempt_at')
             )
             .join(StudentTaskEnrollment, (StudentTaskEnrollment.task_id == Parsons.id) & (StudentTaskEnrollment.task_set_id == set_id))
@@ -182,7 +180,7 @@ async def get_student_task_statistics(
 
     # Count only block move events (not blank edits)
     move_count_stmt = (
-        select(func.count(MoveEvent.id))
+        select(func.count(MoveEvent.id))  # pylint: disable=not-callable
         .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
         .join(Student, Student.id == TaskAttempt.student_id)
         .where(Student.username == student_username)
@@ -240,7 +238,6 @@ async def get_student_task_statistics(
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
     failed_attempts = sum(1 for a, _ in attempts_data if not a.success)
 
-    first_success_pair = next(((a, en) for a, en in attempts_data if a.success), None)
     def active_time_to(target_dt):
         """Sum session durations up to target_dt (active page time only)."""
         if not target_dt or not task_sessions:
@@ -504,7 +501,7 @@ async def get_task_statistics(
     move_counts_per_student = []
     for enrollment in enrollment_ids_map.values():
         count_res = await db.execute(
-            select(func.count(MoveEvent.id))
+            select(func.count(MoveEvent.id))  # pylint: disable=not-callable
             .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
             .where(TaskAttempt.student_task_enrollment_id == enrollment.id)
         )

@@ -80,18 +80,23 @@ function updateDonut(completed, attempted, notStarted) {
 	if (elNotStarted) elNotStarted.textContent = notStarted > 0 ? notStarted : '—';
 }
 
-function renderSidebarSection(listEl, moreEl, names, metaFn, max = 6) {
+function renderSidebarSection(listEl, moreEl, names, urlFn, max = 6) {
 	if (!names.length) {
 		listEl.innerHTML = '';
 		return;
 	}
 	const show = names.slice(0, max);
 	const extra = names.length - show.length;
-	listEl.innerHTML = show.map(n => `
-		<div class="sidebar-row">
+	listEl.innerHTML = show.map(n => {
+		const url = urlFn ? urlFn(n.name) : null;
+		const tag = url ? 'a' : 'div';
+		const href = url ? ` href="${url}"` : '';
+		return `
+		<${tag} class="sidebar-row"${href}>
 			<span class="sidebar-row-name">${escapeHtml(n.name)}</span>
 			<span class="sidebar-row-meta">${escapeHtml(n.meta)}</span>
-		</div>`).join('');
+		</${tag}>`;
+	}).join('');
 	if (extra > 0 && moreEl) {
 		moreEl.textContent = `+ ${extra} more`;
 		moreEl.style.display = '';
@@ -103,30 +108,39 @@ function renderSidebarSection(listEl, moreEl, names, metaFn, max = 6) {
 function updateSidebar(completed, notYetCompleted, notStarted, total, students) {
 	document.getElementById('sidebar-enrolled-count').textContent = total > 0 ? total : '—';
 
-	const completedNames      = students?.completed       ?? [];
+	const completedNames       = students?.completed        ?? [];
 	const notYetCompletedNames = students?.not_yet_completed ?? [];
-	const notStartedNames     = students?.not_started     ?? [];
+	const notStartedNames      = students?.not_started      ?? [];
 
-	document.getElementById('sidebar-completed-count').textContent  = completed;
-	document.getElementById('sidebar-struggling-count').textContent = notYetCompleted;
+	document.getElementById('sidebar-completed-count').textContent   = completed;
+	document.getElementById('sidebar-struggling-count').textContent  = notYetCompleted;
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
+
+	const taskStatsUrl = (taskId && setId)
+		? name => `/student_task_statistics?student=${encodeURIComponent(name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
+		: null;
+	const attemptsUrl = setId
+		? name => `/student_attempts?student=${encodeURIComponent(name)}&set_id=${encodeURIComponent(setId)}`
+		: null;
 
 	renderSidebarSection(
 		document.getElementById('sidebar-completed-list'),
 		document.getElementById('sidebar-completed-more'),
-		completedNames
+		completedNames,
+		taskStatsUrl
 	);
 	renderSidebarSection(
 		document.getElementById('sidebar-struggling-list'),
 		document.getElementById('sidebar-struggling-more'),
-		notYetCompletedNames
+		notYetCompletedNames,
+		taskStatsUrl
 	);
 
 	const notStartedList = document.getElementById('sidebar-not-started-list');
 	if (notStarted === 0) {
 		notStartedList.innerHTML = '<div class="sidebar-empty">All students have attempted this exercise.</div>';
 	} else {
-		renderSidebarSection(notStartedList, null, notStartedNames);
+		renderSidebarSection(notStartedList, null, notStartedNames, attemptsUrl);
 	}
 }
 

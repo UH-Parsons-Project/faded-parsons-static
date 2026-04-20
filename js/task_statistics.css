@@ -229,6 +229,9 @@ body {
   box-shadow: var(--shadow);
 }
 .sidebar-row-name { font-weight: 600; color: var(--text); }
+a.sidebar-row { text-decoration: none; color: inherit; display: flex; }
+a.sidebar-row:hover { color: inherit; text-decoration: none; }
+a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .sidebar-row-meta { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
 .sidebar-more {
   background: var(--bg);

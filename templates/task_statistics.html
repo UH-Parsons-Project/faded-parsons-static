@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exercise Analytics - Parsons Code Lab</title>
+  <title>Exercise Analytics — Parsons Code Lab</title>
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/js/main.css">
-
+  <link rel="stylesheet" href="/js/task_statistics.css">
 </head>
 
 <body>
@@ -49,139 +48,296 @@
     </div>
   </nav>
 
-  <div class="container py-3">
+  <div class="page-layout">
 
-    <h2>Exercise analytics</h2>
-    <div class="text-muted mb-3">
-      Exercise: <span id="exercise-name">—</span>
-    </div>
-
-    <!-- Top row -->
-    <div class="row">
-      <div class="col-md-4 mb-3">
-        <div class="card card-soft">
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <div class="stat-single">
-              <div class="label">Total number of attempts</div>
-              <div id="total-completions" class="value">—</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <div class="card card-soft">
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <div class="stat-single">
-              <div class="label">Students completed / attempted</div>
-              <div id="students-stats" class="value">—</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4 mb-3">
-        <div class="card card-soft">
-          <div class="card-body d-flex align-items-center justify-content-center">
-            <div class="stat-single">
-              <div class="label">Average number of tries before success</div>
-              <div id="avg-tries" class="value">—</div>
-            </div>
-          </div>
-        </div>
+  <!-- Student sidebar -->
+  <aside class="student-sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Student Overview</span>
+      <div class="sidebar-enrolled-row">
+        <span class="sidebar-enrolled" id="sidebar-enrolled-count">—</span>
+        <span class="sidebar-enrolled-label">enrolled</span>
       </div>
     </div>
 
-    <div class="section-title">Statistics</div>
-
-    <div class="row">
-
-      <!-- Time to first fail -->
-      <div class="col-md-6 mb-3">
-        <div class="card card-soft">
-          <div class="card-body">
-            <div class="stats-title">Time to first fail</div>
-            <div class="stat-grid">
-              <div><div class="label">Average</div><div class="value" id="tff-avg">—</div></div>
-              <div><div class="label">Min</div><div class="value" id="tff-min">—</div></div>
-              <div><div class="label">Max</div><div class="value" id="tff-max">—</div></div>
-            </div>
-          </div>
-        </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-head c-green">
+        <span class="sidebar-dot" style="background:var(--green)"></span>
+        <span>Completed</span>
+        <span class="sidebar-count" id="sidebar-completed-count">—</span>
       </div>
-
-      <!-- Time to first success -->
-      <div class="col-md-6 mb-3">
-        <div class="card card-soft">
-          <div class="card-body">
-            <div class="stats-title">Time to first success</div>
-            <div class="stat-grid">
-              <div><div class="label">Average</div><div class="value" id="tfs-avg">—</div></div>
-              <div><div class="label">Min</div><div class="value" id="tfs-min">—</div></div>
-              <div><div class="label">Max</div><div class="value" id="tfs-max">—</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Thinking time -->
-      <div class="col-md-6 mb-3">
-        <div class="card card-soft">
-          <div class="card-body">
-            <div class="stats-title">Thinking time before starting task</div>
-            <div id="thinking-time-content">
-              <div class="stat-grid">
-                <div><div class="label">Average</div><div class="value" id="think-avg">—</div></div>
-                <div><div class="label">Min</div><div class="value" id="think-min">—</div></div>
-                <div><div class="label">Max</div><div class="value" id="think-max">—</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Number of moves -->
-      <div class="col-md-6 mb-3">
-        <div class="card card-soft">
-          <div class="card-body">
-            <div class="stats-title">Number of moves</div>
-            <div id="moves-content">
-              <div class="stat-grid">
-                <div><div class="label">Average</div><div class="value" id="moves-avg">—</div></div>
-                <div><div class="label">Min</div><div class="value" id="moves-min">—</div></div>
-                <div><div class="label">Max</div><div class="value" id="moves-max">—</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
+      <div class="sidebar-rows" id="sidebar-completed-list"></div>
+      <button class="sidebar-more" id="sidebar-completed-more" style="display:none"></button>
     </div>
 
-    <div class="row">
-      <div class="col-lg-6 mb-4">
-        <div class="card card-soft h-100">
-          <div class="card-body">
-            <strong>Most common mistakes and inputs</strong>
-            <div id="input-logs" class="text-muted mt-2">Loading...</div>
-          </div>
-        </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-head c-red">
+        <span class="sidebar-dot" style="background:var(--red)"></span>
+        <span>Not Yet Completed</span>
+        <span class="sidebar-count" id="sidebar-struggling-count">—</span>
       </div>
-
-      <div class="col-lg-6 mb-4" id="model-answer-box">
-        <div class="card card-soft model-answer-sticky">
-          <div class="card-body">
-            <strong>Model answer</strong>
-            <div id="model-answer-content" class="mt-2">
-              <em class="text-muted">No model answer available.</em>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div class="sidebar-rows" id="sidebar-struggling-list"></div>
+      <button class="sidebar-more" id="sidebar-struggling-more" style="display:none"></button>
     </div>
 
+    <div class="sidebar-section">
+      <div class="sidebar-section-head c-gray">
+        <span class="sidebar-dot" style="background:var(--gray)"></span>
+        <span>Not Started</span>
+        <span class="sidebar-count" id="sidebar-not-started-count">—</span>
+      </div>
+      <div class="sidebar-rows" id="sidebar-not-started-list"></div>
+    </div>
+  </aside>
+
+  <div class="page-content">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <div class="taskset-chip">
+        <span class="taskset-from">Task set</span>
+        <span class="taskset-name" id="taskset-name-label">—</span>
+        <span class="taskset-code" id="taskset-code-label"></span>
+      </div>
+      <div class="page-title" id="exercise-name">—</div>
+      <div class="page-subtitle">Exercise analytics</div>
+    </div>
+    <div class="header-badge">Exercise Analytics</div>
   </div>
+
+  <div class="main">
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi-card c-brand">
+        <div class="kpi-label">Total Attempts</div>
+        <div id="total-completions" class="kpi-value">—</div>
+        <div class="kpi-sub">across all students</div>
+      </div>
+      <div class="kpi-card c-green">
+        <div class="kpi-label">Students Completed</div>
+        <div class="kpi-value">
+          <span id="students-completed-num">—</span><span class="kpi-fraction" id="students-attempted-denom"></span>
+        </div>
+        <div class="kpi-sub" id="completion-rate-sub">—</div>
+      </div>
+      <div class="kpi-card c-red">
+        <div class="kpi-label">Not Yet Completed</div>
+        <div id="students-struggling" class="kpi-value">—</div>
+        <div class="kpi-sub">attempted, not yet passed</div>
+      </div>
+      <div class="kpi-card c-amber">
+        <div class="kpi-label">Not Started</div>
+        <div class="kpi-value">
+          <span id="kpi-not-started-num">—</span><span class="kpi-fraction" id="kpi-not-started-denom"></span>
+        </div>
+        <div class="kpi-sub">haven't opened this task</div>
+      </div>
+    </div>
+
+    <!-- Middle row: time chart + donut -->
+    <div class="middle-row">
+
+      <!-- Time metrics -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Time Metrics</span>
+          <span style="font-size:.72rem;color:var(--text-muted);">min / avg / max across all students</span>
+        </div>
+        <div class="card-body">
+          <div class="time-chart">
+
+            <!-- Time to first fail -->
+            <div class="time-metric" id="tff-metric">
+              <div class="tm-name">
+                <span class="tm-dot" style="background:var(--red);"></span>Time to First Fail
+              </div>
+              <div class="tc-grid">
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Min</div>
+                  <div class="tc-cell-val" id="tff-min">—</div>
+                </div>
+                <div class="tc-cell is-avg" style="color:var(--red)">
+                  <div class="tc-cell-lbl">Avg</div>
+                  <div class="tc-cell-val" id="tff-avg" style="color:var(--red)">—</div>
+                </div>
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Max</div>
+                  <div class="tc-cell-val" id="tff-max">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="time-divider"></div>
+
+            <!-- Time to first success -->
+            <div class="time-metric" id="tfs-metric">
+              <div class="tm-name">
+                <span class="tm-dot" style="background:var(--green);"></span>Time to First Success
+              </div>
+              <div class="tc-grid">
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Min</div>
+                  <div class="tc-cell-val" id="tfs-min">—</div>
+                </div>
+                <div class="tc-cell is-avg" style="color:var(--green)">
+                  <div class="tc-cell-lbl">Avg</div>
+                  <div class="tc-cell-val" id="tfs-avg" style="color:var(--green)">—</div>
+                </div>
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Max</div>
+                  <div class="tc-cell-val" id="tfs-max">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="time-divider"></div>
+
+            <!-- Thinking time -->
+            <div class="time-metric" id="thinking-time-metric" style="opacity:.4;">
+              <div class="tm-name">
+                <span class="tm-dot" style="background:var(--brand-dark);"></span>Thinking Time
+              </div>
+              <div class="tc-grid" id="thinking-time-content">
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Min</div>
+                  <div class="tc-cell-val" id="think-min">—</div>
+                </div>
+                <div class="tc-cell is-avg" style="color:var(--brand-dark)">
+                  <div class="tc-cell-lbl">Avg</div>
+                  <div class="tc-cell-val" id="think-avg" style="color:var(--brand-dark)">—</div>
+                </div>
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Max</div>
+                  <div class="tc-cell-val" id="think-max">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="time-divider"></div>
+
+            <!-- Number of moves -->
+            <div class="time-metric" id="moves-metric" style="opacity:.4;">
+              <div class="tm-name">
+                <span class="tm-dot" style="background:var(--gray);"></span>Number of Moves
+              </div>
+              <div class="tc-grid" id="moves-content">
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Min</div>
+                  <div class="tc-cell-val" id="moves-min">—</div>
+                </div>
+                <div class="tc-cell is-avg" style="color:var(--gray)">
+                  <div class="tc-cell-lbl">Avg</div>
+                  <div class="tc-cell-val" id="moves-avg" style="color:var(--gray)">—</div>
+                </div>
+                <div class="tc-cell">
+                  <div class="tc-cell-lbl">Max</div>
+                  <div class="tc-cell-val" id="moves-max">—</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Completion donut -->
+      <div class="card completion-card">
+        <div class="card-header">
+          <span class="card-title">Completion</span>
+        </div>
+        <div class="donut-wrap">
+          <svg id="donut-svg" class="donut-svg" width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="60" fill="none" stroke="#e2e8f0" stroke-width="14"/>
+            <circle id="donut-arc-completed" cx="80" cy="80" r="60" fill="none"
+              stroke="#a8b4f7" stroke-width="14"
+              stroke-dasharray="0 376.99" stroke-linecap="round"
+              transform="rotate(-90 80 80)"
+              style="transition:stroke-dasharray .6s ease"/>
+            <circle id="donut-arc-struggling" cx="80" cy="80" r="60" fill="none"
+              stroke="#fca5a5" stroke-width="14"
+              stroke-dasharray="0 376.99" stroke-linecap="round"
+              transform="rotate(-90 80 80)"
+              style="transition:stroke-dasharray .6s ease"/>
+            <text id="donut-percent-text" x="80" y="73" text-anchor="middle"
+              font-family="DM Sans,sans-serif" font-size="30" font-weight="800" fill="#1e293b">—</text>
+            <text x="80" y="93" text-anchor="middle"
+              font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#94a3b8" letter-spacing="1">COMPLETED</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-row">
+              <span class="legend-label"><span class="legend-dot" style="background:#a8b4f7"></span>Completed</span>
+              <span class="legend-value" id="legend-completed" style="color:var(--brand-dark)">—</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-label"><span class="legend-dot" style="background:#fca5a5"></span>Not completed</span>
+              <span class="legend-value" id="legend-struggling" style="color:var(--red)">—</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-label"><span class="legend-dot" style="background:#e2e8f0"></span>Not started</span>
+              <span class="legend-value" id="legend-not-started" style="color:var(--text-muted)">—</span>
+            </div>
+          </div>
+        </div>
+        <hr class="completion-divider">
+        <div class="avg-tries-strip">
+          <div class="avg-tries-header">
+            <span class="avg-tries-label">Tries to pass</span>
+          </div>
+          <div class="avg-tries-cells">
+            <div class="avg-tries-cell">
+              <div class="avg-tries-cell-lbl">Min</div>
+              <div class="avg-tries-cell-val" id="avg-tries-min">—</div>
+            </div>
+            <div class="avg-tries-cell is-avg">
+              <div class="avg-tries-cell-lbl">Avg</div>
+              <div class="avg-tries-cell-val" id="avg-tries-donut">—</div>
+            </div>
+            <div class="avg-tries-cell">
+              <div class="avg-tries-cell-lbl">Max</div>
+              <div class="avg-tries-cell-val" id="avg-tries-max">—</div>
+            </div>
+          </div>
+          <div class="avg-tries-bar-wrap" id="avg-tries-bar-wrap" style="display:none">
+            <div class="avg-tries-bar-track">
+              <div class="avg-tries-bar-fill" id="avg-tries-bar-fill"></div>
+              <div class="avg-tries-bar-marker" id="avg-tries-bar-marker"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom row: mistakes + model answer -->
+    <div class="bottom-row">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Most Common Mistakes</span>
+          <span id="mistakes-total-chip" style="font-size:.72rem;color:var(--text-muted);"></span>
+        </div>
+        <div class="card-body" id="input-logs">
+          <em class="text-muted" style="font-size:.85rem;">Loading…</em>
+        </div>
+      </div>
+
+      <div class="card model-card" id="model-answer-box">
+        <div class="card-header">
+          <span class="card-title">Model Answer</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="card-body" id="model-answer-content">
+          <em class="text-muted">No model answer available.</em>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  </div><!-- /page-content -->
+  </div><!-- /page-layout -->
 
   <script type="module" src="/js/task_statistics.js"></script>
 

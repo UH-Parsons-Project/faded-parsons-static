@@ -13,7 +13,6 @@ if (!studentUsername || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
-// Set up back button
 document.getElementById('back-btn').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${setId}`;
 
 function formatTime(seconds) {
@@ -27,12 +26,8 @@ function formatDateTime(isoString) {
 	if (!isoString) return 'N/A';
 	const date = new Date(isoString);
 	return date.toLocaleString('en-US', {
-	year: 'numeric',
-	month: 'short',
-	day: 'numeric',
-	hour: '2-digit',
-	minute: '2-digit',
-	second: '2-digit'
+		year: 'numeric', month: 'short', day: 'numeric',
+		hour: '2-digit', minute: '2-digit', second: '2-digit'
 	});
 }
 
@@ -43,13 +38,24 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+function setupCollapsible(toggleId, bodyId, chevronId) {
+	const toggle  = document.getElementById(toggleId);
+	const body    = document.getElementById(bodyId);
+	const chevron = document.getElementById(chevronId);
+	if (!toggle || !body) return;
+	toggle.addEventListener('click', () => {
+		const open = !body.classList.contains('collapsed');
+		body.classList.toggle('collapsed', open);
+		if (chevron) chevron.classList.toggle('open', !open);
+	});
+}
+
 function renderHeader(data) {
-	const container = document.getElementById('page-header');
-	container.className = 'sts-page-header mb-4';
-	container.innerHTML = `
-	<h2 class="sts-task-title"><i class="fas fa-code mr-2"></i>${escapeHtml(data.task_name)}</h2>
-	<span class="sts-student-badge"><i class="fas fa-user-graduate mr-1"></i>${escapeHtml(data.student_username)}</span>
-	`;
+	document.getElementById('page-header').style.display = 'none';
+	document.getElementById('content-header').style.display = 'flex';
+	document.getElementById('exercise-name').textContent = data.task_name || '—';
+	document.getElementById('student-name-text').textContent = data.student_username || studentUsername;
+	if (data.task_set_name) document.getElementById('taskset-name-label').textContent = data.task_set_name;
 }
 
 function renderTaskInstructions(taskInstructions) {
@@ -57,34 +63,25 @@ function renderTaskInstructions(taskInstructions) {
 	const content = document.getElementById('task-instructions-content');
 
 	if (!taskInstructions || !taskInstructions.trim()) {
-	box.style.display = 'none';
-	return;
+		box.style.display = 'none';
+		return;
 	}
 
-	// Parse JSON description
 	let parsedInstructions = {};
 	try {
-	parsedInstructions = typeof taskInstructions === 'string'
-		? JSON.parse(taskInstructions)
-		: taskInstructions;
+		parsedInstructions = typeof taskInstructions === 'string'
+			? JSON.parse(taskInstructions)
+			: taskInstructions;
 	} catch (e) {
-	// If not JSON, display as-is
-	content.innerHTML = taskInstructions;
-	box.style.display = 'block';
-	return;
+		content.innerHTML = taskInstructions;
+		box.style.display = 'block';
+		return;
 	}
 
-	// Build HTML from parsed description
 	let html = '';
-	if (parsedInstructions.function_name) {
-	html += `<strong>${escapeHtml(parsedInstructions.function_name)}</strong>`;
-	}
-	if (parsedInstructions.task_instructions) {
-	html += ` ${escapeHtml(parsedInstructions.task_instructions)}`;
-	}
-	if (parsedInstructions.examples) {
-	html += `<br><pre><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
-	}
+	if (parsedInstructions.function_name) html += `<strong>${escapeHtml(parsedInstructions.function_name)}</strong>`;
+	if (parsedInstructions.task_instructions) html += ` ${escapeHtml(parsedInstructions.task_instructions)}`;
+	if (parsedInstructions.examples) html += `<br><pre><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
 
 	content.innerHTML = html;
 	box.style.display = 'block';
@@ -92,64 +89,51 @@ function renderTaskInstructions(taskInstructions) {
 
 function renderModelAnswer(modelAnswer) {
 	const content = document.getElementById('model-answer-content');
-	const header = document.getElementById('model-answer-header');
-	const icon = document.getElementById('model-answer-expand-icon');
-
 	if (modelAnswer && modelAnswer.trim()) {
-		content.innerHTML = `<div class="p-3"><pre class="attempt-code model-answer-code mb-0"><code>${escapeHtml(modelAnswer)}</code></pre></div>`;
+		content.innerHTML = `<pre class="model-code">${escapeHtml(modelAnswer)}</pre>`;
 	}
-
-	header.addEventListener('click', () => {
-		const isOpen = content.style.display !== 'none';
-		content.style.display = isOpen ? 'none' : 'block';
-		icon.classList.toggle('fa-chevron-down', isOpen);
-		icon.classList.toggle('fa-chevron-up', !isOpen);
-	});
 }
 
 function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = `attempt-item ${attempt.success ? 'success' : 'failure'}`;
 
-	const header = document.createElement('div');
-	header.className = 'attempt-header';
-	header.innerHTML = `
-	<span class="attempt-number">Attempt #${attempt.attempt_number}</span>
-	<span class="attempt-badge ${attempt.success ? 'success' : 'failure'}">
-		${attempt.success ? 'Success' : 'Failed'}
-	</span>
+	const timePart = attempt.time_taken !== null
+		? ` &nbsp;·&nbsp; ${formatTime(attempt.time_taken)}`
+		: '';
+
+	item.innerHTML = `
+		<div class="attempt-head">
+			<span class="attempt-num">Attempt #${attempt.attempt_number}</span>
+			<div class="attempt-meta-row">
+				<span class="attempt-time"><i class="fas fa-clock mr-1"></i>${formatDateTime(attempt.completed_at)}${timePart}</span>
+				<span class="attempt-badge ${attempt.success ? 'success' : 'failure'}">${attempt.success ? 'Success' : 'Failed'}</span>
+			</div>
+		</div>
+		${attempt.code ? `<div class="attempt-code-wrap"><pre class="attempt-code">${escapeHtml(attempt.code)}</pre></div>` : ''}
 	`;
-
-	const meta = document.createElement('div');
-	meta.className = 'attempt-meta';
-	meta.innerHTML = `
-	Completed: ${formatDateTime(attempt.completed_at)}
-	${attempt.time_taken !== null ? ` • Time: ${formatTime(attempt.time_taken)}` : ''}
-	`;
-
-	item.appendChild(header);
-	item.appendChild(meta);
-
-	if (attempt.code) {
-	const codeLabel = document.createElement('div');
-	codeLabel.className = 'stat-label mt-2 mb-1';
-	codeLabel.textContent = 'Submitted Code:';
-
-	const code = document.createElement('div');
-	code.className = 'attempt-code';
-	code.textContent = attempt.code;
-
-	item.appendChild(codeLabel);
-	item.appendChild(code);
-	}
 
 	return item;
 }
 
+function renderAttempts(attempts) {
+	const list = document.getElementById('attempts-list');
+	const count = document.getElementById('attempts-count');
+	count.textContent = attempts.length;
+
+	if (attempts.length === 0) {
+		list.innerHTML = '<em class="text-muted" style="font-size:.85rem;">No attempts recorded yet.</em>';
+		return;
+	}
+
+	list.innerHTML = '';
+	attempts.forEach(attempt => list.appendChild(createAttemptItem(attempt)));
+}
+
 const EXIT_REASON_LABELS = {
 	inactivity_timeout: 'Inactivity timeout',
-	manual_navigation: 'Navigated away',
-	page_close: 'Closed tab/window',
+	manual_navigation:  'Navigated away',
+	page_close:         'Closed tab/window',
 };
 
 function renderSessions(sessions) {
@@ -158,53 +142,79 @@ function renderSessions(sessions) {
 	count.textContent = sessions.length;
 
 	if (sessions.length === 0) {
-		list.innerHTML = '<div class="p-3"><em class="text-muted">No sessions recorded.</em></div>';
+		list.innerHTML = '<em class="text-muted" style="font-size:.85rem;">No sessions recorded.</em>';
 		return;
 	}
 
 	list.innerHTML = '';
 	sessions.forEach((s, i) => {
 		const div = document.createElement('div');
-		div.className = 'attempt-item';
-		const duration = s.duration_seconds != null
-			? formatTime(s.duration_seconds)
-			: '—';
+		div.className = 'session-item';
+		const duration = s.duration_seconds != null ? formatTime(s.duration_seconds) : '—';
 		const exitLabel = EXIT_REASON_LABELS[s.exit_reason] ?? (s.exit_reason || 'No exit recorded');
 		div.innerHTML = `
-			<div class="attempt-header">
-				<span class="attempt-number">Session #${i + 1}</span>
-				<span class="text-muted small">${duration}</span>
+			<div class="session-info">
+				<div class="session-num">Session #${i + 1}</div>
+				<div class="session-detail">
+					Entered: ${formatDateTime(s.entered_at)}<br>
+					${s.exited_at ? `Exited: ${formatDateTime(s.exited_at)}<br>` : '<em>Still active</em><br>'}
+					Duration: ${duration}
+				</div>
 			</div>
-			<div class="attempt-meta">
-				Entered: ${formatDateTime(s.entered_at)}
-				${s.exited_at ? ` &bull; Exited: ${formatDateTime(s.exited_at)}` : ' &bull; <em>Still active</em>'}
-			</div>
-			<div class="attempt-meta">Exit: ${exitLabel}</div>
+			<span class="session-exit">${escapeHtml(exitLabel)}</span>
 		`;
 		list.appendChild(div);
 	});
 }
 
-function renderAttempts(attempts) {
-	const attemptsList = document.getElementById('attempts-list');
-	const attemptsCount = document.getElementById('attempts-count');
+function renderStatistics(data) {
+	document.getElementById('stat-total').textContent   = data.total_attempts;
+	document.getElementById('stat-success').textContent = data.successful_attempts;
+	document.getElementById('stat-failed').textContent  = data.failed_attempts;
 
-	attemptsCount.textContent = attempts.length;
-
-	if (attempts.length === 0) {
-	attemptsList.innerHTML = `
-		<div class="empty-state">
-		<i class="fas fa-clipboard"></i>
-		<h4>No Attempts Found</h4>
-		<p>This student hasn't attempted this task yet.</p>
-		</div>
-	`;
-	} else {
-	attemptsList.innerHTML = '';
-	attempts.forEach(attempt => {
-		attemptsList.appendChild(createAttemptItem(attempt));
-	});
+	if (data.empty_attempts && data.empty_attempts > 0) {
+		document.getElementById('empty-attempts-item').style.display = 'block';
+		document.getElementById('stat-empty').textContent = data.empty_attempts;
 	}
+
+	if (data.total_time_seconds) {
+		document.getElementById('kpi-time-to-pass').textContent = formatTime(data.total_time_seconds);
+	}
+
+	if (data.time_to_first_success) {
+		document.getElementById('time-to-success').textContent =
+			formatTime(data.time_to_first_success.seconds);
+	}
+
+	if (data.time_to_first_fail) {
+		document.getElementById('time-to-fail').textContent =
+			formatTime(data.time_to_first_fail.seconds);
+	}
+
+	if (data.thinking_time) {
+		const el = document.getElementById('thinking-time');
+		el.textContent = formatTime(data.thinking_time.seconds);
+		el.style.fontSize = '';
+		el.style.color = '';
+		const sub = document.getElementById('thinking-time-sub');
+		if (sub) sub.style.display = 'none';
+	}
+
+	if (data.move_count !== null && data.move_count !== undefined) {
+		document.getElementById('move-count').textContent = data.move_count;
+	}
+}
+
+function showError(message) {
+	const container = document.getElementById('page-header');
+	container.className = '';
+	container.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;color:#64748b;';
+	container.innerHTML = `
+		<i class="fas fa-exclamation-triangle text-danger" style="font-size:2rem;margin-bottom:1rem;"></i>
+		<h4>Error Loading Data</h4>
+		<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
+		<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Sets</a>
+	`;
 }
 
 // ── Replay engine ──────────────────────────────────────────────────────────
@@ -214,7 +224,6 @@ function countBlanks(code) {
 }
 
 function renderBlockCode(code, blanks) {
-	// Block code stores blanks as ___ (real blocks) or !BLANK (debug lines)
 	let i = 0;
 	return escapeHtml(code).replace(/___/g, () => {
 		const val = (blanks && blanks[i] !== undefined) ? escapeHtml(blanks[i]) : '';
@@ -234,7 +243,6 @@ function buildInitialState(initialBlocks) {
 	const nonGiven = initialBlocks.filter(b => !b.given);
 	const given = initialBlocks.filter(b => b.given);
 
-	// Mirror alphabetize() — same compare logic as parsons.js alphabetize()
 	function alphabetizeCompare(a, b) {
 		const aCode = a.code;
 		const bCode = b.code;
@@ -248,21 +256,15 @@ function buildInitialState(initialBlocks) {
 
 	for (const b of sorted) {
 		starter.push({
-			block_id: b.block_id,
-			code: b.code,
-			given: false,
-			debug: b.debug || false,
-			indent: b.indent,
+			block_id: b.block_id, code: b.code, given: false,
+			debug: b.debug || false, indent: b.indent,
 			blanks: Array(countBlanks(b.code)).fill(''),
 		});
 	}
 	for (const b of given) {
 		solution.push({
-			block_id: b.block_id,
-			code: b.code,
-			given: true,
-			indent: b.indent,
-			blanks: Array(countBlanks(b.code)).fill(''),
+			block_id: b.block_id, code: b.code, given: true,
+			indent: b.indent, blanks: Array(countBlanks(b.code)).fill(''),
 		});
 	}
 
@@ -271,7 +273,7 @@ function buildInitialState(initialBlocks) {
 
 function deepCopyState(state) {
 	return {
-		starter: state.starter.map(b => ({ ...b, blanks: [...b.blanks], debug: b.debug || false })),
+		starter:  state.starter.map(b => ({ ...b, blanks: [...b.blanks], debug: b.debug || false })),
 		solution: state.solution.map(b => ({ ...b, blanks: [...b.blanks], debug: b.debug || false })),
 	};
 }
@@ -283,15 +285,11 @@ function applyEvent(state, event) {
 		const src = next[event.from_container];
 		const dst = next[event.to_container];
 		if (!src || !dst) return next;
-
 		const idx = src.findIndex(b => b.block_id === event.block_id);
 		if (idx === -1) return next;
-
 		const [block] = src.splice(idx, 1);
 		block.indent = event.to_indent;
-		const insertAt = Math.min(event.to_index, dst.length);
-		dst.splice(insertAt, 0, block);
-
+		dst.splice(Math.min(event.to_index, dst.length), 0, block);
 	} else if (event.type === 'edit') {
 		for (const container of [next.starter, next.solution]) {
 			const block = container.find(b => b.block_id === event.block_id);
@@ -304,7 +302,6 @@ function applyEvent(state, event) {
 			}
 		}
 	}
-	// 'run' events carry no state change — the board stays as-is
 
 	return next;
 }
@@ -335,32 +332,34 @@ function renderReplayBoard(state, highlightBlockId) {
 
 function renderReplayStep(states, events, stepIndex) {
 	const total = events.length;
-	document.getElementById('replay-step-label').textContent =
-		`Step ${stepIndex} / ${total}`;
+	document.getElementById('replay-step-label').textContent = `Step ${stepIndex} / ${total}`;
 	document.getElementById('replay-prev').disabled = stepIndex === 0;
 	document.getElementById('replay-next').disabled = stepIndex === total;
 
 	const labelEl = document.getElementById('replay-event-label');
+	const board   = document.getElementById('replay-board');
+
 	if (stepIndex === 0) {
 		labelEl.textContent = 'Initial state';
+		board.classList.remove('replay-run-success-board', 'replay-run-fail-board');
 		renderReplayBoard(states[0], null);
 		return;
 	}
 
 	const event = events[stepIndex - 1];
-	const board = document.getElementById('replay-board');
 
 	if (event.type === 'run') {
 		const success = event.success;
 		labelEl.innerHTML = success
 			? '<span class="replay-run-badge replay-run-success"><i class="fas fa-check mr-1"></i>Ran code — Passed</span>'
 			: '<span class="replay-run-badge replay-run-fail"><i class="fas fa-times mr-1"></i>Ran code — Failed</span>';
-		board.className = 'replay-board ' + (success ? 'replay-run-success-board' : 'replay-run-fail-board');
+		board.classList.remove('replay-run-success-board', 'replay-run-fail-board');
+		board.classList.add(success ? 'replay-run-success-board' : 'replay-run-fail-board');
 		renderReplayBoard(states[stepIndex], null);
 		return;
 	}
 
-	board.className = 'replay-board';
+	board.classList.remove('replay-run-success-board', 'replay-run-fail-board');
 
 	const rawCode = (event.block_code || event.block_id).replace(/!BLANK/g, '___');
 	const blockLabel = `<span class="replay-block replay-block-inline">${escapeHtml(rawCode)}</span>`;
@@ -374,9 +373,7 @@ function renderReplayStep(states, events, stepIndex) {
 	} else {
 		const sameContainer = event.from_container === event.to_container;
 		const sameIndex = event.from_index === event.to_index;
-		const indentLabel = event.to_indent > 0
-			? `, indent ${event.to_indent}` : '';
-
+		const indentLabel = event.to_indent > 0 ? `, indent ${event.to_indent}` : '';
 		let msg;
 		if (sameContainer && sameIndex) {
 			msg = `Indented ${blockLabel} to level ${event.to_indent}`;
@@ -394,10 +391,10 @@ function renderReplayStep(states, events, stepIndex) {
 }
 
 async function initReplay(studentUsername, taskId, setId) {
-	const loadingEl = document.getElementById('replay-loading');
-	const boardEl = document.getElementById('replay-board');
+	const loadingEl  = document.getElementById('replay-loading');
+	const boardEl    = document.getElementById('replay-board');
 	const controlsEl = document.getElementById('replay-controls');
-	const eventLabelEl = document.getElementById('replay-event-label');
+	const labelEl    = document.getElementById('replay-event-label');
 
 	try {
 		const response = await fetch(
@@ -419,12 +416,11 @@ async function initReplay(studentUsername, taskId, setId) {
 		if (events.length === 0 && initialBlocks.length === 0) {
 			boardEl.style.display = 'none';
 			controlsEl.style.display = 'none';
-			eventLabelEl.textContent = '';
+			labelEl.textContent = '';
 			document.getElementById('replay-step-label').textContent = 'No events recorded.';
 			return;
 		}
 
-		// Precompute all board states
 		const initialState = buildInitialState(initialBlocks);
 		const states = [initialState];
 		for (const event of events) {
@@ -448,14 +444,10 @@ async function initReplay(studentUsername, taskId, setId) {
 		document.getElementById('replay-prev').addEventListener('click', () => {
 			if (currentStep > 0) goToStep(currentStep - 1);
 		});
-
 		document.getElementById('replay-next').addEventListener('click', () => {
 			if (currentStep < events.length) goToStep(currentStep + 1);
 		});
-
-		slider.addEventListener('input', () => {
-			goToStep(parseInt(slider.value, 10));
-		});
+		slider.addEventListener('input', () => goToStep(parseInt(slider.value, 10)));
 
 		document.getElementById('replay-prev').disabled = false;
 		document.getElementById('replay-next').disabled = events.length === 0;
@@ -466,114 +458,40 @@ async function initReplay(studentUsername, taskId, setId) {
 	}
 }
 
-function renderStatistics(data) {
-	document.getElementById('stat-total').textContent = data.total_attempts;
-	document.getElementById('stat-success').textContent = data.successful_attempts;
-	document.getElementById('stat-failed').textContent = data.failed_attempts;
+// ── Collapsibles ───────────────────────────────────────────────────────────
 
-	if (data.empty_attempts && data.empty_attempts > 0) {
-	document.getElementById('empty-attempts-item').style.display = 'flex';
-	document.getElementById('stat-empty').textContent = data.empty_attempts;
-	}
+setupCollapsible('attempts-toggle', 'attempts-body',  'attempts-chevron');
+setupCollapsible('replay-toggle',   'replay-body',    'replay-chevron');
+setupCollapsible('sessions-toggle', 'sessions-body',  'sessions-chevron');
+setupCollapsible('model-toggle',    'model-body',     'model-chevron');
 
-	if (data.time_to_first_success) {
-	document.getElementById('time-to-success').textContent =
-		formatTime(data.time_to_first_success.seconds);
-	}
+// ── Load data ──────────────────────────────────────────────────────────────
 
-	if (data.time_to_first_fail) {
-	document.getElementById('time-to-fail').textContent =
-		formatTime(data.time_to_first_fail.seconds);
-	}
-
-	if (data.thinking_time) {
-	document.getElementById('thinking-time').textContent =
-		formatTime(data.thinking_time.seconds);
-	}
-
-	if (data.move_count !== null && data.move_count !== undefined) {
-	document.getElementById('move-count').textContent = data.move_count;
-	}
-
-	if (data.exit_reason || data.exited_at) {
-		const reasonLabels = {
-			inactivity_timeout: 'Inactivity timeout',
-			manual_navigation: 'Navigated away',
-			page_close: 'Closed tab/window',
-		};
-		const box = document.getElementById('exit-info-box');
-		box.style.display = 'block';
-		document.getElementById('exit-reason-label').textContent =
-			reasonLabels[data.exit_reason] ?? (data.exit_reason || 'Unknown');
-		if (data.exited_at) {
-			document.getElementById('exit-time-label').textContent =
-				formatDateTime(data.exited_at);
-		}
-	}
-}
-
-function showError(message) {
-	const container = document.getElementById('page-header');
-	container.className = 'empty-state';
-	container.innerHTML = `
-	<i class="fas fa-exclamation-triangle text-danger"></i>
-	<h4>Error Loading Data</h4>
-	<p>${escapeHtml(message || 'An unexpected error occurred.')}</p>
-	<a href="/teacher-dashboard" class="btn btn-primary mt-3">Back to Task Sets</a>
-	`;
-}
-
-// Toggle attempts list
-const attemptsHeader = document.getElementById('attempts-header');
-const attemptsList = document.getElementById('attempts-list');
-const expandIcon = document.getElementById('expand-icon');
-
-attemptsHeader.addEventListener('click', () => {
-	attemptsList.classList.toggle('expanded');
-	expandIcon.classList.toggle('expanded');
-});
-
-// Toggle session log
-document.getElementById('sessions-header').addEventListener('click', () => {
-	document.getElementById('sessions-list').classList.toggle('expanded');
-	document.getElementById('sessions-expand-icon').classList.toggle('expanded');
-});
-
-// Toggle replay
-document.getElementById('replay-header').addEventListener('click', () => {
-	document.getElementById('replay-content').classList.toggle('expanded');
-	document.getElementById('replay-expand-icon').classList.toggle('expanded');
-});
-
-// Load statistics
 fetch(`/api/students/${encodeURIComponent(studentUsername)}/tasks/${taskId}/statistics?set_id=${setId}`, {
 	credentials: 'include'
 })
 	.then(r => {
-	if (!r.ok) {
-		if (r.status === 401) {
-		window.location.href = '/';
-		return;
+		if (!r.ok) {
+			if (r.status === 401) { window.location.href = '/'; return; }
+			throw new Error('Failed to load statistics');
 		}
-		throw new Error('Failed to load statistics');
-	}
-	return r.json();
+		return r.json();
 	})
 	.then(data => {
-	renderHeader(data);
-	renderTaskInstructions(data.task_instructions);
-	renderModelAnswer(data.model_answer);
-	renderAttempts(data.attempts_detail);
-	renderSessions(data.sessions || []);
-	renderStatistics(data);
-	initReplay(studentUsername, taskId, setId);
-	document.getElementById('content-container').style.display = 'block';
+		renderHeader(data);
+		renderTaskInstructions(data.task_instructions);
+		renderModelAnswer(data.model_answer);
+		renderAttempts(data.attempts_detail);
+		renderSessions(data.sessions || []);
+		renderStatistics(data);
+		initReplay(studentUsername, taskId, setId);
+		document.getElementById('content-container').style.display = 'block';
 	})
 	.catch(err => {
-	console.error('Error loading statistics:', err);
-	if (err.message && err.message.includes('401')) {
-		window.location.href = '/';
-	} else {
-		showError(err.message);
-	}
+		console.error('Error loading statistics:', err);
+		if (err.message && err.message.includes('401')) {
+			window.location.href = '/';
+		} else {
+			showError(err.message);
+		}
 	});

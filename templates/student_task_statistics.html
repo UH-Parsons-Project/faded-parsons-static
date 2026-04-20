@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Task Statistics - Parsons Code Lab</title>
+  <title>Student Task Statistics — Parsons Code Lab</title>
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/js/main.css">
+  <link rel="stylesheet" href="/js/student_task_statistics.css">
 </head>
 
 <body>
@@ -20,8 +20,7 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="#" id="back-btn"
-         class="btn btn-outline-dark btn-sm mr-3">
+      <a href="#" id="back-btn" class="btn btn-outline-dark btn-sm mr-3">
         Back to student attempts
       </a>
       <span class="text-dark">
@@ -49,163 +48,181 @@
     </div>
   </nav>
 
-  <div class="container-fluid sts-outer py-4">
+  <!-- Loading / error state -->
+  <div id="page-header" class="loading-spinner">
+    <div class="spinner-border text-primary" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <p class="mt-2">Loading statistics...</p>
+  </div>
 
-    <div id="page-header" class="loading-spinner">
-      <div class="spinner-border text-primary" role="status">
-        <span class="sr-only">Loading...</span>
+  <!-- Page header (shown after load) -->
+  <div class="page-header" id="content-header" style="display:none;">
+    <div>
+      <div class="taskset-chip">
+        <span class="taskset-from">Task set</span>
+        <span class="taskset-name" id="taskset-name-label">—</span>
       </div>
-      <p class="mt-2">Loading statistics...</p>
+      <div class="page-title" id="exercise-name">—</div>
+      <div class="page-subtitle">Student attempt review</div>
+    </div>
+    <div class="student-badge" id="student-name-badge">
+      <i class="fas fa-user-graduate"></i> <span id="student-name-text">—</span>
+    </div>
+  </div>
+
+  <!-- Task instructions (hidden, shown by JS if available) -->
+  <div id="task-instructions-box" style="display:none;padding:0 2.5rem 1rem;">
+    <div id="task-instructions-content"></div>
+  </div>
+
+  <!-- Main content (shown after load) -->
+  <div class="main" id="content-container" style="display:none;">
+
+    <!-- KPI strip -->
+    <div class="summary-strip">
+      <div class="kpi-card c-brand">
+        <div class="kpi-label">Total Attempts</div>
+        <div id="stat-total" class="kpi-value">—</div>
+        <div class="kpi-sub">submissions made</div>
+      </div>
+      <div class="kpi-card c-green">
+        <div class="kpi-label">Passed</div>
+        <div id="stat-success" class="kpi-value">—</div>
+        <div class="kpi-sub">successful submission</div>
+      </div>
+      <div class="kpi-card c-red">
+        <div class="kpi-label">Failed</div>
+        <div id="stat-failed" class="kpi-value">—</div>
+        <div class="kpi-sub">failed submissions</div>
+      </div>
+      <div class="kpi-card c-amber">
+        <div class="kpi-label">Total Time on Page</div>
+        <div id="kpi-time-to-pass" class="kpi-value">—</div>
+        <div class="kpi-sub">active time spent</div>
+      </div>
     </div>
 
-    <div id="content-container" style="display: none;">
+    <!-- 2-col layout -->
+    <div class="content-layout">
 
-      <div class="stat-box mb-3" id="task-instructions-box" style="display: none;">
-        <h5>Task Instructions</h5>
-        <div id="task-instructions-content" class="mt-2"></div>
-      </div>
+      <!-- Left: attempts + replay -->
+      <div class="left-col">
 
-      <div class="statistics-layout">
-
-        <!-- Left: collapsible panels -->
-        <div class="attempts-column">
-          <div class="attempts-header" id="attempts-header">
-            <div class="attempts-header-title">
-              <h4><i class="fas fa-list-alt mr-2"></i>All Attempts (<span id="attempts-count">0</span>)</h4>
-              <i class="fas fa-chevron-down expand-icon" id="expand-icon"></i>
+        <!-- Attempts (collapsible, open by default) -->
+        <div class="card">
+          <div class="card-header" id="attempts-toggle">
+            <span class="card-title">All Attempts</span>
+            <div class="card-header-right">
+              <span class="card-count" id="attempts-count">0</span>
+              <i class="fas fa-chevron-up chevron open" id="attempts-chevron"></i>
             </div>
           </div>
-          <div class="attempts-list" id="attempts-list"></div>
+          <div class="card-body" id="attempts-body">
+            <div class="attempt-list" id="attempts-list"></div>
+          </div>
+        </div>
 
-          <div class="mt-2" id="replay-box">
-            <div class="attempts-header" id="replay-header">
-              <div class="attempts-header-title">
-                <h4><i class="fas fa-play-circle mr-2"></i>Replay</h4>
-                <i class="fas fa-chevron-down expand-icon" id="replay-expand-icon"></i>
+        <!-- Replay (collapsible, collapsed by default) -->
+        <div class="card">
+          <div class="card-header" id="replay-toggle">
+            <span class="card-title">Replay</span>
+            <div class="card-header-right">
+              <i class="fas fa-chevron-down chevron" id="replay-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body collapsed" id="replay-body">
+            <div class="replay-event-label" id="replay-event-label"></div>
+            <div class="replay-board-wrap" id="replay-board">
+              <div class="replay-col">
+                <div class="replay-col-title">Starter</div>
+                <div id="replay-starter-blocks"></div>
+              </div>
+              <div class="replay-col solution">
+                <div class="replay-col-title">Solution</div>
+                <div id="replay-solution-blocks"></div>
               </div>
             </div>
-            <div class="attempts-list" id="replay-content">
-              <div class="p-3">
-                <div id="replay-event-label" class="mb-2 small text-muted" style="min-height: 1.4em;"></div>
-                <div id="replay-board" class="replay-board">
-                  <div class="replay-column">
-                    <div class="replay-column-header">Starter</div>
-                    <div class="replay-column-inner">
-                      <div id="replay-starter-blocks"></div>
-                    </div>
-                  </div>
-                  <div class="replay-column">
-                    <div class="replay-column-header">Solution</div>
-                    <div class="replay-column-inner">
-                      <div id="replay-solution-blocks"></div>
-                    </div>
-                  </div>
-                </div>
-                <div id="replay-loading"><em class="text-muted">Loading replay...</em></div>
-                <div id="replay-controls" class="replay-controls mt-3">
-                  <input type="range" id="replay-slider" min="0" max="0" value="0" disabled
-                    class="replay-slider">
-                  <div class="replay-controls-buttons">
-                    <button class="btn btn-sm btn-outline-secondary" id="replay-prev" disabled>&#9664; Prev</button>
-                    <span id="replay-step-label" class="text-muted small">Step 0 / 0</span>
-                    <button class="btn btn-sm btn-outline-secondary" id="replay-next" disabled>Next &#9654;</button>
-                  </div>
-                </div>
+            <div id="replay-loading"><em class="text-muted">Loading replay...</em></div>
+            <div id="replay-controls" class="replay-controls mt-3">
+              <input type="range" id="replay-slider" min="0" max="0" value="0" disabled class="replay-slider">
+              <div class="replay-btns">
+                <button class="replay-btn" id="replay-prev" disabled>&#9664; Prev</button>
+                <span class="replay-step-label" id="replay-step-label">Step 0 / 0</span>
+                <button class="replay-btn" id="replay-next" disabled>Next &#9654;</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right: statistics -->
-        <div class="statistics-column">
-          <div class="statistics-sticky">
-
-            <!-- Model answer -->
-            <div class="attempts-header" id="model-answer-header">
-              <div class="attempts-header-title">
-                <h4 style="font-size:1rem;margin:0;"><i class="fas fa-check-square mr-2"></i>Model Answer</h4>
-                <i class="fas fa-chevron-down expand-icon" id="model-answer-expand-icon"></i>
-              </div>
-            </div>
-            <div class="attempts-list mb-2" id="model-answer-content" style="display:none;">
-              <div class="p-3"><em class="text-muted">No model answer available.</em></div>
-            </div>
-
-            <!-- Summary -->
-            <div class="stat-box sts-summary-box">
-              <h5 class="sts-box-title">Summary</h5>
-              <div class="sts-summary-grid">
-                <div class="sts-summary-cell">
-                  <span class="sts-big-num" id="stat-total">0</span>
-                  <span class="sts-cell-label">Total</span>
-                </div>
-                <div class="sts-summary-cell sts-cell-success">
-                  <span class="sts-big-num" id="stat-success">0</span>
-                  <span class="sts-cell-label">Passed</span>
-                </div>
-                <div class="sts-summary-cell sts-cell-fail">
-                  <span class="sts-big-num" id="stat-failed">0</span>
-                  <span class="sts-cell-label">Failed</span>
-                </div>
-              </div>
-              <div class="stat-item" id="empty-attempts-item" style="display: none;">
-                <span class="stat-label">Empty attempts (filtered)</span>
-                <span class="stat-value text-muted" id="stat-empty">0</span>
-              </div>
-            </div>
-
-            <!-- 2-column metric layout -->
-            <div class="sts-metrics-cols">
-              <!-- Left sub-column: TTFS → Thinking Time -->
-              <div class="sts-metric-col">
-                <div class="stat-box sts-metric-box sts-green-box">
-                  <h5 class="sts-box-title">Time to First Success</h5>
-                  <div class="sts-metric-value" id="time-to-success">-</div>
-                </div>
-                <div class="stat-box sts-metric-box sts-blue-box">
-                  <h5 class="sts-box-title">Thinking Time</h5>
-                  <div class="sts-metric-value" id="thinking-time">-</div>
-                  <div class="sts-metric-sub">before first move</div>
-                </div>
-              </div>
-              <!-- Right sub-column: TTF Fail → Number of Moves -->
-              <div class="sts-metric-col">
-                <div class="stat-box sts-metric-box sts-red-box">
-                  <h5 class="sts-box-title">Time to First Fail</h5>
-                  <div class="sts-metric-value" id="time-to-fail">-</div>
-                </div>
-                <div class="stat-box sts-metric-box sts-gray-box">
-                  <h5 class="sts-box-title">Number of Moves</h5>
-                  <div class="sts-metric-value" id="move-count">-</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Session log -->
-            <div class="attempts-header" id="sessions-header">
-              <div class="attempts-header-title">
-                <h4 style="font-size:1rem;margin:0;"><i class="fas fa-clock mr-2"></i>Session Log (<span id="sessions-count">0</span>)</h4>
-                <i class="fas fa-chevron-down expand-icon" id="sessions-expand-icon"></i>
-              </div>
-            </div>
-            <div class="attempts-list" id="sessions-list"></div>
-
-            <!-- Session exit -->
-            <div class="stat-box sts-metric-box" id="exit-info-box" style="display:none;">
-              <h5 class="sts-box-title">Session Exit</h5>
-              <div class="sts-metric-sub" id="exit-reason-label">—</div>
-              <div class="sts-metric-sub text-muted small" id="exit-time-label"></div>
-            </div>
-
-          </div>
-
-        </div>
       </div>
+
+      <!-- Right: metrics + sessions + model answer -->
+      <div class="right-col">
+
+        <!-- Time metrics 2×2 -->
+        <div class="card">
+          <div class="card-header static">
+            <span class="card-title">Time Metrics</span>
+          </div>
+          <div class="card-body">
+            <div class="metric-grid">
+              <div class="metric-cell c-green">
+                <div class="metric-lbl">Time to First Success</div>
+                <div class="metric-val" id="time-to-success">—</div>
+              </div>
+              <div class="metric-cell c-red">
+                <div class="metric-lbl">Time to First Fail</div>
+                <div class="metric-val" id="time-to-fail">—</div>
+              </div>
+              <div class="metric-cell c-brand">
+                <div class="metric-lbl">Thinking Time</div>
+                <div class="metric-val" id="thinking-time" style="font-size:1rem;color:var(--gray)">—</div>
+                <div class="metric-untracked" id="thinking-time-sub">not yet tracked</div>
+              </div>
+              <div class="metric-cell c-gray">
+                <div class="metric-lbl">Moves Made</div>
+                <div class="metric-val" id="move-count">—</div>
+              </div>
+            </div>
+            <div id="empty-attempts-item" style="display:none;margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">
+              Empty attempts (filtered out): <span id="stat-empty" style="font-weight:700;">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session log (collapsible, open by default) -->
+        <div class="card">
+          <div class="card-header" id="sessions-toggle">
+            <span class="card-title"><i class="fas fa-clock mr-2"></i>Session Log</span>
+            <div class="card-header-right">
+              <span class="card-count" id="sessions-count">0</span>
+              <i class="fas fa-chevron-up chevron open" id="sessions-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body" id="sessions-body">
+            <div id="sessions-list"></div>
+          </div>
+        </div>
+
+        <!-- Model answer (collapsible, collapsed by default) -->
+        <div class="card">
+          <div class="card-header" id="model-toggle">
+            <span class="card-title">Model Answer</span>
+            <div class="card-header-right">
+              <i class="fas fa-chevron-down chevron" id="model-chevron"></i>
+            </div>
+          </div>
+          <div class="card-body collapsed" id="model-body">
+            <div id="model-answer-content">
+              <em class="text-muted">No model answer available.</em>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
   </div>
-
 
   <script type="module" src="/js/student_task_statistics.js"></script>
 

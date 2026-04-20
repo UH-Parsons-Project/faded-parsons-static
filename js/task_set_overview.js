@@ -28,6 +28,21 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+async function fetchJsonWithError(path, failureMessage) {
+	const response = await fetch(path, { credentials: 'include' });
+	if (!response.ok) {
+		let detail = response.statusText || failureMessage;
+		try {
+			const body = await response.json();
+			detail = body?.detail || body?.message || detail;
+		} catch (e) {
+			// ignore invalid JSON response body
+		}
+		throw new Error(`${failureMessage}: ${response.status} ${detail}`);
+	}
+	return response.json();
+}
+
 function setupViewerSharing() {
 	const input = document.getElementById('viewer-identifier');
 	const addBtn = document.getElementById('add-viewer-btn');
@@ -373,18 +388,9 @@ function showError(message) {
 
 // Load task set details, tasks, and students
 Promise.all([
-	fetch(`/api/my_sets/${setId}`, { credentials: 'include' }).then(r => {
-	if (!r.ok) throw new Error('Failed to load task set details');
-	return r.json();
-	}),
-	fetch(`/api/my_sets/${setId}/tasks`, { credentials: 'include' }).then(r => {
-	if (!r.ok) throw new Error('Failed to load tasks');
-	return r.json();
-	}),
-	fetch(`/api/my_sets/${setId}/students`, { credentials: 'include' }).then(r => {
-	if (!r.ok) throw new Error('Failed to load students');
-	return r.json();
-	})
+	fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details'),
+	fetchJsonWithError(`/api/my_sets/${setId}/tasks`, 'Failed to load tasks'),
+	fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students')
 ])
 	.then(([taskSet, tasks, students]) => {
 	renderListHeader(taskSet);

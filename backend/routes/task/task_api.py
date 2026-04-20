@@ -534,7 +534,10 @@ async def create_problem(
             detail="taskTitle, description, startDescription, tests and solutionCode are required",
         )
 
-    lines = [line for line in solution_code.split("\n") if line.strip()]
+    parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
+    source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
+
+    lines = [line for line in source_for_blocks.split("\n") if line.strip()]
     if not lines:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -542,6 +545,8 @@ async def create_problem(
         )
 
     first_code_line = lines[0].strip()
+    if " #" in first_code_line:
+        first_code_line = first_code_line.split(" #", 1)[0].rstrip()
     if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -552,6 +557,7 @@ async def create_problem(
 
     header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
     function_name = header_match.group(2) if header_match else "custom_task"
+    function_header = first_code_line
     final_title = task_title
 
     existing_task_stmt = select(Parsons).where(Parsons.title == final_title)
@@ -562,11 +568,21 @@ async def create_problem(
             detail=f"Exercise called '{final_title}' already exists. Choose a different task name.",
         )
 
+    given_indent_re = re.compile(r"#(\d+)given\s*")
+    blank_marker_re = re.compile(r"\s#blank[^#]*")
+
     blocks = []
     has_faded = False
     for line_index, line in enumerate(lines, start=1):
-        indent_count = len(line) - len(line.lstrip())
-        stripped_line = line.strip()
+        given_match = given_indent_re.search(line)
+        if given_match:
+            indent_count = int(given_match.group(1)) * 4
+        else:
+            indent_count = len(line) - len(line.lstrip())
+
+        line_without_given = given_indent_re.sub("", line)
+        line_without_blank_markers = blank_marker_re.sub("", line_without_given)
+        stripped_line = line_without_blank_markers.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -598,7 +614,7 @@ async def create_problem(
         task_type="Faded" if has_faded else "normal",
         code_blocks={
             "blocks": blocks,
-            "function_header": lines[0],
+            "function_header": function_header,
         },
         correct_solution={
             "correct_order": [block["id"] for block in blocks],

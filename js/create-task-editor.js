@@ -84,7 +84,7 @@ initBurgerMenu();
       solution_label: 'Construct your solution here, including indents',
     });
 
-    const previewRepr = modelAnswerRepr || parsonsWidget.reprCode();
+    const previewRepr = parsonsWidget.reprCode() || modelAnswerRepr;
     previewParsonsWidget.init(previewRepr);
 
     const previewSolutionIds = previewParsonsWidget.given.map((line) => line.id);
@@ -639,6 +639,7 @@ initBurgerMenu();
       startDescription,
       tests,
       solutionCode,
+      parsonsRepr: parsonsWidget.reprCode(),
     };
 
     fetch('/api/problems', {

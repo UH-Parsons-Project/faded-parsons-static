@@ -25,6 +25,12 @@ from ..utils.commons import (
 router = APIRouter()
 
 
+def _parse_iso_datetime(value: str):
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    return datetime.fromisoformat(value)
+
+
 async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_number: int) -> tuple[TaskSet, int]:
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
     task_id = await resolve_task_id_in_set_or_404(db, task_set, task_number)
@@ -377,7 +383,7 @@ async def submit_test_result(
                 "to_indent": move_data.to_indent,
             }
             if move_data.event_time:
-                move_kwargs["event_time"] = datetime.fromisoformat(move_data.event_time)
+                move_kwargs["event_time"] = _parse_iso_datetime(move_data.event_time)
             db.add(MoveEvent(**move_kwargs))
 
     if result.edits:
@@ -387,7 +393,7 @@ async def submit_test_result(
                 block_id=edit_data.block_id,
                 blank_index=edit_data.blank_index,
                 value=edit_data.value,
-                event_time=datetime.fromisoformat(edit_data.event_time),
+                event_time=_parse_iso_datetime(edit_data.event_time),
             )
             db.add(edit)
 

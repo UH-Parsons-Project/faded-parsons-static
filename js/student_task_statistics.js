@@ -91,16 +91,20 @@ function renderTaskInstructions(taskInstructions) {
 }
 
 function renderModelAnswer(modelAnswer) {
-	const box = document.getElementById('model-answer-box');
 	const content = document.getElementById('model-answer-content');
+	const header = document.getElementById('model-answer-header');
+	const icon = document.getElementById('model-answer-expand-icon');
 
-	if (!modelAnswer || !modelAnswer.trim()) {
-	box.style.display = 'none';
-	return;
+	if (modelAnswer && modelAnswer.trim()) {
+		content.innerHTML = `<div class="p-3"><pre class="attempt-code model-answer-code mb-0"><code>${escapeHtml(modelAnswer)}</code></pre></div>`;
 	}
 
-	content.textContent = modelAnswer;
-	box.style.display = 'block';
+	header.addEventListener('click', () => {
+		const isOpen = content.style.display !== 'none';
+		content.style.display = isOpen ? 'none' : 'block';
+		icon.classList.toggle('fa-chevron-down', isOpen);
+		icon.classList.toggle('fa-chevron-up', !isOpen);
+	});
 }
 
 function createAttemptItem(attempt) {
@@ -432,13 +436,13 @@ async function initReplay(studentUsername, taskId, setId) {
 		slider.value = 0;
 		slider.disabled = events.length === 0;
 
-		function goToStep(step) {
+		let currentStep = 0;
+
+		const goToStep = (step) => {
 			currentStep = step;
 			slider.value = step;
 			renderReplayStep(states, events, step);
-		}
-
-		let currentStep = 0;
+		};
 		renderReplayStep(states, events, currentStep);
 
 		document.getElementById('replay-prev').addEventListener('click', () => {

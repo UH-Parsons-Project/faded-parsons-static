@@ -1,0 +1,1 @@
+def hello_world(language_code):\n    if language_code == "en":\n        return "Hello, World"\n    elif language_code == "es":\n        return "Hola, Mundo"\n    else:\n        return "Olá, Mundo"

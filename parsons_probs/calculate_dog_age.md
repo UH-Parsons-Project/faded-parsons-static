@@ -1,0 +1,1 @@
+def calculate_dog_age(human_age):\n    dog_age = human_age * 7\n    return dog_age

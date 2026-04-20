@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Parsons, EditEvent
 from ...student_auth import (
@@ -15,7 +15,12 @@ from ...student_auth import (
 )
 from ...auth import CurrentUser
 from ...utils.taskset import require_task_set_view_access
-from ..utils.commons import validate_registration_basic, ensure_unique_user
+from ..utils.commons import (
+    ensure_unique_user,
+    get_task_set_by_code_or_404,
+    resolve_task_id_in_set_or_404,
+    validate_registration_basic,
+)
 
 router = APIRouter()
 
@@ -24,6 +29,12 @@ def _parse_iso_datetime(value: str):
     if value.endswith("Z"):
         value = value[:-1] + "+00:00"
     return datetime.fromisoformat(value)
+
+
+async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_number: int) -> tuple[TaskSet, int]:
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+    task_id = await resolve_task_id_in_set_or_404(db, task_set, task_number)
+    return task_set, task_id
 
 
 @router.get("/api/student/me")
@@ -171,6 +182,41 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     return {"status": "success", "id": student.id}
 
 
+@router.get("/api/sets/{unique_link_code}/tasks/{task_id}", response_model=TaskResponse)
+async def get_task_for_student_set(
+    task_id: int,
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Student session required")
+
+    _, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
+
+    stmt = select(Parsons).where(Parsons.id == resolved_task_id)
+    result = await db.execute(stmt)
+    task = result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {resolved_task_id} not found",
+        )
+
+    return TaskResponse(
+        id=task.id,
+        title=task.title,
+        task_instructions=task.task_instructions,
+        description=task.description,
+        task_type=task.task_type,
+        code_blocks=task.code_blocks,
+        correct_solution=task.correct_solution,
+        is_public=task.is_public,
+        created_at=task.created_at.isoformat(),
+    )
+
+
 @router.get("/api/sets/{unique_link_code}/tasks/{task_id}/has-started")
 async def check_task_has_started(
     task_id: int,
@@ -181,15 +227,11 @@ async def check_task_has_started(
     if not student_session:
         return {"has_started": False}
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     stmt = select(StudentTaskEnrollment).where(
         (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_id == resolved_task_id) &
         (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
@@ -208,18 +250,14 @@ async def get_my_completion_status(
     if not student_session:
         return {"student_attempts": 0, "student_completed": 0}
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     stmt = (
         select(TaskAttempt)
         .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
         .where(
             (TaskAttempt.student_id == student_session.id) &
-            (TaskAttempt.task_id == task_id) &
+            (TaskAttempt.task_id == resolved_task_id) &
             (StudentTaskEnrollment.task_set_id == task_set.id)
         )
     )
@@ -245,15 +283,11 @@ async def start_task(
             detail="Student session required to start a task"
         )
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     stmt = select(StudentTaskEnrollment).where(
         (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_id == resolved_task_id) &
         (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
@@ -262,7 +296,7 @@ async def start_task(
     if not enrollment:
         enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
-            task_id=task_id,
+            task_id=resolved_task_id,
             task_set_id=task_set.id
         )
         db.add(enrollment)
@@ -294,15 +328,11 @@ async def submit_test_result(
             detail="Student session required to save results"
         )
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     start_stmt = select(StudentTaskEnrollment).where(
         (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_id == resolved_task_id) &
         (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     start_result = await db.execute(start_stmt)
@@ -311,7 +341,7 @@ async def submit_test_result(
     if not enrollment:
         enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
-            task_id=task_id,
+            task_id=resolved_task_id,
             task_set_id=task_set.id
         )
         db.add(enrollment)
@@ -320,7 +350,7 @@ async def submit_test_result(
     open_session_stmt = (
         select(TaskSession)
         .where(TaskSession.student_task_enrollment_id == enrollment.id)
-        .where(TaskSession.exited_at == None)  # noqa: E711
+        .where(TaskSession.exited_at.is_(None))
         .order_by(TaskSession.entered_at.desc())
         .limit(1)
     )
@@ -329,7 +359,7 @@ async def submit_test_result(
 
     new_attempt = TaskAttempt(
         student_id=student_session.id,
-        task_id=task_id,
+        task_id=resolved_task_id,
         student_task_enrollment_id=enrollment.id,
         task_session_id=open_session.id if open_session else None,
         completed_at=datetime.now(timezone.utc),
@@ -342,16 +372,16 @@ async def submit_test_result(
 
     if result.moves:
         for move_data in result.moves:
-            move_kwargs = dict(
-                attempt_id=new_attempt.id,
-                block_id=move_data.block_id,
-                from_container=move_data.from_container,
-                to_container=move_data.to_container,
-                from_index=move_data.from_index,
-                to_index=move_data.to_index,
-                from_indent=move_data.from_indent,
-                to_indent=move_data.to_indent,
-            )
+            move_kwargs = {
+                "attempt_id": new_attempt.id,
+                "block_id": move_data.block_id,
+                "from_container": move_data.from_container,
+                "to_container": move_data.to_container,
+                "from_index": move_data.from_index,
+                "to_index": move_data.to_index,
+                "from_indent": move_data.from_indent,
+                "to_indent": move_data.to_indent,
+            }
             if move_data.event_time:
                 move_kwargs["event_time"] = _parse_iso_datetime(move_data.event_time)
             db.add(MoveEvent(**move_kwargs))
@@ -389,15 +419,11 @@ async def enter_task(
             detail="Student session required"
         )
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     stmt = select(StudentTaskEnrollment).where(
         (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_id == resolved_task_id) &
         (StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
@@ -406,7 +432,7 @@ async def enter_task(
     if not enrollment:
         enrollment = StudentTaskEnrollment(
             student_id=student_session.id,
-            task_id=task_id,
+            task_id=resolved_task_id,
             task_set_id=task_set.id
         )
         db.add(enrollment)
@@ -437,18 +463,14 @@ async def record_task_exit(
             detail="Student session required"
         )
 
-    task_set_stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
-    task_set_result = await db.execute(task_set_stmt)
-    task_set = task_set_result.scalar_one_or_none()
-    if not task_set:
-        raise HTTPException(status_code=404, detail="Task set not found")
+    task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
 
     stmt = (
         select(TaskSession)
         .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskSession.student_task_enrollment_id)
         .where(TaskSession.id == body.session_id)
         .where(StudentTaskEnrollment.student_id == student_session.id)
-        .where(StudentTaskEnrollment.task_id == task_id)
+        .where(StudentTaskEnrollment.task_id == resolved_task_id)
         .where(StudentTaskEnrollment.task_set_id == task_set.id)
     )
     result = await db.execute(stmt)
@@ -483,9 +505,14 @@ async def get_task_moves(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    stmt = select(TaskAttempt).where(
-        (TaskAttempt.student_id == student.id) &
-        (TaskAttempt.task_id == task_id)
+    stmt = (
+        select(TaskAttempt)
+        .join(StudentTaskEnrollment, TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+        .where(
+            (TaskAttempt.student_id == student.id) &
+            (TaskAttempt.task_id == task_id) &
+            (StudentTaskEnrollment.task_set_id == set_id)
+        )
     )
     result = await db.execute(stmt)
     attempts = result.scalars().all()

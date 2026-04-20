@@ -1,25 +1,16 @@
-from .utils import (
-    _clean_mistake_code,
-    _mistake_code_fingerprint,
-    generate_slug,
-    has_user_added_own_code,
-)
-from .token_utils import (
-    generate_token,
-    hash_token,
-    verify_token,
-)
-import token as token
-import tokenize as tokenize
+from . import utils as _utils
+from . import token_utils as _token_utils
 
-__all__ = [
-    "_clean_mistake_code",
-    "_mistake_code_fingerprint",
-    "generate_slug",
-    "has_user_added_own_code",
-    "generate_token",
-    "hash_token",
-    "verify_token",
-    "token",
-    "tokenize",
-]
+# Re-export symbols from submodules for `from backend.utils import X` convenience
+from .utils import *  # noqa: F401,F403
+from .token_utils import *  # noqa: F401,F403
+
+# Build __all__ by combining submodule __all__ values (if present).
+__all__ = []
+__all__ += getattr(_utils, "__all__", [])
+__all__ += getattr(_token_utils, "__all__", [])
+
+# Also expose the token/tokenize modules for callers that previously used them
+import token  # pragma: no cover
+import tokenize  # pragma: no cover
+__all__ += ["token", "tokenize"]

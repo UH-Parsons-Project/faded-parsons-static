@@ -258,7 +258,7 @@ function createTaskItem(task, taskSet) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}`;
+	window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
 	};
 
 	const title = document.createElement('div');
@@ -358,7 +358,7 @@ function renderStudents(students) {
 		<div class="empty-state">
 		<i class="fas fa-user-slash"></i>
 		<h4>No Students Yet</h4>
-		<p>No students have attempted tasks in this list yet.</p>
+		<p>No students have enrolled in this task set yet.</p>
 		</div>
 	`;
 	} else {

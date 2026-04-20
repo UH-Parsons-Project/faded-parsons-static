@@ -1,4 +1,3 @@
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -10,14 +9,14 @@ from ...auth import CurrentUser
 from ...database import get_db
 from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt
 from ...pydantic import (
-	TaskSetResponse,
-	CreateRegistrationTokenRequest,
-	RegistrationTokenResponse,
-	RegistrationTokenListItem,
-	UserActivityResponse,
-	UserActivityStats,
-	DailyActiveUser,
-	MonthlyActiveUser,
+    TaskSetResponse,
+    CreateRegistrationTokenRequest,
+    RegistrationTokenResponse,
+    RegistrationTokenListItem,
+    UserActivityResponse,
+    UserActivityStats,
+    DailyActiveUser,
+    MonthlyActiveUser,
 )
 from backend.utils import generate_token, hash_token
 import backend.config as config
@@ -35,7 +34,9 @@ async def create_registration_token(
 	db: AsyncSession = Depends(get_db),
 ):
 	"""Create a new registration token for teachers. Admin only."""
-	# TODO: Add admin role check when implemented
+	# Check admin access
+	if not current_user.is_admin_teacher:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	# Get or generate token
 	plain_token = request.token.strip() if request.token else None
@@ -71,7 +72,9 @@ async def list_registration_tokens(
 	db: AsyncSession = Depends(get_db),
 ):
 	"""List all registration tokens. Admin only."""
-	# TODO: Add admin role check when implemented
+	# Check admin access
+	if not current_user.is_admin_teacher:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	stmt = select(RegistrationToken).order_by(RegistrationToken.created_at.desc())
 	result = await db.execute(stmt)
@@ -94,7 +97,9 @@ async def delete_registration_token(
 	db: AsyncSession = Depends(get_db),
 ):
 	"""Delete/revoke a registration token. Admin only."""
-	# TODO: Add admin role check when implemented
+	# Check admin access
+	if not current_user.is_admin_teacher:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	stmt = select(RegistrationToken).where(RegistrationToken.id == token_id)
 	result = await db.execute(stmt)
@@ -269,10 +274,6 @@ async def get_user_activity_statistics(
 		students=student_stats,
 		teachers=teacher_stats,
 	)
-
-
-# Import page routes to ensure they are registered (side-effect)
-from . import admin  # noqa: E402,F401
 
 
 @router.post("/api/admin/seed-mock-data")

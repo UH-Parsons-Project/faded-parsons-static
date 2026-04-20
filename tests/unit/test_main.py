@@ -192,38 +192,52 @@ class TestProblemsetPages:
     async def test_task_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_redirects_without_session(self, client, task_set, task):
+    async def test_task_page_redirects_without_session(self, client, task_set_with_task):
+        task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         assert r.status_code == 303
         assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_task_page_returns_200_with_session(self, client, task_set, task, student_session):
+    async def test_task_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}",
+            f"/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         client.cookies.clear()
         assert r.status_code == 200
 
+    async def test_task_page_out_of_range_returns_404(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
+        client.cookies.set("student_session", str(student_session.id))
+        r = await client.get(
+            f"/set/{task_set.unique_link_code}/tasks/2",
+            follow_redirects=False,
+        )
+        client.cookies.clear()
+        assert r.status_code == 404
+
     async def test_start_page_unknown_code_returns_404(self, client):
         assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_redirects_without_session(self, client, task_set, task):
+    async def test_start_page_redirects_without_session(self, client, task_set_with_task):
+        task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         assert r.status_code == 303
         assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
 
-    async def test_start_page_returns_200_with_session(self, client, task_set, task, student_session):
+    async def test_start_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/{task.id}/start",
+            f"/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         client.cookies.clear()
@@ -573,44 +587,50 @@ class TestGetProblemsetTasks:
 
 @pytest.mark.asyncio
 class TestSubmitResult:
-    async def test_no_session_returns_401(self, client, task, task_set):
-        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+    async def test_no_session_returns_401(self, client, task, task_set_with_task):
+        task_set, _ = task_set_with_task
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id))
         assert r.status_code == 401
 
-    async def test_success_with_iso_start_time(self, client, task, task_set, student_session):
+    async def test_success_with_iso_start_time(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, success=True,
                                             start_time="2026-03-01T10:00:00"))
         client.cookies.clear()
         assert r.status_code == 200
         assert r.json()["status"] == "success"
 
-    async def test_success_with_z_suffix_timestamp(self, client, task, task_set, student_session):
+    async def test_success_with_z_suffix_timestamp(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, start_time="2026-03-01T10:00:00Z"))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_invalid_start_time_falls_back_to_now(self, client, task, task_set, student_session):
+    async def test_invalid_start_time_falls_back_to_now(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id, start_time="not-a-date"))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_missing_start_time_uses_now(self, client, task, task_set, student_session):
+    async def test_missing_start_time_uses_now(self, client, task, task_set_with_task, student_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        r = await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                                json=_submit(task.id))
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_attempt_persisted_in_db(self, client, task, task_set, student_session, db_session):
+    async def test_attempt_persisted_in_db(self, client, task, task_set_with_task, student_session, db_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                           json=_submit(task.id, success=True, code="my_answer",
                                        start_time="2026-01-01T00:00:00"))
         client.cookies.clear()
@@ -622,9 +642,10 @@ class TestSubmitResult:
         assert attempt.submitted_inputs["code"] == "my_answer"
         assert attempt.student_task_enrollment_id is not None
 
-    async def test_failure_attempt_persisted(self, client, task, task_set, student_session, db_session):
+    async def test_failure_attempt_persisted(self, client, task, task_set_with_task, student_session, db_session):
+        task_set, _ = task_set_with_task
         client.cookies.set("student_session", str(student_session.id))
-        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/submit-result",
+        await client.post(f"/api/sets/{task_set.unique_link_code}/tasks/1/submit-result",
                           json=_submit(task.id, success=False, code="wrong",
                                        start_time="2026-01-01T00:00:00"))
         client.cookies.clear()

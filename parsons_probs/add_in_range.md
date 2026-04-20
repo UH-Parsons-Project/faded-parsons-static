@@ -1,0 +1,1 @@
+def add_in_range(start, stop):\n    total = 0\n    while start <= stop:\n        total += start\n        start += 1\n    return total

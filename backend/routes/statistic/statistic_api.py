@@ -63,9 +63,9 @@ async def get_student_attempts(
                 func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),
                 func.max(TaskAttempt.completed_at).label('last_attempt_at')
             )
-            .join(TaskAttempt, TaskAttempt.task_id == Parsons.id)
-            .join(Student, Student.id == TaskAttempt.student_id)
-            .where(Student.username == student_username)
+            .join(StudentTaskEnrollment, (StudentTaskEnrollment.task_id == Parsons.id) & (StudentTaskEnrollment.task_set_id == set_id))
+            .join(Student, (Student.id == StudentTaskEnrollment.student_id) & (Student.username == student_username))
+            .join(TaskAttempt, (TaskAttempt.task_id == Parsons.id) & (TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id))
             .where(Parsons.id.in_(task_ids))
             .group_by(Parsons.id, Parsons.title, Parsons.task_type)
             .order_by(func.max(TaskAttempt.completed_at).desc())
@@ -159,7 +159,7 @@ async def get_student_task_statistics(
             if seconds >= 0:
                 thinking_time = {"seconds": seconds}
 
-    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_with_enrollments]
+    attempts_data = list(attempts_with_enrollments)
 
     empty_attempts_count = 0
     filtered_attempts_data = []
@@ -347,7 +347,7 @@ async def get_task_statistics(
         )
 
     attempts_result = await db.execute(attempts_query)
-    attempts_data = [(attempt, enrollment) for attempt, enrollment in attempts_result.all()]
+    attempts_data = attempts_result.all()
 
     filtered_attempts_data = []
     for attempt, enrollment in attempts_data:

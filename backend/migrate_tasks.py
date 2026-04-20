@@ -19,7 +19,7 @@ import yaml
 from sqlalchemy import select
 
 from backend.database import async_session
-from backend.models import Parsons, Teacher
+from backend.models import ModelAnswer, Parsons, Teacher
 
 # Path to the parsons_probs folder
 PARSONS_PROBS_DIR = Path(__file__).parent.parent / "parsons_probs"
@@ -249,6 +249,25 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         return None
 
 
+def load_model_answer_file(task_name: str) -> str | None:
+    """Load model answer code from a task markdown file if present."""
+    md_path = PARSONS_PROBS_DIR / f"{task_name}.md"
+
+    if not md_path.exists():
+        return None
+
+    try:
+        content = md_path.read_text(encoding="utf-8").strip()
+        if not content:
+            return None
+
+        # Local model answer files store newlines as escaped literals.
+        return content.replace("\\n", "\n").replace("\\t", "\t")
+    except Exception as e:
+        print(f"Error loading model answer for {task_name}: {e}")
+        return None
+
+
 def get_task_files() -> List[str]:
     """
     Get list of all task names (without extensions).
@@ -322,6 +341,7 @@ async def migrate_tasks():
 
     # Migrate each task
     migrated = 0
+    model_answers_added = 0
     skipped = 0
     failed = 0
 
@@ -329,8 +349,37 @@ async def migrate_tasks():
         for task_name in task_names:
             print(f"\n  Processing: {task_name}...", end=" ")
 
+            model_answer_code = load_model_answer_file(task_name)
+
             # Check if already exists
             if await task_exists(task_name):
+                if model_answer_code:
+                    task_result = await session.execute(
+                        select(Parsons).where(Parsons.title == task_name).limit(1)
+                    )
+                    existing_task = task_result.scalar_one_or_none()
+
+                    if existing_task:
+                        existing_model_result = await session.execute(
+                            select(ModelAnswer)
+                            .where(ModelAnswer.parsons_id == existing_task.id)
+                            .limit(1)
+                        )
+                        existing_model = existing_model_result.scalar_one_or_none()
+
+                        if not existing_model:
+                            model_answer = ModelAnswer(
+                                parsons_id=existing_task.id,
+                                created_by_teacher_id=teacher.id,
+                                answer_code=model_answer_code,
+                            )
+                            session.add(model_answer)
+                            await session.flush()
+                            print("SKIPPED (already exists), ADDED model answer")
+                            model_answers_added += 1
+                            skipped += 1
+                            continue
+
                 print("SKIPPED (already exists)")
                 skipped += 1
                 continue
@@ -357,6 +406,15 @@ async def migrate_tasks():
             try:
                 session.add(task)
                 await session.flush()  # Get the ID
+
+                if model_answer_code:
+                    model_answer = ModelAnswer(
+                        parsons_id=task.id,
+                        created_by_teacher_id=teacher.id,
+                        answer_code=model_answer_code,
+                    )
+                    session.add(model_answer)
+
                 print(f"✓ MIGRATED (id={task.id}, type={task.task_type})")
                 migrated += 1
             except Exception as e:
@@ -376,6 +434,7 @@ async def migrate_tasks():
     print(f"\n{'=' * 50}")
     print(f"Migration Summary:")
     print(f"  Migrated: {migrated}")
+    print(f"  Model answers added: {model_answers_added}")
     print(f"  Skipped:  {skipped}")
     print(f"  Failed:   {failed}")
     print(f"  Total:    {len(task_names)}")

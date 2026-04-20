@@ -8,8 +8,14 @@ import {
 import './problem-element.js'; // Problem UI web component
 import {FiniteWorker} from './worker-manager.js'; // Worker process for Python code execution
 
-// Local storage key for saving user code representation
+// Local storage key suffixes for saving user state
 const LS_REPR = '-repr';
+const LS_MOVES = '-moves';
+const LS_EDITS = '-edits';
+
+// Returns a localStorage key scoped to both taskset and task,
+// preventing cross-taskset state bleed for shared tasks.
+const lsKey = (suffix) => `${globalUniqueLinkCode}-${globalTaskId}${suffix}`;
 
 // Global reference to the current problem element
 let probEl;
@@ -48,7 +54,10 @@ export async function initWidget() {
 
 	try {
 		// Fetch task from API
-		const response = await fetch(`/api/tasks/${globalTaskId}`);
+		const taskApiUrl = globalUniqueLinkCode
+			? `/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}`
+			: `/api/tasks/${globalTaskId}`;
+		const response = await fetch(taskApiUrl);
 
 		if (!response.ok) {
 			throw new Error(`Failed to fetch task: ${response.statusText}`);
@@ -99,13 +108,6 @@ export async function initWidget() {
 			'\n# !BLANK' +
 			'\n# !BLANK';
 
-		// Check if user has previously saved code in local storage
-		const localRepr = get(globalTaskId + LS_REPR);
-		if (localRepr) {
-			// If saved code exists, use it instead of the default
-			codeLines = localRepr;
-		}
-
 		// Create a new problem-element web component
 		probEl = document.createElement('problem-element');
 
@@ -117,9 +119,36 @@ export async function initWidget() {
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
 
+		// Restore any unsent moves/edits from a previous session
+		const savedMoves = JSON.parse(get(lsKey(LS_MOVES), '[]'));
+		const savedEdits = JSON.parse(get(lsKey(LS_EDITS), '[]'));
+		if (savedMoves.length > 0) probEl.recordedMoves = savedMoves;
+		if (savedEdits.length > 0) probEl.recordedEdits = savedEdits;
+
+		// Restore saved arrangement (JSON with stable block IDs) if available.
+		// Set as a property so firstUpdated() can apply it after a fresh init,
+		// keeping sortable-codelineN IDs consistent with the replay's initial_blocks.
+		const savedArrangementJson = get(lsKey(LS_REPR));
+		if (savedArrangementJson) {
+			try {
+				probEl.savedArrangement = JSON.parse(savedArrangementJson);
+			} catch (e) {
+				// Ignore malformed or old-format data
+			}
+		}
+
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
 			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, e.detail.edits, functionHeader, globalTeacherTests);
+		});
+
+		// Save arrangement and move/edit history to localStorage on every change
+		probEl.addEventListener('arrangement-changed', (e) => {
+			if (e.detail.arrangement) {
+				set(lsKey(LS_REPR), JSON.stringify(e.detail.arrangement));
+			}
+			set(lsKey(LS_MOVES), JSON.stringify(probEl.recordedMoves));
+			set(lsKey(LS_EDITS), JSON.stringify(probEl.recordedEdits));
 		});
 
 		// Activate the run button
@@ -210,8 +239,9 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 	probEl.setAttribute('resultsHeader', testResults.header); // Result title
 	probEl.setAttribute('resultsDetails', testResults.details); // Result details
 
-	// Save user code locally for next time
-	set(probEl.getAttribute('name') + LS_REPR, reprCode);
+	// Clear the pending moves/edits buffer (arrangement was already saved on last move)
+	set(lsKey(LS_MOVES), '[]');
+	set(lsKey(LS_EDITS), '[]');
 
 	try {
 		const resultData = {

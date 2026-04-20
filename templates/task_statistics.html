@@ -21,6 +21,9 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
+      <a href="#" id="back-btn" class="btn btn-outline-dark btn-sm mr-3">
+        Back to task set overview
+      </a>
       <span class="text-dark">
         <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
       </span>
@@ -166,11 +169,13 @@
         </div>
       </div>
 
-      <div class="col-lg-6 mb-4" id="model-answer-box" style="display: none;">
+      <div class="col-lg-6 mb-4" id="model-answer-box">
         <div class="card card-soft model-answer-sticky">
           <div class="card-body">
             <strong>Model answer</strong>
-            <pre class="model-answer-code mt-2 mb-0"><code id="model-answer-code"></code></pre>
+            <div id="model-answer-content" class="mt-2">
+              <em class="text-muted">No model answer available.</em>
+            </div>
           </div>
         </div>
       </div>

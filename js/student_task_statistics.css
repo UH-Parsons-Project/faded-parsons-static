@@ -92,10 +92,19 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
   padding: 1.25rem 1.4rem 1.1rem; border-top: 3px solid var(--border);
   position: relative; overflow: hidden;
 }
-.kpi-card.c-brand { border-color: var(--brand); }
-.kpi-card.c-green { border-color: var(--green); }
-.kpi-card.c-red   { border-color: var(--red); }
-.kpi-card.c-amber { border-color: var(--amber); }
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  right: -12px; top: -12px;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  opacity: .08;
+  background: currentColor;
+}
+.kpi-card.c-brand { border-color: var(--brand); color: var(--brand-dark); }
+.kpi-card.c-green { border-color: var(--green); color: var(--green); }
+.kpi-card.c-red   { border-color: var(--red);   color: var(--red); }
+.kpi-card.c-amber { border-color: var(--amber); color: var(--amber); }
 .kpi-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: .55rem; white-space: nowrap; }
 .kpi-value { font-size: 2.6rem; font-weight: 800; line-height: 1; margin-bottom: .3rem; }
 .kpi-card.c-brand .kpi-value { color: var(--brand-dark); }

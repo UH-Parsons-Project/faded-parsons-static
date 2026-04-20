@@ -521,12 +521,45 @@ async def get_task_statistics(
 
     # Students enrolled in the task set but never attempted this task (not started)
     students_not_started = 0
+    not_started_student_names: list[str] = []
     if task_set_code and task_set:
-        students_in_set = (await db.execute(
-            select(func.count(StudentTaskSetEnrollment.student_id))
+        enrolled_result = await db.execute(
+            select(Student.username)
+            .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
             .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
-        )).scalar() or 0
-        students_not_started = max(0, students_in_set - students_attempted)
+        )
+        enrolled_usernames = {row[0] for row in enrolled_result.all()}
+        attempted_student_ids = {a.student_id for a, _ in attempts_data}
+        attempted_usernames_result = await db.execute(
+            select(Student.username).where(Student.id.in_(attempted_student_ids))
+        )
+        attempted_usernames = {row[0] for row in attempted_usernames_result.all()}
+        not_started_usernames = enrolled_usernames - attempted_usernames
+        students_not_started = len(not_started_usernames)
+        not_started_student_names = sorted(not_started_usernames)
+
+    # Build per-student try counts for sidebar
+    completed_student_info: list[dict] = []
+    not_yet_completed_student_info: list[dict] = []
+    student_ids_completed = {a.student_id for a, _ in successful_attempts}
+
+    student_usernames_result = await db.execute(
+        select(Student.id, Student.username)
+        .where(Student.id.in_(set(a.student_id for a, _ in attempts_data)))
+    )
+    student_id_to_username = {row[0]: row[1] for row in student_usernames_result.all()}
+
+    for student_id, student_attempts_list in student_attempts.items():
+        username = student_id_to_username.get(student_id, str(student_id))
+        tries = len(student_attempts_list)
+        info = {"name": username, "meta": f"{tries} tr{'y' if tries == 1 else 'ies'}"}
+        if student_id in student_ids_completed:
+            completed_student_info.append(info)
+        else:
+            not_yet_completed_student_info.append(info)
+
+    completed_student_info.sort(key=lambda x: x["name"])
+    not_yet_completed_student_info.sort(key=lambda x: x["name"])
 
     mistake_counts: dict = {}
     for attempt, _ in failed_attempts:
@@ -565,4 +598,9 @@ async def get_task_statistics(
         "thinking_time": thinking_time,
         "number_of_moves": number_of_moves,
         "common_mistakes": common_mistakes,
+        "students": {
+            "completed": completed_student_info,
+            "not_yet_completed": not_yet_completed_student_info,
+            "not_started": [{"name": n, "meta": ""} for n in not_started_student_names],
+        },
     }

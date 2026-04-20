@@ -17,6 +17,13 @@ if (backBtn) {
 	}
 }
 
+if (!task_setCode) {
+	const sidebar = document.querySelector('.student-sidebar');
+	if (sidebar) sidebar.style.display = 'none';
+	const layout = document.querySelector('.page-layout');
+	if (layout) layout.style.gridTemplateColumns = '1fr';
+}
+
 if (task_setCode) {
 	const codeEl = document.getElementById('taskset-code-label');
 	if (codeEl) codeEl.textContent = task_setCode;
@@ -47,35 +54,31 @@ function showLoadError(message) {
 
 
 function updateDonut(completed, attempted, notStarted) {
-	const struggling = attempted - completed;
+	const notYetCompleted = attempted - completed;
 	const total = attempted + notStarted;
 	const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 	const completedLen = total > 0 ? (completed / total) * CIRC : 0;
-	const strugglingLen = total > 0 ? (struggling / total) * CIRC : 0;
+	const notYetCompletedLen = total > 0 ? (notYetCompleted / total) * CIRC : 0;
 	const completedDeg = total > 0 ? (completed / total) * 360 - 90 : -90;
 
 	const arcCompleted = document.getElementById('donut-arc-completed');
-	const arcStruggling = document.getElementById('donut-arc-struggling');
+	const arcNotYetCompleted = document.getElementById('donut-arc-struggling');
 	if (arcCompleted) arcCompleted.setAttribute('stroke-dasharray', `${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}`);
-	if (arcStruggling) {
-		arcStruggling.setAttribute('stroke-dasharray', `${strugglingLen.toFixed(1)} ${(CIRC - strugglingLen).toFixed(1)}`);
-		arcStruggling.setAttribute('transform', `rotate(${completedDeg} 80 80)`);
+	if (arcNotYetCompleted) {
+		arcNotYetCompleted.setAttribute('stroke-dasharray', `${notYetCompletedLen.toFixed(1)} ${(CIRC - notYetCompletedLen).toFixed(1)}`);
+		arcNotYetCompleted.setAttribute('transform', `rotate(${completedDeg} 80 80)`);
 	}
 
 	const pctText = document.getElementById('donut-percent-text');
 	if (pctText) pctText.textContent = attempted > 0 ? `${pct}%` : '—';
 
 	const elCompleted = document.getElementById('legend-completed');
-	const elStruggling = document.getElementById('legend-struggling');
+	const elNotYetCompleted = document.getElementById('legend-struggling');
 	const elNotStarted = document.getElementById('legend-not-started');
 	if (elCompleted) elCompleted.textContent = completed;
-	if (elStruggling) elStruggling.textContent = struggling;
+	if (elNotYetCompleted) elNotYetCompleted.textContent = notYetCompleted;
 	if (elNotStarted) elNotStarted.textContent = notStarted > 0 ? notStarted : '—';
 }
-
-const MOCK_NAMES_COMPLETED  = ['markus','laura','anna','petteri','sanna','mikko','emilia','juha','tiina','ville','aino','matias'];
-const MOCK_NAMES_STRUGGLING = ['aleksi','emma','kaisa','tuomas','joonas','hanna','leo','sofia'];
-const MOCK_NAMES_NOT_STARTED = ['eerika','mikael','silja','otto'];
 
 function renderSidebarSection(listEl, moreEl, names, metaFn, max = 6) {
 	if (!names.length) {
@@ -97,15 +100,15 @@ function renderSidebarSection(listEl, moreEl, names, metaFn, max = 6) {
 	}
 }
 
-function updateSidebar(completed, struggling, notStarted, total, students) {
+function updateSidebar(completed, notYetCompleted, notStarted, total, students) {
 	document.getElementById('sidebar-enrolled-count').textContent = total > 0 ? total : '—';
 
-	const completedNames  = students?.completed  ?? MOCK_NAMES_COMPLETED.slice(0, completed).map((n,i) => ({ name: n, meta: `${i % 3 + 1} tr${i % 3 === 0 ? 'y' : 'ies'}` }));
-	const strugglingNames = students?.struggling ?? MOCK_NAMES_STRUGGLING.slice(0, struggling).map((n,i) => ({ name: n, meta: `${(i+1)*2 + 1} tries` }));
-	const notStartedNames = students?.not_started ?? MOCK_NAMES_NOT_STARTED.slice(0, notStarted).map(n => ({ name: n, meta: '' }));
+	const completedNames      = students?.completed       ?? [];
+	const notYetCompletedNames = students?.not_yet_completed ?? [];
+	const notStartedNames     = students?.not_started     ?? [];
 
 	document.getElementById('sidebar-completed-count').textContent  = completed;
-	document.getElementById('sidebar-struggling-count').textContent = struggling;
+	document.getElementById('sidebar-struggling-count').textContent = notYetCompleted;
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
 
 	renderSidebarSection(
@@ -116,7 +119,7 @@ function updateSidebar(completed, struggling, notStarted, total, students) {
 	renderSidebarSection(
 		document.getElementById('sidebar-struggling-list'),
 		document.getElementById('sidebar-struggling-more'),
-		strugglingNames
+		notYetCompletedNames
 	);
 
 	const notStartedList = document.getElementById('sidebar-not-started-list');
@@ -183,7 +186,7 @@ async function loadStatistics() {
 	const studentsCompleted = data.students_completed ?? 0;
 	const studentsAttempted = data.students_attempted ?? 0;
 	const studentsNotStarted = data.students_not_started ?? 0;
-	const studentsStruggling = studentsAttempted - studentsCompleted;
+	const studentsNotYetCompleted = studentsAttempted - studentsCompleted;
 	const totalInSet = studentsAttempted + studentsNotStarted;
 	const completionRate = studentsAttempted > 0
 		? ((studentsCompleted / studentsAttempted) * 100).toFixed(1)
@@ -193,14 +196,14 @@ async function loadStatistics() {
 	document.getElementById('students-completed-num').textContent = studentsCompleted;
 	document.getElementById('students-attempted-denom').textContent = ` / ${studentsAttempted}`;
 	document.getElementById('completion-rate-sub').textContent = `${completionRate}% completion rate`;
-	document.getElementById('students-struggling').textContent = studentsStruggling;
+	document.getElementById('students-struggling').textContent = studentsNotYetCompleted;
 	document.getElementById('kpi-not-started-num').textContent = studentsNotStarted;
 	if (totalInSet > 0) {
 		document.getElementById('kpi-not-started-denom').textContent = ` / ${totalInSet}`;
 	}
 
 	// Sidebar
-	updateSidebar(studentsCompleted, studentsStruggling, studentsNotStarted, totalInSet, data.students);
+	updateSidebar(studentsCompleted, studentsNotYetCompleted, studentsNotStarted, totalInSet, data.students);
 
 	// Donut
 	updateDonut(studentsCompleted, studentsAttempted, studentsNotStarted);

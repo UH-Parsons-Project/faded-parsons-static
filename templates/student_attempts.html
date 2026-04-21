@@ -11,6 +11,7 @@
         href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
 
   <link rel="stylesheet" href="/js/main.css">
+  <link rel="stylesheet" href="/js/student_attempts.css">
 </head>
 
 <body>
@@ -59,8 +60,15 @@
     </div>
 
     <div id="attempts-container" style="display: none;">
-      <h3 class="mb-3">Tasks Attempted</h3>
-      <div id="attempts-list"></div>
+      <div class="row">
+        <div class="col-lg-4 mb-4 mb-lg-0">
+          <div class="card-soft p-3 h-100" id="completion-panel"></div>
+        </div>
+        <div class="col-lg-8">
+          <h3 class="mb-3">Tasks Attempted</h3>
+          <div id="attempts-list"></div>
+        </div>
+      </div>
     </div>
 
   </div>

@@ -55,45 +55,55 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
 	const container = document.getElementById('page-header');
 	container.className = 'mb-4';
 	container.innerHTML = `
-	<h2>Student: ${escapeHtml(username)}</h2>
-	<p class="text-muted">All tasks attempted by this student in this task set</p>
-	<div class="d-flex flex-wrap align-items-center" style="gap: 1.25rem; margin-top: .75rem;">
-		<div style="position: relative; width: 160px; height: 160px; flex: 0 0 160px;">
-			<svg width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
-				<circle cx="80" cy="80" r="60" fill="none" stroke="#e2e8f0" stroke-width="14"></circle>
-				<circle cx="80" cy="80" r="60" fill="none" stroke="#16a34a" stroke-width="14"
-					stroke-linecap="round" transform="rotate(-90 80 80)"
-					stroke-dasharray="${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}"></circle>
-				<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotCompletedTasks ? '#fca5a5' : 'transparent'}" stroke-width="14"
-					stroke-linecap="round" transform="rotate(${completedDeg} 80 80)"
-					stroke-dasharray="${notCompletedLen.toFixed(1)} ${(CIRC - notCompletedLen).toFixed(1)}"></circle>
-				<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotStartedTasks ? '#94a3b8' : 'transparent'}" stroke-width="14"
-					stroke-linecap="round" transform="rotate(${notCompletedDeg} 80 80)"
-					stroke-dasharray="${notStartedLen.toFixed(1)} ${(CIRC - notStartedLen).toFixed(1)}"></circle>
-			</svg>
-			<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-				<div style="font-size:1.65rem; font-weight:800; line-height:1; color:#1e293b;">${totalTasks > 0 ? `${percent}%` : '—'}</div>
-				<div style="font-size:.62rem; font-weight:700; letter-spacing:1px; color:#94a3b8; margin-top:.2rem;">COMPLETED</div>
-			</div>
-		</div>
-		<div>
-			<div style="font-weight:700; color:#1e293b; margin-bottom:.4rem;">Completed Tasks</div>
-			<div style="font-size:1.1rem; font-weight:800; margin-bottom:.6rem;">${completedTasks}/${totalTasks} done</div>
-			<div style="display:flex; align-items:center; gap:.55rem; font-size:.9rem; color:#64748b; margin-bottom:.25rem;">
-				<span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
-				<span>Completed: <strong style="color:#16a34a;">${completedTasks}</strong></span>
-			</div>
-			<div style="display:flex; align-items:center; gap:.55rem; font-size:.9rem; color:#64748b;">
-				<span style="width:10px;height:10px;border-radius:50%;background:${hasNotCompletedTasks ? '#fca5a5' : '#cbd5e1'};display:inline-block;"></span>
-				<span>Not completed: <strong style="color:${hasNotCompletedTasks ? '#dc2626' : '#64748b'};">${notCompletedTasks}</strong></span>
-			</div>
-			<div style="display:flex; align-items:center; gap:.55rem; font-size:.9rem; color:#64748b; margin-top:.25rem;">
-				<span style="width:10px;height:10px;border-radius:50%;background:${hasNotStartedTasks ? '#94a3b8' : '#cbd5e1'};display:inline-block;"></span>
-				<span>Not started: <strong style="color:${hasNotStartedTasks ? '#64748b' : '#94a3b8'};">${notStartedTasks}</strong></span>
-			</div>
-		</div>
+	<div class="d-flex align-items-center mb-2" style="gap:.6rem;">
+		<span class="badge badge-pill" style="background:#a8b4f7;color:#2d3a8c;font-size:1.15rem;padding:.7rem 1.2rem;font-weight:700;">
+			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
+		</span>
 	</div>
+	<p class="text-muted">All tasks attempted by this student in this task set</p>
 	`;
+
+	const completionPanel = document.getElementById('completion-panel');
+	if (completionPanel) {
+		completionPanel.innerHTML = `
+		<div style="font-weight:700; color:#1e293b; margin-bottom:.65rem; text-transform:uppercase; letter-spacing:.04em; font-size:.8rem;">Completion</div>
+		<div class="d-flex flex-column align-items-center" style="gap:.8rem;">
+			<div style="position: relative; width: 220px; height: 220px;">
+				<svg width="220" height="220" viewBox="0 0 160 160" aria-hidden="true">
+					<circle cx="80" cy="80" r="60" fill="none" stroke="#e2e8f0" stroke-width="14"></circle>
+					<circle cx="80" cy="80" r="60" fill="none" stroke="#16a34a" stroke-width="14"
+						stroke-linecap="round" transform="rotate(-90 80 80)"
+						stroke-dasharray="${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}"></circle>
+					<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotCompletedTasks ? '#fca5a5' : 'transparent'}" stroke-width="14"
+						stroke-linecap="round" transform="rotate(${completedDeg} 80 80)"
+						stroke-dasharray="${notCompletedLen.toFixed(1)} ${(CIRC - notCompletedLen).toFixed(1)}"></circle>
+					<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotStartedTasks ? '#94a3b8' : 'transparent'}" stroke-width="14"
+						stroke-linecap="round" transform="rotate(${notCompletedDeg} 80 80)"
+						stroke-dasharray="${notStartedLen.toFixed(1)} ${(CIRC - notStartedLen).toFixed(1)}"></circle>
+				</svg>
+				<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+					<div style="font-size:2rem; font-weight:800; line-height:1; color:#1e293b;">${totalTasks > 0 ? `${percent}%` : '—'}</div>
+					<div style="font-size:.68rem; font-weight:700; letter-spacing:1px; color:#94a3b8; margin-top:.24rem;">COMPLETED</div>
+				</div>
+			</div>
+			<div style="font-size:1.1rem; font-weight:800; color:#1e293b;">${completedTasks}/${totalTasks} done</div>
+			<div style="width:100%; max-width:260px;">
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b; margin-bottom:.3rem;">
+					<span><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;margin-right:.45rem;"></span>Completed</span>
+					<strong style="color:#16a34a;">${completedTasks}</strong>
+				</div>
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b; margin-bottom:.3rem;">
+					<span><span style="width:10px;height:10px;border-radius:50%;background:${hasNotCompletedTasks ? '#fca5a5' : '#cbd5e1'};display:inline-block;margin-right:.45rem;"></span>Not completed</span>
+					<strong style="color:${hasNotCompletedTasks ? '#dc2626' : '#64748b'};">${notCompletedTasks}</strong>
+				</div>
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b;">
+					<span><span style="width:10px;height:10px;border-radius:50%;background:${hasNotStartedTasks ? '#94a3b8' : '#cbd5e1'};display:inline-block;margin-right:.45rem;"></span>Not started</span>
+					<strong style="color:${hasNotStartedTasks ? '#64748b' : '#94a3b8'};">${notStartedTasks}</strong>
+				</div>
+			</div>
+		</div>
+		`;
+	}
 }
 
 function createAttemptItem(attempt) {

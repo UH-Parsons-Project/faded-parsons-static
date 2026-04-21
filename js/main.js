@@ -29,6 +29,38 @@ let globalUniqueLinkCode;
 // Global teacher tests for custom tasks (if present)
 let globalTeacherTests = '';
 
+// Teacher-defined custom error message rules for this task.
+let customErrorRules = [];
+
+function parseCustomErrorRules(rawRules) {
+	if (!rawRules) {
+		return [];
+	}
+
+	let parsed = rawRules;
+	if (typeof rawRules === 'string') {
+		try {
+			parsed = JSON.parse(rawRules);
+		} catch (e) {
+			console.warn('Failed to parse custom error rules JSON:', e);
+			return [];
+		}
+	}
+
+	if (!Array.isArray(parsed)) {
+		return [];
+	}
+
+	return parsed.filter((rule) => {
+		if (!rule || typeof rule !== 'object') {
+			return false;
+		}
+		const pattern = typeof rule.pattern === 'string' ? rule.pattern.trim() : '';
+		const message = typeof rule.message === 'string' ? rule.message.trim() : '';
+		return Boolean(pattern && message);
+	});
+}
+
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
 	// Extract the task ID from URL path (e.g., /set/starter-list/tasks/1)
@@ -64,6 +96,9 @@ export async function initWidget() {
 		}
 
 		const task = await response.json();
+		customErrorRules = parseCustomErrorRules(
+			task?.correct_solution?.custom_error_messages ?? task?.correct_solution?.customErrorMessages
+		);
 
 		// Parse task instructions JSON
 		let parsedInstructions = {};
@@ -208,9 +243,9 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 
 			// Process results or errors
 			if (typeof results === 'string') {
-				testResults = processTestResults(results);
+				testResults = processTestResults(results, customErrorRules);
 			} else {
-				testResults = processTestError(error, testResults.startLine);
+				testResults = processTestError(error, testResults.startLine, customErrorRules);
 			}
 		} catch (e) {
 			// Log error to console
@@ -221,6 +256,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 				status: 'fail',
 				header: 'Unexpected error occurred',
 				details: e.message || 'An unknown error occurred while running tests.',
+				messageSource: 'system',
 			};
 		}
 	}
@@ -230,6 +266,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 			status: 'fail',
 			header: 'Unexpected error occurred',
 			details: 'No test result was produced.',
+			messageSource: 'system',
 		};
 	}
 
@@ -238,6 +275,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 	probEl.setAttribute('resultsStatus', testResults.status); // Pass/Fail
 	probEl.setAttribute('resultsHeader', testResults.header); // Result title
 	probEl.setAttribute('resultsDetails', testResults.details); // Result details
+	probEl.setAttribute('resultsMessageSource', testResults.messageSource || 'system');
 
 	// Clear the pending moves/edits buffer (arrangement was already saved on last move)
 	set(lsKey(LS_MOVES), '[]');

@@ -150,6 +150,7 @@ class CreateProblemRequest(BaseModel):
     tests: str
     solutionCode: str
     parsonsRepr: str | None = None
+    customErrorMessages: str | None = None
 
 
 class CreateTaskSetRequest(BaseModel):

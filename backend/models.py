@@ -66,7 +66,6 @@ class Parsons(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
 
-
 class TaskSet(Base):
     """Task list model."""
 

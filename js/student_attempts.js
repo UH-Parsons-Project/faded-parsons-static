@@ -37,16 +37,20 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
-function renderHeader(username, completedTasks, totalTasks) {
+function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
 	const CIRC = 376.99;
-	const notCompletedTasks = Math.max(totalTasks - completedTasks, 0);
+	const notCompletedTasks = Math.max(attemptedTasks - completedTasks, 0);
+	const notStartedTasks = Math.max(totalTasks - attemptedTasks, 0);
 	const hasNotCompletedTasks = notCompletedTasks > 0;
+	const hasNotStartedTasks = notStartedTasks > 0;
 	const percent = totalTasks > 0
 		? Math.round((completedTasks / totalTasks) * 100)
 		: 0;
 	const completedLen = totalTasks > 0 ? (completedTasks / totalTasks) * CIRC : 0;
 	const notCompletedLen = totalTasks > 0 ? (notCompletedTasks / totalTasks) * CIRC : 0;
+	const notStartedLen = totalTasks > 0 ? (notStartedTasks / totalTasks) * CIRC : 0;
 	const completedDeg = totalTasks > 0 ? (completedTasks / totalTasks) * 360 - 90 : -90;
+	const notCompletedDeg = totalTasks > 0 ? ((completedTasks + notCompletedTasks) / totalTasks) * 360 - 90 : -90;
 
 	const container = document.getElementById('page-header');
 	container.className = 'mb-4';
@@ -63,6 +67,9 @@ function renderHeader(username, completedTasks, totalTasks) {
 				<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotCompletedTasks ? '#fca5a5' : 'transparent'}" stroke-width="14"
 					stroke-linecap="round" transform="rotate(${completedDeg} 80 80)"
 					stroke-dasharray="${notCompletedLen.toFixed(1)} ${(CIRC - notCompletedLen).toFixed(1)}"></circle>
+				<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotStartedTasks ? '#94a3b8' : 'transparent'}" stroke-width="14"
+					stroke-linecap="round" transform="rotate(${notCompletedDeg} 80 80)"
+					stroke-dasharray="${notStartedLen.toFixed(1)} ${(CIRC - notStartedLen).toFixed(1)}"></circle>
 			</svg>
 			<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
 				<div style="font-size:1.65rem; font-weight:800; line-height:1; color:#1e293b;">${totalTasks > 0 ? `${percent}%` : '—'}</div>
@@ -79,6 +86,10 @@ function renderHeader(username, completedTasks, totalTasks) {
 			<div style="display:flex; align-items:center; gap:.55rem; font-size:.9rem; color:#64748b;">
 				<span style="width:10px;height:10px;border-radius:50%;background:${hasNotCompletedTasks ? '#fca5a5' : '#cbd5e1'};display:inline-block;"></span>
 				<span>Not completed: <strong style="color:${hasNotCompletedTasks ? '#dc2626' : '#64748b'};">${notCompletedTasks}</strong></span>
+			</div>
+			<div style="display:flex; align-items:center; gap:.55rem; font-size:.9rem; color:#64748b; margin-top:.25rem;">
+				<span style="width:10px;height:10px;border-radius:50%;background:${hasNotStartedTasks ? '#94a3b8' : '#cbd5e1'};display:inline-block;"></span>
+				<span>Not started: <strong style="color:${hasNotStartedTasks ? '#64748b' : '#94a3b8'};">${notStartedTasks}</strong></span>
 			</div>
 		</div>
 	</div>
@@ -168,6 +179,7 @@ Promise.all([
 		}
 
 		const attempts = await attemptsResponse.json();
+		const attemptedTasks = attempts.length;
 		const completedTasks = attempts.filter(attempt => attempt.success_count > 0).length;
 
 		let totalTasks = attempts.length;
@@ -176,7 +188,7 @@ Promise.all([
 			totalTasks = taskSetTasks.length;
 		}
 
-		renderHeader(studentUsername, completedTasks, totalTasks);
+		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

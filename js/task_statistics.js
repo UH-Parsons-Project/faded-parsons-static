@@ -10,7 +10,10 @@ const setId = params.get('set_id');
 
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
-	if (setId) {
+	if (!task_setCode) {
+		backBtn.href = '/global-statistics';
+		backBtn.textContent = 'Back to Global Statistics';
+	} else if (setId) {
 		backBtn.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
 	} else {
 		backBtn.href = '/teacher-dashboard';

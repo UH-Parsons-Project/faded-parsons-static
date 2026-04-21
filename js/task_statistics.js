@@ -22,9 +22,11 @@ if (!task_setCode) {
 	if (sidebar) sidebar.style.display = 'none';
 	const layout = document.querySelector('.page-layout');
 	if (layout) layout.style.gridTemplateColumns = '1fr';
-}
-
-if (task_setCode) {
+	const tasksetChip = document.getElementById('taskset-chip');
+	if (tasksetChip) tasksetChip.style.display = 'none';
+	const globalChip = document.getElementById('global-chip');
+	if (globalChip) globalChip.style.display = '';
+} else {
 	const codeEl = document.getElementById('taskset-code-label');
 	if (codeEl) codeEl.textContent = task_setCode;
 }

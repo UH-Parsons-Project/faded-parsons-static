@@ -55,6 +55,7 @@ async def seed_db():
             reg_token = RegistrationToken(
                 token_hash=token_hash,
                 created_by_admin_id=teacher_to_use.id,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=7),
             )
             session.add(reg_token)
             try:

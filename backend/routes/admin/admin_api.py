@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 TOKEN_EXPIRY_DAYS = 7
+TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -44,8 +45,12 @@ async def create_registration_token(
 	plain_token = request.token.strip() if request.token else None
 
 	if not plain_token:
-		# Generate a new token if none provided
 		plain_token = generate_token(length=32)
+	elif len(plain_token) < TOKEN_MIN_LENGTH:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Token must be at least {TOKEN_MIN_LENGTH} characters long",
+		)
 
 	# Hash the token
 	token_hash = hash_token(plain_token)

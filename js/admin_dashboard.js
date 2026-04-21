@@ -326,6 +326,11 @@ function addToken() {
 		return;
 	}
 
+	if (token.length < 10) {
+		alert('Token must be at least 10 characters long');
+		return;
+	}
+
 	const btn = document.getElementById('add-token-btn');
 	const originalText = btn.innerHTML;
 	btn.disabled = true;

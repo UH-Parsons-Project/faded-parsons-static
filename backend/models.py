@@ -272,7 +272,10 @@ class RegistrationToken(Base):
         return hashlib.sha256(token.encode("utf-8")).hexdigest() == self.token_hash
 
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) > self.expires_at
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
 
 class ModelAnswer(Base):

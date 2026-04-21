@@ -5,6 +5,7 @@ Pytest configuration and fixtures for unit tests.
 import os
 import pytest
 import pytest_asyncio
+from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
@@ -147,6 +148,7 @@ async def registration_token(db_session, test_teacher) -> str:
     reg_token = RegistrationToken(
         token_hash=token_hash,
         created_by_admin_id=test_teacher.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
     )
     db_session.add(reg_token)
     await db_session.commit()

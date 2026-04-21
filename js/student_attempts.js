@@ -55,8 +55,8 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
 	const container = document.getElementById('page-header');
 	container.className = 'mb-4';
 	container.innerHTML = `
-	<div class="d-flex align-items-center mb-2" style="gap:.6rem;">
-		<span class="badge badge-pill" style="background:#a8b4f7;color:#2d3a8c;font-size:1.15rem;padding:.7rem 1.2rem;font-weight:700;">
+	<div class="d-flex align-items-center mb-2 sa-user-row">
+		<span class="badge badge-pill sa-user-badge">
 			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
 		</span>
 	</div>
@@ -65,51 +65,62 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
 
 	const completionPanel = document.getElementById('completion-panel');
 	if (completionPanel) {
-		completionPanel.innerHTML = `
-		<div style="font-weight:700; color:#1e293b; margin-bottom:.65rem; text-transform:uppercase; letter-spacing:.04em; font-size:.8rem;">Completion</div>
-		<div class="d-flex flex-column align-items-center" style="gap:.8rem;">
-			<div style="position: relative; width: 220px; height: 220px;">
-				<svg width="220" height="220" viewBox="0 0 160 160" aria-hidden="true">
-					<circle cx="80" cy="80" r="60" fill="none" stroke="#e2e8f0" stroke-width="14"></circle>
-					<circle cx="80" cy="80" r="60" fill="none" stroke="#16a34a" stroke-width="14"
-						stroke-linecap="round" transform="rotate(-90 80 80)"
-						stroke-dasharray="${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}"></circle>
-					<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotCompletedTasks ? '#fca5a5' : 'transparent'}" stroke-width="14"
-						stroke-linecap="round" transform="rotate(${completedDeg} 80 80)"
-						stroke-dasharray="${notCompletedLen.toFixed(1)} ${(CIRC - notCompletedLen).toFixed(1)}"></circle>
-					<circle cx="80" cy="80" r="60" fill="none" stroke="${hasNotStartedTasks ? '#94a3b8' : 'transparent'}" stroke-width="14"
-						stroke-linecap="round" transform="rotate(${notCompletedDeg} 80 80)"
-						stroke-dasharray="${notStartedLen.toFixed(1)} ${(CIRC - notStartedLen).toFixed(1)}"></circle>
-				</svg>
-				<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-					<div style="font-size:2rem; font-weight:800; line-height:1; color:#1e293b;">${totalTasks > 0 ? `${percent}%` : '—'}</div>
-					<div style="font-size:.68rem; font-weight:700; letter-spacing:1px; color:#94a3b8; margin-top:.24rem;">COMPLETED</div>
-				</div>
-			</div>
-			<div style="font-size:1.1rem; font-weight:800; color:#1e293b;">${completedTasks}/${totalTasks} done</div>
-			<div style="width:100%; max-width:260px;">
-				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b; margin-bottom:.3rem;">
-					<span><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;margin-right:.45rem;"></span>Completed</span>
-					<strong style="color:#16a34a;">${completedTasks}</strong>
-				</div>
-				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b; margin-bottom:.3rem;">
-					<span><span style="width:10px;height:10px;border-radius:50%;background:${hasNotCompletedTasks ? '#fca5a5' : '#cbd5e1'};display:inline-block;margin-right:.45rem;"></span>Not completed</span>
-					<strong style="color:${hasNotCompletedTasks ? '#dc2626' : '#64748b'};">${notCompletedTasks}</strong>
-				</div>
-				<div style="display:flex; align-items:center; justify-content:space-between; gap:.55rem; font-size:.9rem; color:#64748b;">
-					<span><span style="width:10px;height:10px;border-radius:50%;background:${hasNotStartedTasks ? '#94a3b8' : '#cbd5e1'};display:inline-block;margin-right:.45rem;"></span>Not started</span>
-					<strong style="color:${hasNotStartedTasks ? '#64748b' : '#94a3b8'};">${notStartedTasks}</strong>
-				</div>
-			</div>
-		</div>
-		`;
+		const arcCompleted = document.getElementById('sa-arc-completed');
+		const arcNotCompleted = document.getElementById('sa-arc-not-completed');
+		const arcNotStarted = document.getElementById('sa-arc-not-started');
+		const percentEl = document.getElementById('sa-donut-percent');
+		const doneRatioEl = document.getElementById('sa-done-ratio');
+		const completedValEl = document.getElementById('sa-value-completed');
+		const notCompletedValEl = document.getElementById('sa-value-not-completed');
+		const notStartedValEl = document.getElementById('sa-value-not-started');
+		const notCompletedDotEl = document.getElementById('sa-dot-not-completed');
+		const notStartedDotEl = document.getElementById('sa-dot-not-started');
+
+		if (arcCompleted) {
+			arcCompleted.setAttribute('stroke-dasharray', `${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}`);
+		}
+
+		if (arcNotCompleted) {
+			arcNotCompleted.classList.toggle('sa-arc-not-completed', hasNotCompletedTasks);
+			arcNotCompleted.classList.toggle('sa-arc-hidden', !hasNotCompletedTasks);
+			arcNotCompleted.setAttribute('transform', `rotate(${completedDeg} 80 80)`);
+			arcNotCompleted.setAttribute('stroke-dasharray', `${notCompletedLen.toFixed(1)} ${(CIRC - notCompletedLen).toFixed(1)}`);
+		}
+
+		if (arcNotStarted) {
+			arcNotStarted.classList.toggle('sa-arc-not-started', hasNotStartedTasks);
+			arcNotStarted.classList.toggle('sa-arc-hidden', !hasNotStartedTasks);
+			arcNotStarted.setAttribute('transform', `rotate(${notCompletedDeg} 80 80)`);
+			arcNotStarted.setAttribute('stroke-dasharray', `${notStartedLen.toFixed(1)} ${(CIRC - notStartedLen).toFixed(1)}`);
+		}
+
+		if (percentEl) percentEl.textContent = totalTasks > 0 ? `${percent}%` : '—';
+		if (doneRatioEl) doneRatioEl.textContent = `${completedTasks}/${totalTasks} done`;
+		if (completedValEl) completedValEl.textContent = String(completedTasks);
+		if (notCompletedValEl) {
+			notCompletedValEl.textContent = String(notCompletedTasks);
+			notCompletedValEl.classList.toggle('sa-value-not-completed', hasNotCompletedTasks);
+			notCompletedValEl.classList.toggle('sa-value-muted', !hasNotCompletedTasks);
+		}
+		if (notStartedValEl) {
+			notStartedValEl.textContent = String(notStartedTasks);
+			notStartedValEl.classList.toggle('sa-value-not-started', hasNotStartedTasks);
+			notStartedValEl.classList.toggle('sa-value-muted-light', !hasNotStartedTasks);
+		}
+		if (notCompletedDotEl) {
+			notCompletedDotEl.classList.toggle('sa-dot-not-completed', hasNotCompletedTasks);
+			notCompletedDotEl.classList.toggle('sa-dot-muted', !hasNotCompletedTasks);
+		}
+		if (notStartedDotEl) {
+			notStartedDotEl.classList.toggle('sa-dot-not-started', hasNotStartedTasks);
+			notStartedDotEl.classList.toggle('sa-dot-muted', !hasNotStartedTasks);
+		}
 	}
 }
 
 function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
-	item.style.cursor = 'pointer';
 	item.onclick = () => {
 	window.location.href = `/student_task_statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
@@ -122,12 +133,12 @@ function createAttemptItem(attempt) {
 	meta.className = 'task-set-meta';
 
 	const statusIcon = attempt.success_count > 0
-	? '<i class="fas fa-check-circle" style="color: #28a745;"></i><span style="margin-right: 0.5rem;"> Success</span>'
-	: '<i class="fas fa-times-circle" style="color: #dc3545;"></i><span style="margin-right: 0.5rem;"> Failed</span>';
+	? '<i class="fas fa-check-circle sa-icon-success"></i><span class="sa-status-label"> Success</span>'
+	: '<i class="fas fa-times-circle sa-icon-failed"></i><span class="sa-status-label"> Failed</span>';
 
 	meta.innerHTML = `
 	${statusIcon}
-	<span style="margin-right: 1rem;">Total Attempts: ${attempt.attempts}</span>
+	<span class="sa-attempt-count">Total Attempts: ${attempt.attempts}</span>
 	<i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}
 	`;
 

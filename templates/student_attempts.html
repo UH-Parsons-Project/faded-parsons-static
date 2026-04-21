@@ -62,7 +62,38 @@
     <div id="attempts-container" style="display: none;">
       <div class="row">
         <div class="col-lg-4 mb-4 mb-lg-0">
-          <div class="card-soft p-3 h-100" id="completion-panel"></div>
+          <div class="card-soft p-3 h-100" id="completion-panel">
+            <div class="sa-completion-title">Completion</div>
+            <div class="d-flex flex-column align-items-center sa-completion-stack">
+              <div class="sa-donut-wrap">
+                <svg class="sa-donut-svg" width="220" height="220" viewBox="0 0 160 160" aria-hidden="true">
+                  <circle class="sa-arc-track" cx="80" cy="80" r="60" fill="none" stroke-width="14"></circle>
+                  <circle class="sa-arc-completed" id="sa-arc-completed" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round" transform="rotate(-90 80 80)"></circle>
+                  <circle class="sa-arc-not-completed" id="sa-arc-not-completed" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round"></circle>
+                  <circle class="sa-arc-not-started" id="sa-arc-not-started" cx="80" cy="80" r="60" fill="none" stroke-width="14" stroke-linecap="round"></circle>
+                </svg>
+                <div class="sa-donut-center">
+                  <div class="sa-donut-percent" id="sa-donut-percent">—</div>
+                  <div class="sa-donut-label">COMPLETED</div>
+                </div>
+              </div>
+              <div class="sa-done-ratio" id="sa-done-ratio">—</div>
+              <div class="sa-legend">
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot sa-dot-completed"></span>Completed</span>
+                  <strong class="sa-value-completed" id="sa-value-completed">—</strong>
+                </div>
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot" id="sa-dot-not-completed"></span>Not completed</span>
+                  <strong id="sa-value-not-completed">—</strong>
+                </div>
+                <div class="sa-legend-row">
+                  <span><span class="sa-dot" id="sa-dot-not-started"></span>Not started</span>
+                  <strong id="sa-value-not-started">—</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="col-lg-8">
           <h3 class="mb-3">Tasks Attempted</h3>

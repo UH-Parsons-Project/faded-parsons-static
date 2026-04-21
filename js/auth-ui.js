@@ -136,8 +136,10 @@ export function initLoginPage() {
 					body: JSON.stringify({ username, password, unique_link_code: code })
 				});
 				if (response.ok) {
+					const data = await response.json();
+					const displayName = data.username || username;
 					// Keep navbar greeting consistent on student pages.
-					localStorage.setItem('nickname', username);
+					localStorage.setItem('nickname', displayName);
 					// Student session cookie set by backend; redirect to tasks
 					window.location.href = `/set/${code}/tasks`;
 					return;

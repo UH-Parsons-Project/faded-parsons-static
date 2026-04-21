@@ -196,12 +196,14 @@ class RegistrationTokenResponse(BaseModel):
     id: int
     token: str
     created_at: str
+    expires_at: str
 
 
 class RegistrationTokenListItem(BaseModel):
     """Item in registration token list."""
     id: int
     created_at: str
+    expires_at: str
     created_by_admin_id: int
 
 

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Annotated
 from datetime import timedelta
 
@@ -10,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Local
 from ...models import Teacher, RegistrationToken
-from backend.utils import verify_token
+from backend.utils import hash_token
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ...pydantic import Token, UserInfo
@@ -98,24 +97,22 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
             detail="Registration token is required",
         )
 
-    # Find matching token in database
-    stmt = select(RegistrationToken)
+    # Find matching token in database by hash (O(1) lookup)
+    token_hash = hash_token(registration_token)
+    stmt = select(RegistrationToken).where(RegistrationToken.token_hash == token_hash)
     result = await db.execute(stmt)
-    all_tokens = result.scalars().all()
-
-    valid_token = None
-    for token_obj in all_tokens:
-        # bcrypt verification is CPU-bound; offload so the event loop remains responsive
-        # large ammount of tokens is currently causing a crash
-        # probably need to move to a system where the tokens use a different hash algorithm
-        if await asyncio.to_thread(verify_token, registration_token, token_obj.token_hash):
-            valid_token = token_obj
-            break
+    valid_token = result.scalar_one_or_none()
 
     if not valid_token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid registration token",
+        )
+
+    if valid_token.is_expired():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration token has expired",
         )
 
     # Basic validation (lengths, presence, password match)

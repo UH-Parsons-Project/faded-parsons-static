@@ -326,6 +326,11 @@ function addToken() {
 		return;
 	}
 
+	if (token.length < 10) {
+		alert('Token must be at least 10 characters long');
+		return;
+	}
+
 	const btn = document.getElementById('add-token-btn');
 	const originalText = btn.innerHTML;
 	btn.disabled = true;
@@ -349,8 +354,10 @@ function addToken() {
 	.then(data => {
 		const tokenDisplay = document.getElementById('token-display');
 		const tokenValue = document.getElementById('token-value');
+		const tokenExpires = document.getElementById('token-expires');
 		if (tokenDisplay && tokenValue) {
 			tokenValue.textContent = data.token || token;
+			if (tokenExpires) tokenExpires.textContent = data.expires_at ? formatDate(data.expires_at) : '';
 			tokenDisplay.style.display = 'block';
 		}
 		tokenInput.value = '';
@@ -385,11 +392,13 @@ function loadTokensList() {
 		let html = '';
 		tokens.forEach(token => {
 			const createdDate = formatDate(token.created_at);
+			const expiresDate = token.expires_at ? formatDate(token.expires_at) : 'N/A';
 			html += `
 				<div class="token-item p-2 border-bottom d-flex justify-content-between align-items-center">
 					<div style="flex: 1; min-width: 0;">
 						<small class="text-dark"><strong>ID: ${token.id}</strong></small><br>
-						<small class="text-muted">${createdDate}</small>
+						<small class="text-muted">Created: ${createdDate}</small><br>
+						<small class="text-muted"><i class="fas fa-clock"></i> Expires: ${expiresDate}</small>
 					</div>
 					<button class="btn btn-sm btn-outline-danger ml-2" onclick="deleteToken(${token.id})">
 						<i class="fas fa-trash"></i>
@@ -455,7 +464,7 @@ function seedMockData() {
 		if (!r.ok) throw new Error('Failed to seed mock data');
 		return r.json();
 	})
-	.then(data => {
+	.then(() => {
 		btn.innerHTML = '<i class="fas fa-check"></i> Done!';
 		alert('Mock data seeded successfully! Refresh the page to see the updated statistics.');
 		setTimeout(() => {

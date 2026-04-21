@@ -265,12 +265,17 @@ class RegistrationToken(Base):
         Integer, ForeignKey("teachers.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     def verify_token(self, token: str) -> bool:
-        """Verify a token against the stored hash."""
-        return bcrypt.checkpw(
-            token.encode("utf-8"), self.token_hash.encode("utf-8")
-        )
+        import hashlib
+        return hashlib.sha256(token.encode("utf-8")).hexdigest() == self.token_hash
+
+    def is_expired(self) -> bool:
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
 
 class ModelAnswer(Base):

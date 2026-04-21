@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta, timezone
+
+TOKEN_EXPIRY_DAYS = 7
+TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -42,8 +45,12 @@ async def create_registration_token(
 	plain_token = request.token.strip() if request.token else None
 
 	if not plain_token:
-		# Generate a new token if none provided
 		plain_token = generate_token(length=32)
+	elif len(plain_token) < TOKEN_MIN_LENGTH:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Token must be at least {TOKEN_MIN_LENGTH} characters long",
+		)
 
 	# Hash the token
 	token_hash = hash_token(plain_token)
@@ -52,6 +59,7 @@ async def create_registration_token(
 	reg_token = RegistrationToken(
 		token_hash=token_hash,
 		created_by_admin_id=current_user.id,
+		expires_at=datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS),
 	)
 
 	db.add(reg_token)
@@ -63,6 +71,7 @@ async def create_registration_token(
 		id=reg_token.id,
 		token=plain_token,
 		created_at=reg_token.created_at.isoformat(),
+		expires_at=reg_token.expires_at.isoformat(),
 	)
 
 
@@ -84,6 +93,7 @@ async def list_registration_tokens(
 		RegistrationTokenListItem(
 			id=token.id,
 			created_at=token.created_at.isoformat(),
+			expires_at=token.expires_at.isoformat(),
 			created_by_admin_id=token.created_by_admin_id,
 		)
 		for token in tokens

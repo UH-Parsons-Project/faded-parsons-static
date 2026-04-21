@@ -144,7 +144,7 @@ async def student_login(
     await db.commit()
 
     set_session_cookie(response, student.id)
-    return {"status": "success", "student_id": student.id}
+    return {"status": "success", "student_id": student.id, "username": student.username}
 
 
 @router.post("/api/student_logout")

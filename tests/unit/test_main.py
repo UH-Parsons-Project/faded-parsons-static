@@ -1159,6 +1159,20 @@ class TestAdditionalMainPagesAndStudentAuth:
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
 
+    async def test_student_login_accepts_email(self, client, student_session):
+        r = await client.post(
+            "/api/student_login",
+            json={
+                "username": student_session.email,
+                "password": "studentpass123",
+                "unique_link_code": None,
+            },
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "success"
+        assert r.json()["username"] == student_session.username
+        assert "student_session" in r.cookies
+
     async def test_student_login_sets_cookie_and_can_rebind_task_set(
         self, client, student_session, db_session, task_set
     ):

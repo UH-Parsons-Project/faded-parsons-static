@@ -166,15 +166,21 @@ async def get_current_student_session_no_update(
     return await get_student_session(student_session, db, update_activity=False)
 
 
-async def authenticate_student(username: str, password: str, db: AsyncSession) -> Optional[Student]:
+async def authenticate_student(identifier: str, password: str, db: AsyncSession) -> Optional[Student]:
     """
-    Authenticate a student by username and password.
+    Authenticate a student by username or email and password.
     Returns the Student object if valid, None otherwise.
     """
     result = await db.execute(
-        select(Student).where(Student.username == username)
+        select(Student).where(Student.username == identifier)
     )
     student = result.scalar_one_or_none()
+
+    if not student:
+        result = await db.execute(
+            select(Student).where(Student.email == identifier)
+        )
+        student = result.scalar_one_or_none()
 
     if not student or not student.is_active:
         return None

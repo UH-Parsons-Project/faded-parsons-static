@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { loginTeacher } from './test-helpers.js';
+import { loginTeacher, createTestStudent } from './test-helpers.js';
 
 let createdTaskSetTitle = null;
 
@@ -12,14 +12,7 @@ test.beforeEach(async ({ page }) => {
   const unique = Date.now() % 1000000;
   const studentUsername = `student_${unique}`;
   const studentEmail = `student_${unique}@example.com`;
-  const resp = await page.request.post('/api/student_register', {
-    data: {
-      username: studentUsername,
-      email: studentEmail,
-      password: 'password123',
-      password_confirm: 'password123',
-    }
-  });
+  const resp = await createTestStudent(page, studentUsername, studentEmail, 'password123');
   if (!resp.ok()) {
     console.warn('Student registration in beforeEach returned', resp.status());
   }

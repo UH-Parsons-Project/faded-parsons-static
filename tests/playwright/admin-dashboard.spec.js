@@ -2,11 +2,10 @@
 import { test, expect } from '@playwright/test';
 import { loginTeacher, createTestStudent } from './test-helpers.js';
 
-let createdTaskSetTitle = null;
-
 test.beforeEach(async ({ page }) => {
   // Login as seeded admin user
   await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Register one student so "Registered Students" stat is non-zero
   const unique = Date.now() % 1000000;
@@ -61,6 +60,7 @@ test('admin dashboard shows stats and can create a registration token', async ({
   const teachersText = (await page.locator('#stat-registered-teachers').textContent()) || '';
   const listsText = (await page.locator('#stat-total-lists').textContent()) || '';
 
+  /** @param {string} s */
   const parseNumber = (s) => {
     const m = s.replace(/[^0-9]/g, '');
     return m ? parseInt(m, 10) : 0;

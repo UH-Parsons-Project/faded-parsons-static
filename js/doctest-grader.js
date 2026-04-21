@@ -29,30 +29,52 @@ function countDocstringLines(lines) {
 	return startLine;
 }
 
+function escapePythonSingleQuotedString(value) {
+	return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function extractError(error, numDocstringLines) {
-	let startI = -1;
-	let endI = -1;
-	let lineNum;
+	if (!error) {
+		return 'No error report found.';
+	}
+
 	const errorLines = error.split('\n');
-	for (var i = errorLines.length - 1; i >= 0; i--) {
-		let line = errorLines[i];
-		if (line.startsWith('SyntaxError') || line.startsWith('IndentationError')) {
-			endI = i;
-		} else if (line.includes('File "<exec>", line')) {
-			lineNum = parseInt(line.split(', line ')[1], 10);
-			lineNum -= numDocstringLines - 1;
-			startI = i;
+	let errorIndex = -1;
+	let fileIndex = -1;
+	let lineNum = null;
+
+	for (let i = errorLines.length - 1; i >= 0; i--) {
+		const trimmed = errorLines[i].trim();
+		if (/^[A-Za-z_][A-Za-z0-9_]*(Error|Exception)(:|$)/.test(trimmed)) {
+			errorIndex = i;
 			break;
 		}
 	}
-	if (startI == -1 || endI == -1) {
-		return 'No error report found.';
-	} else {
-		return (
-			`Error at line ${lineNum}:\n` +
-			errorLines.slice(startI + 1, endI + 1).join('\n')
-		);
+
+	if (errorIndex === -1) {
+		return error;
 	}
+
+	for (let i = errorIndex - 1; i >= 0; i--) {
+		const match = errorLines[i].match(/File "[^"]+", line (\d+)/);
+		if (match) {
+			fileIndex = i;
+			lineNum = parseInt(match[1], 10);
+			if (!Number.isNaN(lineNum) && typeof numDocstringLines === 'number') {
+				lineNum -= Math.max(numDocstringLines - 1, 0);
+			}
+			break;
+		}
+	}
+
+	const snippetStart = fileIndex >= 0 ? fileIndex : Math.max(0, errorIndex - 3);
+	const snippet = errorLines.slice(snippetStart, errorIndex + 1).join('\n').trim();
+
+	if (lineNum !== null && !Number.isNaN(lineNum)) {
+		return `Error at line ${lineNum}:\n${snippet}`;
+	}
+
+	return snippet || error;
 }
 
 function cleanupDoctestResults(resultsStr) {
@@ -277,7 +299,30 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 	});
 	if (normalizedTeacherTests) {
 		finalCode.push('');
-		finalCode.push(normalizedTeacherTests);
+		finalCode.push('__teacher_test_index = 0');
+		normalizedTeacherTests.split('\n').forEach((testLine) => {
+			const trimmed = testLine.trim();
+			const isTopLevelAssert = testLine === trimmed && trimmed.startsWith('assert ');
+			const looksLikeMultiline = trimmed.endsWith('\\') || trimmed.endsWith('(');
+
+			if (!isTopLevelAssert || looksLikeMultiline) {
+				finalCode.push(testLine);
+				return;
+			}
+
+			const label = escapePythonSingleQuotedString(trimmed);
+			finalCode.push('__teacher_test_index += 1');
+			finalCode.push('try:');
+			finalCode.push(`    ${trimmed}`);
+			finalCode.push(
+				`    print('✅ Passed test ' + str(__teacher_test_index) + ': ${label}')`
+			);
+			finalCode.push('except Exception:');
+			finalCode.push(
+				`    print('❌ Failed test ' + str(__teacher_test_index) + ': ${label}')`
+			);
+			finalCode.push('    raise');
+		});
 		finalCode.push('');
 		finalCode.push('print("ALL_TEACHER_TESTS_PASSED")');
 	} else {
@@ -296,10 +341,17 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 
 export function processTestResults(outputStr, customErrorRules = []) {
 	if (outputStr.includes('ALL_TEACHER_TESTS_PASSED')) {
+		const teacherTestLines = outputStr
+			.split('\n')
+			.map((line) => line.trim())
+			.filter((line) => line.startsWith('✅ Passed test') || line.startsWith('❌ Failed test'));
+
 		return {
 			status: 'pass',
 			header: 'All tests passed successfully.',
-			details: 'All tests passed successfully.',
+			details: teacherTestLines.length
+				? teacherTestLines.join('\n')
+				: 'All tests passed successfully.',
 		};
 	}
 
@@ -314,7 +366,10 @@ export function processTestResults(outputStr, customErrorRules = []) {
 		const passedDetails = passedExamples.length
 			? passedExamples.map((example) => `✅ Passed test\n${example}`).join('\n\n')
 			: '';
-		const doctestResults = [passedDetails, failedDetails].filter(Boolean).join('\n\n');
+		const summaryLine = `Summary: ${successCount} passed, ${failCount} failed, ${totalCount} total.`;
+		const doctestResults = [summaryLine, passedDetails, failedDetails]
+			.filter(Boolean)
+			.join('\n\n');
 		return applyCustomErrorMessageRules({
 			status: successCount == totalCount ? 'pass' : 'fail',
 			header: `${successCount} of ${totalCount} tests passed`,
@@ -334,11 +389,54 @@ export function processTestResults(outputStr, customErrorRules = []) {
 export function processTestError(error, startLine, customErrorRules = []) {
 	const message = error?.message || '';
 
-	if (message.startsWith('Traceback')) {
+	if (message.includes('Traceback')) {
+		const markerLines = message
+			.split('\n')
+			.map((line) => line.trim())
+			.filter((line) => line.startsWith('✅ Passed test') || line.startsWith('❌ Failed test'));
+		const passedCount = markerLines.filter((line) => line.startsWith('✅ Passed test')).length;
+		const failedCount = markerLines.filter((line) => line.startsWith('❌ Failed test')).length;
+		const lastErrorLine = message
+			.split('\n')
+			.map((line) => line.trim())
+			.reverse()
+			.find((line) => /^[A-Za-z_][A-Za-z0-9_]*(Error|Exception)(:|$)/.test(line));
+		const errorTypeMatch = message.match(
+			/^\s*([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception))(?::|$)/m
+		);
+		const errorType = errorTypeMatch ? errorTypeMatch[1] : 'Runtime error';
+		let errorDetails = extractError(message, startLine);
+		let header = errorType;
+
+		// Teacher test assertions run in injected module-level code, so mapped line numbers are misleading.
+		if (
+			markerLines.some((line) => line.startsWith('❌ Failed test')) &&
+			errorType === 'AssertionError'
+		) {
+			header = 'Wrong answer';
+			errorDetails = lastErrorLine || 'AssertionError';
+		}
+
+		if (errorType === 'AssertionError') {
+			header = 'Wrong answer';
+		}
+		const details = [
+			passedCount || failedCount
+				? `Summary: ${passedCount} passed, ${failedCount} failed.`
+				: '',
+			markerLines.length ? markerLines.join('\n') : '',
+			errorType === 'AssertionError'
+				? 'Your code is valid Python, but it does not satisfy all test assertions.'
+				: '',
+			errorDetails,
+		]
+			.filter(Boolean)
+			.join('\n\n');
+
 		return applyCustomErrorMessageRules({
 			status: 'fail',
-			header: 'Syntax error',
-			details: extractError(message, startLine),
+			header: header,
+			details: details || message,
 			messageSource: 'system',
 		}, customErrorRules);
 	} else if (message == 'Infinite loop') {

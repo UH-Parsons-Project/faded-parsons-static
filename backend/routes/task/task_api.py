@@ -9,6 +9,7 @@ from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser
 from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem
 from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
+from ...models import ModelAnswer
 from ...pydantic import (
     TaskResponse,
     CreateProblemRequest,
@@ -627,6 +628,15 @@ async def create_problem(
     )
 
     db.add(task)
+    await db.flush()
+
+    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    model_answer = ModelAnswer(
+        parsons_id=task.id,
+        created_by_teacher_id=current_user.id,
+        answer_code=model_answer_code or solution_code,
+    )
+    db.add(model_answer)
     await db.commit()
     await db.refresh(task)
 

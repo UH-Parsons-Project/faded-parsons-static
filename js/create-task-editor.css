@@ -103,6 +103,48 @@ body {
   min-height: 280px;
 }
 
+#source-sortable li,
+#solution-sortable li {
+  position: relative;
+  padding-right: 28px;
+}
+
+.block-delete-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.block-delete-btn::before {
+  content: '\00D7';
+}
+
+#source-sortable li:hover .block-delete-btn,
+#solution-sortable li:hover .block-delete-btn {
+  opacity: 1;
+}
+
+.block-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .starter {
   width: 40%;
   float: left;

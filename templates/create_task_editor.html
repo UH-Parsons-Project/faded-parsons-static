@@ -16,8 +16,11 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <span class="text-dark mr-3"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
-      <button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
+      <button id="back-to-code" class="btn btn-outline-dark btn-sm mr-3" type="button">Back To Code/Test Editor</button>
+      <span class="text-dark">
+        <i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
+      </span>
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
       <div class="navbar-burger-menu" style="margin-left: 1rem;">
         <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
           <i class="fas fa-bars"></i>
@@ -41,12 +44,8 @@
     <div class="row mt-2">
       <div class="col-sm-12">
         <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="card-header">
             <h3 class="mb-0">Create Task Blocks</h3>
-            <div class="d-flex" style="gap: 0.5rem;">
-              <button id="back-to-code" class="btn btn-outline-secondary btn-sm" type="button">Back To Code/Test Editor</button>
-              <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear Blocks</button>
-            </div>
           </div>
           <div class="card-body">
             <p class="problem-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
@@ -109,7 +108,10 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Parsons Workspace</h4>
-            <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+            <div class="d-flex align-items-center" style="gap: 0.75rem;">
+              <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+              <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
+            </div>
           </div>
           <div class="card-body">
             <div id="source-sortable" class="sortable-code starter"></div>

@@ -93,5 +93,5 @@ test('login shows error with wrong password', async ({ page }) => {
   await loginTeacher(page, username, 'wrong-password');
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('#error-message')).toBeVisible();
-  await expect(page.locator('#error-message')).toContainText('Incorrect username or password');
+  await expect(page.locator('#error-message')).toContainText('Incorrect username, email, or password');
 });

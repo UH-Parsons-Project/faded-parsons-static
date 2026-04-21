@@ -78,13 +78,21 @@ async def get_current_user(
     return user
 
 
-async def authenticate_user(username: str, password: str, db: AsyncSession) -> Optional[Teacher]:
-    """Authenticate a user by username and password.
+async def authenticate_user(username_or_email: str, password: str, db: AsyncSession) -> Optional[Teacher]:
+    """Authenticate a teacher by username or email and password.
 
     Returns the Teacher object if valid, None otherwise.
     """
-    result = await db.execute(select(Teacher).where(Teacher.username == username))
+    login_value = username_or_email.strip()
+
+    result = await db.execute(select(Teacher).where(Teacher.username == login_value))
     user = result.scalar_one_or_none()
+
+    if not user:
+        result = await db.execute(
+            select(Teacher).where(Teacher.email.ilike(login_value))
+        )
+        user = result.scalar_one_or_none()
 
     if not user or not user.is_active:
         return None

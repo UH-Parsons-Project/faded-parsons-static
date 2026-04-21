@@ -95,13 +95,13 @@
   <!-- Page header -->
   <div class="page-header">
     <div>
-      <div class="taskset-chip">
+      <div class="taskset-chip" id="taskset-chip">
         <span class="taskset-from">Task set</span>
         <span class="taskset-name" id="taskset-name-label">—</span>
         <span class="taskset-code" id="taskset-code-label"></span>
       </div>
+      <div class="global-chip" id="global-chip" style="display:none;">Global Data</div>
       <div class="page-title" id="exercise-name">—</div>
-      <div class="page-subtitle">Exercise analytics</div>
     </div>
     <div class="header-badge">Exercise Analytics</div>
   </div>
@@ -282,9 +282,7 @@
         </div>
         <hr class="completion-divider">
         <div class="avg-tries-strip">
-          <div class="avg-tries-header">
-            <span class="avg-tries-label">Tries to pass</span>
-          </div>
+          <div style="display:flex;justify-content:center;"><span class="avg-tries-label">Attempts to pass</span></div>
           <div class="avg-tries-cells">
             <div class="avg-tries-cell">
               <div class="avg-tries-cell-lbl">Min</div>

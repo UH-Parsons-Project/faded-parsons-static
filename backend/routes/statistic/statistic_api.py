@@ -318,6 +318,7 @@ async def get_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
+    task_set = None
     attempts_query = (
         select(TaskAttempt, StudentTaskEnrollment)
         .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
@@ -365,19 +366,35 @@ async def get_task_statistics(
     attempts_data = filtered_attempts_data
 
     if not attempts_data:
+        early_not_started = 0
+        early_not_started_names: list[str] = []
+        if task_set_code and task_set:
+            enrolled_result = await db.execute(
+                select(Student.username)
+                .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
+                .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+            )
+            early_not_started_names = sorted(row[0] for row in enrolled_result.all())
+            early_not_started = len(early_not_started_names)
         return {
             "task_name": task.title,
+            "task_set_name": task_set.title if task_set_code and task_set else None,
             "model_answer": await _get_model_answer_for_task(task, db),
             "total_completions": 0,
             "students_attempted": 0,
             "students_completed": 0,
-            "students_not_started": 0,
+            "students_not_started": early_not_started,
             "avg_tries": 0,
             "time_to_first_fail": {"avg": 0, "min": 0, "max": 0},
             "time_to_first_success": {"avg": 0, "min": 0, "max": 0},
             "thinking_time": None,
             "number_of_moves": None,
             "common_mistakes": [],
+            "students": {
+                "completed": [],
+                "not_yet_completed": [],
+                "not_started": [{"name": n, "meta": ""} for n in early_not_started_names],
+            },
         }
 
     successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]

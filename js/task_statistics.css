@@ -77,6 +77,19 @@ body {
   justify-content: space-between;
   gap: 1rem;
 }
+.global-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--text-muted);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border-radius: 2rem;
+  padding: .22rem .7rem;
+  margin-bottom: .5rem;
+}
 .taskset-chip {
   display: inline-flex;
   align-items: center;
@@ -123,9 +136,9 @@ body {
 .header-badge {
   background: var(--brand);
   color: var(--brand-text);
-  font-size: 0.72rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  padding: .25rem .75rem;
+  padding: .65rem 1.6rem;
   border-radius: 2rem;
   white-space: nowrap;
   letter-spacing: .03em;

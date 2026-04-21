@@ -266,6 +266,14 @@ class TestLogin:
         )
         assert "access_token" in r.cookies
 
+    async def test_valid_email_login_returns_token(self, client, test_teacher):
+        r = await client.post(
+            "/api/login/access-token",
+            data={"username": "test@example.com", "password": "testpassword123"},
+        )
+        assert r.status_code == 200
+        assert "access_token" in r.json()
+
     async def test_wrong_password_returns_400(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",

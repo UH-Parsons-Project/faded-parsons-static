@@ -115,7 +115,7 @@ export function initLoginPage() {
 		const password = document.getElementById('password').value;
 
 		if (!username || !password) {
-			showError('Please enter username and password');
+			showError('Please enter username or email and password');
 			return;
 		}
 

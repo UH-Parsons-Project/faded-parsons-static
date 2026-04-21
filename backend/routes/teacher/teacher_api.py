@@ -30,7 +30,7 @@ async def login_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password",
+            detail="Incorrect username, email, or password",
         )
 
     if not user.is_active:

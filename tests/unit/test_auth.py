@@ -65,6 +65,14 @@ class TestAuthenticateUser:
         assert user.username == "testteacher"
         assert user.email == "test@example.com"
 
+    async def test_authenticate_valid_user_by_email(self, db_session, test_teacher):
+        """Test authenticating with email instead of username."""
+        user = await authenticate_user("test@example.com", "testpassword123", db_session)
+
+        assert user is not None
+        assert user.username == "testteacher"
+        assert user.email == "test@example.com"
+
     async def test_authenticate_wrong_password(self, db_session, test_teacher):
         """Test authentication fails with wrong password."""
         user = await authenticate_user("testteacher", "wrongpassword", db_session)

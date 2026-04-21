@@ -141,6 +141,25 @@ export async function registerStudent(page, username, email, password = 'passwor
   await page.locator('#register-form button[type="submit"]').click();
 }
 
+/**
+ * Create a test student via API (faster than UI flow).
+ * @param {any} page - Playwright page or request context
+ * @param {string} username
+ * @param {string} email
+ * @param {string} password
+ */
+export async function createTestStudent(page, username, email, password = 'password123') {
+  const resp = await page.request.post('/api/student_register', {
+    data: {
+      username,
+      email,
+      password,
+      password_confirm: password,
+    },
+  });
+  return resp;
+}
+
 export async function loginStudent(page, username, password = 'password123') {
   await page.locator('#login-form #username').fill(username);
   await page.locator('#login-form #password').fill(password);

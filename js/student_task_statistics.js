@@ -13,7 +13,7 @@ if (!studentUsername || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
-document.getElementById('back-btn').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${setId}`;
+document.getElementById('back-btn').href = `/task-statistics?id=${encodeURIComponent(taskId)}&task_set=python-perusteet&set_id=${encodeURIComponent(setId)}`;
 
 function formatTime(seconds) {
 	if (!seconds) return '0s';

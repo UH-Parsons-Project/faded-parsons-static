@@ -2,9 +2,29 @@
 import { test, expect } from '@playwright/test';
 import { loginTeacher } from './test-helpers.js';
 
-test('admin dashboard shows stats and can create a registration token', async ({ page }) => {
-  // Login as seeded admin user
+test.beforeEach(async ({ page }) => {
+  // Login as seeded admin user and ensure auth completed
   await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+  // Register one student so "Registered Students" stat is non-zero
+  const unique = Date.now() % 1000000;
+  const studentUsername = `student_${unique}`;
+  const studentEmail = `student_${unique}@example.com`;
+  const resp = await page.request.post('/api/student_register', {
+    data: {
+      username: studentUsername,
+      email: studentEmail,
+      password: 'password123',
+      password_confirm: 'password123',
+    }
+  });
+  if (!resp.ok()) {
+    // If registration failed (race or existing user), ignore — test will still proceed
+    // but log for diagnostics
+    console.warn('Student registration in beforeEach returned', resp.status());
+  }
+});
+
+test('admin dashboard shows stats and can create a registration token', async ({ page }) => {
 
   // Open admin dashboard
   await page.goto('/admin-dashboard');

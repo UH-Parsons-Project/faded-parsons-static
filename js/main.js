@@ -26,6 +26,9 @@ let globalTaskId;
 // Global variable to store unique_link_code for API calls
 let globalUniqueLinkCode;
 
+// Global teacher tests for custom tasks (if present)
+let globalTeacherTests = '';
+
 // Teacher-defined custom error message rules for this task.
 let customErrorRules = [];
 
@@ -127,6 +130,7 @@ export async function initWidget() {
 
 		const codeBlocksData = task.code_blocks;
 		const functionHeader = codeBlocksData.function_header;
+		globalTeacherTests = task?.correct_solution?.teacher_tests || '';
 
 		// Reconstruct code lines from blocks for display
 		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
@@ -170,7 +174,7 @@ export async function initWidget() {
 
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, e.detail.edits, functionHeader);
+			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, e.detail.edits, functionHeader, globalTeacherTests);
 		});
 
 		// Save arrangement and move/edit history to localStorage on every change
@@ -225,9 +229,9 @@ function reconstructCodeLines(blocks) {
 // moves: array of move events recorded during the attempt
 // edits: array of blank field edit events recorded during the attempt
 // codeHeader: Python function template/header
-async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader) {
+async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, teacherTests) {
 	// Prepare code and inject test code
-	let testResults = prepareCode(submittedCode, codeHeader);
+	let testResults = prepareCode(submittedCode, codeHeader, teacherTests);
 
 	// If preparation succeeded, execute the code
 	if (testResults.code) {

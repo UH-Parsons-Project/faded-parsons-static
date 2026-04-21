@@ -231,10 +231,11 @@ function applyCustomErrorMessageRules(testResults, rawRules) {
 	return testResults;
 }
 
-export function prepareCode(submittedCode, codeHeader) {
+export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 	submittedCode += '\n';
-	let lines = codeHeader.split('\n');
-	const startLine = countDocstringLines(lines);
+	let lines = (codeHeader || '').split('\n');
+	let startLine = countDocstringLines(lines);
+	const normalizedTeacherTests = (teacherTests || '').trim();
 	const codeLines = submittedCode.split('\n');
 	if (!(codeLines[0].includes('def') || codeLines[0].includes('class'))) {
 		return {
@@ -243,6 +244,12 @@ export function prepareCode(submittedCode, codeHeader) {
 			details: 'First code line must be `def` or `class` declaration',
 		};
 	}
+
+	if (startLine === -1) {
+		startLine = 1;
+		lines = [codeLines[0]];
+	}
+
 	// Remove function def or class declaration statement, its relied on elsewhere
 	codeLines.shift();
 
@@ -268,9 +275,15 @@ export function prepareCode(submittedCode, codeHeader) {
 	extraLinesToPreserve.forEach((line) => {
 		finalCode.push(line);
 	});
-	// Runs the doctests
-	finalCode.push('import doctest');
-	finalCode.push('doctest.testmod(verbose=True)');
+	if (normalizedTeacherTests) {
+		finalCode.push('');
+		finalCode.push(normalizedTeacherTests);
+		finalCode.push('');
+		finalCode.push('print("ALL_TEACHER_TESTS_PASSED")');
+	} else {
+		finalCode.push('import doctest');
+		finalCode.push('doctest.testmod(verbose=True)');
+	}
 	finalCode = finalCode.join('\n');
 
 	return {
@@ -282,6 +295,14 @@ export function prepareCode(submittedCode, codeHeader) {
 }
 
 export function processTestResults(outputStr, customErrorRules = []) {
+	if (outputStr.includes('ALL_TEACHER_TESTS_PASSED')) {
+		return {
+			status: 'pass',
+			header: 'All tests passed successfully.',
+			details: 'All tests passed successfully.',
+		};
+	}
+
 	const summaryRe = /(\d+)\spassed\sand\s(\d+)\sfailed./;
 	const summaryMatches = outputStr.match(summaryRe);
 	if (summaryMatches) {

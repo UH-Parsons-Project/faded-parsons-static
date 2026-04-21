@@ -19,9 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.alter_column('teachers', 'has_data_access', new_column_name='is_admin_teacher')
+    pass
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.alter_column('teachers', 'is_admin_teacher', new_column_name='has_data_access')
+    pass

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+
+TOKEN_EXPIRY_DAYS = 7
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -52,6 +54,7 @@ async def create_registration_token(
 	reg_token = RegistrationToken(
 		token_hash=token_hash,
 		created_by_admin_id=current_user.id,
+		expires_at=datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS),
 	)
 
 	db.add(reg_token)
@@ -63,6 +66,7 @@ async def create_registration_token(
 		id=reg_token.id,
 		token=plain_token,
 		created_at=reg_token.created_at.isoformat(),
+		expires_at=reg_token.expires_at.isoformat(),
 	)
 
 
@@ -84,6 +88,7 @@ async def list_registration_tokens(
 		RegistrationTokenListItem(
 			id=token.id,
 			created_at=token.created_at.isoformat(),
+			expires_at=token.expires_at.isoformat(),
 			created_by_admin_id=token.created_by_admin_id,
 		)
 		for token in tokens

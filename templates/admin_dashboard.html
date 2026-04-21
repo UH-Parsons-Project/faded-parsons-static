@@ -145,7 +145,7 @@
           <div class="card admin-card">
             <div class="card-body">
               <h5 class="card-title">Create New Token</h5>
-              <p class="card-text text-muted small">Enter a token manually or generate one automatically.</p>
+              <p class="card-text text-muted small">Enter a token manually or generate one automatically. Tokens expire after 7 days.</p>
 
               <div class="form-group">
                 <label for="token-input" class="small">Token</label>
@@ -170,6 +170,7 @@
                 <strong><i class="fas fa-check-circle"></i> Token Added!</strong>
                 <p class="mb-2 mt-2 text-dark"><strong>Make sure to copy it:</strong></p>
                 <div class="bg-white p-2 border rounded mb-2" id="token-value" style="word-break: break-all; font-family: monospace; font-size: 0.9rem;"></div>
+                <p class="mb-2 small text-muted"><i class="fas fa-clock"></i> Expires: <span id="token-expires"></span></p>
                 <button class="btn btn-sm btn-outline-success" id="copy-token-btn">
                   <i class="fas fa-copy"></i> Copy
                 </button>

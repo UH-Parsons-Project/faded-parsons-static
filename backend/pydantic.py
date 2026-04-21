@@ -149,6 +149,7 @@ class CreateProblemRequest(BaseModel):
     startDescription: str
     tests: str
     solutionCode: str
+    modelAnswerCode: str | None = None
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
 

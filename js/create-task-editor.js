@@ -337,7 +337,61 @@ initBurgerMenu();
 
     parsonsWidget.createHTMLFromLists(solutionIds, sourceIds);
     parsonsWidget.setLineNumbers();
+    injectDeleteButtons(sourceSortable);
+    injectDeleteButtons(solutionSortable);
     updateCounters();
+  }
+
+  function getSolutionCodeWithBlanks() {
+    const indentConstant = '    ';
+    const lines = parsonsWidget.getModifiedCode(
+      parsonsWidget.options.sortableId.querySelector('ul')
+    );
+    let code = '';
+    for (const line of lines) {
+      const clone = document.getElementById(line.id).cloneNode(true);
+      clone.querySelectorAll('input').forEach((inp) => inp.replaceWith('!BLANK'));
+      clone.querySelectorAll('.line-number, .block-delete-btn').forEach((el) => el.remove());
+      clone.innerText = clone.innerText.trimRight();
+      code += indentConstant.repeat(line.indent) + clone.innerText + '\n';
+    }
+    return code.trim();
+  }
+
+  function injectDeleteButtons(container) {
+    container.querySelectorAll('li').forEach((li) => {
+      if (!li.querySelector('.block-delete-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'block-delete-btn';
+        btn.setAttribute('aria-label', 'Delete block');
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteBlock(li.id);
+        });
+        li.appendChild(btn);
+      }
+    });
+  }
+
+  function deleteBlock(blockId) {
+    if (!parsonsWidget) {
+      return;
+    }
+    parsonsWidget.modified_lines = parsonsWidget.modified_lines.filter(
+      (line) => line.id !== blockId
+    );
+    const el = document.getElementById(blockId);
+    if (el) {
+      el.remove();
+    }
+    if (window.$) {
+      window.$('#source-sortable ul').sortable('refresh');
+      window.$('#solution-sortable ul').sortable('refresh');
+    }
+    updateCounters();
+    persistParsonsRepr();
+    hasOpenedStudentPreview = false;
+    updateAddToListState();
   }
 
   function addCustomBlockToSource(blockCode) {
@@ -368,6 +422,11 @@ initBurgerMenu();
     }
 
     sourceList.insertAdjacentHTML('beforeend', parsonsWidget.codeLineToHTML({...lineObject}));
+
+    const newLi = document.getElementById(lineObject.id);
+    if (newLi) {
+      injectDeleteButtons(newLi.parentElement);
+    }
 
     if (window.$) {
       window.$('#source-sortable ul').sortable('refresh');
@@ -642,7 +701,8 @@ initBurgerMenu();
       startDescription,
       customErrorMessages,
       tests,
-      solutionCode,
+      solutionCode: getSolutionCodeWithBlanks(),
+      modelAnswerCode: solutionCode,
       parsonsRepr: parsonsWidget.reprCode(),
     };
 
@@ -729,6 +789,9 @@ initBurgerMenu();
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to clear all blocks? This cannot be undone.')) {
+          return;
+        }
         sessionStorage.removeItem(BLOCKS_KEY);
         sessionStorage.removeItem(BLOCKS_SOURCE_KEY);
         sessionStorage.removeItem(META_KEY);

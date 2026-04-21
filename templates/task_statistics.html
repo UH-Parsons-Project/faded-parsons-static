@@ -251,7 +251,7 @@
           <svg id="donut-svg" class="donut-svg" width="160" height="160" viewBox="0 0 160 160">
             <circle cx="80" cy="80" r="60" fill="none" stroke="#e2e8f0" stroke-width="14"/>
             <circle id="donut-arc-completed" cx="80" cy="80" r="60" fill="none"
-              stroke="#a8b4f7" stroke-width="14"
+              stroke="#16a34a" stroke-width="14"
               stroke-dasharray="0 376.99" stroke-linecap="round"
               transform="rotate(-90 80 80)"
               style="transition:stroke-dasharray .6s ease"/>
@@ -267,11 +267,11 @@
           </svg>
           <div class="donut-legend">
             <div class="legend-row">
-              <span class="legend-label"><span class="legend-dot" style="background:#a8b4f7"></span>Completed</span>
-              <span class="legend-value" id="legend-completed" style="color:var(--brand-dark)">—</span>
+              <span class="legend-label"><span class="legend-dot" id="legend-dot-completed" style="background:#16a34a"></span>Completed</span>
+              <span class="legend-value" id="legend-completed" style="color:var(--green)">—</span>
             </div>
             <div class="legend-row">
-              <span class="legend-label"><span class="legend-dot" style="background:#fca5a5"></span>Not completed</span>
+              <span class="legend-label"><span class="legend-dot" id="legend-dot-struggling" style="background:#fca5a5"></span>Not completed</span>
               <span class="legend-value" id="legend-struggling" style="color:var(--red)">—</span>
             </div>
             <div class="legend-row">

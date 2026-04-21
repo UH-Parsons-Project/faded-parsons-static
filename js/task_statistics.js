@@ -58,6 +58,7 @@ function showLoadError(message) {
 function updateDonut(completed, attempted, notStarted) {
 	const notYetCompleted = attempted - completed;
 	const total = attempted + notStarted;
+	const hasNotYetCompleted = notYetCompleted > 0;
 	const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 	const completedLen = total > 0 ? (completed / total) * CIRC : 0;
 	const notYetCompletedLen = total > 0 ? (notYetCompleted / total) * CIRC : 0;
@@ -65,8 +66,12 @@ function updateDonut(completed, attempted, notStarted) {
 
 	const arcCompleted = document.getElementById('donut-arc-completed');
 	const arcNotYetCompleted = document.getElementById('donut-arc-struggling');
-	if (arcCompleted) arcCompleted.setAttribute('stroke-dasharray', `${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}`);
+	if (arcCompleted) {
+		arcCompleted.setAttribute('stroke', '#16a34a');
+		arcCompleted.setAttribute('stroke-dasharray', `${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}`);
+	}
 	if (arcNotYetCompleted) {
+		arcNotYetCompleted.setAttribute('stroke', hasNotYetCompleted ? '#fca5a5' : 'transparent');
 		arcNotYetCompleted.setAttribute('stroke-dasharray', `${notYetCompletedLen.toFixed(1)} ${(CIRC - notYetCompletedLen).toFixed(1)}`);
 		arcNotYetCompleted.setAttribute('transform', `rotate(${completedDeg} 80 80)`);
 	}
@@ -77,8 +82,16 @@ function updateDonut(completed, attempted, notStarted) {
 	const elCompleted = document.getElementById('legend-completed');
 	const elNotYetCompleted = document.getElementById('legend-struggling');
 	const elNotStarted = document.getElementById('legend-not-started');
+	const dotCompleted = document.getElementById('legend-dot-completed');
+	const dotNotYetCompleted = document.getElementById('legend-dot-struggling');
+	if (dotCompleted) dotCompleted.style.background = '#16a34a';
+	if (dotNotYetCompleted) dotNotYetCompleted.style.background = hasNotYetCompleted ? '#fca5a5' : '#cbd5e1';
 	if (elCompleted) elCompleted.textContent = completed;
-	if (elNotYetCompleted) elNotYetCompleted.textContent = notYetCompleted;
+	if (elCompleted) elCompleted.style.color = 'var(--green)';
+	if (elNotYetCompleted) {
+		elNotYetCompleted.textContent = notYetCompleted;
+		elNotYetCompleted.style.color = hasNotYetCompleted ? 'var(--red)' : 'var(--text-muted)';
+	}
 	if (elNotStarted) elNotStarted.textContent = notStarted > 0 ? notStarted : '—';
 }
 

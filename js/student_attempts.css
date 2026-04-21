@@ -1,33 +1,35 @@
-@import url('/js/student_task_statistics.css');
-
 .container.py-4 {
-  padding-top: 1.75rem !important;
-  padding-bottom: 2.4rem !important;
+  padding-top: 1.5rem !important;
+  padding-bottom: 2rem !important;
+}
+
+body {
+  background: #fff;
+  color: #333;
 }
 
 #page-header {
-  margin-bottom: 1.1rem !important;
+  margin-bottom: 1rem !important;
 }
 
 #page-header .text-muted {
-  color: var(--text-muted) !important;
-  font-size: 0.84rem;
-  margin-top: 0.3rem;
+  color: #6c757d !important;
+  font-size: 0.875rem;
 }
 
 #attempts-container h3 {
-  font-family: var(--mono);
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #333;
 }
 
 #completion-panel {
-  background: var(--card) !important;
-  border: 1px solid var(--border);
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #fff !important;
+  border: 2px solid #dee2e6;
+  border-radius: 0.35rem !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 #attempts-list {
@@ -37,47 +39,47 @@
 }
 
 #attempts-list .task-set-item {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  border-radius: 0.35rem;
   background: #fff;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   margin-bottom: 0;
-  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: all 0.2s ease;
 }
 
 #attempts-list .task-set-item:hover {
-  transform: translateY(-1px);
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.1);
+  transform: translateY(-2px);
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
 }
 
 #attempts-list .task-set-title {
-  font-size: 0.96rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
 }
 
 #attempts-list .task-set-meta {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.45;
+  font-size: 0.875rem;
+  color: #6c757d;
+  line-height: 1.5;
 }
 
 .loading-spinner {
-  color: var(--text-muted);
+  color: #6c757d;
 }
 
 .empty-state {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border: 2px solid #dee2e6;
+  border-radius: 0.35rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 @media (max-width: 991.98px) {
   .container.py-4 {
-    padding-top: 1.2rem !important;
+    padding-top: 1rem !important;
   }
 
   #completion-panel {

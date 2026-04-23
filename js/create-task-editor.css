@@ -109,6 +109,10 @@ body {
   padding-right: 28px;
 }
 
+#solution-sortable li {
+  padding-right: 54px;
+}
+
 .block-delete-btn {
   position: absolute;
   right: 5px;
@@ -143,6 +147,46 @@ body {
 .block-delete-btn:hover {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.12);
+}
+
+.given-toggle-btn {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.given-toggle-btn::before {
+  content: '\1F4CC';
+}
+
+#solution-sortable li:hover .given-toggle-btn {
+  opacity: 1;
+}
+
+#solution-sortable li.student-given .given-toggle-btn {
+  opacity: 1;
+  color: #2563eb;
+}
+
+#solution-sortable li.student-given {
+  border-left: 3px solid #2563eb;
+  background: #eff6ff;
 }
 
 .starter {

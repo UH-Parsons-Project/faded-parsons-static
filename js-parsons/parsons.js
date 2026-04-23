@@ -6,6 +6,7 @@
 	// regexp used for trimming
 	var trimRegexp = /^\s*(.*?)\s*$/;
 	var givenIndentRegexp = /#(\d+)given\s*/;
+	var preplaceRegexp = /#preplace\s*/;
 	var blankRegexp = /#blank([^#]*)/;
 	var userStrings = {
 		trash_label: 'Drag from here',
@@ -34,6 +35,7 @@
 				.replace(/\\n/g, '\n');
 			this.code = codestring
 				.replace(givenIndentRegexp, '')
+				.replace(preplaceRegexp, '')
 				.replace(trimRegexp, '$1')
 				.replace(/\\n/g, '\n');
 			this.indent = codestring.length - codestring.replace(/^\s+/, '').length;
@@ -51,6 +53,8 @@
 		this.extra_lines = [];
 		// contains line objects (see parseCode for line object description)
 		this.model_solution = [];
+		// contains given line objects marked with #preplace (pre-placed for students)
+		this.studentGiven = [];
 
 		var defaults = {
 			x_indent: 50,
@@ -114,6 +118,7 @@
 				if (lineObject.code.length > 0) {
 					lineObject.indent = parseInt(item.match(givenIndentRegexp)[1]);
 					lineObject.distractor = false;
+					lineObject.studentGiven = item.search(preplaceRegexp) >= 0;
 					given.push(lineObject);
 				}
 			} else {
@@ -153,6 +158,8 @@
 			// of distractors (not all possible alternatives)
 			distractors: selected_distractors,
 			given: given,
+			// subset of given that are pre-placed for students (#preplace marker)
+			studentGiven: given.filter(function (l) { return l.studentGiven; }),
 			// an array of line objects specifying the initial code arrangement
 			// given to the user to use in constructing the solution
 			widgetInitial: widgetData,
@@ -168,6 +175,7 @@
 		);
 		this.model_solution = initial_structures.solution;
 		this.given = initial_structures.given;
+		this.studentGiven = initial_structures.studentGiven;
 		this.extra_lines = initial_structures.distractors;
 		this.modified_lines = initial_structures.widgetInitial;
 

@@ -105,6 +105,15 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     email = str(payload.get("email", "")).strip()
     registration_token = str(payload.get("registration_token", "")).strip()
 
+    reg_identifier = f"reg:{request.client.host}"
+
+    remaining = check_brute_force(reg_identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     # Validate registration token from database
     if not registration_token:
         raise HTTPException(
@@ -119,12 +128,14 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     valid_token = result.scalar_one_or_none()
 
     if not valid_token:
+        record_failed_attempt(reg_identifier)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid registration token",
         )
 
     if valid_token.is_expired():
+        record_failed_attempt(reg_identifier)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Registration token has expired",
@@ -144,4 +155,5 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     await db.commit()
     await db.refresh(teacher)
 
+    clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": teacher.id}

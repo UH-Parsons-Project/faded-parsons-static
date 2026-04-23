@@ -138,6 +138,9 @@ function applyTaskFilters() {
       if (activeScope === 'my-exercises') {
         return ownTask;
       }
+      if (activeScope === 'favorites') {
+        return Boolean(task.is_favorite);
+      }
       return true;
     }
 
@@ -161,6 +164,11 @@ function applyTaskFilters() {
     }
     if (activeScope === 'my-exercises') {
       return ownTask && (taskTitle.includes(query) || taskType.includes(query));
+    }
+    if (activeScope === 'favorites') {
+      return Boolean(task.is_favorite) && (
+        taskTitle.includes(query) || taskType.includes(query) || creatorUsername.includes(query)
+      );
     }
 
     return false;
@@ -315,6 +323,33 @@ function renderTasks(tasks) {
       taskEl.classList.add('selected');
     }
 
+    const header = document.createElement('div');
+    header.className = 'task-item-header';
+
+    const title = document.createElement('div');
+    title.className = 'task-item-title';
+    title.textContent = task.title;
+
+    const favoriteBtn = document.createElement('button');
+    favoriteBtn.type = 'button';
+    favoriteBtn.className = 'task-favorite-button' + (task.is_favorite ? ' is-favorite' : '');
+    favoriteBtn.innerHTML = task.is_favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+    favoriteBtn.title = task.is_favorite ? 'Remove from favorites' : 'Add to favorites';
+    favoriteBtn.setAttribute('aria-label', favoriteBtn.title);
+    favoriteBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await toggleFavorite(task);
+      } catch (error) {
+        console.error('Failed to update favorite:', error);
+        alert('Could not update favorite right now.');
+      }
+    });
+
+    header.appendChild(title);
+    header.appendChild(favoriteBtn);
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = selectedTaskIds.includes(task.id);
@@ -325,10 +360,6 @@ function renderTasks(tasks) {
     const content = document.createElement('div');
     content.className = 'task-item-content';
 
-    const title = document.createElement('div');
-    title.className = 'task-item-title';
-    title.textContent = task.title;
-
     const type = document.createElement('div');
     type.className = 'task-item-type';
     type.textContent = `Type: ${task.task_type}`;
@@ -337,7 +368,7 @@ function renderTasks(tasks) {
     createdBy.className = 'task-item-meta';
     createdBy.textContent = `Created by: ${task.creator_username || 'Unknown teacher'}`;
 
-    content.appendChild(title);
+    content.appendChild(header);
     content.appendChild(type);
     content.appendChild(createdBy);
 
@@ -368,6 +399,22 @@ function renderTasks(tasks) {
 
     selector.appendChild(taskEl);
   });
+}
+
+async function toggleFavorite(task) {
+  const shouldFavorite = !task.is_favorite;
+  const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/favorite`, {
+    method: shouldFavorite ? 'POST' : 'DELETE',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update favorite');
+  }
+
+  const result = await response.json();
+  task.is_favorite = Boolean(result.is_favorite);
+  applyTaskFilters();
 }
 
 /**

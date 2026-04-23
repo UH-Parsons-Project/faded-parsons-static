@@ -12,9 +12,13 @@ const setId = params.get('set_id');
 if (!studentUsername || !taskId || !setId) {
 	window.location.href = '/teacher-dashboard';
 }
+<<<<<<< fav_tasks
+document.getElementById('student-name-badge').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
+=======
 
 document.getElementById('back-btn').href = `/task-statistics?id=${encodeURIComponent(taskId)}&task_set=python-perusteet&set_id=${encodeURIComponent(setId)}`;
 document.getElementById('student-name-badge').href = `/student-attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
+>>>>>>> main
 
 function formatTime(seconds) {
 	if (!seconds) return '0s';
@@ -57,6 +61,13 @@ function renderHeader(data) {
 	document.getElementById('exercise-name').textContent = data.task_name || '—';
 	document.getElementById('student-name-text').textContent = data.student_username || studentUsername;
 	if (data.task_set_name) document.getElementById('taskset-name-label').textContent = data.task_set_name;
+
+	const backBtn = document.getElementById('back-btn');
+	if (backBtn) {
+		const taskSetCode = data.task_set_code || '';
+		const taskSetQuery = taskSetCode ? `&task_set=${encodeURIComponent(taskSetCode)}` : '';
+		backBtn.href = `/task-statistics?id=${encodeURIComponent(taskId)}${taskSetQuery}&set_id=${encodeURIComponent(setId)}`;
+	}
 }
 
 function renderTaskInstructions(taskInstructions) {

@@ -112,6 +112,23 @@ class TaskSetItem(Base):
     )
 
 
+class TeacherFavoriteTask(Base):
+    """Tasks a teacher has marked as favorites."""
+
+    __tablename__ = "teacher_favorite_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    teacher_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
+    )
+    task_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (UniqueConstraint("teacher_id", "task_id"),)
+
+
 class Student(Base):
     """Student user model."""
 

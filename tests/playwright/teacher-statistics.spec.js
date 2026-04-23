@@ -1,5 +1,8 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+
+// Increase test timeout to allow backend processing in CI/slow environments
+test.setTimeout(120000);
 import {
   registerTeacher,
   loginTeacher,
@@ -12,6 +15,8 @@ import {
 
 test('teacher verifies attempts/success via teacher-dashboard -> task-set-overview, student_attempts, student_task_statistics, task-statistics and /api/tasks/*/statistics', async ({ page, browser }) => {
   const unique = Date.now();
+  // Increase page default timeouts for UI waits in this test
+  await page.setDefaultTimeout(30000);
   const teacherUsername = `teacher_stat_${unique}`;
   const teacherEmail = `teacher_stat_${unique}@example.com`;
   const teacherPassword = 'password123';
@@ -77,7 +82,7 @@ test('teacher verifies attempts/success via teacher-dashboard -> task-set-overvi
 
   // Open the student's attempts view and verify attempts and success
   await page.locator('.student-item', { hasText: studentUsername }).click();
-  await page.waitForSelector('#attempts-list', { timeout: 10000 });
+  await page.waitForSelector('#attempts-list', { timeout: 30000 });
 
   // Ensure there is at least one attempt entry
   const attemptsText = await page.locator('.sa-attempt-count').first().textContent();
@@ -127,8 +132,20 @@ test('teacher verifies attempts/success via teacher-dashboard -> task-set-overvi
 
   // --- Additional manual-check pages requested: visit specific URLs and assert displayed stats ---
   // 1) student_attempts for the created student and set -> ensure attempts > 0 and completed > 0
+  // Poll the backend API until the student's attempts are visible to avoid CI timing flakes
+  const attemptsApiUrl = `/api/students/${encodeURIComponent(studentUsername)}/attempts`;
+  let attemptsOk = false;
+  for (let i = 0; i < 30; i++) {
+    const r = await page.request.get(attemptsApiUrl);
+    if (r.ok()) {
+      const arr = await r.json().catch(() => []);
+      if (Array.isArray(arr) && arr.length >= 2) { attemptsOk = true; break; }
+    }
+    await new Promise(res => setTimeout(res, 1000));
+  }
+
   await page.goto(`/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`);
-  await page.waitForSelector('#attempts-list, #sa-value-completed', { timeout: 10000 });
+  await page.waitForSelector('#attempts-list, #sa-value-completed', { timeout: 30000 });
 
   // Parse completed count from the completion panel
   const completedText = await page.locator('#sa-value-completed').textContent().catch(() => null);

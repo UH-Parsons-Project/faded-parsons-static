@@ -215,6 +215,15 @@ export class ProblemElement extends LitElement {
 				if (inputs[i]) inputs[i].value = val;
 			});
 		}
+
+		this.applyBlankInputLimit();
+	};
+
+	applyBlankInputLimit = () => {
+		const textInputs = this.querySelectorAll('input.text-box');
+		for (const input of textInputs) {
+			input.maxLength = 50;
+		}
 	};
 
 	syncTestCardHeight = () => {
@@ -311,6 +320,7 @@ export class ProblemElement extends LitElement {
 		this.parsonsWidget.init(this.codeLines);
 		// Sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
+		this.applyBlankInputLimit();
 		// Restore a previously saved arrangement (if any) — must happen after
 		// alphabetize() and before sortableList is queried, so that listeners
 		// attach to the correct <ul> elements.

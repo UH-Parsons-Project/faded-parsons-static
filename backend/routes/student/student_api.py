@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from ...student_auth import (
 )
 from ...auth import CurrentUser
 from ...utils.taskset import require_task_set_view_access
+from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 from ..utils.commons import (
     ensure_unique_user,
     get_task_set_by_code_or_404,
@@ -100,24 +101,38 @@ async def check_enrollment(
 
 
 @router.post("/api/student_login")
+@limiter.limit("20/minute")
 async def student_login(
-    request: dict,
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    username = request.get("username") if isinstance(request, dict) else None
-    password = request.get("password") if isinstance(request, dict) else None
-    unique_link_code = request.get("unique_link_code") if isinstance(request, dict) else None
+    body = await request.json()
+    username = body.get("username") if isinstance(body, dict) else None
+    password = body.get("password") if isinstance(body, dict) else None
+    unique_link_code = body.get("unique_link_code") if isinstance(body, dict) else None
 
     if username is None or password is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="username and password are required")
 
+    identifier = username.strip().lower()
+
+    remaining = check_brute_force(identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Account temporarily locked. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     student = await authenticate_student(username, password, db)
     if not student:
+        record_failed_attempt(identifier)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password",
         )
+
+    clear_failed_attempts(identifier)
 
     now = datetime.now(timezone.utc)
     student.last_activity_at = now

@@ -32,6 +32,74 @@ let globalTeacherTests = '';
 // Teacher-defined custom error message rules for this task.
 let customErrorRules = [];
 
+async function resolveNextTaskUrl() {
+	if (!globalUniqueLinkCode || !globalTaskId) {
+		return null;
+	}
+
+	const tasksResponse = await fetch(`/api/my_sets/${globalUniqueLinkCode}/tasks`, {
+		credentials: 'include',
+	});
+	if (!tasksResponse.ok) {
+		return null;
+	}
+
+	const tasks = await tasksResponse.json();
+	if (!Array.isArray(tasks) || tasks.length === 0) {
+		return null;
+	}
+
+	const currentTaskNumber = Number(globalTaskId);
+	const statuses = await Promise.all(
+		tasks.map(async (_task, index) => {
+			const taskNumber = index + 1;
+			const encodedTaskNumber = encodeURIComponent(taskNumber);
+
+			const [completionResp, startedResp] = await Promise.all([
+				fetch(
+					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskNumber}/my-completion-status`,
+					{ credentials: 'include' }
+				),
+				fetch(
+					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskNumber}/has-started`,
+					{ credentials: 'include' }
+				),
+			]);
+
+			if (!completionResp.ok || !startedResp.ok) {
+				return {
+					taskNumber,
+					isCompleted: false,
+					hasStarted: false,
+				};
+			}
+
+			const completion = await completionResp.json();
+			const started = await startedResp.json();
+
+			return {
+				taskNumber,
+				isCompleted: Number(completion.student_completed || 0) > 0,
+				hasStarted: Boolean(started.has_started),
+			};
+		})
+	);
+
+	const unfinished = statuses.filter(
+		(item) => !item.isCompleted && item.taskNumber !== currentTaskNumber
+	);
+	if (unfinished.length === 0) {
+		return null;
+	}
+
+	const preferred = unfinished.find((item) => item.hasStarted) || unfinished[0];
+	if (preferred.hasStarted) {
+		return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}`;
+	}
+
+	return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
+}
+
 function parseCustomErrorRules(rawRules) {
 	if (!rawRules) {
 		return [];
@@ -189,6 +257,8 @@ export async function initWidget() {
 		// Activate the run button
 		probEl.setAttribute('enableRun', 'enableRun');
 		probEl.setAttribute('runStatus', '');
+		probEl.showNextTask = false;
+		probEl.nextTaskUrl = '';
 
 		// Add component to the DOM
 		document.getElementById('problem-wrapper').appendChild(probEl);
@@ -214,7 +284,7 @@ function reconstructCodeLines(blocks) {
 
 		// Add #Ngiven marker if this block is pre-filled (given)
 		if (block.given) {
-			code += ' #0given';
+			code += ` #${block.indent}given`;
 		}
 
 		lines.push(code);
@@ -276,6 +346,26 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 	probEl.setAttribute('resultsHeader', testResults.header); // Result title
 	probEl.setAttribute('resultsDetails', testResults.details); // Result details
 	probEl.setAttribute('resultsMessageSource', testResults.messageSource || 'system');
+	probEl.showNextTask = false;
+	probEl.nextTaskUrl = '';
+	probEl.allTasksCompleted = false;
+	probEl.backToSetUrl = '';
+
+	if (testResults.status === 'pass') {
+		try {
+			const nextTaskUrl = await resolveNextTaskUrl();
+			if (nextTaskUrl) {
+				probEl.nextTaskUrl = nextTaskUrl;
+				probEl.showNextTask = true;
+			} else {
+				// No more tasks to do
+				probEl.allTasksCompleted = true;
+				probEl.backToSetUrl = `/set/${globalUniqueLinkCode}/tasks`;
+			}
+		} catch (error) {
+			console.warn('Failed to resolve next task URL:', error);
+		}
+	}
 
 	// Clear the pending moves/edits buffer (arrangement was already saved on last move)
 	set(lsKey(LS_MOVES), '[]');

@@ -571,19 +571,22 @@ async def create_problem(
         )
 
     given_indent_re = re.compile(r"#(\d+)given\s*")
+    preplace_re = re.compile(r"#preplace\s*")
     blank_marker_re = re.compile(r"\s#blank[^#]*")
 
     blocks = []
     has_faded = False
     for line_index, line in enumerate(lines, start=1):
         given_match = given_indent_re.search(line)
+        preplace_match = preplace_re.search(line)
         if given_match:
             indent_count = int(given_match.group(1)) * 4
         else:
             indent_count = len(line) - len(line.lstrip())
 
         line_without_given = given_indent_re.sub("", line)
-        line_without_blank_markers = blank_marker_re.sub("", line_without_given)
+        line_without_preplace = preplace_re.sub("", line_without_given)
+        line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
         stripped_line = line_without_blank_markers.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
@@ -596,7 +599,7 @@ async def create_problem(
                 "code": clean_code,
                 "indent": indent_count // 4,
                 "faded": is_faded,
-                "given": False,
+                "given": preplace_match is not None,
             }
         )
 

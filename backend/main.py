@@ -11,9 +11,13 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +40,7 @@ from .routes.task.task_api import router as task_api_router
 from .routes.statistic.statistic import router as statistic_router
 from .routes.statistic.statistic_api import router as statistic_api_router
 from .routes.test.test_api import router as test_router
+from .rate_limit import limiter
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -46,6 +51,9 @@ async def lifespan(_app: FastAPI):
     yield
 
 app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

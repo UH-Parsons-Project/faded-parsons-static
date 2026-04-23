@@ -124,6 +124,41 @@ function createExerciseCard(item) {
 		card.appendChild(teaser);
 	}
 
+	const actions = document.createElement('div');
+	actions.className = 'd-flex flex-wrap mt-2';
+	actions.style.gap = '0.5rem';
+
+	const statsBtn = document.createElement('button');
+	statsBtn.type = 'button';
+	statsBtn.className = 'btn btn-sm btn-outline-primary';
+	statsBtn.innerHTML = '<i class="fas fa-chart-line"></i> Global Statistics';
+	statsBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		window.location.href = '/task-statistics?id=' + encodeURIComponent(item.id);
+	});
+
+	const previewBtn = document.createElement('button');
+	previewBtn.type = 'button';
+	previewBtn.className = 'btn btn-sm btn-outline-secondary';
+	previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+	previewBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		const previewWindow = window.open(
+			'/task?id=' + encodeURIComponent(item.id),
+			'_blank',
+			'width=1000,height=800,resizable=yes,scrollbars=yes'
+		);
+		if (previewWindow) {
+			previewWindow.focus();
+		}
+	});
+
+	actions.appendChild(statsBtn);
+	actions.appendChild(previewBtn);
+	card.appendChild(actions);
+
 	return card;
 }
 

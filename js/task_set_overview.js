@@ -313,7 +313,7 @@ function createStudentItem(student) {
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
 	item.onclick = () => {
-	window.location.href = `/student_attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
+	window.location.href = `/student-attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
 	};
 
 	const name = document.createElement('div');

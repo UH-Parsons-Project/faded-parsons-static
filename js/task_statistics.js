@@ -135,10 +135,10 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
 
 	const taskStatsUrl = (taskId && setId)
-		? name => `/student_task_statistics?student=${encodeURIComponent(name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
+		? name => `/student-task-statistics?student=${encodeURIComponent(name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 	const attemptsUrl = setId
-		? name => `/student_attempts?student=${encodeURIComponent(name)}&set_id=${encodeURIComponent(setId)}`
+		? name => `/student-attempts?student=${encodeURIComponent(name)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 
 	renderSidebarSection(

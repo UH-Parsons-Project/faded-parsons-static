@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { registerTeacher, loginTeacher, createTaskSet } from './test-helpers.js';
+import { registerTeacher, loginTeacher, createTaskSet, logoutTeacher } from './test-helpers.js';
 
 test('teacher can create a new task set by clicking "Create New Task Set"', async ({ page }) => {
   const unique = Date.now();
@@ -155,12 +155,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   await expect(page.locator('#viewers-list', { hasText: teacher2_email })).toBeVisible();
 
   // Logout teacher 1
-  await page.locator('#logout-btn').click();
-  // Allow URL with cache-busting query parameter: /?timestamp
-  await expect(page).toHaveURL(/\/(\?.*)?$/);
-
-  // After logout, wait for login form to appear and verify burger menu is hidden
-  await page.waitForSelector('#login-form', { timeout: 10000 });
+  await logoutTeacher(page);
 
   // Login as teacher 2
   await loginTeacher(page, teacher2_username, teacher2_password);
@@ -170,12 +165,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeVisible();
 
   // Logout teacher 2
-  await page.locator('#logout-btn').click();
-  // Allow URL with cache-busting query parameter: /?timestamp
-  await expect(page).toHaveURL(/\/(\?.*)?$/);
-
-  // After logout, wait for login form to appear and verify burger menu is hidden
-  await page.waitForSelector('#login-form', { timeout: 10000 });
+  await logoutTeacher(page);
 
   // Login as teacher 1 again to remove shared task list)
   await loginTeacher(page, teacher1_username, teacher1_password);
@@ -201,13 +191,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   // Allow URL with cache-busting query parameter: /?timestamp
   await expect(page).toHaveURL(/\/(\?.*)?$/);
 
-  // After logout, wait for login form to appear and verify burger menu is hidden
-  await page.waitForSelector('#login-form', { timeout: 10000 });
-
-  // Login as teacher 2 again to verify task set is no longer visible
-  await loginTeacher(page, teacher2_username, teacher2_password);
-  await expect(page).toHaveURL(/\/teacher-dashboard$/);
-
+  // AftlogoutTeacher(page
   // Verify the shared task set is no longer visible on teacher 2's dashboard
   await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeHidden();
 });

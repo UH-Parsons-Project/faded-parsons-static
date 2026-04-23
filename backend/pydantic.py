@@ -175,6 +175,11 @@ class TaskSetViewerResponse(BaseModel):
     email: str
     created_at: str
 
+class TeacherLookupResponse(BaseModel):
+    teacher_id: int
+    username: str
+    email: str
+
 class BlockMoveEventRequest(BaseModel):
     attempt_id: int
     block_id: str

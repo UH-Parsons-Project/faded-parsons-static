@@ -166,6 +166,15 @@ export async function loginStudent(page, username, password = 'password123') {
   await page.locator('#login-btn').click();
 }
 
+/**
+ * Logout a teacher and wait for return to login page
+ * @param {any} page - Playwright page object
+ */
+export async function logoutTeacher(page) {
+  await page.locator('#logout-btn').click();
+  await page.waitForSelector('#login-form', { timeout: 10000 });
+}
+
 export async function getStudentUrl(page, taskSetTitle) {
   await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
   await page.waitForSelector('#link-code', { timeout: 10000 });

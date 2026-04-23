@@ -20,9 +20,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('registration_tokens', sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False))
+    op.execute("""
+ALTER TABLE registration_tokens
+ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE
+""")
+
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('registration_tokens', 'expires_at')
+    op.execute("""
+ALTER TABLE registration_tokens
+DROP COLUMN IF EXISTS expires_at
+""")
+

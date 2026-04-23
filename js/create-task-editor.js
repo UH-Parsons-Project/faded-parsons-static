@@ -84,10 +84,10 @@ initBurgerMenu();
       solution_label: 'Construct your solution here, including indents',
     });
 
-    const previewRepr = parsonsWidget.reprCode() || modelAnswerRepr;
+    const previewRepr = buildCustomRepr() || modelAnswerRepr;
     previewParsonsWidget.init(previewRepr);
 
-    const previewSolutionIds = previewParsonsWidget.given.map((line) => line.id);
+    const previewSolutionIds = previewParsonsWidget.studentGiven.map((line) => line.id);
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
@@ -179,11 +179,33 @@ initBurgerMenu();
     return cachedSource === normalizedSource ? cached : '';
   }
 
+  function buildCustomRepr() {
+    if (!parsonsWidget) {
+      return '';
+    }
+    const solutionUl = parsonsWidget.options.sortableId.querySelector('ul');
+    if (!solutionUl) {
+      return '';
+    }
+    const solutionLines = parsonsWidget.getModifiedCode(solutionUl);
+    const baseRepr = parsonsWidget.reprCode();
+    if (!baseRepr.trim()) {
+      return '';
+    }
+    const reprLines = baseRepr.split('\n');
+    return reprLines.map((line, index) => {
+      if (index < solutionLines.length && solutionLines[index]?.studentGiven) {
+        return line.replace(/(#\d+given)/, '$1 #preplace');
+      }
+      return line;
+    }).join('\n');
+  }
+
   function persistParsonsRepr() {
     if (!parsonsWidget) {
       return;
     }
-    sessionStorage.setItem(BLOCKS_KEY, parsonsWidget.reprCode());
+    sessionStorage.setItem(BLOCKS_KEY, buildCustomRepr());
     sessionStorage.setItem(BLOCKS_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
@@ -318,8 +340,9 @@ initBurgerMenu();
       sortableId: solutionSortable,
       trashId: sourceSortable,
       trash_label: 'Drag from here',
-      solution_label: 'Construct your solution here, including indents',
+      solution_label: 'Solution &mdash; drag blocks here, double click to pin',
       onSortableUpdate: () => {
+        refreshGivenToggles();
         updateCounters();
         persistParsonsRepr();
         hasOpenedStudentPreview = false;
@@ -339,6 +362,7 @@ initBurgerMenu();
     parsonsWidget.setLineNumbers();
     injectDeleteButtons(sourceSortable);
     injectDeleteButtons(solutionSortable);
+    injectGivenToggles(solutionSortable);
     updateCounters();
   }
 
@@ -371,6 +395,79 @@ initBurgerMenu();
         li.appendChild(btn);
       }
     });
+  }
+
+  function injectGivenToggles(container) {
+    if (!parsonsWidget) {
+      return;
+    }
+    container.querySelectorAll('li').forEach((li) => {
+      const lineObj = parsonsWidget.modified_lines.find((l) => l.id === li.id);
+      const isGiven = lineObj?.studentGiven || false;
+      li.classList.toggle('student-given', isGiven);
+
+      if (!li.querySelector('.given-toggle-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'given-toggle-btn';
+        btn.setAttribute('aria-label', 'Double-click block to toggle pre-placing for students');
+        btn.title = 'Double-click block to toggle pre-placed for students';
+        btn.setAttribute('aria-pressed', isGiven ? 'true' : 'false');
+        btn.setAttribute('tabindex', '-1');
+        li.appendChild(btn);
+      }
+
+      if (!li.dataset.givenDblclick) {
+        li.dataset.givenDblclick = 'true';
+        li.addEventListener('dblclick', (e) => {
+          if (li.querySelector('.given-toggle-btn')) {
+            e.stopPropagation();
+            toggleStudentGiven(li.id);
+          }
+        });
+      }
+    });
+  }
+
+  function refreshGivenToggles() {
+    if (!parsonsWidget) {
+      return;
+    }
+    const sourceSortable = document.getElementById('source-sortable');
+    const solutionSortable = document.getElementById('solution-sortable');
+    sourceSortable?.querySelectorAll('li').forEach((li) => {
+      const btn = li.querySelector('.given-toggle-btn');
+      if (btn) {
+        btn.remove();
+        li.classList.remove('student-given');
+        const lineObj = parsonsWidget.modified_lines.find((l) => l.id === li.id);
+        if (lineObj) {
+          lineObj.studentGiven = false;
+        }
+      }
+    });
+    if (solutionSortable) {
+      injectGivenToggles(solutionSortable);
+    }
+  }
+
+  function toggleStudentGiven(blockId) {
+    if (!parsonsWidget) {
+      return;
+    }
+    const lineObj = parsonsWidget.modified_lines.find((l) => l.id === blockId);
+    if (!lineObj) {
+      return;
+    }
+    lineObj.studentGiven = !lineObj.studentGiven;
+    const el = document.getElementById(blockId);
+    el?.classList.toggle('student-given', lineObj.studentGiven);
+    const btn = el?.querySelector('.given-toggle-btn');
+    if (btn) {
+      btn.setAttribute('aria-pressed', lineObj.studentGiven ? 'true' : 'false');
+    }
+    persistParsonsRepr();
+    hasOpenedStudentPreview = false;
+    updateAddToListState();
   }
 
   function deleteBlock(blockId) {
@@ -703,7 +800,7 @@ initBurgerMenu();
       tests,
       solutionCode: getSolutionCodeWithBlanks(),
       modelAnswerCode: solutionCode,
-      parsonsRepr: parsonsWidget.reprCode(),
+      parsonsRepr: buildCustomRepr(),
     };
 
     fetch('/api/problems', {

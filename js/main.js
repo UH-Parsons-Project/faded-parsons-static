@@ -214,7 +214,7 @@ function reconstructCodeLines(blocks) {
 
 		// Add #Ngiven marker if this block is pre-filled (given)
 		if (block.given) {
-			code += ' #0given';
+			code += ` #${block.indent}given`;
 		}
 
 		lines.push(code);

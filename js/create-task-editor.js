@@ -340,7 +340,7 @@ initBurgerMenu();
       sortableId: solutionSortable,
       trashId: sourceSortable,
       trash_label: 'Drag from here',
-      solution_label: 'Construct your solution here, including indents',
+      solution_label: 'Solution &mdash; drag blocks here, double click to pin',
       onSortableUpdate: () => {
         refreshGivenToggles();
         updateCounters();
@@ -402,20 +402,28 @@ initBurgerMenu();
       return;
     }
     container.querySelectorAll('li').forEach((li) => {
+      const lineObj = parsonsWidget.modified_lines.find((l) => l.id === li.id);
+      const isGiven = lineObj?.studentGiven || false;
+      li.classList.toggle('student-given', isGiven);
+
       if (!li.querySelector('.given-toggle-btn')) {
         const btn = document.createElement('button');
         btn.className = 'given-toggle-btn';
-        btn.setAttribute('aria-label', 'Pre-place this block for students');
-        btn.title = 'Pre-place for students';
-        const lineObj = parsonsWidget.modified_lines.find((l) => l.id === li.id);
-        const isGiven = lineObj?.studentGiven || false;
+        btn.setAttribute('aria-label', 'Double-click block to toggle pre-placing for students');
+        btn.title = 'Double-click block to toggle pre-placed for students';
         btn.setAttribute('aria-pressed', isGiven ? 'true' : 'false');
-        li.classList.toggle('student-given', isGiven);
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleStudentGiven(li.id);
-        });
+        btn.setAttribute('tabindex', '-1');
         li.appendChild(btn);
+      }
+
+      if (!li.dataset.givenDblclick) {
+        li.dataset.givenDblclick = 'true';
+        li.addEventListener('dblclick', (e) => {
+          if (li.querySelector('.given-toggle-btn')) {
+            e.stopPropagation();
+            toggleStudentGiven(li.id);
+          }
+        });
       }
     });
   }

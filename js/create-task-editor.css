@@ -149,22 +149,27 @@ body {
   background: rgba(239, 68, 68, 0.12);
 }
 
+#solution-sortable li.student-given .block-delete-btn {
+  right: 28px;
+}
+
 .given-toggle-btn {
   position: absolute;
-  right: 28px;
+  right: 5px;
   top: 50%;
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
   border: none;
   background: transparent;
-  color: #9ca3af;
+  color: #2563eb;
   font-size: 0.85rem;
   line-height: 1;
   padding: 0;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
+  transition: opacity 0.15s;
   border-radius: 3px;
   display: flex;
   align-items: center;
@@ -175,13 +180,8 @@ body {
   content: '\1F4CC';
 }
 
-#solution-sortable li:hover .given-toggle-btn {
-  opacity: 1;
-}
-
 #solution-sortable li.student-given .given-toggle-btn {
   opacity: 1;
-  color: #2563eb;
 }
 
 #solution-sortable li.student-given {

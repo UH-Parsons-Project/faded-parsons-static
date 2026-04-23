@@ -14,7 +14,7 @@ if (!studentUsername || !taskId || !setId) {
 }
 
 document.getElementById('back-btn').href = `/task-statistics?id=${encodeURIComponent(taskId)}&task_set=python-perusteet&set_id=${encodeURIComponent(setId)}`;
-document.getElementById('student-name-badge').href = `/student_attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
+document.getElementById('student-name-badge').href = `/student-attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
 
 function formatTime(seconds) {
 	if (!seconds) return '0s';

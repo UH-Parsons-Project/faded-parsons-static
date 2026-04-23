@@ -23,7 +23,7 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
     return set_no_cache_headers(response)
 
 
-@router.get("/student_attempts", response_class=HTMLResponse)
+@router.get("/student-attempts", response_class=HTMLResponse)
 async def student_attempts_page(request: Request, db: AsyncSession = Depends(get_db)):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
@@ -34,7 +34,7 @@ async def student_attempts_page(request: Request, db: AsyncSession = Depends(get
     return set_no_cache_headers(response)
 
 
-@router.get("/student_task_statistics", response_class=HTMLResponse)
+@router.get("/student-task-statistics", response_class=HTMLResponse)
 async def student_task_statistics_page(request: Request, db: AsyncSession = Depends(get_db)):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:

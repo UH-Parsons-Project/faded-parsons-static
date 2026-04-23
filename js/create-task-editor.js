@@ -792,15 +792,17 @@ initBurgerMenu();
       return;
     }
 
+    const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
     const problemData = {
       taskTitle,
       description,
       startDescription,
       customErrorMessages,
       tests,
-      solutionCode: getSolutionCodeWithBlanks(),
+      solutionCode: solutionCodeWithBlanks,
       modelAnswerCode: solutionCode,
       parsonsRepr: buildCustomRepr(),
+      type: solutionCodeWithBlanks.includes('!BLANK') ? 'faded' : 'normal',
     };
 
     fetch('/api/problems', {

@@ -126,7 +126,7 @@ export async function registerStudent(page, username, email, password = 'passwor
     // If selector didn't appear quickly, some browsers may navigate and abort
     // the URL wait; try waiting for the student register URL then the form.
     try {
-      await page.waitForURL(/student_register|\/student_register/, { timeout: 5000 });
+      await page.waitForURL(/student-register|\/student-register/, { timeout: 5000 });
       await page.waitForSelector('#register-form', { timeout: 5000 });
     } catch (err2) {
       // Final fallback: small delay then wait longer for the form

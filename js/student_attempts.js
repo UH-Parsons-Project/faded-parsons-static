@@ -122,7 +122,7 @@ function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/student_task_statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
+	window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
 
 	const title = document.createElement('div');

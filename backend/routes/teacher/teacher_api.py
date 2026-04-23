@@ -14,19 +14,32 @@ from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ...pydantic import Token, UserInfo
 from ..utils.commons import validate_registration_basic, ensure_unique_user
+from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 
 router = APIRouter()
 
 
 @router.post("/api/login/access-token", response_model=Token)
+@limiter.limit("20/minute")
 async def login_access_token(
+    request: Request,
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(get_db),
 ):
+    identifier = form_data.username.strip().lower()
+
+    remaining = check_brute_force(identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Account temporarily locked. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     user = await authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
+        record_failed_attempt(identifier)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username, email, or password",
@@ -36,6 +49,8 @@ async def login_access_token(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
+
+    clear_failed_attempts(identifier)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -90,6 +105,15 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     email = str(payload.get("email", "")).strip()
     registration_token = str(payload.get("registration_token", "")).strip()
 
+    reg_identifier = f"reg:{request.client.host}"
+
+    remaining = check_brute_force(reg_identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     # Validate registration token from database
     if not registration_token:
         raise HTTPException(
@@ -104,12 +128,14 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     valid_token = result.scalar_one_or_none()
 
     if not valid_token:
+        record_failed_attempt(reg_identifier)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid registration token",
         )
 
     if valid_token.is_expired():
+        record_failed_attempt(reg_identifier)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Registration token has expired",
@@ -129,4 +155,5 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
     await db.commit()
     await db.refresh(teacher)
 
+    clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": teacher.id}

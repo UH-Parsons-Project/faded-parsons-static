@@ -30,6 +30,10 @@ export class ProblemElement extends LitElement {
 		resultsHeader: {type: String},
 		resultsDetails: {type: String},
 		resultsMessageSource: {type: String},
+		nextTaskUrl: {type: String},
+		showNextTask: {type: Boolean},
+		allTasksCompleted: {type: Boolean},
+		backToSetUrl: {type: String},
 	};
 
 	// Refs to the container elements bound to the Parsons widget
@@ -74,6 +78,8 @@ export class ProblemElement extends LitElement {
 				source=${this.resultsMessageSource || 'system'}
 			></test-results-element>`;
 		}
+
+
 
 		return html`
 
@@ -121,14 +127,33 @@ export class ProblemElement extends LitElement {
 										html`<loader-element></loader-element>`}
 										${this.runStatus}
 									</span>
-									<button
-										@click=${this.onRun}
-										type="button"
-										class="btn btn-primary"
-										?disabled=${!this.enableRun}
-									>
-										Run Tests
-									</button>
+									${this.showNextTask && this.nextTaskUrl
+										? html`
+											<button
+												@click=${this.onNextTask}
+												type="button"
+												class="btn btn-success"
+											>
+												Next task
+											</button>
+										`
+										: this.allTasksCompleted && this.backToSetUrl
+											? html`
+												<a href=${this.backToSetUrl} class="btn btn-info">
+													Done
+												</a>
+											`
+											: html`
+												<button
+													@click=${this.onRun}
+													type="button"
+													class="btn btn-primary"
+													?disabled=${!this.enableRun}
+												>
+													Run Tests
+												</button>
+											`
+									}
 								</div>
 							</div>
 						</div>
@@ -435,6 +460,13 @@ export class ProblemElement extends LitElement {
 		);
 		this.recordedMoves = [];
 		this.recordedEdits = [];
+	}
+
+	onNextTask() {
+		if (!this.nextTaskUrl) {
+			return;
+		}
+		window.location.href = this.nextTaskUrl;
 	}
 }
 

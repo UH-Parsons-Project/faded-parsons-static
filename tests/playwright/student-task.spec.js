@@ -7,6 +7,7 @@ import {
   registerStudent,
   loginStudent,
   getStudentUrl,
+  submitTaskWrongThenCorrect,
 } from './test-helpers.js';
 
 test('student can open and submit a task first incorrectly and then correctly from the task set', async ({ page, browser }) => {
@@ -70,112 +71,8 @@ test('student can open and submit a task first incorrectly and then correctly fr
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });
   await studentPage.locator('#start-btn').click();
 
-  // Wait for the Parsons problem page to load with the Run Tests button
-  await studentPage.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
-
-  // --- Phase 1: submit an intentionally WRONG solution so tests fail ---
-  await studentPage.evaluate(() => {
-    const pe = document.querySelector('problem-element');
-    const widget = pe.parsonsWidget;
-    if (!widget) return;
-    const findId = (substr) => {
-      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
-      return l ? l.id : null;
-    };
-
-    const ordered = [
-      findId('def add_in_range'),
-      findId('total ='),
-      findId('while'),
-      findId('total +='),
-      findId('start +='),
-      findId('return total'),
-    ].filter(Boolean);
-
-    // Put the chosen lines into the solution area
-    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
-    ordered.forEach(id => widget.updateHTMLIndent(id));
-
-    // Fill blanks with an incorrect value (total = 1 instead of 0)
-    const totalId = findId('total =');
-    if (totalId) {
-      const li = document.getElementById(totalId);
-      const inp = li?.querySelector('input.text-box');
-      if (inp) inp.value = '1';
-    }
-  });
-
-  // Run tests and assert they do NOT fully pass
-  await studentPage.getByRole('button', { name: 'Run Tests' }).click();
-  await studentPage.waitForSelector('test-results-element', { timeout: 30000 });
-  await expect(studentPage.locator('.test-result-summary.full-pass')).toHaveCount(0);
-
-  // --- Phase 2: correct the solution so tests pass ---
-  await studentPage.evaluate(() => {
-    const pe = document.querySelector('problem-element');
-    const widget = pe.parsonsWidget;
-    if (!widget) return;
-    const findId = (substr) => {
-      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
-      return l ? l.id : null;
-    };
-
-    // Desired order and indent levels for a correct add_in_range solution
-    const ordered = [
-      findId('def add_in_range'), // def
-      findId('total ='), // total = !BLANK
-      findId('while'), // while !BLANK <= !BLANK:
-      findId('total +='), // total += !BLANK
-      findId('start +='), // start += !BLANK
-      findId('return total'), // return total
-    ].filter(Boolean);
-
-    // Set logical indent numbers on model lines before rendering HTML
-    const indentMap = {};
-    if (ordered[0]) indentMap[ordered[0]] = 0; // def
-    if (ordered[1]) indentMap[ordered[1]] = 1; // total
-    if (ordered[2]) indentMap[ordered[2]] = 1; // while
-    if (ordered[3]) indentMap[ordered[3]] = 2; // total += inside while
-    if (ordered[4]) indentMap[ordered[4]] = 2; // start += inside while
-    if (ordered[5]) indentMap[ordered[5]] = 1; // return
-
-    Object.entries(indentMap).forEach(([id, val]) => {
-      const line = widget.getLineById(id);
-      if (line) line.indent = val;
-    });
-
-    // Render the chosen order into the solution column
-    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
-
-    // Apply visual indent updates now that DOM exists
-    ordered.forEach(id => widget.updateHTMLIndent(id));
-
-    // Helper to set inputs on a codeline (after DOM created)
-    const setInputs = (id, values) => {
-      if (!id) return;
-      const li = document.getElementById(id);
-      if (!li) return;
-      const inputs = Array.from(li.querySelectorAll('input.text-box'));
-      values.forEach((v, i) => {
-        if (inputs[i]) {
-          inputs[i].value = v;
-          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-          inputs[i].dispatchEvent(new Event('blur', { bubbles: true }));
-        }
-      });
-    };
-
-    // Fill blanks with the correct solution values
-    setInputs(ordered[1], ['0']); // total = 0
-    setInputs(ordered[2], ['start', 'stop']); // while start <= stop
-    setInputs(ordered[3], ['start']); // total += start
-    setInputs(ordered[4], ['1']); // start += 1
-  });
-
-  // Run tests again and assert full pass
-  await studentPage.getByRole('button', { name: 'Run Tests' }).click();
-  await studentPage.waitForSelector('.test-result-summary.full-pass', { timeout: 30000 });
-  await expect(studentPage.locator('.test-result-summary.full-pass')).toBeVisible();
+  // Use helper: submit wrong solution first, then correct and assert pass
+  await submitTaskWrongThenCorrect(studentPage);
 
   await studentContext.close();
 });

@@ -3,6 +3,7 @@
 /**
  * Shared test helper functions for Playwright tests
  */
+import { expect } from '@playwright/test';
 
 /**
  * Generate a random alphanumeric token
@@ -180,4 +181,108 @@ export async function getStudentUrl(page, taskSetTitle) {
   await page.waitForSelector('#link-code', { timeout: 10000 });
   const studentUrl = (await page.locator('#link-code').textContent()).trim();
   return studentUrl;
+}
+
+/**
+ * Start a Parsons task and submit a deliberately wrong solution, then correct it
+ * and assert that the corrected submission passes. This encapsulates the
+ * DOM manipulations performed in tests so other specs can reuse the flow.
+ * @param {import('@playwright/test').Page} page - student page on the problem view (after clicking Start)
+ */
+export async function submitTaskWrongThenCorrect(page) {
+  // Wait for Run Tests button available
+  await page.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
+
+  // Phase 1: arrange a wrong solution and run tests
+  await page.evaluate(() => {
+    const pe = document.querySelector('problem-element');
+    const widget = pe?.parsonsWidget;
+    if (!widget) return;
+    const findId = (substr) => {
+      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
+      return l ? l.id : null;
+    };
+
+    const ordered = [
+      findId('def add_in_range'),
+      findId('total ='),
+      findId('while'),
+      findId('total +='),
+      findId('start +='),
+      findId('return total'),
+    ].filter(Boolean);
+
+    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
+    ordered.forEach(id => widget.updateHTMLIndent(id));
+
+    const totalId = findId('total =');
+    if (totalId) {
+      const li = document.getElementById(totalId);
+      const inp = li?.querySelector('input.text-box');
+      if (inp) inp.value = '1';
+    }
+  });
+
+  await page.getByRole('button', { name: 'Run Tests' }).click();
+  await page.waitForSelector('test-results-element', { timeout: 30000 });
+  await expect(page.locator('.test-result-summary.full-pass')).toHaveCount(0);
+
+  // Phase 2: set correct ordering/indents and blanks, then run again
+  await page.evaluate(() => {
+    const pe = document.querySelector('problem-element');
+    const widget = pe?.parsonsWidget;
+    if (!widget) return;
+    const findId = (substr) => {
+      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
+      return l ? l.id : null;
+    };
+
+    const ordered = [
+      findId('def add_in_range'),
+      findId('total ='),
+      findId('while'),
+      findId('total +='),
+      findId('start +='),
+      findId('return total'),
+    ].filter(Boolean);
+
+    const indentMap = {};
+    if (ordered[0]) indentMap[ordered[0]] = 0;
+    if (ordered[1]) indentMap[ordered[1]] = 1;
+    if (ordered[2]) indentMap[ordered[2]] = 1;
+    if (ordered[3]) indentMap[ordered[3]] = 2;
+    if (ordered[4]) indentMap[ordered[4]] = 2;
+    if (ordered[5]) indentMap[ordered[5]] = 1;
+
+    Object.entries(indentMap).forEach(([id, val]) => {
+      const line = widget.getLineById(id);
+      if (line) line.indent = val;
+    });
+
+    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
+    ordered.forEach(id => widget.updateHTMLIndent(id));
+
+    const setInputs = (id, values) => {
+      if (!id) return;
+      const li = document.getElementById(id);
+      if (!li) return;
+      const inputs = Array.from(li.querySelectorAll('input.text-box'));
+      values.forEach((v, i) => {
+        if (inputs[i]) {
+          inputs[i].value = v;
+          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+          inputs[i].dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      });
+    };
+
+    setInputs(ordered[1], ['0']);
+    setInputs(ordered[2], ['start', 'stop']);
+    setInputs(ordered[3], ['start']);
+    setInputs(ordered[4], ['1']);
+  });
+
+  await page.getByRole('button', { name: 'Run Tests' }).click();
+  await page.waitForSelector('.test-result-summary.full-pass', { timeout: 30000 });
+  await expect(page.locator('.test-result-summary.full-pass')).toBeVisible();
 }

@@ -116,3 +116,98 @@ test('teacher can add a new task', async ({ page }) => {
   await page.locator('#add-to-problem-list').click();
 });
 
+test('teacher can share a task set with another teacher', async ({ page }) => {
+  const unique = Date.now();
+  const teacher1_username = `teacher1_${unique}`;
+  const teacher1_email = `teacher1_${unique}@example.com`;
+  const teacher1_password = 'password123';
+
+  const teacher2_username = `teacher2_${unique}`;
+  const teacher2_email = `teacher2_${unique}@example.com`;
+  const teacher2_password = 'password123';
+
+  const taskSetTitle = `Shared Task Set ${unique}`;
+  const studentDescription = `Student description for ${taskSetTitle}.`;
+  const teacherDescription = `Teacher description for ${taskSetTitle}.`;
+  
+  // Register teacher 2 (the one we will share the task set with)
+  await registerTeacher(page, teacher2_username, teacher2_email, teacher2_password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+
+  // Register and login as teacher 1
+  await registerTeacher(page, teacher1_username, teacher1_email, teacher1_password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+
+  await loginTeacher(page, teacher1_username, teacher1_password);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+    // Create a new task set
+  await createTaskSet(page, taskSetTitle, studentDescription, teacherDescription);
+
+// Click on the newly created task set
+  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+
+  // Fill in teacher 2 email in "Shared viewers" and click Add"
+  await page.locator('#viewer-identifier').fill(teacher2_email);
+  await page.locator('#add-viewer-btn').click();
+
+  // Verify teacher 2 email appears in the shared viewers list
+  await expect(page.locator('#viewers-list', { hasText: teacher2_email })).toBeVisible();
+
+  // Logout teacher 1
+  await page.locator('#logout-btn').click();
+  // Allow URL with cache-busting query parameter: /?timestamp
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
+
+  // After logout, wait for login form to appear and verify burger menu is hidden
+  await page.waitForSelector('#login-form', { timeout: 10000 });
+
+  // Login as teacher 2
+  await loginTeacher(page, teacher2_username, teacher2_password);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  // Verify the shared task set is visible on teacher 2's dashboard
+  await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeVisible();
+
+  // Logout teacher 2
+  await page.locator('#logout-btn').click();
+  // Allow URL with cache-busting query parameter: /?timestamp
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
+
+  // After logout, wait for login form to appear and verify burger menu is hidden
+  await page.waitForSelector('#login-form', { timeout: 10000 });
+
+  // Login as teacher 1 again to remove shared task list)
+  await loginTeacher(page, teacher1_username, teacher1_password);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  // Click on the task set again
+  await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+
+  // Remove teacher 2 from shared viewers
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#viewers-list button.btn-outline-danger').click();
+
+  // Wait for the viewer to be removed and the list to update
+  await page.waitForFunction(
+    (email) => !document.body.textContent.includes(email),
+    teacher2_email,
+    { timeout: 5000 }
+  );
+
+  // Logout teacher 1
+  await page.locator('#logout-btn').click();
+
+  // Allow URL with cache-busting query parameter: /?timestamp
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
+
+  // After logout, wait for login form to appear and verify burger menu is hidden
+  await page.waitForSelector('#login-form', { timeout: 10000 });
+
+  // Login as teacher 2 again to verify task set is no longer visible
+  await loginTeacher(page, teacher2_username, teacher2_password);
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+
+  // Verify the shared task set is no longer visible on teacher 2's dashboard
+  await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeHidden();
+});

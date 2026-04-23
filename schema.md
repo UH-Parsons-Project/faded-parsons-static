@@ -50,6 +50,14 @@ CREATE TABLE task_set_items (
 	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE
 );
 
+CREATE TABLE teacher_favorite_tasks (
+	id SERIAL PRIMARY KEY,
+	teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+	task_id INTEGER NOT NULL REFERENCES parsons(id) ON DELETE CASCADE,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	UNIQUE (teacher_id, task_id)
+);
+
 CREATE TABLE student (
 	id SERIAL PRIMARY KEY,
 	username VARCHAR(20) UNIQUE NOT NULL,

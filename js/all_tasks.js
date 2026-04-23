@@ -86,9 +86,32 @@ function createExerciseCard(item) {
 		window.location.href = '/task-statistics?id=' + encodeURIComponent(item.id);
 	};
 
+	const header = document.createElement('div');
+	header.className = 'task-set-item-header';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = item.title;
+	header.appendChild(title);
+
+	const favoriteBtn = document.createElement('button');
+	favoriteBtn.type = 'button';
+	favoriteBtn.className = 'task-favorite-button' + (item.is_favorite ? ' is-favorite' : '');
+	favoriteBtn.innerHTML = item.is_favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+	favoriteBtn.title = item.is_favorite ? 'Remove from favorites' : 'Add to favorites';
+	favoriteBtn.setAttribute('aria-label', favoriteBtn.title);
+	favoriteBtn.addEventListener('click', async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		try {
+			await toggleFavorite(item);
+		} catch (error) {
+			console.error('Failed to update favorite:', error);
+			alert('Could not update favorite right now.');
+		}
+	});
+	header.appendChild(favoriteBtn);
+	card.appendChild(header);
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
@@ -105,7 +128,6 @@ function createExerciseCard(item) {
 	}
 	meta.textContent = metaParts.join(' - ');
 
-	card.appendChild(title);
 	card.appendChild(meta);
 
 	const successRate = document.createElement('div');
@@ -160,6 +182,22 @@ function createExerciseCard(item) {
 	card.appendChild(actions);
 
 	return card;
+}
+
+async function toggleFavorite(task) {
+	const shouldFavorite = !task.is_favorite;
+	const response = await fetch('/api/tasks/' + encodeURIComponent(task.id) + '/favorite', {
+		method: shouldFavorite ? 'POST' : 'DELETE',
+		credentials: 'include'
+	});
+
+	if (!response.ok) {
+		throw new Error('Failed to update favorite');
+	}
+
+	const result = await response.json();
+	task.is_favorite = Boolean(result.is_favorite);
+	applyTaskFilters();
 }
 
 function render(list) {
@@ -244,6 +282,9 @@ function applyTaskFilters() {
 			if (activeScope === 'my-exercises') {
 				return ownTask;
 			}
+			if (activeScope === 'favorites') {
+				return Boolean(task.is_favorite);
+			}
 			return true;
 		}
 
@@ -266,6 +307,13 @@ function applyTaskFilters() {
 		}
 		if (activeScope === 'my-exercises') {
 			return ownTask && (taskTitle.includes(query) || taskType.includes(query));
+		}
+		if (activeScope === 'favorites') {
+			return Boolean(task.is_favorite) && (
+				taskTitle.includes(query) ||
+				taskType.includes(query) ||
+				creatorUsername.includes(query)
+			);
 		}
 
 		return false;
@@ -317,7 +365,7 @@ setupFilterUi();
 loadCurrentTeacher();
 
 // Fetch problems list
-fetch('/api/tasks')
+	fetch('/api/tasks', { credentials: 'include' })
 	.then(function (resp) {
 		if (!resp.ok) throw new Error('Network response not ok');
 		return resp.json();

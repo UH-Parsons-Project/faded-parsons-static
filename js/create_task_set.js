@@ -11,7 +11,6 @@ import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.j
 let allTasks = [];
 let selectedTaskIds = [];  // Array to preserve order
 let draggedElement = null;
-let viewerIdentifiers = [];
 let currentTeacherId = null;
 let currentTeacherUsername = '';
 
@@ -185,72 +184,77 @@ function applyTaskFilters() {
   renderTasks(filteredTasks);
 }
 
+// Each entry: { teacher_id, username, email }
+let validatedViewers = [];
+
 function setupViewerSharing() {
   const input = document.getElementById('viewer-identifiers');
   const addBtn = document.getElementById('add-viewer-btn');
-  if (!input) return;
+  if (!input || !addBtn) return;
 
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      addViewersFromInput();
-    });
-  }
+  const addHandler = async () => {
+    const identifier = input.value.trim();
+    if (!identifier) return;
+    addBtn.disabled = true;
+    input.disabled = true;
+    const added = await addViewerByIdentifier(identifier);
+    if (added) input.value = '';
+    input.disabled = false;
+    addBtn.disabled = false;
+    input.focus();
+  };
 
+  addBtn.addEventListener('click', addHandler);
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addViewersFromInput();
+    if (e.key === 'Enter') { e.preventDefault(); addHandler(); }
+  });
+
+  renderViewerList();
+}
+
+function showViewerError(message) {
+  const container = document.getElementById('viewer-errors');
+  if (!container) return;
+  container.innerHTML = `<div class="text-danger small">${escapeHtml(message)}</div>`;
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
+}
+
+async function addViewerByIdentifier(identifier) {
+  try {
+    const response = await fetch(
+      `/api/teachers/lookup?identifier=${encodeURIComponent(identifier)}`,
+      { credentials: 'include' }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      throw new Error(err?.detail || 'Teacher not found');
     }
-  });
+    const teacher = await response.json();
 
-  input.addEventListener('blur', () => {
-    addViewersFromInput();
-  });
+    if (teacher.username.toLowerCase() === currentTeacherUsername.toLowerCase()) {
+      showViewerError('You cannot add yourself as a viewer.');
+      return false;
+    }
 
-  renderViewerList();
-}
+    const already = validatedViewers.some(v => v.teacher_id === teacher.teacher_id);
+    if (already) {
+      showViewerError(`${teacher.username} is already added.`);
+      return false;
+    }
 
-function addViewersFromInput() {
-  const input = document.getElementById('viewer-identifiers');
-  if (!input) return;
-
-  const raw = input.value;
-  if (!raw) return;
-
-  const tokens = raw
-    .split(/[,\n;]/)
-    .map(token => token.trim())
-    .filter(Boolean);
-
-  if (tokens.length === 0) return;
-
-  tokens.forEach(addViewerIdentifier);
-  input.value = '';
-  renderViewerList();
-}
-
-function addViewerIdentifier(identifier) {
-  const normalized = identifier.trim();
-  if (!normalized) return;
-
-  const exists = viewerIdentifiers.some(
-    existing => existing.toLowerCase() === normalized.toLowerCase()
-  );
-
-  if (!exists) {
-    viewerIdentifiers.push(normalized);
+    validatedViewers.push(teacher);
+    renderViewerList();
+    return true;
+  } catch (error) {
+    showViewerError(error.message || 'Teacher not found');
+    return false;
   }
 }
 
-function removeViewerIdentifier(identifier) {
-  viewerIdentifiers = viewerIdentifiers.filter(
-    existing => existing.toLowerCase() !== identifier.toLowerCase()
-  );
+function removeViewerById(teacherId) {
+  validatedViewers = validatedViewers.filter(v => v.teacher_id !== teacherId);
   renderViewerList();
 }
-
-
-
 
 
 
@@ -259,28 +263,22 @@ function renderViewerList() {
   const container = document.getElementById('viewer-list');
   if (!container) return;
 
-  if (viewerIdentifiers.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
   container.innerHTML = '';
-  viewerIdentifiers.forEach(identifier => {
+  validatedViewers.forEach(viewer => {
     const item = document.createElement('div');
-    item.className = 'd-flex align-items-center mb-1';
+    item.className = 'd-flex align-items-center justify-content-between border rounded px-2 py-1 mb-2';
 
-    const label = document.createElement('span');
-    label.className = 'badge badge-light border mr-2';
-    label.innerHTML = escapeHtml(identifier);
+    const info = document.createElement('div');
+    info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="text-muted">(${escapeHtml(viewer.email)})</span>`;
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.className = 'btn btn-link btn-sm text-danger p-0';
+    removeBtn.className = 'btn btn-sm btn-outline-danger';
     removeBtn.title = 'Remove viewer';
-    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-    removeBtn.addEventListener('click', () => removeViewerIdentifier(identifier));
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', () => removeViewerById(viewer.teacher_id));
 
-    item.appendChild(label);
+    item.appendChild(info);
     item.appendChild(removeBtn);
     container.appendChild(item);
   });
@@ -678,8 +676,7 @@ function setupFormSubmission() {
       ? document.getElementById('expiration-date').value
       : null;
 
-    addViewersFromInput();
-    const viewersToShare = [...viewerIdentifiers];
+    const viewersToShare = [...validatedViewers];
 
     if (!title) {
       showError('Please enter a task set title');
@@ -713,8 +710,8 @@ function setupFormSubmission() {
       });
 
       if (!createResponse.ok) {
-        const error = await createResponse.json();
-        const errorDetail = error.detail || 'Failed to create task Set';
+        const error = await createResponse.json().catch(() => null);
+        const errorDetail = error?.detail || 'Failed to create task set';
 
         // Check if this is a duplicate title error
         if (errorDetail.includes('already exists') || errorDetail.includes('title')) {
@@ -730,24 +727,22 @@ function setupFormSubmission() {
       const createdList = await createResponse.json();
 
       const viewerErrors = [];
-      for (const identifier of viewersToShare) {
+      for (const viewer of viewersToShare) {
         try {
           const viewerResponse = await fetch(`/api/my_sets/${createdList.id}/viewers`, {
             method: 'POST',
             credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ identifier })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: viewer.username })
           });
 
           if (!viewerResponse.ok) {
             const viewerError = await viewerResponse.json().catch(() => null);
             const detail = viewerError?.detail || `HTTP ${viewerResponse.status}`;
-            viewerErrors.push(`${identifier} (${detail})`);
+            viewerErrors.push(`${viewer.username} (${detail})`);
           }
         } catch (error) {
-          viewerErrors.push(`${identifier} (network error)`);
+          viewerErrors.push(`${viewer.username} (network error)`);
         }
       }
 

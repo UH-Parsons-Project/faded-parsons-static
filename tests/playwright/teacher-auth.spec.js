@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { registerTeacher, loginTeacher } from './test-helpers.js';
+import { registerTeacher, loginTeacher, logoutTeacher } from './test-helpers.js';
 
 test('teacher can register and then login from the main page', async ({ page }) => {
   const unique = Date.now();
@@ -37,12 +37,7 @@ test('teacher can logout after successful login', async ({ page }) => {
   await loginTeacher(page, username, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  await page.locator('#logout-btn').click();
-  // Allow URL with cache-busting query parameter: /?timestamp
-  await expect(page).toHaveURL(/\/(\?.*)?$/);
-
-  // After logout, wait for login form to appear and verify burger menu is hidden
-  await page.waitForSelector('#login-form', { timeout: 10000 });
+  await logoutTeacher(page);
   await expect(page.locator('#login-form')).toBeVisible();
   await expect(page.locator('#navbar-burger-menu')).toHaveCSS('display', 'none');
 });

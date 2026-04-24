@@ -262,6 +262,36 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
+.task-set-item-header,
+.task-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.task-favorite-button {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: #adb5bd;
+  padding: 0.25rem 0.35rem;
+  border-radius: 999px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.task-favorite-button:hover {
+  color: #f0ad4e;
+  background: rgba(240, 173, 78, 0.12);
+  transform: scale(1.05);
+}
+
+.task-favorite-button.is-favorite {
+  color: #f0ad4e;
+}
+
 .task-set-item:hover {
   border-color: #007bff;
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);

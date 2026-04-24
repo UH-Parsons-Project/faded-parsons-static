@@ -468,15 +468,15 @@ class TestGetTask:
 
 @pytest.mark.asyncio
 class TestListTasks:
-    async def test_includes_public_excludes_private(self, client, task, private_task):
-        r = await client.get("/api/tasks")
+    async def test_includes_public_excludes_private(self, client, task, private_task, test_teacher):
+        r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
         assert r.status_code == 200
         ids = [t["id"] for t in r.json()]
         assert task.id in ids
         assert private_task.id not in ids
 
-    async def test_parses_json_description_field(self, client, task):
-        r = await client.get("/api/tasks")
+    async def test_parses_json_description_field(self, client, task, test_teacher):
+        r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
         found = next(t for t in r.json() if t["id"] == task.id)
         assert found["description"] == "Print hello world."
 
@@ -487,7 +487,7 @@ class TestListTasks:
         )
         db_session.add(t)
         await db_session.commit()
-        r = await client.get("/api/tasks")
+        r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
         found = next(t for t in r.json() if t["title"] == "BadJson")
         assert found["task_instructions"] == ""
 
@@ -498,7 +498,7 @@ class TestListTasks:
         )
         db_session.add(t)
         await db_session.commit()
-        r = await client.get("/api/tasks")
+        r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
         found = next(t for t in r.json() if t["title"] == "EmptyStr")
         assert found["task_instructions"] == ""
 
@@ -933,24 +933,24 @@ class TestProtectedPages:
 
     async def test_student_attempts_unauthenticated(self, client):
         """Should redirect to / when not authenticated"""
-        r = await client.get("/student_attempts", follow_redirects=False)
+        r = await client.get("/student-attempts", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
     async def test_student_attempts_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
-        r = await client.get("/student_attempts", headers=_auth(test_teacher.username))
+        r = await client.get("/student-attempts", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
     async def test_student_task_statistics_unauthenticated(self, client):
         """Should redirect to / when not authenticated"""
-        r = await client.get("/student_task_statistics", follow_redirects=False)
+        r = await client.get("/student-task-statistics", follow_redirects=False)
         assert r.status_code == 303
         assert r.headers["location"] == "/"
 
     async def test_student_task_statistics_authenticated(self, client, test_teacher):
         """Should return 200 when authenticated"""
-        r = await client.get("/student_task_statistics", headers=_auth(test_teacher.username))
+        r = await client.get("/student-task-statistics", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
 

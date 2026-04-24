@@ -11,7 +11,6 @@ import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.j
 let allTasks = [];
 let selectedTaskIds = [];  // Array to preserve order
 let draggedElement = null;
-let viewerIdentifiers = [];
 let currentTeacherId = null;
 let currentTeacherUsername = '';
 
@@ -139,6 +138,9 @@ function applyTaskFilters() {
       if (activeScope === 'my-exercises') {
         return ownTask;
       }
+      if (activeScope === 'favorites') {
+        return Boolean(task.is_favorite);
+      }
       return true;
     }
 
@@ -163,6 +165,11 @@ function applyTaskFilters() {
     if (activeScope === 'my-exercises') {
       return ownTask && (taskTitle.includes(query) || taskType.includes(query));
     }
+    if (activeScope === 'favorites') {
+      return Boolean(task.is_favorite) && (
+        taskTitle.includes(query) || taskType.includes(query) || creatorUsername.includes(query)
+      );
+    }
 
     return false;
   });
@@ -177,72 +184,77 @@ function applyTaskFilters() {
   renderTasks(filteredTasks);
 }
 
+// Each entry: { teacher_id, username, email }
+let validatedViewers = [];
+
 function setupViewerSharing() {
   const input = document.getElementById('viewer-identifiers');
   const addBtn = document.getElementById('add-viewer-btn');
-  if (!input) return;
+  if (!input || !addBtn) return;
 
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      addViewersFromInput();
-    });
-  }
+  const addHandler = async () => {
+    const identifier = input.value.trim();
+    if (!identifier) return;
+    addBtn.disabled = true;
+    input.disabled = true;
+    const added = await addViewerByIdentifier(identifier);
+    if (added) input.value = '';
+    input.disabled = false;
+    addBtn.disabled = false;
+    input.focus();
+  };
 
+  addBtn.addEventListener('click', addHandler);
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addViewersFromInput();
+    if (e.key === 'Enter') { e.preventDefault(); addHandler(); }
+  });
+
+  renderViewerList();
+}
+
+function showViewerError(message) {
+  const container = document.getElementById('viewer-errors');
+  if (!container) return;
+  container.innerHTML = `<div class="text-danger small">${escapeHtml(message)}</div>`;
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
+}
+
+async function addViewerByIdentifier(identifier) {
+  try {
+    const response = await fetch(
+      `/api/teachers/lookup?identifier=${encodeURIComponent(identifier)}`,
+      { credentials: 'include' }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      throw new Error(err?.detail || 'Teacher not found');
     }
-  });
+    const teacher = await response.json();
 
-  input.addEventListener('blur', () => {
-    addViewersFromInput();
-  });
+    if (teacher.username.toLowerCase() === currentTeacherUsername.toLowerCase()) {
+      showViewerError('You cannot add yourself as a viewer.');
+      return false;
+    }
 
-  renderViewerList();
-}
+    const already = validatedViewers.some(v => v.teacher_id === teacher.teacher_id);
+    if (already) {
+      showViewerError(`${teacher.username} is already added.`);
+      return false;
+    }
 
-function addViewersFromInput() {
-  const input = document.getElementById('viewer-identifiers');
-  if (!input) return;
-
-  const raw = input.value;
-  if (!raw) return;
-
-  const tokens = raw
-    .split(/[,\n;]/)
-    .map(token => token.trim())
-    .filter(Boolean);
-
-  if (tokens.length === 0) return;
-
-  tokens.forEach(addViewerIdentifier);
-  input.value = '';
-  renderViewerList();
-}
-
-function addViewerIdentifier(identifier) {
-  const normalized = identifier.trim();
-  if (!normalized) return;
-
-  const exists = viewerIdentifiers.some(
-    existing => existing.toLowerCase() === normalized.toLowerCase()
-  );
-
-  if (!exists) {
-    viewerIdentifiers.push(normalized);
+    validatedViewers.push(teacher);
+    renderViewerList();
+    return true;
+  } catch (error) {
+    showViewerError(error.message || 'Teacher not found');
+    return false;
   }
 }
 
-function removeViewerIdentifier(identifier) {
-  viewerIdentifiers = viewerIdentifiers.filter(
-    existing => existing.toLowerCase() !== identifier.toLowerCase()
-  );
+function removeViewerById(teacherId) {
+  validatedViewers = validatedViewers.filter(v => v.teacher_id !== teacherId);
   renderViewerList();
 }
-
-
-
 
 
 
@@ -251,28 +263,22 @@ function renderViewerList() {
   const container = document.getElementById('viewer-list');
   if (!container) return;
 
-  if (viewerIdentifiers.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
   container.innerHTML = '';
-  viewerIdentifiers.forEach(identifier => {
+  validatedViewers.forEach(viewer => {
     const item = document.createElement('div');
-    item.className = 'd-flex align-items-center mb-1';
+    item.className = 'd-flex align-items-center justify-content-between border rounded px-2 py-1 mb-2';
 
-    const label = document.createElement('span');
-    label.className = 'badge badge-light border mr-2';
-    label.innerHTML = escapeHtml(identifier);
+    const info = document.createElement('div');
+    info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="text-muted">(${escapeHtml(viewer.email)})</span>`;
 
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.className = 'btn btn-link btn-sm text-danger p-0';
+    removeBtn.className = 'btn btn-sm btn-outline-danger';
     removeBtn.title = 'Remove viewer';
-    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-    removeBtn.addEventListener('click', () => removeViewerIdentifier(identifier));
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', () => removeViewerById(viewer.teacher_id));
 
-    item.appendChild(label);
+    item.appendChild(info);
     item.appendChild(removeBtn);
     container.appendChild(item);
   });
@@ -317,6 +323,33 @@ function renderTasks(tasks) {
       taskEl.classList.add('selected');
     }
 
+    const header = document.createElement('div');
+    header.className = 'task-item-header';
+
+    const title = document.createElement('div');
+    title.className = 'task-item-title';
+    title.textContent = task.title;
+
+    const favoriteBtn = document.createElement('button');
+    favoriteBtn.type = 'button';
+    favoriteBtn.className = 'task-favorite-button' + (task.is_favorite ? ' is-favorite' : '');
+    favoriteBtn.innerHTML = task.is_favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+    favoriteBtn.title = task.is_favorite ? 'Remove from favorites' : 'Add to favorites';
+    favoriteBtn.setAttribute('aria-label', favoriteBtn.title);
+    favoriteBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await toggleFavorite(task);
+      } catch (error) {
+        console.error('Failed to update favorite:', error);
+        alert('Could not update favorite right now.');
+      }
+    });
+
+    header.appendChild(title);
+    header.appendChild(favoriteBtn);
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = selectedTaskIds.includes(task.id);
@@ -327,10 +360,6 @@ function renderTasks(tasks) {
     const content = document.createElement('div');
     content.className = 'task-item-content';
 
-    const title = document.createElement('div');
-    title.className = 'task-item-title';
-    title.textContent = task.title;
-
     const type = document.createElement('div');
     type.className = 'task-item-type';
     type.textContent = `Type: ${task.task_type}`;
@@ -339,7 +368,7 @@ function renderTasks(tasks) {
     createdBy.className = 'task-item-meta';
     createdBy.textContent = `Created by: ${task.creator_username || 'Unknown teacher'}`;
 
-    content.appendChild(title);
+    content.appendChild(header);
     content.appendChild(type);
     content.appendChild(createdBy);
 
@@ -370,6 +399,22 @@ function renderTasks(tasks) {
 
     selector.appendChild(taskEl);
   });
+}
+
+async function toggleFavorite(task) {
+  const shouldFavorite = !task.is_favorite;
+  const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/favorite`, {
+    method: shouldFavorite ? 'POST' : 'DELETE',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update favorite');
+  }
+
+  const result = await response.json();
+  task.is_favorite = Boolean(result.is_favorite);
+  applyTaskFilters();
 }
 
 /**
@@ -631,8 +676,7 @@ function setupFormSubmission() {
       ? document.getElementById('expiration-date').value
       : null;
 
-    addViewersFromInput();
-    const viewersToShare = [...viewerIdentifiers];
+    const viewersToShare = [...validatedViewers];
 
     if (!title) {
       showError('Please enter a task set title');
@@ -666,8 +710,8 @@ function setupFormSubmission() {
       });
 
       if (!createResponse.ok) {
-        const error = await createResponse.json();
-        const errorDetail = error.detail || 'Failed to create task Set';
+        const error = await createResponse.json().catch(() => null);
+        const errorDetail = error?.detail || 'Failed to create task set';
 
         // Check if this is a duplicate title error
         if (errorDetail.includes('already exists') || errorDetail.includes('title')) {
@@ -683,24 +727,22 @@ function setupFormSubmission() {
       const createdList = await createResponse.json();
 
       const viewerErrors = [];
-      for (const identifier of viewersToShare) {
+      for (const viewer of viewersToShare) {
         try {
           const viewerResponse = await fetch(`/api/my_sets/${createdList.id}/viewers`, {
             method: 'POST',
             credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ identifier })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: viewer.username })
           });
 
           if (!viewerResponse.ok) {
             const viewerError = await viewerResponse.json().catch(() => null);
             const detail = viewerError?.detail || `HTTP ${viewerResponse.status}`;
-            viewerErrors.push(`${identifier} (${detail})`);
+            viewerErrors.push(`${viewer.username} (${detail})`);
           }
         } catch (error) {
-          viewerErrors.push(`${identifier} (network error)`);
+          viewerErrors.push(`${viewer.username} (network error)`);
         }
       }
 

@@ -7,7 +7,7 @@ from ...database import get_db
 from ...models import Parsons
 from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser
-from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem
+from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem, TeacherFavoriteTask
 from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
 from ...models import ModelAnswer
 from ...pydantic import (
@@ -20,6 +20,7 @@ from ...pydantic import (
     TaskSetViewerRequest,
     CreateTaskSetRequest,
     StudentInTaskSetResponse,
+    TeacherLookupResponse,
 )
 from ...auth import CurrentUser
 from backend.utils import generate_slug
@@ -170,6 +171,33 @@ async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
     )
 
 
+@router.get("/api/teachers/lookup", response_model=TeacherLookupResponse)
+async def lookup_teacher(
+    identifier: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    identifier = identifier.strip()
+    if not identifier:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="identifier is required")
+
+    result = await db.execute(
+        select(Teacher).where(
+            (Teacher.username == identifier) | (Teacher.email == identifier)
+        )
+    )
+    teacher = result.scalar_one_or_none()
+
+    if not teacher or not teacher.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
+    return TeacherLookupResponse(
+        teacher_id=teacher.id,
+        username=teacher.username,
+        email=teacher.email,
+    )
+
+
 @router.post("/api/create_task_set", response_model=TaskSetResponse)
 async def create_task_set(
     request: CreateTaskSetRequest,
@@ -209,7 +237,16 @@ async def create_task_set(
                 detail="Invalid expiration date format"
             )
 
-    unique_link_code = generate_slug(request.title)
+    base_slug = generate_slug(request.title)
+    unique_link_code = base_slug
+    suffix = 2
+    while True:
+        stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+        result = await db.execute(stmt)
+        if not result.scalar_one_or_none():
+            break
+        unique_link_code = f"{base_slug}-{suffix}"
+        suffix += 1
 
     # Create the task set
     task_set = TaskSet(
@@ -469,17 +506,22 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/api/tasks")
-async def list_tasks(db: AsyncSession = Depends(get_db)):
+async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Parsons, Teacher.username)
+        select(Parsons, Teacher.username, TeacherFavoriteTask.id)
         .join(Teacher, Teacher.id == Parsons.created_by_teacher_id)
+        .outerjoin(
+            TeacherFavoriteTask,
+            (TeacherFavoriteTask.task_id == Parsons.id)
+            & (TeacherFavoriteTask.teacher_id == current_user.id),
+        )
         .where(Parsons.is_public)
         .order_by(Parsons.created_at.desc())
     )
     tasks = result.all()
 
     task_set = []
-    for task, creator_username in tasks:
+    for task, creator_username, favorite_id in tasks:
         instructions_text = ""
         try:
             instructions_data = json.loads(task.task_instructions)
@@ -511,10 +553,58 @@ async def list_tasks(db: AsyncSession = Depends(get_db)):
                 "created_by_teacher_id": task.created_by_teacher_id,
                 "creator_username": creator_username,
                 "created_at": task.created_at.isoformat(),
+                "is_favorite": favorite_id is not None,
             }
         )
 
     return task_set
+
+
+@router.post("/api/tasks/{task_id}/favorite")
+async def favorite_task(
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_result = await db.execute(select(Parsons.id).where(Parsons.id == task_id, Parsons.is_public))
+    if task_result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {task_id} not found",
+        )
+
+    existing_result = await db.execute(
+        select(TeacherFavoriteTask).where(
+            TeacherFavoriteTask.teacher_id == current_user.id,
+            TeacherFavoriteTask.task_id == task_id,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+    if existing is None:
+        favorite = TeacherFavoriteTask(teacher_id=current_user.id, task_id=task_id)
+        db.add(favorite)
+        await db.commit()
+
+    return {"task_id": task_id, "is_favorite": True}
+
+
+@router.delete("/api/tasks/{task_id}/favorite")
+async def unfavorite_task(
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    delete_stmt = delete(TeacherFavoriteTask).where(
+        TeacherFavoriteTask.teacher_id == current_user.id,
+        TeacherFavoriteTask.task_id == task_id,
+    )
+    result = await db.execute(delete_stmt)
+
+    if result.rowcount == 0:
+        return {"task_id": task_id, "is_favorite": False}
+
+    await db.commit()
+    return {"task_id": task_id, "is_favorite": False}
 
 
 @router.post("/api/problems")

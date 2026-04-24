@@ -60,6 +60,7 @@ export function initLoginPage() {
 	const userInfo = document.getElementById('user-info');
 	const errorMessage = document.getElementById('error-message');
 	const loginBtn = document.getElementById('login-btn');
+	const teacherInstructions = document.getElementById('teacher-only-instructions');
 
 	if (!loginForm) {
 		console.error('Login form not found');
@@ -71,6 +72,7 @@ export function initLoginPage() {
 		const userData = await verifyAuth();
 		if (userData) {
 			showUserInfo(userData.username, userData.role);
+			showTeacherInstructions();
 		} else {
 			showLoginForm();
 		}
@@ -90,11 +92,24 @@ export function initLoginPage() {
 		setExercisesButtonVisible(true);
 	}
 
+	function showTeacherInstructions() {
+		if (teacherInstructions) {
+			teacherInstructions.style.display = 'block';
+		}
+	}
+
+	function hideTeacherInstructions() {
+		if (teacherInstructions) {
+			teacherInstructions.style.display = 'none';
+		}
+	}
+
 	function showLoginForm() {
 		loginForm.style.display = 'flex';
 		if (userInfo) {
 			userInfo.style.display = 'none';
 		}
+		hideTeacherInstructions();
 		setExercisesButtonVisible(false);
 	}
 
@@ -293,6 +308,9 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Hide user info elements immediately
 			const userInfo = document.getElementById('user-info');
 			if (userInfo) userInfo.style.display = 'none';
+
+			const teacherInstructions = document.getElementById('teacher-only-instructions');
+			if (teacherInstructions) teacherInstructions.style.display = 'none';
 			
 			// Hide user-name span and logout button if not in user-info div
 			const userNameSpan = document.querySelector('#user-name')?.parentElement;

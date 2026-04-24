@@ -238,18 +238,8 @@
 	</div>
 	<script type="module">
 		import { initLoginPage, initNavbarExercisesButton, initBurgerMenu } from '/js/auth-ui.js';
-		import { verifyAuth } from '/js/auth-utils.js';
 		initLoginPage();
 		initNavbarExercisesButton();
 		initBurgerMenu();
-
-		const teacherOnlyInstructions = document.getElementById('teacher-only-instructions');
-		if (teacherOnlyInstructions) {
-			verifyAuth().then((userData) => {
-				if (userData && userData.role && userData.role.toLowerCase() === 'teacher') {
-					teacherOnlyInstructions.style.display = 'block';
-				}
-			});
-		}
 	</script>
 </body>

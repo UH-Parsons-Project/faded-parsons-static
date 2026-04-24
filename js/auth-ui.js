@@ -308,9 +308,6 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Hide user info elements immediately
 			const userInfo = document.getElementById('user-info');
 			if (userInfo) userInfo.style.display = 'none';
-
-			const teacherInstructions = document.getElementById('teacher-only-instructions');
-			if (teacherInstructions) teacherInstructions.style.display = 'none';
 			
 			// Hide user-name span and logout button if not in user-info div
 			const userNameSpan = document.querySelector('#user-name')?.parentElement;

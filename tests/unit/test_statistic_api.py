@@ -175,3 +175,229 @@ class TestGetStudentAttempts:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+class TestGetStudentTaskStatistics:
+    """Tests for GET /api/students/{student_username}/tasks/{task_id}/statistics endpoint."""
+
+    async def test_get_student_task_statistics_success(self, client, db_session, test_teacher,
+                                                       task_set, task, student_with_attempts):
+        """Test successfully retrieving student task statistics."""
+        response = await client.get(
+            f"/api/students/attempt_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["student_username"] == "attempt_student"
+        assert data["task_name"] == task.title
+        assert data["total_attempts"] >= 0
+        assert "successful_attempts" in data
+        assert "failed_attempts" in data
+
+    async def test_get_student_task_statistics_no_attempts(self, client, db_session, test_teacher,
+                                                            task_set, task, student_session):
+        """Test statistics for student with no attempts."""
+        response = await client.get(
+            f"/api/students/student1/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_attempts"] == 0
+        assert data["successful_attempts"] == 0
+        assert data["failed_attempts"] == 0
+        assert data["attempts_detail"] == []
+
+    async def test_get_student_task_statistics_task_not_found(self, client, test_teacher, task_set):
+        """Test with non-existent task."""
+        response = await client.get(
+            f"/api/students/student1/tasks/9999/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_get_student_task_statistics_unauthorized(self, client, task_set, task):
+        """Test that endpoint requires authentication."""
+        response = await client.get(
+            f"/api/students/student1/tasks/{task.id}/statistics?set_id={task_set.id}"
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_get_student_task_statistics_with_thinking_time(self, db_session, client, 
+                                                                   test_teacher, task_set, task):
+        """Test that thinking time is calculated correctly."""
+        # Create student with enrollment and move event
+        student = Student(username="thinking_student", email="think@example.com")
+        student.set_password("password123")
+        db_session.add(student)
+        await db_session.flush()
+        
+        enrollment = StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id)
+        db_session.add(enrollment)
+        await db_session.flush()
+        
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0)
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+        
+        session = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 5, 0),
+        )
+        db_session.add(session)
+        await db_session.flush()
+        
+        attempt = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 5, 0),
+            success=True,
+            submitted_inputs={"code": "test"}
+        )
+        db_session.add(attempt)
+        await db_session.flush()
+        
+        # Add a move event 30 seconds after enrollment started
+        move_event = MoveEvent(
+            attempt_id=attempt.id,
+            block_id="block_1",
+            from_container="source",
+            to_container="target",
+            from_index=0,
+            to_index=1,
+            from_indent=0,
+            to_indent=0,
+            event_time=datetime(2026, 1, 1, 10, 0, 30)
+        )
+        db_session.add(move_event)
+        await db_session.commit()
+        
+        response = await client.get(
+            f"/api/students/thinking_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["thinking_time"] is not None
+        assert "seconds" in data["thinking_time"]
+        assert data["thinking_time"]["seconds"] == 30
+
+    async def test_get_student_task_statistics_with_empty_attempts(self, db_session, client,
+                                                                    test_teacher, task_set, task):
+        """Test filtering of empty attempts (attempts without custom code)."""
+        student = Student(username="empty_student", email="empty@example.com")
+        student.set_password("password123")
+        db_session.add(student)
+        await db_session.flush()
+        
+        enrollment = StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id)
+        db_session.add(enrollment)
+        await db_session.flush()
+        
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0)
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+        
+        session = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 5, 0),
+        )
+        db_session.add(session)
+        await db_session.flush()
+        
+        # Create attempt with empty code (empty attempts are filtered out)
+        attempt = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 5, 0),
+            success=False,
+            submitted_inputs={"code": ""}
+        )
+        db_session.add(attempt)
+        await db_session.commit()
+        
+        response = await client.get(
+            f"/api/students/empty_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["empty_attempts"] == 0
+        assert data["total_attempts"] == 1
+
+    async def test_get_student_task_statistics_multiple_sessions(self, db_session, client,
+                                                                  test_teacher, task_set, task):
+        """Test statistics with multiple sessions."""
+        student = Student(username="session_student", email="session@example.com")
+        student.set_password("password123")
+        db_session.add(student)
+        await db_session.flush()
+        
+        enrollment = StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id)
+        db_session.add(enrollment)
+        await db_session.flush()
+        
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0)
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+        
+        # Create first session
+        session1 = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 5, 0),
+        )
+        db_session.add(session1)
+        await db_session.flush()
+        
+        # Create second session
+        session2 = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 10, 0),
+            exited_at=datetime(2026, 1, 1, 10, 15, 0),
+        )
+        db_session.add(session2)
+        await db_session.flush()
+        
+        attempt = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session2.id,
+            completed_at=datetime(2026, 1, 1, 10, 15, 0),
+            success=True,
+            submitted_inputs={"code": "test"}
+        )
+        db_session.add(attempt)
+        await db_session.commit()
+        
+        response = await client.get(
+            f"/api/students/session_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_time_seconds"] is not None
+        # Should be 5 + 5 = 10 minutes = 600 seconds
+        assert data["total_time_seconds"] == 600
+        assert len(data["sessions"]) == 2

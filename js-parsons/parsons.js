@@ -475,8 +475,85 @@
 		// Prevents update from calling it a second time for the same interaction.
 		var _stopHandledUpdate = false;
 
-		var sortable = $(this.options.sortableId.querySelector('ul')).sortable({
+		var sortableUl = this.options.sortableId.querySelector('ul');
+		var trashUl = this.options.trashId ? this.options.trashId.querySelector('ul') : null;
+
+		var dragOrigin = null;
+		var cursorBounds = null;
+
+		function captureOrigin(ui) {
+			dragOrigin = { list: ui.item.parent()[0], index: ui.item.index() };
+		}
+
+		function captureBounds() {
+			if (!that.options.containment) { cursorBounds = null; return; }
+			var $c = $(that.options.containment);
+			var off = $c.offset();
+			cursorBounds = {
+				left: off.left,
+				top: off.top,
+				right: off.left + $c.outerWidth(),
+				bottom: off.top + $c.outerHeight(),
+			};
+		}
+
+		function revertToOrigin(ui) {
+			if (!dragOrigin) return;
+			var $list = $(dragOrigin.list);
+			var siblings = $list.children();
+			if (dragOrigin.index >= siblings.length) {
+				$list.append(ui.item);
+			} else {
+				$(siblings[dragOrigin.index]).before(ui.item);
+			}
+			dragOrigin = null;
+		}
+
+		function isInEitherList(el) {
+			return ($.contains(sortableUl, el)) || (trashUl && $.contains(trashUl, el));
+		}
+
+		// Patch _generatePosition on a sortable instance so cursor coordinates are
+		// clamped BEFORE grid snapping runs.
+		// Vertical: clamped to the containment element (card-body).
+		// Horizontal right: clamped to the solution <ul> right edge, which is the
+		// actual visual box boundary — the card-body is slightly wider, causing
+		// one extra grid step to slip through if we use it instead.
+		function patchCursorContainment($ul) {
+			var inst = $ul.data('ui-sortable');
+			if (!inst) return;
+			var orig = inst._generatePosition;
+			inst._generatePosition = function (event) {
+				if (!cursorBounds) return orig.call(this, event);
+				var $sol = $(sortableUl);
+				var solRight = $sol.offset().left + $sol.outerWidth();
+				var clampedY = Math.max(cursorBounds.top, Math.min(cursorBounds.bottom, event.pageY));
+				var clampedX;
+				if (that.options.can_indent && this.originalPageX !== undefined) {
+					var step = that.options.x_indent;
+					var origX = this.originalPageX;
+					var maxN = Math.floor((solRight - origX) / step) - 1;
+					var safeRight = origX + (maxN + 0.499) * step;
+					clampedX = Math.max(cursorBounds.left, Math.min(safeRight, event.pageX));
+				} else {
+					clampedX = Math.max(cursorBounds.left, Math.min(solRight, event.pageX));
+				}
+				return orig.call(this, $.extend({}, event, { pageX: clampedX, pageY: clampedY }));
+			};
+		}
+
+		var sortable = $(sortableUl).sortable({
+			start: function (event, ui) {
+				captureOrigin(ui);
+				captureBounds();
+			},
 			stop: function (event, ui) {
+				cursorBounds = null;
+				if (!isInEitherList(ui.item[0])) {
+					revertToOrigin(ui);
+					return;
+				}
+				dragOrigin = null;
 				if ($(event.target)[0] != ui.item.parent()[0]) {
 					return;
 				}
@@ -514,14 +591,25 @@
 			grid: that.options.can_indent ? [that.options.x_indent, 1] : false,
 		});
 		sortable.addClass('output');
+		patchCursorContainment(sortable);
 		if (this.options.trashId) {
-			var trash = $(this.options.trashId.querySelector('ul')).sortable({
+			var trash = $(trashUl).sortable({
 				connectWith: sortable,
+				start: function (event, ui) {
+					captureOrigin(ui);
+					captureBounds();
+				},
 				receive: function (event, ui) {
 					that.getLineById(ui.item[0].id).indent = 0;
 					that.updateHTMLIndent(ui.item[0].id);
 				},
 				stop: function (event, ui) {
+					cursorBounds = null;
+					if (!isInEitherList(ui.item[0])) {
+						revertToOrigin(ui);
+						return;
+					}
+					dragOrigin = null;
 					if ($(event.target)[0] != ui.item.parent()[0]) {
 						// line moved to output and logged there
 						return;
@@ -529,6 +617,7 @@
 				},
 			});
 			sortable.sortable('option', 'connectWith', trash);
+			patchCursorContainment($(trashUl));
 		}
 		solutionIDs.forEach(function (id) {
 			that.updateHTMLIndent(id);

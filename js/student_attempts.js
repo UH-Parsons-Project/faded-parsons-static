@@ -37,7 +37,7 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
-function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
+function renderHeader(username, completedTasks, attemptedTasks, totalTasks, taskSetName) {
 	const CIRC = 376.99;
 	const notCompletedTasks = Math.max(attemptedTasks - completedTasks, 0);
 	const notStartedTasks = Math.max(totalTasks - attemptedTasks, 0);
@@ -55,11 +55,12 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks) {
 	const container = document.getElementById('page-header');
 	container.className = 'mb-4';
 	container.innerHTML = `
-	<div class="d-flex align-items-center mb-2 sa-user-row">
+	<div class="d-flex align-items-center mb-3 sa-user-row">
 		<span class="badge badge-pill sa-user-badge">
 			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
 		</span>
 	</div>
+	${taskSetName ? `<div class="sa-taskset-info"><i class="fas fa-tasks mr-2"></i><strong>Task Set:</strong> ${escapeHtml(taskSetName)}</div>` : ''}
 	<p class="text-muted">All tasks attempted by this student in this task set</p>
 	`;
 
@@ -188,9 +189,12 @@ Promise.all([
 	}),
 	fetch(`/api/my_sets/${encodeURIComponent(setId)}/tasks`, {
 		credentials: 'include'
+	}),
+	fetch(`/api/my_sets/${encodeURIComponent(setId)}`, {
+		credentials: 'include'
 	})
 ])
-	.then(async ([attemptsResponse, taskSetTasksResponse]) => {
+	.then(async ([attemptsResponse, taskSetTasksResponse, taskSetResponse]) => {
 		if (!attemptsResponse.ok) {
 			if (attemptsResponse.status === 401) {
 				window.location.href = '/';
@@ -209,7 +213,13 @@ Promise.all([
 			totalTasks = taskSetTasks.length;
 		}
 
-		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks);
+		let taskSetName = '';
+		if (taskSetResponse.ok) {
+			const taskSetData = await taskSetResponse.json();
+			taskSetName = taskSetData.title || '';
+		}
+
+		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks, taskSetName);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

@@ -3,6 +3,7 @@
  * Builds parsons-style code blocks from teacher-authored source code.
  */
 import { FiniteWorker } from './worker-manager.js';
+import { processTestError } from './doctest-grader.js';
 import { initProtectedPage, initBurgerMenu } from "/js/auth-ui.js";
 
 initProtectedPage('/');
@@ -647,37 +648,6 @@ initBurgerMenu();
     return { ok: true };
   }
 
-  function formatPythonError(rawMessage) {
-    if (!rawMessage) {
-      return 'Test execution failed.';
-    }
-
-    const message = String(rawMessage);
-    const lineMatch = message.match(/File "<exec>", line (\d+)/);
-    const linePart = lineMatch ? `Line ${lineMatch[1]}: ` : '';
-
-    if (message.includes('IndentationError')) {
-      const detail = message.split('IndentationError:').pop()?.trim() || 'indentation problem';
-      return `${linePart}IndentationError: ${detail}`;
-    }
-
-    if (message.includes('SyntaxError')) {
-      const detail = message.split('SyntaxError:').pop()?.trim() || 'syntax problem';
-      return `${linePart}SyntaxError: ${detail}`;
-    }
-
-    if (message.includes('AssertionError')) {
-      return `${linePart}AssertionError`;
-    }
-
-    if (message.includes('Traceback')) {
-      const tail = message.trim().split('\n').slice(-1)[0];
-      return `${linePart}${tail}`.trim();
-    }
-
-    return message;
-  }
-
   async function runTeacherTests() {
     const testsInput = document.getElementById('tests-input');
     const runStatus = document.getElementById('run-status');
@@ -728,8 +698,9 @@ initBurgerMenu();
     try {
       const { results, error } = await new FiniteWorker(python);
       if (error) {
-        const errorMessage = error.message || 'An unknown error occurred during test execution.';
-        renderTestResult('fail', formatPythonError(errorMessage));
+        const parsedError = processTestError(error, 0, []);
+        const renderedError = [parsedError.header, parsedError.details].filter(Boolean).join('\n\n');
+        renderTestResult('fail', renderedError || 'An unknown error occurred during test execution.');
         testsPassed = false;
         updateAddToListState();
       } else {

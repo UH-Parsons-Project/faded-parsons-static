@@ -111,7 +111,7 @@ function createViewerItem(viewer) {
 	info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="viewer-email">${escapeHtml(viewer.email)}</span>`;
 
 	const removeBtn = document.createElement('button');
-	removeBtn.className = 'viewer-remove-btn';
+	removeBtn.className = 'viewer-remove-btn btn-outline-danger';
 	removeBtn.type = 'button';
 	removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
 	removeBtn.title = 'Remove viewer';

@@ -15,8 +15,10 @@ if (backBtn) {
 		backBtn.textContent = 'Back to Global Statistics';
 	} else if (setId) {
 		backBtn.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
+		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
 	} else {
 		backBtn.href = '/teacher-dashboard';
+		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
 	}
 }
 

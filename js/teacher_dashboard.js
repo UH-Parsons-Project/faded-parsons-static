@@ -49,44 +49,60 @@ function createTaskSetItem(taskSet) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-set-overview?set_id=${taskSet.id}`;
+		window.location.href = `/task-set-overview?set_id=${taskSet.id}`;
 	};
+
+	// Top row: title + join code chip
+	const topRow = document.createElement('div');
+	topRow.className = 'task-set-item-top';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = taskSet.title;
+	topRow.appendChild(title);
+
+	if (taskSet.unique_link_code) {
+		const chip = document.createElement('div');
+		chip.className = 'task-set-code-chip';
+		chip.title = 'Click to copy join code';
+		chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
+		chip.onclick = (e) => {
+			e.stopPropagation();
+			navigator.clipboard.writeText(taskSet.unique_link_code).then(() => {
+				chip.classList.add('copied');
+				chip.innerHTML = `<i class="fas fa-check"></i>${taskSet.unique_link_code}`;
+				setTimeout(() => {
+					chip.classList.remove('copied');
+					chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
+				}, 1500);
+			});
+		};
+		topRow.appendChild(chip);
+	}
+
+	item.appendChild(topRow);
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	meta.innerHTML = `
-	<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
-	${taskSet.expires_at ? `<br><i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}` : ''}
-	`;
-
-	item.appendChild(title);
+	const expiryPart = taskSet.expires_at
+		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
+		: '';
+	const sharedPart = (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername)
+		? ` &nbsp;·&nbsp; <i class="fas fa-share-alt"></i> Shared by ${escapeHtml(taskSet.owner_username)}`
+		: '';
+	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}${sharedPart}`;
 	item.appendChild(meta);
 
-	if (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername) {
-		const sharedLabel = document.createElement('div');
-		sharedLabel.className = 'text-muted';
-		sharedLabel.style.fontSize = '0.8rem';
-		sharedLabel.textContent = `Shared by ${taskSet.owner_username}`;
-		item.appendChild(sharedLabel);
-	}
-
 	if (taskSet.teacher_description) {
-	const description = document.createElement('div');
-	description.className = 'task-set-description';
-
-	// Truncate to 100 characters and add ellipsis if longer
-	let displayText = taskSet.teacher_description;
-	if (displayText.length > 100) {
-		displayText = displayText.substring(0, 100) + '...';
-	}
-	description.textContent = displayText;
-	description.title = taskSet.teacher_description; // Show full text on hover
-
-	item.appendChild(description);
+		const description = document.createElement('div');
+		description.className = 'task-set-description';
+		let displayText = taskSet.teacher_description;
+		if (displayText.length > 228) {
+			displayText = displayText.substring(0, 228) + '…';
+		}
+		description.textContent = displayText;
+		description.title = taskSet.teacher_description;
+		item.appendChild(description);
 	}
 
 	return item;
@@ -102,7 +118,7 @@ function createAddButton() {
 	button.innerHTML = `
 	<i class="fas fa-plus-circle"></i>
 	<div class="task-set-title">Create New Task Set</div>
-	<p class="mb-0" style="font-size: 0.875rem;">Add a new task set</p>
+	<p class="mb-0">Add a new task set</p>
 	`;
 
 	return button;
@@ -120,6 +136,7 @@ function createNewTaskButton() {
 	wrapper.appendChild(link);
 	return wrapper;
 }
+
 
 function renderTaskSets(taskSets) {
 	const container = document.getElementById('task-sets-container');
@@ -139,6 +156,7 @@ function renderTaskSets(taskSets) {
 	buttonWrapper.style.margin = '0 auto';
 	buttonWrapper.appendChild(createNewTaskButton());
 	buttonWrapper.appendChild(createAddButton());
+
 	container.appendChild(buttonWrapper);
 	} else {
 	const layout = document.createElement('div');
@@ -146,6 +164,11 @@ function renderTaskSets(taskSets) {
 
 	const listsColumn = document.createElement('div');
 	listsColumn.className = 'task-sets-column';
+
+	const searchBox = document.createElement('div');
+	searchBox.className = 'search-box';
+	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-search" placeholder="Search task sets…" autocomplete="off">';
+	listsColumn.appendChild(searchBox);
 
 	const ownedLists = currentUsername
 		? taskSets.filter(taskSet => taskSet.owner_username === currentUsername)
@@ -190,10 +213,47 @@ function renderTaskSets(taskSets) {
 	addColumn.appendChild(createNewTaskButton());
 	addColumn.appendChild(createAddButton());
 
+
 	layout.appendChild(listsColumn);
 	layout.appendChild(addColumn);
 	container.appendChild(layout);
+	setupSearch();
 	}
+}
+
+function setupSearch() {
+	const input = document.getElementById('task-search');
+	if (!input) return;
+	input.addEventListener('input', () => {
+		const q = input.value.trim().toLowerCase();
+		let totalVisible = 0;
+		document.querySelectorAll('.task-set-section').forEach(section => {
+			const items = section.querySelectorAll('.task-set-item');
+			let sectionVisible = 0;
+			items.forEach(item => {
+				const title = item.querySelector('.task-set-title')?.textContent.toLowerCase() ?? '';
+				const code = item.querySelector('.task-set-code-chip')?.textContent.toLowerCase() ?? '';
+				const match = !q || title.includes(q) || code.includes(q);
+				item.style.display = match ? '' : 'none';
+				if (match) sectionVisible++;
+			});
+			const heading = section.querySelector('h4');
+			if (heading) heading.style.display = sectionVisible === 0 && q ? 'none' : '';
+			totalVisible += sectionVisible;
+		});
+		let noResults = document.getElementById('search-no-results');
+		if (q && totalVisible === 0) {
+			if (!noResults) {
+				noResults = document.createElement('div');
+				noResults.id = 'search-no-results';
+				noResults.className = 'search-no-results';
+				noResults.textContent = 'No task sets match your search.';
+				document.querySelector('.task-sets-column')?.appendChild(noResults);
+			}
+		} else if (noResults) {
+			noResults.remove();
+		}
+	});
 }
 
 function showError(message) {

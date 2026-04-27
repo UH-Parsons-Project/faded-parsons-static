@@ -64,11 +64,12 @@ function createTaskSetItem(taskSet) {
 	if (taskSet.unique_link_code) {
 		const chip = document.createElement('div');
 		chip.className = 'task-set-code-chip';
-		chip.title = 'Click to copy join code';
+		chip.title = 'Click to copy link';
 		chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
 		chip.onclick = (e) => {
 			e.stopPropagation();
-			navigator.clipboard.writeText(taskSet.unique_link_code).then(() => {
+			const url = `${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
+			navigator.clipboard.writeText(url).then(() => {
 				chip.classList.add('copied');
 				chip.innerHTML = `<i class="fas fa-check"></i>${taskSet.unique_link_code}`;
 				setTimeout(() => {

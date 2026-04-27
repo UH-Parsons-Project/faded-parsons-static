@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Select Task Set - Parsons Code Lab</title>
+  <title>My Dashboard — Parsons Code Lab</title>
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/js/main.css">
+  <link rel="stylesheet" href="/js/teacher_dashboard.css">
 </head>
 
 <body>
@@ -45,13 +45,19 @@
     </div>
   </nav>
 
-  <div class="container py-4">
+  <div class="page-header">
+    <div class="page-title">My Dashboard</div>
+    <div class="page-subtitle">Select a task set to view its statistics and analytics</div>
+  </div>
 
-    <h2 class="mb-4">Select a Task Set</h2>
-    <p class="text-muted mb-4">Choose a task set to view its statistics and analytics</p>
+  <div class="dashboard-main">
 
-    <div id="all-sets-button-container" style="display: none; margin-bottom: 1rem;">
+    <div class="top-actions">
+      <div id="all-sets-button-container" style="display: none;">
         <a href="/admin-dashboard" class="btn btn-primary"><i class="fas fa-shield-alt"></i> Admin Dashboard</a>
+      </div>
+      <a href="/global-statistics" class="nav-link-btn"><i class="fas fa-chart-bar"></i> Global Statistics</a>
+      <a href="/instructions" class="nav-link-btn"><i class="fas fa-info-circle"></i> Instructions</a>
     </div>
 
     <div id="task-sets-container" class="loading-spinner">

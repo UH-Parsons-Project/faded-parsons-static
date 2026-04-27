@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Task Set Statistics - Parsons Code Lab</title>
+  <title>Task Set Overview — Parsons Code Lab</title>
 
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/js/main.css">
+  <link rel="stylesheet" href="/js/task_set_overview.css">
 </head>
 
 <body>
@@ -20,6 +20,9 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
+      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3">
+        <i class="fas fa-arrow-left"></i> My Dashboard
+      </a>
       <span class="text-dark">
         <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
       </span>
@@ -45,50 +48,48 @@
     </div>
   </nav>
 
-  <div class="container py-4">
-
+  <div class="page-header">
     <div id="list-header" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>
       </div>
       <p class="mt-2">Loading task set...</p>
     </div>
+  </div>
 
+  <div class="overview-main">
     <div id="content-container" style="display: none;">
       <div class="statistics-layout">
+
         <div class="tasks-column">
           <h3 class="mb-3">Tasks</h3>
           <div id="tasks-list"></div>
         </div>
 
-        <div class="students-column">
-          <div class="students-section mb-4">
+        <div class="right-panel">
+          <div>
             <h3 class="mb-3">Shared Viewers</h3>
-            <div class="form-group">
-              <label for="viewer-identifier" class="sr-only">Add viewer</label>
-              <div class="input-group">
-                <input type="text" class="form-control" id="viewer-identifier" placeholder="Username or email">
-                <div class="input-group-append">
-                  <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
-                    <i class="fas fa-user-plus"></i> Add
-                  </button>
-                </div>
-              </div>
-              <small class="form-text text-muted">Add teachers who can view this task set.</small>
+            <div class="viewer-add-form">
+              <input type="text" id="viewer-identifier" placeholder="Username or email">
+              <button type="button" id="add-viewer-btn">
+                <i class="fas fa-user-plus"></i> Add
+              </button>
             </div>
+            <div class="viewer-add-hint">Add teachers who can view this task set.</div>
             <div id="viewers-list"></div>
           </div>
-          <div class="students-section">
-            <h3 class="mb-3">Students (total: <span id="student-count"></span>)</h3>
+
+          <div>
+            <h3 class="mb-3">Students <span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:.9rem;">(<span id="student-count">—</span>)</span></h3>
             <div id="students-list"></div>
           </div>
         </div>
+
       </div>
     </div>
-
   </div>
 
-<script type="module" src="/js/task_set_overview.js"></script>
+  <script type="module" src="/js/task_set_overview.js"></script>
 
 </body>
 </html>

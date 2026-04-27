@@ -105,25 +105,24 @@ function renderViewers(viewers) {
 
 function createViewerItem(viewer) {
 	const item = document.createElement('div');
-	item.className = 'd-flex align-items-center justify-content-between border rounded px-2 py-1 mb-2';
+	item.className = 'viewer-item';
 
 	const info = document.createElement('div');
-	info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="text-muted">(${escapeHtml(viewer.email)})</span>`;
+	info.innerHTML = `<strong>${escapeHtml(viewer.username)}</strong> <span class="viewer-email">${escapeHtml(viewer.email)}</span>`;
 
 	const removeBtn = document.createElement('button');
-	removeBtn.className = 'btn btn-sm btn-outline-danger';
+	removeBtn.className = 'viewer-remove-btn';
 	removeBtn.type = 'button';
 	removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
 	removeBtn.title = 'Remove viewer';
 	removeBtn.addEventListener('click', () => {
-		const confirmRemove = window.confirm(`Remove access for ${viewer.username}?`);
-		if (!confirmRemove) return;
-		removeViewer(viewer.teacher_id);
+		if (window.confirm(`Remove access for ${viewer.username}?`)) {
+			removeViewer(viewer.teacher_id);
+		}
 	});
 
 	item.appendChild(info);
 	item.appendChild(removeBtn);
-
 	return item;
 }
 
@@ -190,67 +189,104 @@ async function removeViewer(teacherId) {
 	}
 }
 
-function renderListHeader(taskSet) {
+function renderListHeader(taskSet, tasks, students) {
 	const container = document.getElementById('list-header');
-	container.className = 'mb-4';
+	container.className = '';
 
-	let headerHTML = `
-	<h2 style="margin: 0 0 1rem 0;">${escapeHtml(taskSet.title)}</h2>
-	<div class="mb-2">
-		<div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.25rem;">
-		<span id="link-code" style="font-family: monospace; font-size: 0.875rem; font-weight: normal;">
-			${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}
-		</span>
-		<button id="copy-btn" type="button" style="background: none; border: none; cursor: pointer; color: #6c757d; padding: 0; flex-shrink: 0;" title="Copy URL">
-			<i class="fas fa-copy" style="font-size: 0.9rem;"></i>
-		</button>
+	const url = `${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
+	const expiryPart = taskSet.expires_at
+		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
+		: '';
+
+	// Compute stats
+	const studentCount = students.length;
+	const taskCount = tasks.length;
+	const totalAttempts = students.reduce((s, st) => s + (st.total_attempts ?? 0), 0);
+	const avgProgress = studentCount > 0 && taskCount > 0
+		? Math.round(students.reduce((s, st) => s + (st.tasks_attempted ?? 0), 0) / studentCount / taskCount * 100)
+		: 0;
+
+	// Distribution: fully done / in progress / not started
+	const fullyDone = students.filter(st => taskCount > 0 && st.tasks_attempted >= taskCount).length;
+	const inProgress = students.filter(st => st.tasks_attempted > 0 && st.tasks_attempted < taskCount).length;
+	const notStarted = studentCount - fullyDone - inProgress;
+	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
+	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
+
+	let leftHTML = `
+		<div class="taskset-page-title">${escapeHtml(taskSet.title)}</div>
+		<div class="taskset-link-box">
+			<span id="link-code" class="taskset-link-text">${url}</span>
+			<button id="copy-btn" type="button" class="copy-btn" title="Copy URL">
+				<i class="fas fa-copy"></i>
+			</button>
 		</div>
-	</div>
-	<div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1rem;">
-		<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}
-		${taskSet.expires_at ? ` • <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}` : ''}
-	</div>
+		<div class="taskset-meta-row">
+			<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}
+		</div>
 	`;
-
 	if (taskSet.teacher_description) {
-	headerHTML += `
-	<div class="task-set-description">
-		<strong>Teacher Notes:</strong><br>
-		${escapeHtml(taskSet.teacher_description)}
-	</div>
-	`;
+		leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
 	}
-
 	if (taskSet.student_description) {
-	headerHTML += `
-	<div class="alert alert-info mt-3 mb-3" role="alert" style="border-left: 4px solid #17a2b8;">
-		<strong>Student Instructions:</strong><br>
-		${escapeHtml(taskSet.student_description)}
-	</div>
-	`;
+		leftHTML += `<div class="student-instructions-box"><strong>Student Instructions:</strong><br>${escapeHtml(taskSet.student_description)}</div>`;
 	}
 
-	container.innerHTML = headerHTML;
+	const statsHTML = `
+		<div class="header-stats">
+			<div class="hkpi-grid">
+				<div class="hkpi c-brand">
+					<div class="hkpi-label">Students</div>
+					<div class="hkpi-value">${studentCount}</div>
+				</div>
+				<div class="hkpi c-gray">
+					<div class="hkpi-label">Tasks</div>
+					<div class="hkpi-value">${taskCount}</div>
+				</div>
+				<div class="hkpi c-green">
+					<div class="hkpi-label">Avg Progress</div>
+					<div class="hkpi-value">${avgProgress}%</div>
+				</div>
+				<div class="hkpi c-amber">
+					<div class="hkpi-label">Total Attempts</div>
+					<div class="hkpi-value">${totalAttempts}</div>
+				</div>
+			</div>
+			<div class="dist-bar-wrap">
+				<div class="dist-bar-label">Student Progression</div>
+				<div class="dist-bar">
+					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
+					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
+				</div>
+				<div class="dist-bar-legend">
+					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
+					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--amber)"></span>${inProgress} in progress</span>
+					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--border);border:1px solid var(--gray)"></span>${notStarted} not started</span>
+				</div>
+			</div>
+		</div>
+	`;
 
-	// Add copy functionality
+	container.innerHTML = `
+		<div class="header-inner">
+			<div class="header-left">${leftHTML}</div>
+			${statsHTML}
+		</div>
+	`;
+
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');
-
 	if (copyBtn && linkCode) {
-	copyBtn.addEventListener('click', () => {
-		const text = linkCode.textContent.trim();
-		navigator.clipboard.writeText(text).then(() => {
-		const originalIcon = copyBtn.innerHTML;
-		copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-		copyBtn.style.color = '#28a745';
-		setTimeout(() => {
-			copyBtn.innerHTML = originalIcon;
-			copyBtn.style.color = '#6c757d';
-		}, 2000);
-		}).catch(() => {
-		alert('Failed to copy URL');
+		copyBtn.addEventListener('click', () => {
+			navigator.clipboard.writeText(linkCode.textContent.trim()).then(() => {
+				copyBtn.classList.add('copied');
+				copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+				setTimeout(() => {
+					copyBtn.classList.remove('copied');
+					copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+				}, 2000);
+			}).catch(() => alert('Failed to copy URL'));
 		});
-	});
 	}
 }
 
@@ -258,7 +294,7 @@ function createTaskItem(task, taskSet) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	item.onclick = () => {
-	window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
+		window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
 	};
 
 	const title = document.createElement('div');
@@ -267,15 +303,52 @@ function createTaskItem(task, taskSet) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	meta.innerHTML = `
-	<i class="far fa-calendar"></i> ${formatDate(task.created_at)}
-	• <i class="fas fa-chart-line"></i> View Statistics
-	`;
+	meta.innerHTML = `<i class="far fa-calendar"></i> ${formatDate(task.created_at)}`;
+
+	const statsRow = document.createElement('div');
+	statsRow.id = `task-stats-${task.id}`;
+	statsRow.innerHTML = '<span class="task-stat-loading">Loading stats…</span>';
 
 	item.appendChild(title);
 	item.appendChild(meta);
+	item.appendChild(statsRow);
 
 	return item;
+}
+
+async function loadTaskStats(tasks, taskSet, enrolledCount) {
+	const results = await Promise.all(
+		tasks.map(task =>
+			fetch(`/api/tasks/${task.id}/statistics?task_set_code=${encodeURIComponent(taskSet.unique_link_code)}`, { credentials: 'include' })
+				.then(r => r.ok ? r.json() : null)
+				.catch(() => null)
+		)
+	);
+	tasks.forEach((task, i) => {
+		const el = document.getElementById(`task-stats-${task.id}`);
+		if (!el) return;
+		const s = results[i];
+		if (!s) { el.innerHTML = ''; return; }
+
+		const completed  = s.students_completed ?? 0;
+		const attempted  = Math.max(0, (s.students_attempted ?? 0) - completed);
+		const total      = enrolledCount || 1;
+		const notStarted = Math.max(0, total - completed - attempted);
+		const donePct    = (completed / total * 100).toFixed(1);
+		const progPct    = (attempted / total * 100).toFixed(1);
+
+		el.innerHTML = `
+			<div class="task-stat-bar">
+				<div class="task-stat-bar-seg done"     style="width:${donePct}%"></div>
+				<div class="task-stat-bar-seg progress" style="width:${progPct}%"></div>
+			</div>
+			<div class="task-stat-counts">
+				<span class="tsc done"><span class="tsc-dot done"></span>${completed} done</span>
+				${attempted > 0 ? `<span class="tsc progress"><span class="tsc-dot progress"></span>${attempted} in progress</span>` : ''}
+				<span class="tsc not-started"><span class="tsc-dot not-started"></span>${notStarted} not started</span>
+			</div>
+		`;
+	});
 }
 
 function renderTasks(tasks, taskSet) {
@@ -393,11 +466,12 @@ Promise.all([
 	fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students')
 ])
 	.then(([taskSet, tasks, students]) => {
-	renderListHeader(taskSet);
+	renderListHeader(taskSet, tasks, students);
 	renderTasks(tasks, taskSet);
 	renderStudents(students);
 	loadViewers();
 	document.getElementById('content-container').style.display = 'block';
+	loadTaskStats(tasks, taskSet, students.length);
 	})
 	.catch(err => {
 	console.error('Error loading data:', err);

@@ -33,6 +33,53 @@ function escapePythonSingleQuotedString(value) {
 	return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+function extractTeacherTestBlocks(outputStr) {
+	const lines = outputStr.split('\n').map((line) => line.trimEnd());
+	const testBlocks = [];
+	let currentBlock = [];
+
+	const isTeacherMarker = (line) =>
+		line.startsWith('✅ Passed test') || line.startsWith('❌ Failed test');
+	const isTracebackBoundary = (line) =>
+		line.startsWith('Traceback (most recent call last):') ||
+		line === 'ALL_TEACHER_TESTS_PASSED' ||
+		line.startsWith('File "');
+
+	const flushBlock = () => {
+		if (currentBlock.length) {
+			testBlocks.push(currentBlock.join('\n').trim());
+			currentBlock = [];
+		}
+	};
+
+	for (const line of lines) {
+		if (isTeacherMarker(line)) {
+			flushBlock();
+			currentBlock = [line];
+			continue;
+		}
+
+		if (!currentBlock.length) {
+			continue;
+		}
+
+		if (isTracebackBoundary(line)) {
+			flushBlock();
+			continue;
+		}
+
+		if (/^[A-Za-z_][A-Za-z0-9_]*(Error|Exception)(:|$)/.test(line)) {
+			flushBlock();
+			continue;
+		}
+
+		currentBlock.push(line);
+	}
+
+	flushBlock();
+	return testBlocks.filter(Boolean);
+}
+
 function extractError(error, numDocstringLines) {
 	if (!error) {
 		return 'No error report found.';
@@ -299,7 +346,53 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 	});
 	if (normalizedTeacherTests) {
 		finalCode.push('');
-		finalCode.push('__teacher_test_index = 0');
+		finalCode.push('import ast');
+		finalCode.push('__teacher_failures = []');
+		finalCode.push('def __format_teacher_value(value):');
+		finalCode.push('    try:');
+		finalCode.push('        return repr(value)');
+		finalCode.push('    except Exception:');
+		finalCode.push('        return "<unprintable value>"');
+		finalCode.push('');
+		finalCode.push('def __run_teacher_assert(assert_source):');
+		finalCode.push('    try:');
+		finalCode.push('        parsed = ast.parse(assert_source, mode="exec")');
+		finalCode.push('    except Exception:');
+		finalCode.push('        parsed = None');
+		finalCode.push('');
+		finalCode.push('    if parsed and parsed.body and isinstance(parsed.body[0], ast.Assert):');
+		finalCode.push('        assert_node = parsed.body[0]');
+		finalCode.push('        compare_node = assert_node.test');
+		finalCode.push('        is_single_equality = (');
+		finalCode.push('            isinstance(compare_node, ast.Compare) and');
+		finalCode.push('            len(compare_node.ops) == 1 and');
+		finalCode.push('            isinstance(compare_node.ops[0], ast.Eq) and');
+		finalCode.push('            len(compare_node.comparators) == 1');
+		finalCode.push('        )');
+		finalCode.push('        if is_single_equality:');
+		finalCode.push('            actual_expr = compare_node.left');
+		finalCode.push('            expected_expr = compare_node.comparators[0]');
+		finalCode.push('            actual_text = ast.unparse(actual_expr)');
+		finalCode.push('            actual_value = eval(compile(ast.Expression(actual_expr), "<teacher-tests>", "eval"), globals(), globals())');
+		finalCode.push('            expected_value = eval(compile(ast.Expression(expected_expr), "<teacher-tests>", "eval"), globals(), globals())');
+		finalCode.push('            is_match = actual_value == expected_value');
+		finalCode.push('            print("✅ Passed test" if is_match else "❌ Failed test")');
+		finalCode.push('            print(actual_text)');
+		finalCode.push('            print("Expected:")');
+		finalCode.push('            print("    " + __format_teacher_value(expected_value))');
+		finalCode.push('            print("Got:")');
+		finalCode.push('            print("    " + __format_teacher_value(actual_value))');
+		finalCode.push('            if not is_match:');
+		finalCode.push('                __teacher_failures.append(assert_source)');
+		finalCode.push('            return');
+		finalCode.push('');
+		finalCode.push('    try:');
+		finalCode.push('        exec(assert_source, globals(), globals())');
+		finalCode.push('        print("✅ Passed test")');
+		finalCode.push('    except Exception:');
+		finalCode.push('        print("❌ Failed test")');
+		finalCode.push('        __teacher_failures.append(assert_source)');
+		finalCode.push('');
 		normalizedTeacherTests.split('\n').forEach((testLine) => {
 			const trimmed = testLine.trim();
 			const isTopLevelAssert = testLine === trimmed && trimmed.startsWith('assert ');
@@ -310,20 +403,12 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 				return;
 			}
 
-			const label = escapePythonSingleQuotedString(trimmed);
-			finalCode.push('__teacher_test_index += 1');
-			finalCode.push('try:');
-			finalCode.push(`    ${trimmed}`);
-			finalCode.push(
-				`    print('✅ Passed test ' + str(__teacher_test_index) + ': ${label}')`
-			);
-			finalCode.push('except Exception:');
-			finalCode.push(
-				`    print('❌ Failed test ' + str(__teacher_test_index) + ': ${label}')`
-			);
-			finalCode.push('    raise');
+			const escapedAssert = escapePythonSingleQuotedString(trimmed);
+			finalCode.push(`__run_teacher_assert('${escapedAssert}')`);
 		});
 		finalCode.push('');
+		finalCode.push('if __teacher_failures:');
+		finalCode.push('    raise AssertionError("; ".join(__teacher_failures))');
 		finalCode.push('print("ALL_TEACHER_TESTS_PASSED")');
 	} else {
 		finalCode.push('import doctest');
@@ -341,16 +426,14 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 
 export function processTestResults(outputStr, customErrorRules = []) {
 	if (outputStr.includes('ALL_TEACHER_TESTS_PASSED')) {
-		const teacherTestLines = outputStr
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line.startsWith('✅ Passed test') || line.startsWith('❌ Failed test'));
+		const teacherTestBlocks = extractTeacherTestBlocks(outputStr);
+		const passedCount = teacherTestBlocks.filter((block) => block.startsWith('✅ Passed test')).length;
 
 		return {
 			status: 'pass',
-			header: 'All tests passed successfully.',
-			details: teacherTestLines.length
-				? teacherTestLines.join('\n')
+			header: `${passedCount} of ${passedCount} tests passed`,
+			details: teacherTestBlocks.length
+				? teacherTestBlocks.join('\n\n')
 				: 'All tests passed successfully.',
 		};
 	}
@@ -390,12 +473,9 @@ export function processTestError(error, startLine, customErrorRules = []) {
 	const message = error?.message || '';
 
 	if (message.includes('Traceback')) {
-		const markerLines = message
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line.startsWith('✅ Passed test') || line.startsWith('❌ Failed test'));
-		const passedCount = markerLines.filter((line) => line.startsWith('✅ Passed test')).length;
-		const failedCount = markerLines.filter((line) => line.startsWith('❌ Failed test')).length;
+		const teacherTestBlocks = extractTeacherTestBlocks(message);
+		const passedCount = (message.match(/✅ Passed test/g) || []).length;
+		const failedCount = (message.match(/❌ Failed test/g) || []).length;
 		const lastErrorLine = message
 			.split('\n')
 			.map((line) => line.trim())
@@ -409,22 +489,22 @@ export function processTestError(error, startLine, customErrorRules = []) {
 		let header = errorType;
 
 		// Teacher test assertions run in injected module-level code, so mapped line numbers are misleading.
-		if (
-			markerLines.some((line) => line.startsWith('❌ Failed test')) &&
-			errorType === 'AssertionError'
-		) {
-			header = 'Wrong answer';
-			errorDetails = lastErrorLine || 'AssertionError';
-		}
-
 		if (errorType === 'AssertionError') {
-			header = 'Wrong answer';
+			if (passedCount + failedCount > 0) {
+				header = `${passedCount} of ${passedCount + failedCount} tests passed`;
+			} else {
+				header = 'Wrong answer';
+			}
+
+			if (failedCount > 0) {
+				errorDetails = lastErrorLine || 'AssertionError';
+			}
 		}
 		const details = [
 			passedCount || failedCount
 				? `Summary: ${passedCount} passed, ${failedCount} failed.`
 				: '',
-			markerLines.length ? markerLines.join('\n') : '',
+			teacherTestBlocks.length ? teacherTestBlocks.join('\n\n') : '',
 			errorType === 'AssertionError'
 				? 'Your code is valid Python, but it does not satisfy all test assertions.'
 				: '',

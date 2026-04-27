@@ -61,10 +61,19 @@ export function initLoginPage() {
 	const errorMessage = document.getElementById('error-message');
 	const loginBtn = document.getElementById('login-btn');
 	const teacherInstructions = document.getElementById('teacher-only-instructions');
+	const logoLink = document.querySelector('.title-logo-link') || document.querySelector('.navbar-logo')?.closest('a');
 
 	if (!loginForm) {
 		console.error('Login form not found');
 		return;
+	}
+
+	function setLogoRedirectForAuth(isAuthenticated) {
+		if (!logoLink) {
+			return;
+		}
+
+		logoLink.href = isAuthenticated ? '/teacher-dashboard' : '/';
 	}
 
 	// Check if user is already logged in
@@ -80,6 +89,7 @@ export function initLoginPage() {
 
 	function showUserInfo(username, role) {
 		loginForm.style.display = 'none';
+		setLogoRedirectForAuth(true);
 		if (userInfo) {
 			userInfo.style.display = 'flex';
 			const userNameElement = document.getElementById('user-name');
@@ -106,6 +116,7 @@ export function initLoginPage() {
 
 	function showLoginForm() {
 		loginForm.style.display = 'flex';
+		setLogoRedirectForAuth(false);
 		if (userInfo) {
 			userInfo.style.display = 'none';
 		}

@@ -81,6 +81,7 @@ initBurgerMenu();
     previewParsonsWidget = new ParsonsWidgetCtor({
       sortableId: previewSolution,
       trashId: previewSource,
+      containment: previewSource.closest('.card-body'),
       trash_label: 'Drag from here',
       solution_label: 'Construct your solution here, including indents',
     });
@@ -340,6 +341,7 @@ initBurgerMenu();
     parsonsWidget = new ParsonsWidgetCtor({
       sortableId: solutionSortable,
       trashId: sourceSortable,
+      containment: sourceSortable.closest('.card-body'),
       trash_label: 'Drag from here',
       solution_label: 'Solution &mdash; drag blocks here, double click to pin',
       onSortableUpdate: () => {

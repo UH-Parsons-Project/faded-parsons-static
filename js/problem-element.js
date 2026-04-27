@@ -308,6 +308,7 @@ export class ProblemElement extends LitElement {
 		this.parsonsWidget = new ParsonsWidget({
 			sortableId: this.solutionRef.value,
 			trashId: this.starterRef.value,
+			containment: this.taskCardRef.value.querySelector('.card-body'),
 			onSortableUpdate: () => {
 				if (!pendingMove) {
 					return;

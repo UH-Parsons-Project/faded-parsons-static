@@ -6,7 +6,7 @@ export class FiniteWorker {
 		this.worker.onmessage = this.handleMessage.bind(this);
 
 		return new Promise((resolve) => {
-			window.setTimeout(this.finishIt.bind(this), 1000 * 60);
+			window.setTimeout(this.finishIt.bind(this), 1000 * 30);
 			this.worker.postMessage(code);
 			this.resolve = resolve;
 		});

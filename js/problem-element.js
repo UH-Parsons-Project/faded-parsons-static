@@ -64,7 +64,7 @@ export class ProblemElement extends LitElement {
 			<ul class="mb-0 pl-3">
 				<li>Read the problem statement first and identify what the final program should do.</li>
 				<li>Drag blocks from the left area into the solution area on the right.</li>
-				<li>Use every gray block. Blue blocks are optional and can be ignored if not needed.</li>
+				<li>Only drag the blocks you need. Some problems use every block, others leave some unused.</li>
 				<li>Run tests often and use the feedback to fix ordering, indentation, or missing lines.</li>
 				<li>When all tests pass, move on to the next task.</li>
 			</ul>

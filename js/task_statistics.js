@@ -217,6 +217,9 @@ function renderBoxPlot(containerId, stats, desc) {
 		}
 	}
 
+	const legendSvg = (w, h, body) =>
+		`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;overflow:visible;">${body}</svg>`;
+
 	container.innerHTML = `
 		<div class="bp-metric">
 			<div class="bp-header">
@@ -234,6 +237,28 @@ function renderBoxPlot(containerId, stats, desc) {
 				<svg viewBox="0 0 ${W} 108" style="width:100%;height:auto;display:block;overflow:visible;">
 					${p.join('')}
 				</svg>
+			</div>
+			<div class="bp-legend">
+				<span class="bp-legend-item">
+					${legendSvg(14, 12, `<rect x="1" y="1" width="12" height="10" rx="2" fill="${desc.colorLight}" stroke="${desc.color}" stroke-width="1.5"/>`)}
+					Q1–Q3 box (middle 50%)
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(10, 12, `<line x1="5" y1="1" x2="5" y2="11" stroke="${desc.colorDark}" stroke-width="2.5"/>`)}
+					Median
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(12, 12, `<path d="M6 1 L11 6 L6 11 L1 6 Z" fill="${desc.color}"/>`)}
+					Mean
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(26, 12, `<line x1="0" y1="6" x2="26" y2="6" stroke="${desc.color}" stroke-width="1.5"/><line x1="0" y1="3" x2="0" y2="9" stroke="${desc.color}" stroke-width="1.5"/><line x1="26" y1="3" x2="26" y2="9" stroke="${desc.color}" stroke-width="1.5"/>`)}
+					Whiskers (1.5×IQR from Q1/Q3)
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(12, 12, `<circle cx="6" cy="6" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>`)}
+					Outlier (beyond whiskers)
+				</span>
 			</div>
 		</div>`;
 }

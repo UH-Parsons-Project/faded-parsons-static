@@ -10,6 +10,7 @@ initBurgerMenu();
 
 // Load exercise list
 const container = document.getElementById('problems-list');
+const taskCountBadge = document.getElementById('task-count-badge');
 const filterToggleBtn = document.getElementById('task-filter-toggle');
 const filterPanel = document.getElementById('task-filter-panel');
 const taskSearchInput = document.getElementById('task-search');
@@ -200,9 +201,16 @@ async function toggleFavorite(task) {
 	applyTaskFilters();
 }
 
+function updateTaskCountBadge(count) {
+	if (!taskCountBadge) return;
+	taskCountBadge.textContent = count + (count === 1 ? ' task listed' : ' tasks listed');
+	taskCountBadge.style.display = '';
+}
+
 function render(list) {
 	container.className = '';
 	container.innerHTML = '';
+	updateTaskCountBadge(list.length);
 
 	if (!list.length) {
 		container.className = 'empty-state';

@@ -143,99 +143,42 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Time Metrics</span>
-          <span style="font-size:.72rem;color:var(--text-muted);">min / avg / max across all students</span>
+          <span style="font-size:.72rem;color:var(--text-muted);">box plot · all students</span>
         </div>
         <div class="card-body">
           <div class="time-chart">
 
             <!-- Time to first fail -->
             <div class="time-metric" id="tff-metric">
-              <div class="tm-name">
-                <span class="tm-dot" style="background:var(--red);"></span>Time to First Fail
-              </div>
-              <div class="tc-grid">
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Min</div>
-                  <div class="tc-cell-val" id="tff-min">—</div>
-                </div>
-                <div class="tc-cell is-avg" style="color:var(--red)">
-                  <div class="tc-cell-lbl">Avg</div>
-                  <div class="tc-cell-val" id="tff-avg" style="color:var(--red)">—</div>
-                </div>
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Max</div>
-                  <div class="tc-cell-val" id="tff-max">—</div>
-                </div>
-              </div>
+              <div class="bp-wrap" id="bp-tff"></div>
             </div>
 
             <div class="time-divider"></div>
 
             <!-- Time to first success -->
             <div class="time-metric" id="tfs-metric">
-              <div class="tm-name">
-                <span class="tm-dot" style="background:var(--green);"></span>Time to First Success
-              </div>
-              <div class="tc-grid">
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Min</div>
-                  <div class="tc-cell-val" id="tfs-min">—</div>
-                </div>
-                <div class="tc-cell is-avg" style="color:var(--green)">
-                  <div class="tc-cell-lbl">Avg</div>
-                  <div class="tc-cell-val" id="tfs-avg" style="color:var(--green)">—</div>
-                </div>
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Max</div>
-                  <div class="tc-cell-val" id="tfs-max">—</div>
-                </div>
-              </div>
+              <div class="bp-wrap" id="bp-tfs"></div>
             </div>
 
             <div class="time-divider"></div>
 
             <!-- Thinking time -->
             <div class="time-metric" id="thinking-time-metric" style="opacity:.4;">
-              <div class="tm-name">
-                <span class="tm-dot" style="background:var(--brand-dark);"></span>Thinking Time
-              </div>
-              <div class="tc-grid" id="thinking-time-content">
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Min</div>
-                  <div class="tc-cell-val" id="think-min">—</div>
-                </div>
-                <div class="tc-cell is-avg" style="color:var(--brand-dark)">
-                  <div class="tc-cell-lbl">Avg</div>
-                  <div class="tc-cell-val" id="think-avg" style="color:var(--brand-dark)">—</div>
-                </div>
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Max</div>
-                  <div class="tc-cell-val" id="think-max">—</div>
-                </div>
-              </div>
+              <div class="bp-wrap" id="bp-think"></div>
             </div>
 
             <div class="time-divider"></div>
 
             <!-- Number of moves -->
             <div class="time-metric" id="moves-metric" style="opacity:.4;">
-              <div class="tm-name">
-                <span class="tm-dot" style="background:var(--gray);"></span>Number of Moves
-              </div>
-              <div class="tc-grid" id="moves-content">
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Min</div>
-                  <div class="tc-cell-val" id="moves-min">—</div>
-                </div>
-                <div class="tc-cell is-avg" style="color:var(--gray)">
-                  <div class="tc-cell-lbl">Avg</div>
-                  <div class="tc-cell-val" id="moves-avg" style="color:var(--gray)">—</div>
-                </div>
-                <div class="tc-cell">
-                  <div class="tc-cell-lbl">Max</div>
-                  <div class="tc-cell-val" id="moves-max">—</div>
-                </div>
-              </div>
+              <div class="bp-wrap" id="bp-moves"></div>
+            </div>
+
+            <div class="bp-legend">
+              <span class="bp-legend-item"><span style="display:inline-block;width:18px;height:8px;background:var(--border);border-radius:1px;"></span>whisker range</span>
+<span class="bp-legend-item"><span style="display:inline-block;width:2.5px;height:12px;background:#7f1d1d;vertical-align:middle;"></span>median</span>
+              <span class="bp-legend-item"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1 L9 5 L5 9 L1 5 Z" fill="#94a3b8"/></svg>mean</span>
+              <span class="bp-legend-item"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="#94a3b8"/></svg>outlier (&gt; 1.5×IQR)</span>
             </div>
 
           </div>

@@ -48,3 +48,15 @@ async def teacher_instructions_page():
     """Serve a simple teacher instructions page."""
     instructions_path = BASE_DIR / "templates" / "instructions.html"
     return FileResponse(instructions_path)
+
+
+@router.get("/instructions/teacher-content", response_class=HTMLResponse)
+async def teacher_instructions_content(request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the teacher-only instructions fragment for authenticated users."""
+    await get_current_user(request, db)
+
+    fragment_path = BASE_DIR / "templates" / "instructions_teacher_fragment.html"
+    response = FileResponse(fragment_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response

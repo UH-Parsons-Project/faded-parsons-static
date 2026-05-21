@@ -3,7 +3,7 @@
  * Handles login forms, logout buttons, and authentication state display
  */
 
-import { verifyAuth, getAuthToken, getUsername, setAuth, clearAuth } from './auth-utils.js';
+import { authFetch, verifyAuth, getAuthToken, getUsername, setAuth, clearAuth } from './auth-utils.js';
 
 function setExercisesButtonVisible(visible) {
 	const exercisesBtn = document.getElementById('exercises-btn');
@@ -62,6 +62,19 @@ export function initLoginPage() {
 	const loginBtn = document.getElementById('login-btn');
 	const teacherInstructions = document.getElementById('teacher-only-instructions');
 	const logoLink = document.querySelector('.title-logo-link') || document.querySelector('.navbar-logo')?.closest('a');
+	const teacherInstructionsLoadingMarkup = `
+		<div class="instructions">
+			<p class="mb-0 text-muted">Loading teacher instructions...</p>
+		</div>
+	`;
+	const teacherInstructionsPlaceholderMarkup = `
+		<div class="instructions">
+			<p class="mb-0 text-muted">Log in to view the teacher-only instructions.</p>
+		</div>
+	`;
+	let teacherInstructionsLoaded = false;
+	let teacherInstructionsRequestInFlight = false;
+	let teacherInstructionsLoadVersion = 0;
 
 	if (!loginForm) {
 		console.error('Login form not found');
@@ -105,12 +118,58 @@ export function initLoginPage() {
 	function showTeacherInstructions() {
 		if (teacherInstructions) {
 			teacherInstructions.style.display = 'block';
+			if (!teacherInstructionsLoaded && !teacherInstructionsRequestInFlight) {
+				teacherInstructionsLoadVersion += 1;
+				teacherInstructions.innerHTML = teacherInstructionsLoadingMarkup;
+				loadTeacherInstructions(teacherInstructionsLoadVersion);
+			}
 		}
 	}
 
 	function hideTeacherInstructions() {
 		if (teacherInstructions) {
 			teacherInstructions.style.display = 'none';
+			teacherInstructions.innerHTML = teacherInstructionsPlaceholderMarkup;
+			teacherInstructionsLoaded = false;
+			teacherInstructionsRequestInFlight = false;
+			teacherInstructionsLoadVersion += 1;
+		}
+	}
+
+	async function loadTeacherInstructions(loadVersion) {
+		if (!teacherInstructions || teacherInstructionsRequestInFlight) {
+			return;
+		}
+
+		teacherInstructionsRequestInFlight = true;
+
+		try {
+			const response = await authFetch('/instructions/teacher-content');
+			if (!response.ok) {
+				throw new Error(`Failed to load teacher instructions: ${response.status}`);
+			}
+
+			if (loadVersion !== teacherInstructionsLoadVersion) {
+				return;
+			}
+
+			teacherInstructions.innerHTML = await response.text();
+			teacherInstructionsLoaded = true;
+		} catch (error) {
+			if (loadVersion !== teacherInstructionsLoadVersion) {
+				return;
+			}
+
+			console.error('Teacher instructions load error:', error);
+			teacherInstructions.innerHTML = `
+				<div class="instructions">
+					<p class="text-danger mb-0">Could not load teacher instructions.</p>
+				</div>
+			`;
+		} finally {
+			if (loadVersion === teacherInstructionsLoadVersion) {
+				teacherInstructionsRequestInFlight = false;
+			}
 		}
 	}
 

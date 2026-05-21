@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Parsons Code Lab</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="stylesheet" href="/js-parsons/parsons.css"/>
+    <link rel="stylesheet" href="/js/main.css"/>
+</head>
+<body>
+	<div class="instructions">
+		<h3>Teacher Dashboard</h3>
+		<p>
+			After registering and logging in successfully, the teacher will be able to see all available task sets.
+			The teacher is able to create a new task set by clicking on "Create New Task Set". By clicking on a
+			task set the teacher is able to see more information such as the link for students, creation date,
+			added tasks and students. The teacher can also share a task set with other teachers. Added teachers
+			will have viewing rights to the task set.
+		</p>
+	</div>
+	<img src="/documentation/pictures/ohtuproj_screenshots.png" alt="Create New Task Set button" class="screenshots">
+	<div class="instructions">
+		<h3>Creating a task set</h3>
+		<p>
+			After clicking on "Create New Task Set", the teacher is able to enter basic information of their task
+			list such as the title, optional descriptions for students and teachers, other teachers' email addresses
+			or usernames to share viewing rights with them as well as an optional expiration date. The teacher is also
+			able to share viewing rights to a task set later on the task set's page. Most importantly, the teacher is
+			able to select tasks they want to add to their task set as well as preview them beforehand. After creating
+			a task set the teacher will be redirected to the Teacher Dashboard page. Additional information as well
+			as exercise analytics can be found by clicking on a specific task set.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/create_new_task_list1.png" alt="Create New Task Set form part 1" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/create_new_task_list2.png" alt="Create New Task Set form part 2" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/ohtuproj_screenshots2.png" alt="Create New Task Set form part 3" class="screenshot_column" style="width: 33%;">
+	</div>
+	<div class="instructions">
+		<h3>Sharing a task set with students and receiving task data</h3>
+		<p>
+			Task lists become available to students via a unique link that can be found on the task set page right
+			below the task set title. The link can be copied by clicking on the button on the right side of the link.
+			Once the students have access to the task set, the teacher will be able to see their udernames, joining
+			date, last activity date, the amount of attempted tasks and the total amount of task attempts. More
+			statistics are available by clicking on a student.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/ohtuproj_screenshots3.png" alt="Task Set link" class="screenshot_column" style="width: 50%;">
+		<img src="/documentation/pictures/ohtuproj_screenshots4.png" alt="Student blocks on Task Set Page" class="screenshot_column" style="width: 50%;">
+	</div>
+	<div class="instructions">
+		<h3>Student statistics</h3>
+		<p>
+			After clicking on a student, the teacher will be redirected to their stats page. Here the teacher is
+			able to see all the tasks attempted by the student, their completion status, total amount of attempts
+			per task as well as the time of last attempt. By clicking on a task on this page the teacher will be
+			able to see all of the student's attempts, a summary containing the total amount of task attempts as
+			well as the amounts of successful and failed attempts separately. Additional statistics contain the
+			task's model solution, Time to First Fail, Thinking Time Before Starting Task and the Number of Moves
+			made in the task.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/ohtuproj_screenshots5.png" alt="Student Statistics task attempts view" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/student_stats.png" alt="Student task attempt stats" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/student_stats2.png" alt="Student task attempt stats pt2" class="screenshot_column" style="width: 33%;">
+	</div>
+	<div class="instructions">
+		<h3>Creating a new task</h3>
+		<p>
+			On the Task Sets page, right above "Create New Task Set"-button, there is a "New task"-button that
+			allows the teacher to add a new task to the system. After clicking on this button, the teacher will be
+			redirected to Create a New Task page with two code editor views. The upper editor is for task code
+			written in plain Python. The lower editor is for writing test cases for the abovementioned task. The
+			teacher is able to use any Python test style they prefer for writing the task test cases.
+		</p>
+		<p>
+			After writing both the task code and the test cases, the teacher can go on to writing task instructions,
+			task description and constructing the block solution byt clicking on the "Continue To Block Builder" button.
+			Task instructions will be shown on the task page, these are the main instructions students read on the task
+			page before they start solving the exercise. Task description is a short introduction shown to the student
+			on the start view, right above the Start button.
+		</p>
+		<p>
+			Task draft can be cleared by clicking on the "Clear Drafts" button. After continuing to block builder,
+			the teacher is also able to add their own custom blocks to the task, run the tests they have previously
+			written. Finally, when the tests have been passed, the teacher can add their custom task to the global
+			Exercise list.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/ohtuproj_create_task_screenshot.png" alt="New task button" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/create_new_task_code.png" alt="Writing code for new task" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/create_new_task_tests.png" alt="Writing tests for new task" class="screenshot_column" style="width: 33%;">
+	</div>
+	<div class="instructions">
+		<p>
+			After writing both the task code and the test cases, the teacher can go on to writing task instructions,
+			task description and constructing the block solution byt clicking on the "Continue To Block Builder" button.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/block_builder1.png" alt="Block builder page pt1" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/block_builder2.png" alt="Block builder page pt2" class="screenshot_column" style="width: 33%;">
+		<img src="/documentation/pictures/block_builder3.png" alt="Block builder page pt3" class="screenshot_column" style="width: 33%;">
+	</div>
+	<div class="instructions">
+		<p>
+			Task draft can be cleared by clicking on the "Clear Drafts" button. After continuing to block builder,
+			the teacher is also able to add their own custom blocks to the task, run the tests they have previously
+			written. Finally, when the tests have been passed, the teacher can add their custom task to the global
+			Exercise list.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/block_builder4.png" alt="Block builder page pt4" class="screenshot_column" style="width: 50%;">
+		<img src="/documentation/pictures/block_builder5.png" alt="Block builder page pt5" class="screenshot_column" style="width: 50%;">
+	</div>
+	<div class="instructions">
+		<h3>Global Exercise List</h3>
+		<p>
+			By clicking on "Exercises" button on the navbar, the teacher will be redirected to the global exercise
+			list, where they'll be able to view global statistics of each existing task. On this page the teacher
+			is able to view each task's creation date, success rate as well as a short description of each task's
+			goal. After clicking on a specific task the teacher is able to view more exercise analytics. They
+			contain the total number of attempts, the amount of students who have completed the task, the amount of
+			students who attempted teh task and the average number of tries before success. Time related statistics
+			include the average, minimum and maximum time to first fail and to first success as well as the average
+			thinking time before starting a task. In addition to this, the average number of moves and most common
+			mistakes and inputs as well as the model answer are also available on this page.
+		</p>
+	</div>
+	<div class="screenshot_row">
+		<img src="/documentation/pictures/ohtuproj_screenshots6.png" alt="Exercises button on the navbar" class="screenshot_column" style="width: 50%;">
+		<img src="/documentation/pictures/ohtuproj_screenshots7.png" alt="Global Task Set" class="screenshot_column" style="width: 50%;">
+	</div>
+</body>

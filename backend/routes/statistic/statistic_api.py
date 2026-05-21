@@ -29,6 +29,37 @@ from ..utils.commons import get_task_set_or_404, run_with_task_ids_or_empty
 router = APIRouter()
 
 
+def compute_box_stats(values: list) -> dict | None:
+    if not values:
+        return None
+    n = len(values)
+    sv = sorted(values)
+
+    def pct(p):
+        k = (n - 1) * p / 100.0
+        lo, hi = int(k), min(int(k) + 1, n - 1)
+        return sv[lo] + (k - lo) * (sv[hi] - sv[lo])
+
+    q1, med, q3 = pct(25), pct(50), pct(75)
+    iqr = q3 - q1
+    wl = min(v for v in sv if v >= q1 - 1.5 * iqr)
+    wh = max(v for v in sv if v <= q3 + 1.5 * iqr)
+    outliers = [v for v in sv if v < q1 - 1.5 * iqr or v > q3 + 1.5 * iqr]
+
+    return {
+        "count": n,
+        "avg": round(sum(values) / n, 2),
+        "min": round(sv[0], 2),
+        "max": round(sv[-1], 2),
+        "q1": round(q1, 2),
+        "median": round(med, 2),
+        "q3": round(q3, 2),
+        "whisker_low": round(wl, 2),
+        "whisker_high": round(wh, 2),
+        "outliers": [round(v, 2) for v in outliers],
+    }
+
+
 async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | None:
     result = await db.execute(
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
@@ -385,8 +416,8 @@ async def get_task_statistics(
             "students_completed": 0,
             "students_not_started": early_not_started,
             "avg_tries": 0,
-            "time_to_first_fail": {"avg": 0, "min": 0, "max": 0},
-            "time_to_first_success": {"avg": 0, "min": 0, "max": 0},
+            "time_to_first_fail": None,
+            "time_to_first_success": None,
             "thinking_time": None,
             "number_of_moves": None,
             "common_mistakes": [],
@@ -459,11 +490,7 @@ async def get_task_statistics(
                 if secs is not None:
                     tff_values.append(secs)
                 break
-    tff = {
-        "avg": round(sum(tff_values) / len(tff_values), 2) if tff_values else 0,
-        "min": round(min(tff_values), 2) if tff_values else 0,
-        "max": round(max(tff_values), 2) if tff_values else 0,
-    }
+    tff = compute_box_stats(tff_values)
 
     tfs_values = []
     for session_attempts in student_attempts.values():
@@ -478,11 +505,7 @@ async def get_task_statistics(
                     tfs_values.append(secs)
                 break
 
-    tfs = {
-        "avg": round(sum(tfs_values) / len(tfs_values), 2) if tfs_values else 0,
-        "min": round(min(tfs_values), 2) if tfs_values else 0,
-        "max": round(max(tfs_values), 2) if tfs_values else 0,
-    }
+    tfs = compute_box_stats(tfs_values)
 
     # Thinking time: time from enrollment.started_at to first move/edit per student
     enrollment_ids_map = {en.id: en for _, en in attempts_data}
@@ -506,13 +529,7 @@ async def get_task_statistics(
             if 0 <= secs < 3600:  # ignore implausible values
                 thinking_values.append(secs)
 
-    thinking_time = None
-    if thinking_values:
-        thinking_time = {
-            "avg": round(sum(thinking_values) / len(thinking_values), 2),
-            "min": round(min(thinking_values), 2),
-            "max": round(max(thinking_values), 2),
-        }
+    thinking_time = compute_box_stats(thinking_values)
 
     # Number of moves per student: avg/min/max
     move_counts_per_student = []
@@ -525,13 +542,7 @@ async def get_task_statistics(
         cnt = count_res.scalar() or 0
         move_counts_per_student.append(cnt)
 
-    number_of_moves = None
-    if move_counts_per_student:
-        number_of_moves = {
-            "avg": round(sum(move_counts_per_student) / len(move_counts_per_student), 1),
-            "min": min(move_counts_per_student),
-            "max": max(move_counts_per_student),
-        }
+    number_of_moves = compute_box_stats(move_counts_per_student)
 
     # Students enrolled in the task set but never attempted this task (not started)
     students_not_started = 0

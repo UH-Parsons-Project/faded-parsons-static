@@ -690,7 +690,7 @@ class TestStatistics:
         assert body["students_completed"] == 0
         assert body["avg_tries"] == 0
         assert body["common_mistakes"] == []
-        assert body["time_to_first_success"] == {"avg": 0, "min": 0, "max": 0}
+        assert body["time_to_first_success"] is None
 
     async def test_single_success_calculates_time_correctly(
         self, client, task, task_set, student_session, test_teacher, db_session
@@ -736,7 +736,8 @@ class TestStatistics:
                                   headers=_auth(test_teacher.username))).json()
         assert body["students_completed"] == 0
         assert body["avg_tries"] == 0
-        assert body["time_to_first_success"]["avg"] == 0
+        assert body["time_to_first_success"] is None
+        assert body["time_to_first_fail"] is not None
 
     async def test_multiple_students_aggregated(
         self, client, task, task_set, test_teacher, db_session

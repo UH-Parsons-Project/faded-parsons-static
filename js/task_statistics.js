@@ -48,6 +48,241 @@ function formatTime(seconds) {
 	return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
+function formatCount(n) { return String(Math.round(n)); }
+
+function fmtTick(v, fmtFn) {
+	if (fmtFn !== formatTime) return fmtFn(v);
+	if (v === 0) return '0';
+	if (v < 60) return `${v}s`;
+	const m = Math.floor(v / 60), s = Math.round(v % 60);
+	return s === 0 ? `${m}m` : `${m}m ${s}s`;
+}
+
+function niceAxisTicks(maxVal) {
+	if (maxVal <= 0) return [0];
+	const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1200, 1800, 3600];
+	const step = STEPS.find(s => s >= maxVal / 8) || STEPS[STEPS.length - 1];
+	const roundedMax = Math.ceil(maxVal / step) * step;
+	const ticks = [];
+	for (let v = 0; v <= roundedMax + 0.001; v += step) ticks.push(v);
+	return ticks;
+}
+
+function renderBoxPlot(containerId, stats, desc) {
+	const container = document.getElementById(containerId);
+	if (!container) return;
+
+	const fmt = desc.fmt || formatTime;
+
+	if (!stats || !stats.count) {
+		container.innerHTML = `<div class="bp-metric" style="opacity:.45">
+			<div class="bp-header">
+				<div class="bp-name"><span class="bp-dot" style="background:${desc.color}"></span>${desc.name}</div>
+				<span style="font-size:.7rem;color:var(--text-muted);font-style:italic;">Not yet tracked</span>
+			</div>
+		</div>`;
+		return;
+	}
+
+	if (stats.count < 5) {
+		container.innerHTML = `<div class="bp-metric">
+			<div class="bp-header">
+				<div class="bp-name">
+					<span class="bp-dot" style="background:${desc.color}"></span>
+					${desc.name}
+					<span style="font-size:.65rem;color:var(--text-muted);font-weight:400;margin-left:.4rem;">n = ${stats.count}</span>
+				</div>
+				<span style="font-size:.72rem;color:var(--text-muted);font-style:italic;">Not enough data for a box plot</span>
+			</div>
+			<div style="display:flex;gap:2rem;padding:.5rem 0;font-size:.8rem;color:var(--text-muted);">
+				<span>min <b style="color:var(--text);font-weight:700;">${fmt(stats.min)}</b></span>
+				<span>median <b style="color:${desc.color};font-weight:700;">${fmt(stats.median)}</b></span>
+				<span>avg <b style="color:var(--text);font-weight:700;">${fmt(stats.avg)}</b></span>
+				<span>max <b style="color:var(--text);font-weight:700;">${fmt(stats.max)}</b></span>
+			</div>
+		</div>`;
+		return;
+	}
+
+	const W = 1000;
+	const outliers = stats.outliers || [];
+	const whiskerLow = stats.whisker_low;
+	const whiskerHigh = stats.whisker_high;
+	const maxOutlier = outliers.length > 0 ? Math.max(...outliers) : 0;
+	const dataMax = Math.max(whiskerHigh, maxOutlier, stats.max);
+
+	// Break the axis when outliers are far from the fence (> 2× whiskerHigh)
+	const W_MAIN = 780, W_BREAK = 44, W_OUT = W - 780 - 44; // 176
+	const useAxisBreak = outliers.length > 0 && whiskerHigh > 0 && maxOutlier > 2 * whiskerHigh;
+	let xp, ticks, breakX1 = -1, breakX2 = -1, cutoff = 0;
+
+	if (useAxisBreak) {
+		const mainTicks = niceAxisTicks(whiskerHigh);
+		cutoff = mainTicks[mainTicks.length - 1];
+		const outTotal = (maxOutlier - cutoff) * 1.1; // 10 % right padding
+		xp = v => v <= cutoff
+			? (v / cutoff) * W_MAIN
+			: W_MAIN + W_BREAK + Math.min(((v - cutoff) / outTotal) * W_OUT, W_OUT);
+		ticks = mainTicks;
+		breakX1 = W_MAIN;
+		breakX2 = W_MAIN + W_BREAK;
+	} else {
+		ticks = niceAxisTicks(dataMax);
+		const scaleMax = ticks[ticks.length - 1] * 1.001 || 1;
+		xp = v => (v / scaleMax) * W;
+	}
+
+	// Y layout: top labels → box plot → axis → tick labels
+	const Y_VAL  = 14;            // bold value text
+	const Y_NAME = 26;            // smaller label name
+	const CY     = 53;            // box centre
+	const BH     = 20;
+	const BT     = CY - BH / 2;  // 43
+	const BB     = CY + BH / 2;  // 63
+	const AY     = 80;            // axis line
+	const Y_TICK = 100;           // tick number labels
+
+	const xWL = xp(whiskerLow), xWH = xp(whiskerHigh);
+	const xQ1 = xp(stats.q1), xQ3 = xp(stats.q3);
+	const xMed = xp(stats.median), xAvg = xp(stats.avg);
+	const iqrWidth = Math.max(xQ3 - xQ1, 2);
+
+	// ── top labels (value + name), priority-deduped ──────────────
+	const hasLowOutliers  = outliers.some(v => v < whiskerLow);
+	const hasHighOutliers = outliers.some(v => v > whiskerHigh);
+	const rawLabels = [
+		{ x: xMed,             val: fmt(stats.median), name: 'Median',  pri: 6 },
+		{ x: xQ3,              val: fmt(stats.q3),     name: 'Q3',      pri: 5 },
+		{ x: xQ1,              val: fmt(stats.q1),     name: 'Q1',      pri: 5 },
+		{ x: xWH,              val: fmt(whiskerHigh),  name: hasHighOutliers ? 'Fence' : 'Maximum', pri: 4 },
+		{ x: xWL,              val: fmt(whiskerLow),   name: hasLowOutliers  ? 'Fence' : 'Minimum', pri: 3 },
+		...(hasHighOutliers ? [{ x: xp(stats.max), val: fmt(stats.max), name: 'Maximum', pri: 2 }] : []),
+		...(hasLowOutliers  ? [{ x: xp(stats.min), val: fmt(stats.min), name: 'Minimum', pri: 1 }] : []),
+	];
+	const MIN_LABEL_GAP = 80;
+	const shownLabels = [];
+	for (const lp of rawLabels) {
+		if (!shownLabels.some(sl => Math.abs(sl.x - lp.x) < MIN_LABEL_GAP)) shownLabels.push(lp);
+	}
+
+	const p = [];
+
+	for (const lp of shownLabels) {
+		const a = lp.x < 30 ? 'start' : lp.x > W - 30 ? 'end' : 'middle';
+		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_VAL}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="14" font-weight="800" fill="${desc.colorDark}">${lp.val}</text>`);
+		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_NAME}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="9.5" fill="#94a3b8">${lp.name}</text>`);
+	}
+
+	// ── box plot ─────────────────────────────────────────────────
+	// whisker spine
+	p.push(`<line x1="${xWL}" y1="${CY}" x2="${xWH}" y2="${CY}" stroke="${desc.color}" stroke-width="1.5"/>`);
+	// whisker caps
+	p.push(`<line x1="${xWL}" y1="${BT + 2}" x2="${xWL}" y2="${BB - 2}" stroke="${desc.color}" stroke-width="1.5"/>`);
+	p.push(`<line x1="${xWH}" y1="${BT + 2}" x2="${xWH}" y2="${BB - 2}" stroke="${desc.color}" stroke-width="1.5"/>`);
+	// IQR box
+	p.push(`<rect x="${xQ1}" y="${BT}" width="${iqrWidth}" height="${BH}" fill="${desc.colorLight}" stroke="${desc.color}" stroke-width="1.5" rx="2"/>`);
+	// median line
+	p.push(`<line x1="${xMed}" y1="${BT}" x2="${xMed}" y2="${BB}" stroke="${desc.colorDark}" stroke-width="2.5"/>`);
+	// mean diamond with hover tooltip
+	p.push(
+		`<g class="bp-avg-g">` +
+			`<circle cx="${xAvg}" cy="${CY}" r="8" fill="transparent"/>` +
+			`<path d="M ${xAvg} ${BT + 3} L ${xAvg + 5} ${CY} L ${xAvg} ${BB - 3} L ${xAvg - 5} ${CY} Z" fill="${desc.color}" stroke="white" stroke-width="1"/>` +
+			`<rect class="bp-tip-bg" x="${xAvg - 30}" y="${BT - 34}" width="60" height="26" rx="3" fill="${desc.colorDark}"/>` +
+			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 22}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,0.65)" letter-spacing="1">AVG</text>` +
+			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 10}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="white">${fmt(stats.avg)}</text>` +
+		`</g>`
+	);
+	// outlier dots with hover tooltip
+	for (const v of outliers) {
+		const cx = +xp(v).toFixed(1);
+		const label = fmt(v);
+		p.push(
+			`<g class="bp-outlier-g">` +
+				`<circle cx="${cx}" cy="${CY}" r="7" fill="transparent"/>` +
+				`<circle cx="${cx}" cy="${CY}" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>` +
+				`<rect class="bp-tip-bg" x="${cx - 30}" y="${BT - 24}" width="60" height="16" rx="3" fill="#1e293b"/>` +
+				`<text class="bp-tip-text" x="${cx}" y="${BT - 11}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="white">${label}</text>` +
+			`</g>`
+		);
+	}
+
+	// ── axis + ticks ─────────────────────────────────────────────
+	if (useAxisBreak) {
+		p.push(`<line x1="0" y1="${AY}" x2="${breakX1}" y2="${AY}" stroke="#cbd5e1" stroke-width="1.5"/>`);
+		p.push(`<line x1="${breakX2}" y1="${AY}" x2="${W}" y2="${AY}" stroke="#cbd5e1" stroke-width="1.5"/>`);
+		// Break indicator: two diagonal slashes
+		const bxMid = (breakX1 + breakX2) / 2;
+		const SO = 8;
+		p.push(`<line x1="${bxMid - SO - 4}" y1="${AY - 6}" x2="${bxMid - SO + 4}" y2="${AY + 6}" stroke="#94a3b8" stroke-width="1.5"/>`);
+		p.push(`<line x1="${bxMid + SO - 4}" y1="${AY - 6}" x2="${bxMid + SO + 4}" y2="${AY + 6}" stroke="#94a3b8" stroke-width="1.5"/>`);
+		p.push(`<text x="${bxMid}" y="${Y_TICK}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#94a3b8">…</text>`);
+	} else {
+		p.push(`<line x1="0" y1="${AY}" x2="${W}" y2="${AY}" stroke="#cbd5e1" stroke-width="1.5"/>`);
+	}
+	for (const tv of ticks) {
+		const tx = xp(tv);
+		if (tx < 0 || tx > W + 1) continue;
+		const a = tx < 15 ? 'start' : tx > W - 15 ? 'end' : 'middle';
+		p.push(`<line x1="${tx.toFixed(1)}" y1="${AY}" x2="${tx.toFixed(1)}" y2="${AY + 7}" stroke="#cbd5e1" stroke-width="1"/>`);
+		p.push(`<text x="${tx.toFixed(1)}" y="${Y_TICK}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="10" fill="#94a3b8">${fmtTick(tv, fmt)}</text>`);
+	}
+	if (useAxisBreak) {
+		// Tick marks at each unique outlier value in the outlier section
+		for (const v of [...new Set(outliers)]) {
+			const tx = xp(v);
+			const a = tx > W - 15 ? 'end' : 'middle';
+			p.push(`<line x1="${tx.toFixed(1)}" y1="${AY}" x2="${tx.toFixed(1)}" y2="${AY + 7}" stroke="#cbd5e1" stroke-width="1"/>`);
+			p.push(`<text x="${tx.toFixed(1)}" y="${Y_TICK}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="10" fill="#94a3b8">${fmtTick(v, fmt)}</text>`);
+		}
+	}
+
+	const legendSvg = (w, h, body) =>
+		`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;overflow:visible;">${body}</svg>`;
+
+	container.innerHTML = `
+		<div class="bp-metric">
+			<div class="bp-header">
+				<div class="bp-name">
+					<span class="bp-dot" style="background:${desc.color}"></span>
+					${desc.name}
+					<span style="font-size:.65rem;color:var(--text-muted);font-weight:400;margin-left:.4rem;">n = ${stats.count}</span>
+				</div>
+				<div class="bp-summary">
+					<span><span class="bp-summary-label">median</span> <b style="color:${desc.color}">${fmt(stats.median)}</b></span>
+					<span><span class="bp-summary-label">avg</span> <b>${fmt(stats.avg)}</b></span>
+				</div>
+			</div>
+			<div class="bp-svg-wrap">
+				<svg viewBox="0 0 ${W} 108" style="width:100%;height:auto;display:block;overflow:visible;">
+					${p.join('')}
+				</svg>
+			</div>
+			<div class="bp-legend">
+				<span class="bp-legend-item">
+					${legendSvg(14, 12, `<rect x="1" y="1" width="12" height="10" rx="2" fill="${desc.colorLight}" stroke="${desc.color}" stroke-width="1.5"/>`)}
+					Q1–Q3 box (middle 50%)
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(10, 12, `<line x1="5" y1="1" x2="5" y2="11" stroke="${desc.colorDark}" stroke-width="2.5"/>`)}
+					Median
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(12, 12, `<path d="M6 1 L11 6 L6 11 L1 6 Z" fill="${desc.color}"/>`)}
+					Mean
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(26, 12, `<line x1="0" y1="6" x2="26" y2="6" stroke="${desc.color}" stroke-width="1.5"/><line x1="0" y1="3" x2="0" y2="9" stroke="${desc.color}" stroke-width="1.5"/><line x1="26" y1="3" x2="26" y2="9" stroke="${desc.color}" stroke-width="1.5"/>`)}
+					Whiskers (1.5×IQR from Q1/Q3)
+				</span>
+				<span class="bp-legend-item">
+					${legendSvg(12, 12, `<circle cx="6" cy="6" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>`)}
+					Outlier (beyond whiskers)
+				</span>
+			</div>
+		</div>`;
+}
+
 function escapeHtml(text) {
 	const div = document.createElement('div');
 	div.textContent = text;
@@ -274,32 +509,20 @@ async function loadStatistics() {
 	const think = data.thinking_time;
 
 	if (tff) {
-		document.getElementById('tff-avg').textContent = formatTime(tff.avg);
-		document.getElementById('tff-min').textContent = formatTime(tff.min);
-		document.getElementById('tff-max').textContent = formatTime(tff.max);
 		document.getElementById('tff-metric').style.opacity = '';
+		renderBoxPlot('bp-tff', tff, { name: 'Time to First Fail', color: '#dc2626', colorLight: '#fee2e2', colorDark: '#7f1d1d', fmt: formatTime });
 	}
-
 	if (tfs) {
-		document.getElementById('tfs-avg').textContent = formatTime(tfs.avg);
-		document.getElementById('tfs-min').textContent = formatTime(tfs.min);
-		document.getElementById('tfs-max').textContent = formatTime(tfs.max);
 		document.getElementById('tfs-metric').style.opacity = '';
+		renderBoxPlot('bp-tfs', tfs, { name: 'Time to First Success', color: '#16a34a', colorLight: '#dcfce7', colorDark: '#14532d', fmt: formatTime });
 	}
-
 	if (think) {
-		document.getElementById('think-avg').textContent = formatTime(think.avg);
-		document.getElementById('think-min').textContent = formatTime(think.min);
-		document.getElementById('think-max').textContent = formatTime(think.max);
 		document.getElementById('thinking-time-metric').style.opacity = '';
+		renderBoxPlot('bp-think', think, { name: 'Thinking Time', color: '#7b8df0', colorLight: '#e0e7ff', colorDark: '#3730a3', fmt: formatTime });
 	}
-
 	if (data.number_of_moves) {
-		const moves = data.number_of_moves;
-		document.getElementById('moves-avg').textContent = moves.avg;
-		document.getElementById('moves-min').textContent = moves.min;
-		document.getElementById('moves-max').textContent = moves.max;
 		document.getElementById('moves-metric').style.opacity = '';
+		renderBoxPlot('bp-moves', data.number_of_moves, { name: 'Number of Moves', color: '#94a3b8', colorLight: '#e2e8f0', colorDark: '#334155', fmt: formatCount });
 	}
 
 	// Common mistakes

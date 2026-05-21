@@ -153,7 +153,7 @@ function renderBoxPlot(containerId, stats, desc) {
 		{ x: xQ3,  val: fmt(stats.q3),       name: 'Q3',       pri: 5 },
 		{ x: xQ1,  val: fmt(stats.q1),       name: 'Q1',       pri: 5 },
 		{ x: xWH,  val: fmt(whiskerHigh),    name: outliers.length ? 'Fence' : 'Maximum', pri: 4 },
-		{ x: xWL,  val: fmt(stats.min),      name: 'Minimum',  pri: 3 },
+		{ x: xWL,  val: fmt(whiskerLow),     name: outliers.some(v => v < whiskerLow) ? 'Fence' : 'Minimum', pri: 3 },
 		...outliers.map(v => ({ x: xp(v), val: fmt(v), name: 'Outlier', pri: 2 })),
 	];
 	const MIN_LABEL_GAP = 80;

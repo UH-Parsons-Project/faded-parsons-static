@@ -180,11 +180,28 @@ function renderBoxPlot(containerId, stats, desc) {
 	p.push(`<rect x="${xQ1}" y="${BT}" width="${iqrWidth}" height="${BH}" fill="${desc.colorLight}" stroke="${desc.color}" stroke-width="1.5" rx="2"/>`);
 	// median line
 	p.push(`<line x1="${xMed}" y1="${BT}" x2="${xMed}" y2="${BB}" stroke="${desc.colorDark}" stroke-width="2.5"/>`);
-	// mean diamond
-	p.push(`<path d="M ${xAvg} ${BT + 3} L ${xAvg + 5} ${CY} L ${xAvg} ${BB - 3} L ${xAvg - 5} ${CY} Z" fill="${desc.color}" stroke="white" stroke-width="1"/>`);
-	// outlier dots
+	// mean diamond with hover tooltip
+	p.push(
+		`<g class="bp-avg-g">` +
+			`<circle cx="${xAvg}" cy="${CY}" r="8" fill="transparent"/>` +
+			`<path d="M ${xAvg} ${BT + 3} L ${xAvg + 5} ${CY} L ${xAvg} ${BB - 3} L ${xAvg - 5} ${CY} Z" fill="${desc.color}" stroke="white" stroke-width="1"/>` +
+			`<rect class="bp-tip-bg" x="${xAvg - 30}" y="${BT - 34}" width="60" height="26" rx="3" fill="${desc.colorDark}"/>` +
+			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 22}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,0.65)" letter-spacing="1">AVG</text>` +
+			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 10}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="white">${fmt(stats.avg)}</text>` +
+		`</g>`
+	);
+	// outlier dots with hover tooltip
 	for (const v of outliers) {
-		p.push(`<circle cx="${xp(v).toFixed(1)}" cy="${CY}" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>`);
+		const cx = +xp(v).toFixed(1);
+		const label = fmt(v);
+		p.push(
+			`<g class="bp-outlier-g">` +
+				`<circle cx="${cx}" cy="${CY}" r="7" fill="transparent"/>` +
+				`<circle cx="${cx}" cy="${CY}" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>` +
+				`<rect class="bp-tip-bg" x="${cx - 30}" y="${BT - 24}" width="60" height="16" rx="3" fill="#1e293b"/>` +
+				`<text class="bp-tip-text" x="${cx}" y="${BT - 11}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="white">${label}</text>` +
+			`</g>`
+		);
 	}
 
 	// ── axis + ticks ─────────────────────────────────────────────

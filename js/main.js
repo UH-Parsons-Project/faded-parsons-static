@@ -342,10 +342,11 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 
 	// Update UI with test results
 	probEl.setAttribute('runStatus', ''); // Clear loading status
-	probEl.setAttribute('resultsStatus', testResults.status); // Pass/Fail
-	probEl.setAttribute('resultsHeader', testResults.header); // Result title
-	probEl.setAttribute('resultsDetails', testResults.details); // Result details
+	probEl.setAttribute('resultsStatus', testResults.status);
+	probEl.setAttribute('resultsHeader', testResults.header);
+	probEl.setAttribute('resultsDetails', testResults.details);
 	probEl.setAttribute('resultsMessageSource', testResults.messageSource || 'system');
+	probEl.setAttribute('resultsTeacherHint', testResults.teacherHint || '');
 	probEl.showNextTask = false;
 	probEl.nextTaskUrl = '';
 	probEl.allTasksCompleted = false;

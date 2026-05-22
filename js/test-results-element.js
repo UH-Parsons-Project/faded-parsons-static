@@ -6,6 +6,7 @@ export class TestResultsElement extends LitElement {
 		header: {type: String},
 		details: {type: String},
 		source: {type: String},
+		teacherhint: {type: String},
 	};
 
 	createRenderRoot() {
@@ -16,7 +17,7 @@ export class TestResultsElement extends LitElement {
 		const details = this.details || '';
 		const lines = details.split('\n');
 
-		return lines.map((line, index) => {
+		return lines.map((line) => {
 			let lineClass = 'test-details-line';
 			if (line.startsWith('✅')) {
 				lineClass += ' test-details-line-pass';
@@ -53,16 +54,18 @@ export class TestResultsElement extends LitElement {
 		]
 			.filter(Boolean)
 			.join(' ');
-		const isTeacherMessage = (this.source || '').toLowerCase() === 'teacher';
+		const teacherHint = (this.teacherhint || '').trim();
 
 		return html`<div class="test-results-panel">
-					<div class=${summaryClass}>
-						${this.header}
-						${isTeacherMessage
-							? html`<span class="badge badge-info ml-2" title="Shown from teacher custom error rules">Teacher hint</span>`
+					<div class=${summaryClass}>${this.header}</div>
+					<div class="test-results-details">
+						${teacherHint
+							? html`<div class="teacher-hint-box">
+									<strong>Teacher hint:</strong> ${teacherHint}
+								</div>`
 							: ''}
+						${this.renderDetails()}
 					</div>
-					<div class="test-results-details">${this.renderDetails()}</div>
 				</div>`;
 	}
 }

@@ -30,6 +30,7 @@ export class ProblemElement extends LitElement {
 		resultsHeader: {type: String},
 		resultsDetails: {type: String},
 		resultsMessageSource: {type: String},
+		resultsTeacherHint: {type: String},
 		nextTaskUrl: {type: String},
 		showNextTask: {type: Boolean},
 		allTasksCompleted: {type: Boolean},
@@ -76,6 +77,7 @@ export class ProblemElement extends LitElement {
 				header=${this.resultsHeader}
 				details=${this.resultsDetails}
 				source=${this.resultsMessageSource || 'system'}
+				teacherhint=${this.resultsTeacherHint || ''}
 			></test-results-element>`;
 		}
 

@@ -417,14 +417,16 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .bp-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem 1.1rem;
-  font-size: 0.65rem;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border);
-  padding-top: .75rem;
-  margin-top: .25rem;
+  padding-top: .9rem;
+  margin-top: .5rem;
 }
-.bp-legend-item { display: flex; align-items: center; gap: .35rem; }
+.bp-legend-item { display: flex; align-items: center; gap: .5rem; flex: 1 1 auto; justify-content: center; }
+.bp-legend-item--primary { color: var(--text); font-weight: 700; font-size: 0.85rem; }
 .bp-legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .bp-outlier-g { cursor: pointer; }
 .bp-outlier-g .bp-tip-bg,

@@ -107,6 +107,12 @@ async def task_set_task_start_page(
     return response
 
 
+@router.get("/demo", response_class=FileResponse)
+async def demo_task_page():
+    demo_path = BASE_DIR / "templates" / "demo.html"
+    return FileResponse(demo_path)
+
+
 @router.get("/student-register", response_class=FileResponse)
 async def student_register_page():
     student_register_path = BASE_DIR / "templates" / "student_register.html"

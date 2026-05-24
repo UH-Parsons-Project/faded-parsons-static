@@ -117,7 +117,7 @@ function renderTaskSets(taskSets) {
 	const headerRow = document.createElement('div');
 	headerRow.className = 'section-header-row';
 	const heading = document.createElement('h4');
-	heading.textContent = 'Your Task Sets';
+	heading.textContent = 'My Task Sets';
 	const createBtn = document.createElement('a');
 	createBtn.href = '/create-task-set';
 	createBtn.className = 'section-create-btn';
@@ -305,7 +305,7 @@ function renderMyTasks(tasks) {
 	sectionHeader.className = 'section-header-row';
 
 	const heading = document.createElement('h4');
-	heading.textContent = 'Your Tasks';
+	heading.textContent = 'My Tasks';
 
 	const createBtn = document.createElement('a');
 	createBtn.href = '/create-task';

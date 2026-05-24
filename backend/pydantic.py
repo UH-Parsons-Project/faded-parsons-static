@@ -44,6 +44,7 @@ class TaskSetTaskResponse(BaseModel):
     title: str
     task_type: str
     created_at: str
+    is_hidden: bool = False
 
 
 class ProblemSetInfoResponse(BaseModel):

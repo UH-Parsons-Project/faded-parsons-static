@@ -82,7 +82,7 @@ async def task_set_task_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -112,7 +112,7 @@ async def task_set_task_start_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)

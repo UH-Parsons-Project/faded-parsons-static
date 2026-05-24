@@ -44,8 +44,9 @@ async function resolveNextTaskUrl() {
 		return null;
 	}
 
-	const tasks = await tasksResponse.json();
-	if (!Array.isArray(tasks) || tasks.length === 0) {
+	const allTasks = await tasksResponse.json();
+	const tasks = Array.isArray(allTasks) ? allTasks.filter(t => !t.is_hidden) : [];
+	if (tasks.length === 0) {
 		return null;
 	}
 

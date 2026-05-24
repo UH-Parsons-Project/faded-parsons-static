@@ -110,6 +110,7 @@ class TaskSetItem(Base):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
 
 
 class TeacherFavoriteTask(Base):

@@ -117,13 +117,13 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
         )
 
     stmt = (
-        select(Parsons)
+        select(Parsons, TaskSetItem.is_hidden)
         .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
         .where(TaskSetItem.task_set_id == task_set.id)
         .order_by(TaskSetItem.id.asc())
     )
     result = await db.execute(stmt)
-    tasks = result.scalars().all()
+    rows = result.all()
 
     return [
         TaskSetTaskResponse(
@@ -131,9 +131,37 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
             title=task.title,
             task_type=task.task_type,
             created_at=task.created_at.isoformat(),
+            is_hidden=is_hidden,
         )
-        for task in tasks
+        for task, is_hidden in rows
     ]
+
+
+@router.patch("/api/my_sets/{task_set_id}/tasks/{task_id}/hidden")
+async def toggle_task_hidden(
+    task_set_id: int,
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Toggle the hidden status of a task within a task set."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    item_result = await db.execute(
+        select(TaskSetItem).where(
+            TaskSetItem.task_set_id == task_set_id,
+            TaskSetItem.task_id == task_id,
+        )
+    )
+    item = item_result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found in this task set")
+
+    item.is_hidden = not item.is_hidden
+    await db.commit()
+    return {"task_id": task_id, "is_hidden": item.is_hidden}
 
 
 @router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)

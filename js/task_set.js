@@ -66,7 +66,6 @@ async function loadCompletionStatus(taskNumber, statusElement, itemIndex, number
 		const stats = await completionResponse.json();
 		const startedData = await startedResponse.json();
 		const hasStarted = Boolean(startedData.has_started);
-		const studentAttempts = Number(stats.student_attempts || 0);
 		const studentCompleted = Number(stats.student_completed || 0);
 
 		if (studentCompleted > 0) {
@@ -186,7 +185,7 @@ if (uniqueLinkCode) {
 					return resp.json();
 				})
 				.then(function (json) {
-					render(json);
+					render(json.filter(t => !t.is_hidden));
 				})
 				.catch(function (error) {
 					container.className = 'empty-state';

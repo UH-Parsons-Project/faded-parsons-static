@@ -250,6 +250,15 @@ async function loadTaskSets() {
 function createMyTaskCard(task) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
+	card.style.cursor = 'pointer';
+	card.onclick = () => {
+		const previewWindow = window.open(
+			'/task?id=' + encodeURIComponent(task.id),
+			'_blank',
+			'width=1000,height=800,resizable=yes,scrollbars=yes'
+		);
+		if (previewWindow) previewWindow.focus();
+	};
 
 	const header = document.createElement('div');
 	header.className = 'task-set-item-top';
@@ -279,7 +288,8 @@ function createMyTaskCard(task) {
 		const deleteBtn = document.createElement('button');
 		deleteBtn.className = 'btn btn-sm btn-outline-danger';
 		deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-		deleteBtn.addEventListener('click', async () => {
+		deleteBtn.addEventListener('click', async (e) => {
+			e.stopPropagation();
 			if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
 			try {
 				const res = await fetch(`/api/problems/${task.id}`, { method: 'DELETE', credentials: 'include' });

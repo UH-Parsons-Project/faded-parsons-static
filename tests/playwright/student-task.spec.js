@@ -134,13 +134,13 @@ test('student can navigate back to task list and see in-progress status', async 
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Verify task list is displayed with tasks
-  await expect(studentPage.locator('.task-set-item')).toHaveCount(2); // 2 tasks created (add_in_range, greater_num)
+  await expect(studentPage.locator('.task-set-item')).toHaveCount(3); // 2 tasks created (add_in_range, greater_num) + demo task
   await expect(studentPage.locator('.task-set-item', { hasText: 'add_in_range' })).toBeVisible();
   await expect(studentPage.locator('.task-set-item', { hasText: 'greater_num' })).toBeVisible();
 
   // Click on the "add_in_range" task
   await studentPage.locator('.task-set-item', { hasText: 'add_in_range' }).click();
-  
+
   // Verify task page loads with "Start" button
   await studentPage.waitForSelector('#start-btn', { timeout: 10000 });
   await expect(studentPage.locator('#start-btn')).toBeVisible();
@@ -162,4 +162,3 @@ test('student can navigate back to task list and see in-progress status', async 
 
   await studentContext.close();
 });
-

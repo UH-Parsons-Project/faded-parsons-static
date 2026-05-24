@@ -76,6 +76,11 @@ async def get_task_set(
 
     await require_task_set_view_access(task_set, current_user, db)
 
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
     return TaskSetResponse(
         id=task_set.id,
         title=task_set.title,
@@ -86,6 +91,7 @@ async def get_task_set(
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
     )
 
 
@@ -283,6 +289,32 @@ async def create_task_set(
         created_at=task_set.created_at.isoformat(),
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
     )
+
+
+@router.delete("/api/my_sets/{task_set_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task set")
+
+    enrolled_stmt = (
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+    )
+    enrolled_count = (await db.execute(enrolled_stmt)).scalar() or 0
+    if enrolled_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This task set cannot be deleted because students have already joined it.",
+        )
+
+    await db.execute(delete(TaskSet).where(TaskSet.id == task_set_id))
+    await db.commit()
 
 
 @router.get("/api/my_sets/{task_set_id}/viewers", response_model=list[TaskSetViewerResponse])

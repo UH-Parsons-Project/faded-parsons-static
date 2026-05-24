@@ -213,6 +213,18 @@ function renderListHeader(taskSet, tasks, students) {
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim();
+	const isOwner = currentUsername && taskSet.owner_username === currentUsername;
+
+	let deleteHTML = '';
+	if (isOwner) {
+		if (taskSet.deletable) {
+			deleteHTML = `<button id="delete-set-btn" type="button" class="btn btn-sm btn-outline-danger mt-2"><i class="fas fa-trash"></i> Delete Task Set</button>`;
+		} else {
+			deleteHTML = `<span class="btn btn-sm btn-secondary disabled mt-2 mb-2" title="Cannot delete — students have already joined"><i class="fas fa-lock"></i> Can not be deleted, in use</span>`;
+		}
+	}
+
 	let leftHTML = `
 		<div class="taskset-page-title">${escapeHtml(taskSet.title)}</div>
 		<div class="taskset-link-box">
@@ -224,6 +236,7 @@ function renderListHeader(taskSet, tasks, students) {
 		<div class="taskset-meta-row">
 			<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}
 		</div>
+		${deleteHTML}
 	`;
 	if (taskSet.teacher_description) {
 		leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
@@ -286,6 +299,25 @@ function renderListHeader(taskSet, tasks, students) {
 					copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
 				}, 2000);
 			}).catch(() => alert('Failed to copy URL'));
+		});
+	}
+
+	const deleteBtn = document.getElementById('delete-set-btn');
+	if (deleteBtn) {
+		deleteBtn.addEventListener('click', async () => {
+			if (!confirm(`Delete "${taskSet.title}"? This cannot be undone.`)) return;
+			try {
+				const res = await fetch(`/api/my_sets/${setId}`, { method: 'DELETE', credentials: 'include' });
+				if (res.ok) {
+					window.location.href = '/teacher-dashboard';
+				} else {
+					const data = await res.json().catch(() => ({}));
+					alert(data.detail || 'Failed to delete task set.');
+				}
+			} catch (err) {
+				console.error('Delete failed:', err);
+				alert('Failed to delete task set.');
+			}
 		});
 	}
 }

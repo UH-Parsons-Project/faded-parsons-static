@@ -285,9 +285,95 @@ async function loadTaskSets() {
 	}
 }
 
+function createMyTaskCard(task) {
+	const card = document.createElement('div');
+	card.className = 'task-set-item';
+
+	const header = document.createElement('div');
+	header.className = 'task-set-item-top';
+
+	const title = document.createElement('div');
+	title.className = 'task-set-title';
+	title.textContent = task.title;
+	header.appendChild(title);
+	card.appendChild(header);
+
+	const meta = document.createElement('div');
+	meta.className = 'task-set-meta';
+	meta.textContent = `${task.task_type} · Created ${formatDate(task.created_at)}`;
+	card.appendChild(meta);
+
+	const actions = document.createElement('div');
+	actions.className = 'd-flex flex-wrap mt-2';
+	actions.style.gap = '0.5rem';
+
+	if (task.editable) {
+		const editBtn = document.createElement('a');
+		editBtn.href = `/create-task-editor?task_id=${task.id}`;
+		editBtn.className = 'btn btn-sm btn-outline-success';
+		editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+		actions.appendChild(editBtn);
+	} else {
+		const lockedSpan = document.createElement('span');
+		lockedSpan.className = 'btn btn-sm btn-secondary disabled';
+		lockedSpan.title = 'This task is in use and cannot be edited';
+		lockedSpan.innerHTML = '<i class="fas fa-lock"></i> In use';
+		actions.appendChild(lockedSpan);
+	}
+
+	const statsBtn = document.createElement('a');
+	statsBtn.href = `/task-statistics?id=${task.id}`;
+	statsBtn.className = 'btn btn-sm btn-outline-primary';
+	statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>Global Statistics';
+	actions.appendChild(statsBtn);
+
+	card.appendChild(actions);
+	return card;
+}
+
+function renderMyTasks(tasks) {
+	const container = document.getElementById('your-tasks-container');
+	if (!container) return;
+
+	container.innerHTML = '';
+	const section = document.createElement('div');
+	section.className = 'task-set-section mt-4';
+
+	const sectionHeader = document.createElement('div');
+	sectionHeader.className = 'your-tasks-section-header';
+
+	const heading = document.createElement('h4');
+	heading.textContent = 'Your Tasks';
+	sectionHeader.appendChild(heading);
+
+	section.appendChild(sectionHeader);
+
+	if (tasks.length === 0) {
+		const empty = document.createElement('p');
+		empty.className = 'text-muted mb-0';
+		empty.textContent = 'No tasks created yet.';
+		section.appendChild(empty);
+	} else {
+		tasks.forEach((task) => section.appendChild(createMyTaskCard(task)));
+	}
+
+	container.appendChild(section);
+}
+
+async function loadMyTasks() {
+	try {
+		const response = await fetch('/api/my_tasks', { credentials: 'include' });
+		if (!response.ok) return;
+		const tasks = await response.json();
+		renderMyTasks(tasks);
+	} catch (err) {
+		console.error('Error loading tasks:', err);
+	}
+}
+
 async function initPage() {
 	await loadCurrentUser();
-	await loadTaskSets();
+	await Promise.all([loadTaskSets(), loadMyTasks()]);
 }
 
 initPage();

@@ -350,6 +350,15 @@ a.btn-success.btn-block:hover {
 }
 #all-sets-button-container .btn-primary:hover { background: #5a6edf; }
 
+/* ── Your Tasks section ──────────────────────────────── */
+.your-tasks-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .6rem;
+}
+.your-tasks-section-header h4 { margin: 0; }
+
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }
 

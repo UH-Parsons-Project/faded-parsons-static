@@ -942,3 +942,28 @@ async def update_problem(
     await db.refresh(task)
 
     return {"id": task.id, "message": "Problem updated"}
+
+
+@router.delete("/api/problems/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_problem(
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task")
+
+    if not await is_task_editable(task_id, current_user.id, db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This task cannot be deleted because it is used in a task set with enrolled students or in another teacher's task set.",
+        )
+
+    await db.execute(delete(Parsons).where(Parsons.id == task_id))
+    await db.commit()

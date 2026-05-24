@@ -275,10 +275,30 @@ function createMyTaskCard(task) {
 		editBtn.className = 'btn btn-sm btn-outline-success';
 		editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
 		actions.appendChild(editBtn);
+
+		const deleteBtn = document.createElement('button');
+		deleteBtn.className = 'btn btn-sm btn-outline-danger';
+		deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+		deleteBtn.addEventListener('click', async () => {
+			if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+			try {
+				const res = await fetch(`/api/problems/${task.id}`, { method: 'DELETE', credentials: 'include' });
+				if (res.ok) {
+					card.remove();
+				} else {
+					const data = await res.json().catch(() => ({}));
+					alert(data.detail || 'Failed to delete task.');
+				}
+			} catch (err) {
+				console.error('Delete failed:', err);
+				alert('Failed to delete task.');
+			}
+		});
+		actions.appendChild(deleteBtn);
 	} else {
 		const lockedSpan = document.createElement('span');
 		lockedSpan.className = 'btn btn-sm btn-secondary disabled';
-		lockedSpan.title = 'This task is in use and cannot be edited';
+		lockedSpan.title = 'This task is in use and cannot be edited or deleted';
 		lockedSpan.innerHTML = '<i class="fas fa-lock"></i> In use';
 		actions.appendChild(lockedSpan);
 	}

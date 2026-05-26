@@ -217,13 +217,16 @@ async def create_task_set(
                 detail="One or more tasks not found"
             )
 
-    # Check if title is unique in the entire database
-    stmt = select(TaskSet).where(TaskSet.title == request.title)
+    # Check if title is unique for this teacher
+    stmt = select(TaskSet).where(
+        TaskSet.title == request.title,
+        TaskSet.teacher_id == current_user.id
+    )
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A task set with the title '{request.title}' already exists in the database. Please use a different title."
+            detail=f"You already have a task set with the title '{request.title}'. Please use a different title."
         )
 
     # Parse expiration date if provided

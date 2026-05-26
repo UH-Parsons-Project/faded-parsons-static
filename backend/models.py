@@ -49,6 +49,7 @@ class Parsons(Base):
     """Parsons problem task model."""
 
     __tablename__ = "parsons"
+    __table_args__ = (UniqueConstraint("created_by_teacher_id", "title"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     created_by_teacher_id: Mapped[int] = mapped_column(
@@ -71,11 +72,13 @@ class TaskSet(Base):
 
     __tablename__ = "task_sets"
 
+    __table_args__ = (UniqueConstraint("teacher_id", "title"),)
+
     id: Mapped[int] = mapped_column(primary_key=True)
     teacher_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
     )
-    title: Mapped[str] = mapped_column(String(255),unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
     unique_link_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     student_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     teacher_description: Mapped[str | None] = mapped_column(String(None), nullable=True)

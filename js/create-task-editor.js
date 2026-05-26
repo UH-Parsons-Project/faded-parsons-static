@@ -86,6 +86,8 @@ initBurgerMenu();
       solution_label: 'Construct your solution here, including indents',
     });
 
+    previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
+
     const previewRepr = buildCustomRepr() || modelAnswerRepr;
     previewParsonsWidget.init(previewRepr);
 

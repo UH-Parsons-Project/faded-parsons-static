@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -156,9 +157,10 @@ async def student_login(
                     task_set_id=task_set.id,
                 ))
 
+    student.session_token = secrets.token_urlsafe(32)
     await db.commit()
 
-    set_session_cookie(response, student.id)
+    set_session_cookie(response, student.session_token)
     return {"status": "success", "student_id": student.id, "username": student.username}
 
 

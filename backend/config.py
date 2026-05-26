@@ -14,3 +14,6 @@ AUTO_INIT_DB = os.getenv("AUTO_INIT_DB", "false").lower() == "true"
 # CORS — comma-separated list of allowed origins (no wildcards)
 _raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000")
 ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw.split(",") if o.strip()]
+
+# Cookies — set to true in production (requires HTTPS)
+COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"

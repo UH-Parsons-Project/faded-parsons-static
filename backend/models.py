@@ -141,6 +141,7 @@ class Student(Base):
     username: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    session_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
     student_created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
@@ -272,6 +273,19 @@ class EditEvent(Base):
     blank_index: Mapped[int] = mapped_column(Integer, nullable=False)
     value: Mapped[str] = mapped_column(String(1000), nullable=False)
     event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class StudentSession(Base):
+    """Opaque token that maps a browser session to a student row."""
+
+    __tablename__ = "student_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    student_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class RegistrationToken(Base):

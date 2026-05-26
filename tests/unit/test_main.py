@@ -13,7 +13,7 @@ SQLite stores datetimes as naive, so all datetime fixtures are naive too.
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -25,7 +25,8 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem
+from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem, RegistrationToken
+from backend.utils import hash_token
 
 
 # ---------------------------------------------------------------------------
@@ -424,6 +425,28 @@ class TestRegister:
                                json={**valid_registration_payload, "registration_token": "wrong_token"})
         assert r.status_code == 403
         assert "Invalid registration token" in r.json()["detail"]
+
+    async def test_old_token_is_deleted_after_two_months(
+        self,
+        client,
+        db_session,
+        test_teacher,
+        valid_registration_payload,
+    ):
+        stale_token = RegistrationToken(
+            token_hash=hash_token("stale-registration-token"),
+            created_by_admin_id=test_teacher.id,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        stale_token.created_at = datetime.now(timezone.utc) - timedelta(days=61)
+        db_session.add(stale_token)
+        await db_session.commit()
+
+        r = await client.post("/api/teacher_register", json=valid_registration_payload)
+        assert r.status_code == 200
+
+        stale_after = await db_session.get(RegistrationToken, stale_token.id)
+        assert stale_after is None
 
     async def test_empty_token_returns_403(self, client, valid_registration_payload):
         r = await client.post("/api/teacher_register",

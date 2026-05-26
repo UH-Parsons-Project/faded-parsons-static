@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Local
 from ...models import Teacher, RegistrationToken
-from backend.utils import hash_token
+from backend.utils import hash_token, cleanup_old_registration_tokens
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ...pydantic import Token, UserInfo
@@ -113,6 +113,9 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
         )
+
+    await cleanup_old_registration_tokens(db)
+    await db.commit()
 
     # Validate registration token from database
     if not registration_token:

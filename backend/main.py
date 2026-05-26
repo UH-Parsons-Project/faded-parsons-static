@@ -22,10 +22,11 @@ from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .database import init_db
+from .database import init_db, async_session
 from .models import Parsons, TaskSetViewer, TaskSet, Teacher, ModelAnswer
 from . import seed as seed_module
 from . import config
+from .utils.token_utils import cleanup_old_registration_tokens
 from .utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 from .routes.student.student import router as student_router
@@ -48,6 +49,9 @@ async def lifespan(_app: FastAPI):
     if config.AUTO_INIT_DB:
         await init_db()
     await seed_module.seed_db()
+    async with async_session() as session:
+        await cleanup_old_registration_tokens(session)
+        await session.commit()
     yield
 
 app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)

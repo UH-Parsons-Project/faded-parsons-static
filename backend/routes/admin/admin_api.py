@@ -21,7 +21,7 @@ from ...pydantic import (
     DailyActiveUser,
     MonthlyActiveUser,
 )
-from backend.utils import generate_token, hash_token
+from backend.utils import generate_token, hash_token, cleanup_old_registration_tokens
 import backend.config as config
 from ..utils.commons import build_taskset_response_list
 
@@ -40,6 +40,9 @@ async def create_registration_token(
 	# Check admin access
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+	await cleanup_old_registration_tokens(db)
+	await db.commit()
 
 	# Get or generate token
 	plain_token = request.token.strip() if request.token else None
@@ -85,6 +88,9 @@ async def list_registration_tokens(
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
+	await cleanup_old_registration_tokens(db)
+	await db.commit()
+
 	stmt = select(RegistrationToken).order_by(RegistrationToken.created_at.desc())
 	result = await db.execute(stmt)
 	tokens = result.scalars().all()
@@ -110,6 +116,9 @@ async def delete_registration_token(
 	# Check admin access
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+	await cleanup_old_registration_tokens(db)
+	await db.commit()
 
 	stmt = select(RegistrationToken).where(RegistrationToken.id == token_id)
 	result = await db.execute(stmt)

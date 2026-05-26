@@ -7,6 +7,7 @@ import {
 } from './doctest-grader.js';
 import './problem-element.js'; // Problem UI web component
 import {FiniteWorker} from './worker-manager.js'; // Worker process for Python code execution
+import {getUsername} from './auth-utils.js';
 
 // Local storage key suffixes for saving user state
 const LS_REPR = '-repr';
@@ -199,6 +200,12 @@ export async function initWidget() {
 		const codeBlocksData = task.code_blocks;
 		const functionHeader = codeBlocksData.function_header;
 		globalTeacherTests = task?.correct_solution?.teacher_tests || '';
+		if (globalTeacherTests) {
+			const username = localStorage.getItem('nickname') || getUsername();
+			if (username) {
+				globalTeacherTests = globalTeacherTests.replace(/{USERNAME}/g, username);
+			}
+		}
 
 		// Reconstruct code lines from blocks for display
 		let codeLines = reconstructCodeLines(codeBlocksData.blocks);

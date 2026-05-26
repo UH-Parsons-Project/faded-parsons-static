@@ -66,7 +66,6 @@ async function loadCompletionStatus(taskNumber, statusElement, itemIndex, number
 		const stats = await completionResponse.json();
 		const startedData = await startedResponse.json();
 		const hasStarted = Boolean(startedData.has_started);
-		const studentAttempts = Number(stats.student_attempts || 0);
 		const studentCompleted = Number(stats.student_completed || 0);
 
 		if (studentCompleted > 0) {
@@ -139,6 +138,63 @@ function updateProgressBar(list) {
 	document.getElementById('progress-bar').textContent = percentage > 10 ? Math.round(percentage) + '%' : '';
 }
 
+function createDemoSection() {
+	const section = document.createElement('div');
+	section.style.cssText = 'margin-bottom: 2rem;';
+
+	const heading = document.createElement('p');
+	heading.style.cssText = 'font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; margin-bottom: 0.5rem;';
+	heading.textContent = 'Warm-up (optional)';
+	section.appendChild(heading);
+
+	const card = document.createElement('div');
+	card.className = 'task-set-item';
+	card.style.cssText = 'border-color: #ced4da; background: #f8f9fa;';
+	const returnUrl = encodeURIComponent(window.location.pathname);
+	card.onclick = () => {
+		window.location.href = `/demo?return=${returnUrl}`;
+	};
+
+	const badge = document.createElement('div');
+	badge.className = 'task-set-item-number';
+	badge.style.background = '#adb5bd';
+	badge.textContent = '★';
+	card.appendChild(badge);
+
+	const body = document.createElement('div');
+	body.className = 'task-set-item-body';
+
+	const title = document.createElement('div');
+	title.className = 'task-set-title';
+	title.textContent = 'Hello, stranger!';
+	body.appendChild(title);
+
+	const meta = document.createElement('div');
+	meta.className = 'task-set-meta';
+	meta.style.minHeight = '1.5rem';
+	meta.textContent = 'A short exercise to get familiar with the format';
+	body.appendChild(meta);
+
+	card.appendChild(body);
+
+	const chevron = document.createElement('i');
+	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
+	card.appendChild(chevron);
+
+	section.appendChild(card);
+
+	const divider = document.createElement('div');
+	divider.style.cssText = 'margin-top: 2rem; margin-bottom: 0.5rem; border-top: 1px solid #dee2e6;';
+	section.appendChild(divider);
+
+	const tasksHeading = document.createElement('p');
+	tasksHeading.style.cssText = 'font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; margin-top: 0.75rem; margin-bottom: 0.5rem;';
+	tasksHeading.textContent = 'Exercises';
+	section.appendChild(tasksHeading);
+
+	return section;
+}
+
 function render(list) {
 	container.className = '';
 	container.innerHTML = '';
@@ -158,6 +214,8 @@ function render(list) {
 
 	const cardsColumn = document.createElement('div');
 	cardsColumn.className = 'task-sets-column';
+
+	cardsColumn.appendChild(createDemoSection());
 
 	list.forEach(function (item, index) {
 		cardsColumn.appendChild(createTaskCard(item, index));

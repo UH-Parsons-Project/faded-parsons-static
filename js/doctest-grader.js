@@ -291,7 +291,7 @@ function applyCustomErrorMessageRules(testResults, rawRules) {
 			return {
 				...testResults,
 				header: customHeader,
-				details: message,
+				teacherHint: message,
 				messageSource: 'teacher',
 			};
 		}

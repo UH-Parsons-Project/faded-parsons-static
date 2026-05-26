@@ -481,6 +481,14 @@ test-results-element {
   color: #000000;
 }
 
+.teacher-hint-box {
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.5rem;
+  background: #cce5ff;
+  border-left: 4px solid #004085;
+  color: #004085;
+}
+
 .test-results-details {
   flex: 1 1 auto;
   min-height: 0;

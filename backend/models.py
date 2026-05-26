@@ -275,19 +275,6 @@ class EditEvent(Base):
     event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
-class StudentSession(Base):
-    """Opaque token that maps a browser session to a student row."""
-
-    __tablename__ = "student_sessions"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
-    student_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("student.id", ondelete="CASCADE"), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-
-
 class RegistrationToken(Base):
     """Registration token for teacher account creation."""
 

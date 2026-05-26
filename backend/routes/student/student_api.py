@@ -165,7 +165,14 @@ async def student_login(
 
 
 @router.post("/api/student_logout")
-async def student_logout(response: Response):
+async def student_logout(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    student: Student | None = Depends(get_current_student_session),
+):
+    if student:
+        student.session_token = None
+        await db.commit()
     response.delete_cookie(key="student_session", path="/")
     return {"message": "Successfully logged out"}
 

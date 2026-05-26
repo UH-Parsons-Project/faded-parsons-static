@@ -38,6 +38,8 @@ spec:
                 secretKeyRef:
                   name: teachertoken
                   key: TEACHER_REGISTRATION_TOKEN
+            - name: ALLOWED_ORIGINS
+              value: "https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi,https://parsonscodelab.web.helsinki.fi"
           ports:
             - containerPort: 8000
 

@@ -460,11 +460,13 @@ function showError(message) {
 }
 
 // Load task set details, tasks, and students
-Promise.all([
-	fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details'),
-	fetchJsonWithError(`/api/my_sets/${setId}/tasks`, 'Failed to load tasks'),
-	fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students')
-])
+// Tasks endpoint requires unique_link_code, so fetch details first then parallelize the rest.
+fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
+	.then(taskSet => Promise.all([
+		Promise.resolve(taskSet),
+		fetchJsonWithError(`/api/my_sets/${encodeURIComponent(taskSet.unique_link_code)}/tasks`, 'Failed to load tasks'),
+		fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students'),
+	]))
 	.then(([taskSet, tasks, students]) => {
 	renderListHeader(taskSet, tasks, students);
 	renderTasks(tasks, taskSet);

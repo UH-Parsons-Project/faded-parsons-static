@@ -576,11 +576,10 @@ class TestGetProblemsetTasks:
         assert len(r.json()) == 1
         assert r.json()[0]["id"] == task.id
 
-    async def test_get_by_numeric_id(self, client, task_set_with_task):
-        ps, task = task_set_with_task
+    async def test_integer_id_returns_404(self, client, task_set_with_task):
+        ps, _ = task_set_with_task
         r = await client.get(f"/api/my_sets/{ps.id}/tasks")
-        assert r.status_code == 200
-        assert r.json()[0]["id"] == task.id
+        assert r.status_code == 404
 
     async def test_numeric_unique_link_code_is_resolved_as_code(self, client, db_session, test_teacher, task):
         ps = TaskSet(

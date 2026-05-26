@@ -90,18 +90,11 @@ async def get_task_set(
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
 async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
-    """Get all tasks belonging to a task_set. Accepts either a unique link code or an integer ID."""
-    code_str = str(code)
+    """Get all tasks belonging to a task_set by unique link code."""
     task_set_result = await db.execute(
-        select(TaskSet).where(TaskSet.unique_link_code == code_str)
+        select(TaskSet).where(TaskSet.unique_link_code == code)
     )
     task_set = task_set_result.scalar_one_or_none()
-
-    if task_set is None and code_str.isdigit():
-        task_set_result = await db.execute(
-            select(TaskSet).where(TaskSet.id == int(code_str))
-        )
-        task_set = task_set_result.scalar_one_or_none()
 
     if not task_set:
         raise HTTPException(
@@ -131,24 +124,14 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
 async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
-    """Get info for a task set by unique link code or integer ID."""
-    code_str = str(code)
+    """Get info for a task set by unique link code."""
     stmt = (
         select(TaskSet, Teacher.username)
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
-        .where(TaskSet.unique_link_code == code_str)
+        .where(TaskSet.unique_link_code == code)
     )
     result = await db.execute(stmt)
     row = result.first()
-
-    if row is None and code_str.isdigit():
-        stmt = (
-            select(TaskSet, Teacher.username)
-            .join(Teacher, Teacher.id == TaskSet.teacher_id)
-            .where(TaskSet.id == int(code_str))
-        )
-        result = await db.execute(stmt)
-        row = result.first()
 
     if not row:
         raise HTTPException(

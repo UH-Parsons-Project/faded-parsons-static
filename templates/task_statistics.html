@@ -148,6 +148,13 @@
         <div class="card-body">
           <div class="time-chart">
 
+            <!-- Thinking time -->
+            <div class="time-metric" id="thinking-time-metric" style="opacity:.4;">
+              <div class="bp-wrap" id="bp-think"></div>
+            </div>
+
+            <div class="time-divider"></div>
+
             <!-- Time to first fail -->
             <div class="time-metric" id="tff-metric">
               <div class="bp-wrap" id="bp-tff"></div>
@@ -162,23 +169,18 @@
 
             <div class="time-divider"></div>
 
-            <!-- Thinking time -->
-            <div class="time-metric" id="thinking-time-metric" style="opacity:.4;">
-              <div class="bp-wrap" id="bp-think"></div>
-            </div>
-
-            <div class="time-divider"></div>
-
             <!-- Number of moves -->
             <div class="time-metric" id="moves-metric" style="opacity:.4;">
               <div class="bp-wrap" id="bp-moves"></div>
             </div>
 
             <div class="bp-legend">
-              <span class="bp-legend-item"><span style="display:inline-block;width:18px;height:8px;background:var(--border);border-radius:1px;"></span>whisker range</span>
-<span class="bp-legend-item"><span style="display:inline-block;width:2.5px;height:12px;background:#7f1d1d;vertical-align:middle;"></span>median</span>
-              <span class="bp-legend-item"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 1 L9 5 L5 9 L1 5 Z" fill="#94a3b8"/></svg>mean</span>
-              <span class="bp-legend-item"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="#94a3b8"/></svg>outlier</span>
+              <span class="bp-legend-item"><svg width="20" height="16" viewBox="0 0 14 12" style="flex-shrink:0;overflow:visible;"><rect x="1" y="1" width="12" height="10" rx="2" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/></svg>Q1–Q3 box (middle 50%)</span>
+              <span class="bp-legend-item bp-legend-item--primary"><svg width="14" height="16" viewBox="0 0 10 12" style="flex-shrink:0;overflow:visible;"><line x1="5" y1="1" x2="5" y2="11" stroke="#1e293b" stroke-width="2.5"/></svg>Median</span>
+              <span class="bp-legend-item bp-legend-item--primary"><svg width="16" height="16" viewBox="0 0 12 12" style="flex-shrink:0;overflow:visible;"><path d="M6 1 L11 6 L6 11 L1 6 Z" fill="#1e293b"/></svg>Mean</span>
+              <span class="bp-legend-item"><svg width="36" height="16" viewBox="0 0 26 12" style="flex-shrink:0;overflow:visible;"><line x1="0" y1="6" x2="26" y2="6" stroke="#94a3b8" stroke-width="1.5"/><line x1="0" y1="3" x2="0" y2="9" stroke="#94a3b8" stroke-width="1.5"/><line x1="26" y1="3" x2="26" y2="9" stroke="#94a3b8" stroke-width="1.5"/></svg>Whiskers (1.5×IQR from Q1/Q3)</span>
+              <span class="bp-legend-item"><svg width="16" height="16" viewBox="0 0 12 12" style="flex-shrink:0;overflow:visible;"><circle cx="6" cy="6" r="3.5" fill="#94a3b8" stroke="white" stroke-width="1.5"/></svg>Outlier (beyond whiskers)</span>
+              <a href="https://en.wikipedia.org/wiki/Box_plot" target="_blank" rel="noopener" class="bp-legend-wiki">What is a box plot?</a>
             </div>
 
           </div>

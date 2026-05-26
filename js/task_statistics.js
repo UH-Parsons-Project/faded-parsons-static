@@ -151,13 +151,13 @@ function renderBoxPlot(containerId, stats, desc) {
 	const hasLowOutliers  = outliers.some(v => v < whiskerLow);
 	const hasHighOutliers = outliers.some(v => v > whiskerHigh);
 	const rawLabels = [
-		{ x: xMed,             val: fmt(stats.median), name: 'Median',  pri: 6 },
-		{ x: xQ3,              val: fmt(stats.q3),     name: 'Q3',      pri: 5 },
-		{ x: xQ1,              val: fmt(stats.q1),     name: 'Q1',      pri: 5 },
-		{ x: xWH,              val: fmt(whiskerHigh),  name: hasHighOutliers ? 'Fence' : 'Maximum', pri: 4 },
-		{ x: xWL,              val: fmt(whiskerLow),   name: hasLowOutliers  ? 'Fence' : 'Minimum', pri: 3 },
-		...(hasHighOutliers ? [{ x: xp(stats.max), val: fmt(stats.max), name: 'Maximum', pri: 2 }] : []),
-		...(hasLowOutliers  ? [{ x: xp(stats.min), val: fmt(stats.min), name: 'Minimum', pri: 1 }] : []),
+		{ x: xMed,             val: fmt(stats.median), name: 'Median',  pri: 6, sz: 14, imp: true  },
+		{ x: xQ3,              val: fmt(stats.q3),     name: 'Q3',      pri: 5, sz: 11, imp: false },
+		{ x: xQ1,              val: fmt(stats.q1),     name: 'Q1',      pri: 5, sz: 11, imp: false },
+		{ x: xWH,              val: fmt(whiskerHigh),  name: hasHighOutliers ? 'Fence' : 'Maximum', pri: 4, sz: hasHighOutliers ? 11 : 14, imp: !hasHighOutliers },
+		{ x: xWL,              val: fmt(whiskerLow),   name: hasLowOutliers  ? 'Fence' : 'Minimum', pri: 3, sz: hasLowOutliers  ? 11 : 14, imp: !hasLowOutliers  },
+		...(hasHighOutliers ? [{ x: xp(stats.max), val: fmt(stats.max), name: 'Maximum', pri: 2, sz: 14, imp: true }] : []),
+		...(hasLowOutliers  ? [{ x: xp(stats.min), val: fmt(stats.min), name: 'Minimum', pri: 1, sz: 14, imp: true }] : []),
 	];
 	const MIN_LABEL_GAP = 80;
 	const shownLabels = [];
@@ -169,8 +169,11 @@ function renderBoxPlot(containerId, stats, desc) {
 
 	for (const lp of shownLabels) {
 		const a = lp.x < 30 ? 'start' : lp.x > W - 30 ? 'end' : 'middle';
-		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_VAL}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="14" font-weight="800" fill="${desc.colorDark}">${lp.val}</text>`);
-		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_NAME}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="9.5" fill="#94a3b8">${lp.name}</text>`);
+		const valFill   = lp.imp ? desc.colorDark : '#78909c';
+		const valWeight = lp.imp ? '800' : '600';
+		const nameFill  = lp.imp ? '#64748b' : '#94a3b8';
+		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_VAL}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="${lp.sz}" font-weight="${valWeight}" fill="${valFill}">${lp.val}</text>`);
+		p.push(`<text x="${lp.x.toFixed(1)}" y="${Y_NAME}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="9.5" fill="${nameFill}">${lp.name}</text>`);
 	}
 
 	// ── box plot ─────────────────────────────────────────────────
@@ -189,7 +192,7 @@ function renderBoxPlot(containerId, stats, desc) {
 			`<circle cx="${xAvg}" cy="${CY}" r="8" fill="transparent"/>` +
 			`<path d="M ${xAvg} ${BT + 3} L ${xAvg + 5} ${CY} L ${xAvg} ${BB - 3} L ${xAvg - 5} ${CY} Z" fill="${desc.color}" stroke="white" stroke-width="1"/>` +
 			`<rect class="bp-tip-bg" x="${xAvg - 30}" y="${BT - 34}" width="60" height="26" rx="3" fill="${desc.colorDark}"/>` +
-			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 22}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,0.65)" letter-spacing="1">AVG</text>` +
+			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 22}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,0.65)" letter-spacing="1">MEAN</text>` +
 			`<text class="bp-tip-text" x="${xAvg}" y="${BT - 10}" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="white">${fmt(stats.avg)}</text>` +
 		`</g>`
 	);
@@ -228,17 +231,17 @@ function renderBoxPlot(containerId, stats, desc) {
 		p.push(`<text x="${tx.toFixed(1)}" y="${Y_TICK}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="10" fill="#94a3b8">${fmtTick(tv, fmt)}</text>`);
 	}
 	if (useAxisBreak) {
-		// Tick marks at each unique outlier value in the outlier section
-		for (const v of [...new Set(outliers)]) {
+		const MIN_TICK_GAP = 45;
+		const placedTx = ticks.map(tv => xp(tv));
+		for (const v of [...new Set(outliers)].sort((a, b) => a - b)) {
 			const tx = xp(v);
+			if (placedTx.some(px => Math.abs(px - tx) < MIN_TICK_GAP)) continue;
+			placedTx.push(tx);
 			const a = tx > W - 15 ? 'end' : 'middle';
 			p.push(`<line x1="${tx.toFixed(1)}" y1="${AY}" x2="${tx.toFixed(1)}" y2="${AY + 7}" stroke="#cbd5e1" stroke-width="1"/>`);
 			p.push(`<text x="${tx.toFixed(1)}" y="${Y_TICK}" text-anchor="${a}" font-family="DM Sans,sans-serif" font-size="10" fill="#94a3b8">${fmtTick(v, fmt)}</text>`);
 		}
 	}
-
-	const legendSvg = (w, h, body) =>
-		`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex-shrink:0;overflow:visible;">${body}</svg>`;
 
 	container.innerHTML = `
 		<div class="bp-metric">
@@ -249,36 +252,14 @@ function renderBoxPlot(containerId, stats, desc) {
 					<span style="font-size:.65rem;color:var(--text-muted);font-weight:400;margin-left:.4rem;">n = ${stats.count}</span>
 				</div>
 				<div class="bp-summary">
-					<span><span class="bp-summary-label">median</span> <b style="color:${desc.color}">${fmt(stats.median)}</b></span>
-					<span><span class="bp-summary-label">avg</span> <b>${fmt(stats.avg)}</b></span>
+					<span><span class="bp-summary-label">median</span> <b style="color:${desc.colorDark}">${fmt(stats.median)}</b></span>
+					<span><span class="bp-summary-label">mean</span> <b>${fmt(stats.avg)}</b></span>
 				</div>
 			</div>
 			<div class="bp-svg-wrap">
 				<svg viewBox="0 0 ${W} 108" style="width:100%;height:auto;display:block;overflow:visible;">
 					${p.join('')}
 				</svg>
-			</div>
-			<div class="bp-legend">
-				<span class="bp-legend-item">
-					${legendSvg(14, 12, `<rect x="1" y="1" width="12" height="10" rx="2" fill="${desc.colorLight}" stroke="${desc.color}" stroke-width="1.5"/>`)}
-					Q1–Q3 box (middle 50%)
-				</span>
-				<span class="bp-legend-item">
-					${legendSvg(10, 12, `<line x1="5" y1="1" x2="5" y2="11" stroke="${desc.colorDark}" stroke-width="2.5"/>`)}
-					Median
-				</span>
-				<span class="bp-legend-item">
-					${legendSvg(12, 12, `<path d="M6 1 L11 6 L6 11 L1 6 Z" fill="${desc.color}"/>`)}
-					Mean
-				</span>
-				<span class="bp-legend-item">
-					${legendSvg(26, 12, `<line x1="0" y1="6" x2="26" y2="6" stroke="${desc.color}" stroke-width="1.5"/><line x1="0" y1="3" x2="0" y2="9" stroke="${desc.color}" stroke-width="1.5"/><line x1="26" y1="3" x2="26" y2="9" stroke="${desc.color}" stroke-width="1.5"/>`)}
-					Whiskers (1.5×IQR from Q1/Q3)
-				</span>
-				<span class="bp-legend-item">
-					${legendSvg(12, 12, `<circle cx="6" cy="6" r="3.5" fill="${desc.color}" stroke="white" stroke-width="1.5"/>`)}
-					Outlier (beyond whiskers)
-				</span>
 			</div>
 		</div>`;
 }

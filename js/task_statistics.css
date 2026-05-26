@@ -406,26 +406,59 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .bp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .bp-summary {
   display: flex;
-  gap: 1.2rem;
+  gap: 0;
   font-size: 0.7rem;
   color: var(--text-muted);
-  align-items: baseline;
+  align-items: stretch;
+  background: var(--surface, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
 }
-.bp-summary b { color: var(--text); font-weight: 800; font-size: 0.95rem; }
-.bp-summary-label { font-size: 0.75rem; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: .05em; }
+.bp-summary > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: .3rem .8rem;
+  gap: .1rem;
+  min-width: 5.5rem;
+}
+.bp-summary > span + span {
+  border-left: 1px solid var(--border, #e2e8f0);
+}
+.bp-summary b { color: var(--text); font-weight: 900; font-size: 1rem; }
+.bp-summary-label { font-size: 0.6rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; }
 .bp-svg-wrap { width: 100%; position: relative; }
 .bp-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem 1.1rem;
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  border-top: 1px solid var(--border);
-  padding-top: .75rem;
-  margin-top: .25rem;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: 0.8rem;
+  color: var(--brand-text);
+  background: oklch(96% 0.02 262);
+  border-top: 2px solid var(--brand);
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: .75rem .9rem;
+  margin-top: .5rem;
 }
-.bp-legend-item { display: flex; align-items: center; gap: .35rem; }
+.bp-legend-item { display: flex; align-items: center; gap: .5rem; flex: 1 1 auto; justify-content: center; }
+.bp-legend-item--primary { color: var(--text); font-weight: 700; font-size: 0.85rem; }
 .bp-legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.bp-legend-wiki {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-text);
+  background: var(--brand);
+  text-decoration: none;
+  align-self: center;
+  padding: .2rem .65rem;
+  border-radius: 2rem;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.bp-legend-wiki:hover { background: var(--brand-dark); color: #fff; }
 .bp-outlier-g { cursor: pointer; }
 .bp-outlier-g .bp-tip-bg,
 .bp-outlier-g .bp-tip-text { visibility: hidden; }

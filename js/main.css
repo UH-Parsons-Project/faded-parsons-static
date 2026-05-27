@@ -1,3 +1,91 @@
+/* ── Accessible link styles ────────────────────────────────────────────────
+   WCAG 1.4.3 – contrast: Bootstrap default #007bff is only 3.97:1 on white
+               (AA needs 4.5:1).  #0056b3 ≈ 7:1 on white → passes AA & AAA.
+   WCAG 1.4.1 – use of colour: links must be distinguishable from surrounding
+               text WITHOUT relying solely on colour → underline is required.
+   ────────────────────────────────────────────────────────────────────────── */
+a,
+a:link {
+	color: #0056b3;
+	text-decoration: underline;
+}
+
+a:visited {
+	color: #003d80;
+	text-decoration: underline;
+}
+
+a:hover,
+a:focus {
+	color: #003d80;
+	text-decoration: underline;
+}
+
+/* Buttons styled as <a> and nav items must NOT get underlines.
+   Their role is already communicated by border/background/context. */
+a.btn,
+a.btn:link,
+a.btn:visited,
+a.btn:hover,
+a.btn:focus,
+.navbar-burger-item,
+.navbar-burger-item:hover,
+.navbar-burger-item:focus,
+.title-logo-link,
+.title-logo-link:hover,
+.title-logo-link:focus {
+	text-decoration: none;
+}
+
+/* The navbar background is rgb(168,180,247) – a lavender purple.
+   Bootstrap's #007bff link colour bleeds through on <a class="btn btn-outline-dark">
+   because the `a` selector can win the cascade there.
+   #343a40 (Bootstrap dark) gives ≈ 5.8:1 contrast on that background → AA pass. */
+.navbar a.btn-outline-dark,
+.navbar a.btn-outline-dark:link,
+.navbar a.btn-outline-dark:visited {
+	color: #343a40;
+}
+.navbar a.btn-outline-dark:hover,
+.navbar a.btn-outline-dark:focus {
+	color: #fff;        /* Bootstrap hover fills the button dark, text goes white */
+}
+
+/* ── Accessible <code> colour ──────────────────────────────────────────────
+   Bootstrap's default #e83e8c is only 3.81:1 on white — fails WCAG AA.
+   #9d174d (deep crimson-rose) achieves ≈ 7.9:1 on white — passes AAA.
+   Rules with higher specificity (.example-code code {color:inherit},
+   .model-answer-code code, .steps-list code) are unaffected.          */
+code {
+	color: #9d174d;
+}
+
+/* ── Accessible solid button colours ───────────────────────────────────────
+   Bootstrap 4 btn-primary (#007bff bg, white text) = 3.99:1  — fails AA.
+   Bootstrap 4 btn-success (#28a745 bg, white text) = 3.13:1  — fails AA.
+   Replacements keep white text and use a darker bg that achieves ≥ 7:1.
+   Page-specific overrides with higher specificity (e.g. ID selectors) take
+   precedence and are unaffected by these class-level rules.             */
+.btn-primary {
+	background-color: #0056b3;
+	border-color: #0056b3;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+	background-color: #004494;
+	border-color: #004085;
+}
+
+.btn-success {
+	background-color: #166534;
+	border-color: #166534;
+}
+.btn-success:hover,
+.btn-success:focus {
+	background-color: #14532d;
+	border-color: #14532d;
+}
+
 .main-nickname {
 	min-height: calc(100vh - 56px);
 	display: flex;
@@ -864,7 +952,7 @@ test-results-element {
 .preview-btn {
   background: none;
   border: none;
-  color: #007bff;
+  color: #0056b3;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   font-size: 0.9rem;
@@ -1368,7 +1456,7 @@ test-results-element {
 }
 
 .progress-count-done {
-  color: #007bff;
+  color: #0056b3;
 }
 
 .progress-count-sep {

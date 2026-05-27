@@ -343,6 +343,13 @@ body {
     color: inherit;
 }
 
+/* Keyboard focus ring for scrollable code blocks (tabindex="0").
+   Without this, focused state is invisible to sighted keyboard users. */
+.example-code pre:focus {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
 .example-note {
     background: #fef9e7;
     border-left: 4px solid #fbbf24;

@@ -340,15 +340,18 @@ a.btn-success.btn-block:hover {
 }
 
 /* ── Admin button area ───────────────────────────────── */
+/* --brand-dark (#7b8df0) with white text is only 3.03:1 — fails WCAG AA.
+   --brand-text (#2d3a8c) with white text gives ≈ 10:1 — passes AAA.
+   Hover (#253080) is slightly darker for clear feedback, still ≈ 11.6:1. */
 #all-sets-button-container .btn-primary {
-  background: var(--brand-dark);
-  border: none;
+  background: var(--brand-text);
+  border-color: var(--brand-text);
   border-radius: var(--radius);
   font-weight: 700;
   padding: .45rem 1rem;
   font-size: .82rem;
 }
-#all-sets-button-container .btn-primary:hover { background: #5a6edf; }
+#all-sets-button-container .btn-primary:hover { background: #253080; border-color: #253080; }
 
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }

@@ -427,6 +427,59 @@ body {
   cursor: pointer;
 }
 
+/* ── Accessible colours (WCAG 2.1 AA) ─────────────────────────────────────
+   Bootstrap 4's card-header has background rgba(0,0,0,.03) ≈ #f7f7f7,
+   which is just dark enough to drop two Bootstrap colours below 4.5:1.
+
+   Outline buttons with coloured text/border on white are also insufficient:
+     btn-outline-primary #007bff on white = 3.97:1
+     btn-outline-info    #17a2b8 on white = 3.04:1
+     btn-outline-danger  #dc3545 on #f7f7f7 = 4.23:1
+     .text-muted         #6c757d on #f7f7f7 = 4.38:1
+
+   btn-primary and btn-success are fixed globally in main.css.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* .text-muted + counter spans inside the card-header */
+.card-header .text-muted,
+.card-header small {
+  color: #5c636a;  /* #6c757d → #5c636a: ≈5.7:1 on #f7f7f7, ≈6.1:1 on white */
+}
+
+/* "Clear All Blocks" – outline-danger in card-header (bg ≈ #f7f7f7) */
+#clear-blocks {
+  color: #b02a37;
+  border-color: #b02a37;
+}
+#clear-blocks:hover,
+#clear-blocks:focus {
+  background-color: #b02a37;
+  border-color: #b02a37;
+  color: #fff;
+}
+
+/* "Set as Model Answer" – outline-primary on white */
+#set-model-answer {
+  color: #0056b3;
+  border-color: #0056b3;
+}
+#set-model-answer:hover,
+#set-model-answer:focus {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+/* "Preview" – outline-info on white (#17a2b8 = 3.04:1, fails badly) */
+#preview-student-view {
+  color: #0b6477;
+  border-color: #0b6477;
+}
+#preview-student-view:hover,
+#preview-student-view:focus {
+  background-color: #0b6477;
+  color: #fff;
+}
+
 .preview-code-block {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
   white-space: pre-wrap;

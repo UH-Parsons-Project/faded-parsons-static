@@ -458,7 +458,7 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   white-space: nowrap;
   transition: background .15s;
 }
-.bp-legend-wiki:hover { background: var(--brand-dark); color: #fff; }
+.bp-legend-wiki:hover { background: var(--brand-text); color: #fff; }
 .bp-outlier-g { cursor: pointer; }
 .bp-outlier-g .bp-tip-bg,
 .bp-outlier-g .bp-tip-text { visibility: hidden; }

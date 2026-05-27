@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, and_
+from sqlalchemy import select, delete, func, and_, or_
 import json
 
 from ...database import get_db
 from ...models import Parsons
 from ...pydantic import TaskResponse, CreateProblemRequest
-from ...auth import CurrentUser
+from ...auth import CurrentUser, OptionalCurrentUser
 from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem, TeacherFavoriteTask
 from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
 from ...models import ModelAnswer
@@ -22,7 +22,6 @@ from ...pydantic import (
     StudentInTaskSetResponse,
     TeacherLookupResponse,
 )
-from ...auth import CurrentUser
 from backend.utils import generate_slug
 from datetime import datetime
 
@@ -484,7 +483,11 @@ async def get_task_set_students(
     return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
-async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def get_task(
+    task_id: int,
+    current_user: OptionalCurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
     stmt = select(Parsons).where(Parsons.id == task_id)
     result = await db.execute(stmt)
     task = result.scalar_one_or_none()
@@ -494,6 +497,16 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found",
         )
+
+    if not task.is_public:
+        if not current_user or (
+            not current_user.is_admin_teacher
+            and current_user.id != task.created_by_teacher_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Task with id {task_id} not found",
+            )
 
     return TaskResponse(
         id=task.id,
@@ -510,7 +523,7 @@ async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/api/tasks")
 async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
+    stmt = (
         select(Parsons, Teacher.username, TeacherFavoriteTask.id)
         .join(Teacher, Teacher.id == Parsons.created_by_teacher_id)
         .outerjoin(
@@ -518,9 +531,18 @@ async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_d
             (TeacherFavoriteTask.task_id == Parsons.id)
             & (TeacherFavoriteTask.teacher_id == current_user.id),
         )
-        .where(Parsons.is_public)
-        .order_by(Parsons.created_at.desc())
     )
+
+    if not current_user.is_admin_teacher:
+        stmt = stmt.where(
+            or_(
+                Parsons.is_public,
+                Parsons.created_by_teacher_id == current_user.id,
+            )
+        )
+
+    stmt = stmt.order_by(Parsons.created_at.desc())
+    result = await db.execute(stmt)
     tasks = result.all()
 
     task_set = []

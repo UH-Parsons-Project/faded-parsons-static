@@ -218,11 +218,11 @@ initBurgerMenu();
       const normalizedSource = normalizeSourceCode(sourceCode || '');
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
       }
 
       if (typeof rawSource !== 'string' || rawSource !== normalizedSource) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
       }
 
       const parsed = JSON.parse(raw);
@@ -232,15 +232,28 @@ initBurgerMenu();
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
+        isPublic: typeof parsed.isPublic === 'boolean' ? parsed.isPublic : true,
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '' };
+      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
     }
   }
 
-  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages) {
-    sessionStorage.setItem(META_KEY, JSON.stringify({ taskTitle, description, startDescription, tests, customErrorMessages }));
+  function getVisibilityValue() {
+    const visibilityInput = document.getElementById('task-visibility-public');
+    return visibilityInput ? visibilityInput.checked : true;
+  }
+
+  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic) {
+    sessionStorage.setItem(META_KEY, JSON.stringify({
+      taskTitle,
+      description,
+      startDescription,
+      tests,
+      customErrorMessages,
+      isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+    }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
@@ -734,6 +747,7 @@ initBurgerMenu();
     const startDescriptionInput = document.getElementById('start-description');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
+    const visibilityInput = document.getElementById('task-visibility-public');
     const solutionList = document.querySelector('#solution-sortable ul');
 
     if (!taskTitleInput || !descriptionInput || !startDescriptionInput || !testsInput || !solutionList || !parsonsWidget) {
@@ -747,8 +761,9 @@ initBurgerMenu();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
     const solutionCode = modelAnswerCode;
+    const isPublic = visibilityInput ? visibilityInput.checked : true;
 
-    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages);
+    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic);
 
     if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
       alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
@@ -776,6 +791,7 @@ initBurgerMenu();
       modelAnswerCode: solutionCode,
       parsonsRepr: buildCustomRepr(),
       type: solutionCodeWithBlanks.includes('!BLANK') ? 'faded' : 'normal',
+      is_public: isPublic,
     };
 
     fetch('/api/problems', {
@@ -800,7 +816,14 @@ initBurgerMenu();
             detail = '';
           }
 
-          saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+          saveMetaToSession(
+            taskTitleInput.value,
+            descriptionInput.value,
+            startDescriptionInput.value,
+            testsInput.value,
+            customErrorMessagesInput.value,
+            getVisibilityValue()
+          );
           taskTitleInput.focus();
 
           alert(`Failed to add the problem.${detail}`);
@@ -848,6 +871,7 @@ initBurgerMenu();
     const descriptionInput = document.getElementById('problem-description');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
+    const visibilityInput = document.getElementById('task-visibility-public');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
     const previewStudentBtn = document.getElementById('preview-student-view');
@@ -955,26 +979,69 @@ initBurgerMenu();
     if (taskTitleInput && descriptionInput && startDescriptionInput && testsInput) {
       taskTitleInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        saveMetaToSession(
+          taskTitleInput.value,
+          descriptionInput.value,
+          startDescriptionInput.value,
+          testsInput.value,
+          customErrorMessagesInput.value,
+          getVisibilityValue()
+        );
         updateAddToListState();
       });
 
       descriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        saveMetaToSession(
+          taskTitleInput.value,
+          descriptionInput.value,
+          startDescriptionInput.value,
+          testsInput.value,
+          customErrorMessagesInput.value,
+          getVisibilityValue()
+        );
         updateAddToListState();
       });
 
       startDescriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        saveMetaToSession(
+          taskTitleInput.value,
+          descriptionInput.value,
+          startDescriptionInput.value,
+          testsInput.value,
+          customErrorMessagesInput.value,
+          getVisibilityValue()
+        );
         updateAddToListState();
       });
 
       testsInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
         testsPassed = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        saveMetaToSession(
+          taskTitleInput.value,
+          descriptionInput.value,
+          startDescriptionInput.value,
+          testsInput.value,
+          customErrorMessagesInput.value,
+          getVisibilityValue()
+        );
+        updateAddToListState();
+      });
+    }
+
+    if (visibilityInput) {
+      visibilityInput.addEventListener('change', () => {
+        hasOpenedStudentPreview = false;
+        saveMetaToSession(
+          taskTitleInput?.value || '',
+          descriptionInput?.value || '',
+          startDescriptionInput?.value || '',
+          testsInput?.value || '',
+          customErrorMessagesInput?.value || '',
+          getVisibilityValue()
+        );
         updateAddToListState();
       });
     }
@@ -996,7 +1063,14 @@ initBurgerMenu();
         // customErrorMessagesInput.focus();
         hasOpenedStudentPreview = false;
         testsPassed = false;
-        saveMetaToSession(taskTitleInput.value, descriptionInput.value, startDescriptionInput.value, testsInput.value, customErrorMessagesInput.value);
+        saveMetaToSession(
+          taskTitleInput.value,
+          descriptionInput.value,
+          startDescriptionInput.value,
+          testsInput.value,
+          customErrorMessagesInput.value,
+          getVisibilityValue()
+        );
         updateAddToListState();
       });
     }
@@ -1020,6 +1094,7 @@ initBurgerMenu();
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
+    const visibilityInput = document.getElementById('task-visibility-public');
 
     const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
     if (taskTitleInput) {
@@ -1037,6 +1112,9 @@ initBurgerMenu();
     }
     if (customErrorMessagesInput) {
       customErrorMessagesInput.value = meta.customErrorMessages || '';
+    }
+    if (visibilityInput) {
+      visibilityInput.checked = meta.isPublic !== false;
     }
 
     const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);

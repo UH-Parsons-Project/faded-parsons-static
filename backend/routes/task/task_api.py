@@ -631,6 +631,7 @@ async def create_problem(
 
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
     source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
+    is_public = True if request.is_public is None else request.is_public
 
     lines = [line for line in source_for_blocks.split("\n") if line.strip()]
     if not lines:
@@ -720,7 +721,7 @@ async def create_problem(
             "solution_code": solution_code,
             "custom_error_messages": custom_error_messages,
         },
-        is_public=True,
+        is_public=is_public,
     )
 
     db.add(task)

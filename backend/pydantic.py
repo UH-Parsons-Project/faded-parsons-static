@@ -152,6 +152,7 @@ class CreateProblemRequest(BaseModel):
     modelAnswerCode: str | None = None
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
+    is_public: bool | None = True
 
 
 class CreateTaskSetRequest(BaseModel):

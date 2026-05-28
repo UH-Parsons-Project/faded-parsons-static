@@ -440,10 +440,12 @@ body {
    btn-primary and btn-success are fixed globally in main.css.
    ────────────────────────────────────────────────────────────────────────── */
 
-/* .text-muted + counter spans inside the card-header */
+/* .text-muted + counter spans inside the card-header.
+   Bootstrap 4 declares .text-muted { color: #6c757d !important } so we must
+   also use !important to override it — there is no specificity workaround. */
 .card-header .text-muted,
 .card-header small {
-  color: #5c636a;  /* #6c757d → #5c636a: ≈5.7:1 on #f7f7f7, ≈6.1:1 on white */
+  color: #5c636a !important;  /* #6c757d → #5c636a: ≈5.7:1 on #f7f7f7, ≈6.1:1 on white */
 }
 
 /* "Clear All Blocks" – outline-danger in card-header (bg ≈ #f7f7f7) */

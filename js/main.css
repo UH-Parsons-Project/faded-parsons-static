@@ -37,6 +37,29 @@ a.btn:focus,
 	text-decoration: none;
 }
 
+/* a:link has specificity (0,1,1) — one higher than a plain class selector (0,1,0).
+   Burger-menu items and logo link must keep their own colours, so we reset them
+   using :link/:visited to match the pseudo-class specificity and win the cascade. */
+.navbar-burger-item:link,
+.navbar-burger-item:visited {
+	color: #333;
+}
+.title-logo-link:link,
+.title-logo-link:visited {
+	color: inherit;
+}
+.btn-cancel:link,
+.btn-cancel:visited {
+	color: white;
+}
+
+/* Bootstrap's .text-muted and .btn-outline-secondary both default to #6c757d,
+   which is only 4.44:1 on #f8f9fa (form section backgrounds). #676e75 gives
+   4.90:1 on #f8f9fa and 5.21:1 on white → passes AA in both contexts. */
+.text-muted { color: #676e75 !important; }
+.btn-outline-secondary { color: #676e75; border-color: #676e75; }
+.btn-outline-secondary:hover { color: #fff; background-color: #676e75; border-color: #676e75; }
+
 /* The navbar background is rgb(168,180,247) – a lavender purple.
    Bootstrap's #007bff link colour bleeds through on <a class="btn btn-outline-dark">
    because the `a` selector can win the cascade there.
@@ -84,6 +107,31 @@ code {
 .btn-success:focus {
 	background-color: #14532d;
 	border-color: #14532d;
+}
+
+/* btn-outline-primary: #007bff text on white = 3.97:1 — fails AA.
+   btn-outline-info:    #17a2b8 text on white = 3.04:1 — fails AA.
+   Both replaced with accessible darker equivalents (≥ 7:1 on white). */
+.btn-outline-primary {
+	color: #0056b3;
+	border-color: #0056b3;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+	background-color: #0056b3;
+	border-color: #0056b3;
+	color: #fff;
+}
+
+.btn-outline-info {
+	color: #0b6477;
+	border-color: #0b6477;
+}
+.btn-outline-info:hover,
+.btn-outline-info:focus {
+	background-color: #0b6477;
+	border-color: #0b6477;
+	color: #fff;
 }
 
 .main-nickname {
@@ -1059,7 +1107,7 @@ test-results-element {
 }
 
 .btn-submit {
-  background: #28a745;
+  background: #1e7e34; /* #28a745 → #1e7e34: 3.13→5.13:1 white on green */
   border: none;
   padding: 0.75rem 2rem;
   font-weight: 500;
@@ -1071,7 +1119,7 @@ test-results-element {
 }
 
 .btn-submit:hover {
-  background: #218838;
+  background: #196a2d; /* stays above 4.5:1 with white: 6.70:1 */
   color: white;
 }
 
@@ -1349,7 +1397,7 @@ test-results-element {
 }
 
 .token-item small.text-muted {
-  color: #6c757d !important;
+  color: #676e75 !important;
 }
 
 .tokens-list {

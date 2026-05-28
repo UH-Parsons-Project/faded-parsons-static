@@ -1,9 +1,4 @@
-/* ── Accessible link styles ────────────────────────────────────────────────
-   WCAG 1.4.3 – contrast: Bootstrap default #007bff is only 3.97:1 on white
-               (AA needs 4.5:1).  #0056b3 ≈ 7:1 on white → passes AA & AAA.
-   WCAG 1.4.1 – use of colour: links must be distinguishable from surrounding
-               text WITHOUT relying solely on colour → underline is required.
-   ────────────────────────────────────────────────────────────────────────── */
+/* ── WCAG AA: link colours ───────────────────────────────────────────────── */
 a,
 a:link {
 	color: #0056b3;
@@ -53,21 +48,15 @@ a.btn:focus,
 	color: white;
 }
 
-/* Bootstrap's .badge-success uses #28a745 (3.13:1 with white). Override to
-   #1e7e34 → 5.13:1 with white, consistent with .btn-submit and .task-completed. */
+/* WCAG AA: badge-success */
 .badge-success { background-color: #1e7e34 !important; }
 
-/* Bootstrap's .text-muted and .btn-outline-secondary both default to #6c757d,
-   which is only 4.44:1 on #f8f9fa (form section backgrounds). #676e75 gives
-   4.90:1 on #f8f9fa and 5.21:1 on white → passes AA in both contexts. */
+/* WCAG AA: text-muted and btn-outline-secondary */
 .text-muted { color: #676e75 !important; }
 .btn-outline-secondary { color: #676e75; border-color: #676e75; }
 .btn-outline-secondary:hover { color: #fff; background-color: #676e75; border-color: #676e75; }
 
-/* The navbar background is rgb(168,180,247) – a lavender purple.
-   Bootstrap's #007bff link colour bleeds through on <a class="btn btn-outline-dark">
-   because the `a` selector can win the cascade there.
-   #343a40 (Bootstrap dark) gives ≈ 5.8:1 contrast on that background → AA pass. */
+/* WCAG AA: navbar btn-outline-dark — a:link specificity overrides the button colour */
 .navbar a.btn-outline-dark,
 .navbar a.btn-outline-dark:link,
 .navbar a.btn-outline-dark:visited {
@@ -78,21 +67,12 @@ a.btn:focus,
 	color: #fff;        /* Bootstrap hover fills the button dark, text goes white */
 }
 
-/* ── Accessible <code> colour ──────────────────────────────────────────────
-   Bootstrap's default #e83e8c is only 3.81:1 on white — fails WCAG AA.
-   #9d174d (deep crimson-rose) achieves ≈ 7.9:1 on white — passes AAA.
-   Rules with higher specificity (.example-code code {color:inherit},
-   .model-answer-code code, .steps-list code) are unaffected.          */
+/* ── WCAG AA: code colour ─────────────────────────────────────────────────── */
 code {
 	color: #9d174d;
 }
 
-/* ── Accessible solid button colours ───────────────────────────────────────
-   Bootstrap 4 btn-primary (#007bff bg, white text) = 3.99:1  — fails AA.
-   Bootstrap 4 btn-success (#28a745 bg, white text) = 3.13:1  — fails AA.
-   Replacements keep white text and use a darker bg that achieves ≥ 7:1.
-   Page-specific overrides with higher specificity (e.g. ID selectors) take
-   precedence and are unaffected by these class-level rules.             */
+/* ── WCAG AA: solid button colours ─────────────────────────────────────────── */
 .btn-primary {
 	background-color: #0056b3;
 	border-color: #0056b3;
@@ -113,9 +93,7 @@ code {
 	border-color: #14532d;
 }
 
-/* btn-outline-primary: #007bff text on white = 3.97:1 — fails AA.
-   btn-outline-info:    #17a2b8 text on white = 3.04:1 — fails AA.
-   Both replaced with accessible darker equivalents (≥ 7:1 on white). */
+/* WCAG AA: outline button colours */
 .btn-outline-primary {
 	color: #0056b3;
 	border-color: #0056b3;
@@ -462,7 +440,7 @@ code {
 
 .task-set-meta {
   font-size: 0.875rem;
-  color: #676e75; /* #6c757d → #676e75: 4.44→4.90:1 on #f8f9fa */
+  color: #676e75;
   margin-top: 0.5rem;
 }
 
@@ -1111,7 +1089,7 @@ test-results-element {
 }
 
 .btn-submit {
-  background: #1e7e34; /* #28a745 → #1e7e34: 3.13→5.13:1 white on green */
+  background: #1e7e34;
   border: none;
   padding: 0.75rem 2rem;
   font-weight: 500;
@@ -1123,7 +1101,7 @@ test-results-element {
 }
 
 .btn-submit:hover {
-  background: #196a2d; /* stays above 4.5:1 with white: 6.70:1 */
+  background: #196a2d;
   color: white;
 }
 
@@ -1529,7 +1507,7 @@ test-results-element {
   transition: width 0.4s ease;
   display: flex;
   align-items: center;
-  background-color: #1e7e34 !important; /* #28a745 (bg-success) → #1e7e34: 3.13→5.13:1 with white */
+  background-color: #1e7e34 !important;
   justify-content: center;
   color: white;
   font-weight: 600;
@@ -1571,7 +1549,7 @@ test-results-element {
 }
 
 .task-completed {
-  color: #1e7e34; /* #28a745 → #1e7e34: 3.13→5.13:1 on white */
+  color: #1e7e34;
   font-weight: 600;
 }
 
@@ -1581,7 +1559,7 @@ test-results-element {
 }
 
 .task-in-progress {
-  color: #b35a00; /* #ff9800 → #b35a00: 2.15→4.79:1 on white */
+  color: #b35a00;
 }
 
 .task-in-progress i {

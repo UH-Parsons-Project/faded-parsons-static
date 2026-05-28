@@ -12,7 +12,7 @@
   --amber-light:  #fef3c7;
   --gray:         #94a3b8;
   --text:         #1e293b;
-  --text-muted:   #5f6b7a; /* #64748b → #5f6b7a: 4.44→5.06:1 on card-header #f7f7f7 */
+  --text-muted:   #5f6b7a;
   --bg:           #ffffff;
   --card:         #ffffff;
   --border:       #e2e8f0;
@@ -399,8 +399,6 @@ h3.mb-3 {
   transition: border-color .15s;
 }
 .viewer-add-form input:focus { border-color: var(--brand-dark); }
-/* --brand-dark (#7b8df0) + white text = 3.03:1, fails WCAG AA.
-   --brand-text (#2d3a8c) + white text ≈ 10:1, passes AAA. */
 .viewer-add-form button {
   width: 100%;
   padding: .4rem .7rem;

@@ -4,7 +4,7 @@
   --brand:        #a8b4f7;
   --brand-dark:   #7b8df0;
   --brand-text:   #2d3a8c;
-  --green:        #15803d; /* #16a34a → #15803d: 3.29→5.01:1 on white */
+  --green:        #15803d;
   --green-light:  #dcfce7;
   --red:          #dc2626;
   --red-light:    #fee2e2;
@@ -14,7 +14,7 @@
   --amber-light:  #fef3c7;
   --gray:         #94a3b8;
   --text:         #1e293b;
-  --text-muted:   #5f6b7a; /* #64748b → #5f6b7a: 4.44→5.06:1 on card-header #f7f7f7 */
+  --text-muted:   #5f6b7a;
   --bg:           oklch(97.5% 0.008 262);
   --card:         #ffffff;
   --border:       #e2e8f0;

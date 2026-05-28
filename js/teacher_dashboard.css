@@ -10,7 +10,7 @@
   --amber:        #d97706;
   --gray:         #94a3b8;
   --text:         #1e293b;
-  --text-muted:   #64748b;
+  --text-muted:   #5f6b7a;
   --bg:           #ffffff;
   --card:         #ffffff;
   --border:       #e2e8f0;
@@ -341,14 +341,14 @@ a.btn-success.btn-block:hover {
 
 /* ── Admin button area ───────────────────────────────── */
 #all-sets-button-container .btn-primary {
-  background: var(--brand-dark);
-  border: none;
+  background: var(--brand-text);
+  border-color: var(--brand-text);
   border-radius: var(--radius);
   font-weight: 700;
   padding: .45rem 1rem;
   font-size: .82rem;
 }
-#all-sets-button-container .btn-primary:hover { background: #5a6edf; }
+#all-sets-button-container .btn-primary:hover { background: #253080; border-color: #253080; }
 
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }

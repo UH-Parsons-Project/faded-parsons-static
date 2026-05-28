@@ -250,6 +250,18 @@ export class ProblemElement extends LitElement {
 		const textInputs = this.querySelectorAll('input.text-box');
 		for (const input of textInputs) {
 			input.maxLength = 50;
+			const li = input.closest('li[id]');
+			if (li) {
+				const blanksInLine = Array.from(li.querySelectorAll('input.text-box'));
+				const idx = blanksInLine.indexOf(input);
+				input.setAttribute('aria-label',
+					blanksInLine.length > 1
+						? `Code blank ${idx + 1} of ${blanksInLine.length}`
+						: 'Code blank'
+				);
+			} else {
+				input.setAttribute('aria-label', 'Code blank');
+			}
 		}
 	};
 

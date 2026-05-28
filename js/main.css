@@ -53,6 +53,10 @@ a.btn:focus,
 	color: white;
 }
 
+/* Bootstrap's .badge-success uses #28a745 (3.13:1 with white). Override to
+   #1e7e34 → 5.13:1 with white, consistent with .btn-submit and .task-completed. */
+.badge-success { background-color: #1e7e34 !important; }
+
 /* Bootstrap's .text-muted and .btn-outline-secondary both default to #6c757d,
    which is only 4.44:1 on #f8f9fa (form section backgrounds). #676e75 gives
    4.90:1 on #f8f9fa and 5.21:1 on white → passes AA in both contexts. */
@@ -458,7 +462,7 @@ code {
 
 .task-set-meta {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: #676e75; /* #6c757d → #676e75: 4.44→4.90:1 on #f8f9fa */
   margin-top: 0.5rem;
 }
 
@@ -1525,6 +1529,7 @@ test-results-element {
   transition: width 0.4s ease;
   display: flex;
   align-items: center;
+  background-color: #1e7e34 !important; /* #28a745 (bg-success) → #1e7e34: 3.13→5.13:1 with white */
   justify-content: center;
   color: white;
   font-weight: 600;
@@ -1566,21 +1571,21 @@ test-results-element {
 }
 
 .task-completed {
-  color: #28a745;
+  color: #1e7e34; /* #28a745 → #1e7e34: 3.13→5.13:1 on white */
   font-weight: 600;
 }
 
 .task-completed i {
-  color: #28a745;
+  color: #1e7e34;
   margin-right: 0.5rem;
 }
 
 .task-in-progress {
-  color: #ff9800;
+  color: #b35a00; /* #ff9800 → #b35a00: 2.15→4.79:1 on white */
 }
 
 .task-in-progress i {
-  color: #ff9800;
+  color: #b35a00;
   margin-right: 0.5rem;
 }
 

@@ -697,7 +697,78 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   color: var(--text);
 }
 
-/* ── Model answer ────────────────────────────────────── */
+/* ── Right column (model answer + custom errors) ─────── */
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 80px;
+  align-self: start;
+}
+.model-card { }
+
+/* ── Collapsible card header ─────────────────────────── */
+.collapsible-header {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.collapsible-header:hover { background: var(--bg); }
+.collapse-chevron-wrap {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.collapse-chevron {
+  font-size: .7rem;
+  color: var(--text-muted);
+  transition: transform .2s ease;
+}
+.collapse-chevron.collapsed { transform: rotate(-90deg); }
+
+/* ── Error rules ─────────────────────────────────────── */
+.error-rule {
+  padding: .75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.error-rule:last-child { border-bottom: none; padding-bottom: 0; }
+.error-rule:first-child { padding-top: 0; }
+.error-rule-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .4rem;
+  flex-wrap: wrap;
+}
+.error-match-chip {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  background: #fef3c7;
+  color: #92400e;
+  padding: .1rem .45rem;
+  border-radius: 2rem;
+}
+.error-pattern {
+  font-family: var(--mono);
+  font-size: .78rem;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .1rem .4rem;
+  color: var(--text);
+}
+.error-message {
+  font-size: .82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Model answer code ───────────────────────────────── */
 .model-code {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
@@ -711,7 +782,6 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   overflow-x: auto;
   color: #14532d;
 }
-.model-card { position: sticky; top: 80px; align-self: start; }
 
 /* ── Accent overrides ────────────────────────────────── */
 body.accent-teal {
@@ -723,6 +793,82 @@ body.accent-slate {
   --brand: #cbd5e1;
   --brand-dark: #475569;
   --brand-text: #1e293b;
+}
+
+/* ── Custom Error Messages ───────────────────────────────── */
+.ce-count-chip {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  padding: .12rem .55rem;
+  border-radius: 999px;
+}
+
+.ce-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .8rem;
+}
+
+.ce-rule {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ce-rule-pattern {
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line-soft, #eef2f6);
+  padding: .6rem .8rem .65rem;
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+}
+
+.ce-rule-pattern code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .8rem;
+  color: #9d174d;
+  background: none;
+  padding: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.ce-rule-msg {
+  padding: .7rem .8rem .8rem;
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+  flex: 1;
+}
+
+.ce-rule-msg p {
+  margin: 0;
+  font-size: .875rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.ce-rule-label {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.ce-rule-label--arrow {
+  color: rgb(168, 180, 247);
 }
 
 /* ── Scrollbar ───────────────────────────────────────── */

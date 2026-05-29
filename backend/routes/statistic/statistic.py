@@ -14,6 +14,11 @@ router = APIRouter()
 # Project root (same as BASE_DIR in main.py)
 BASE_DIR = Path(__file__).resolve().parents[3]
 
+def _not_found_page() -> FileResponse:
+    response = FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=404)
+    return set_no_cache_headers(response)
+
+
 @router.get("/task-statistics", response_class=HTMLResponse)
 async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_db)):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
@@ -24,26 +29,17 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
     if task_id_raw:
         try:
             task_id = int(task_id_raw)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            ) from exc
+        except ValueError:
+            return _not_found_page()
 
         current_user = await get_current_user(request, db)
         task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
         task = task_result.scalar_one_or_none()
         if task is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
+            return _not_found_page()
 
         if not task.is_public and task.created_by_teacher_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found",
-            )
+            return _not_found_page()
 
     statistics_path = BASE_DIR / "templates" / "task_statistics.html"
     response = FileResponse(statistics_path)

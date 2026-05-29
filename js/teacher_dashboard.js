@@ -277,6 +277,7 @@ function createMyTaskCard(task) {
 	const actions = document.createElement('div');
 	actions.className = 'd-flex flex-wrap mt-2';
 	actions.style.gap = '0.5rem';
+	actions.addEventListener('click', (e) => e.stopPropagation());
 
 	if (task.editable) {
 		const editBtn = document.createElement('a');

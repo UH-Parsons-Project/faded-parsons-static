@@ -696,3 +696,123 @@ body.accent-slate {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Sidebar toggle button (mobile only) ─────────────── */
+.sidebar-toggle-btn {
+  display: none;
+  align-items: center;
+  gap: .4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .45rem .85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.sidebar-toggle-btn:hover { background: white; border-color: var(--gray); color: var(--text); }
+.sidebar-toggle-btn i { font-size: 0.9rem; }
+
+/* ── Page header right cluster ───────────────────────── */
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+}
+
+/* ── Sidebar backdrop (mobile overlay) ───────────────── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  z-index: 895;
+}
+.sidebar-backdrop.show { display: block; }
+
+/* ── Responsive: tablet landscape (≤1100px) ──────────── */
+@media (max-width: 1100px) {
+  .middle-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Responsive: tablet portrait / large phone (≤768px) ─ */
+@media (max-width: 768px) {
+  /* Show the sidebar toggle button */
+  .sidebar-toggle-btn { display: flex; }
+
+  /* Single-column page layout — sidebar is removed from flow */
+  .page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sidebar becomes a slide-in overlay */
+  .student-sidebar {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: 280px;
+    z-index: 900;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: 4px 0 16px rgba(0,0,0,.12);
+  }
+  .student-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* KPI: 2×2 grid */
+  .kpi-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Bottom row: stacked */
+  .bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Model answer: no sticky on mobile (would feel odd) */
+  .model-card { position: static; }
+
+  /* Tighter padding */
+  .page-header { padding: 1.25rem 1.25rem .75rem; flex-wrap: wrap; }
+  .main { padding: 0 1rem 2rem; }
+
+  /* Slightly smaller typography */
+  .kpi-value { font-size: 2rem; }
+  .page-title { font-size: 1.3rem; }
+  .header-badge { font-size: 1rem; padding: .5rem 1.1rem; }
+}
+
+/* ── Navbar: collapse username to icon on small screens ─ */
+@media (max-width: 600px) {
+  #user-name { display: none; }
+}
+
+/* ── Responsive: phone (≤540px) ──────────────────────── */
+@media (max-width: 540px) {
+  /* Box plot: scrollable so labels stay readable */
+  .bp-svg-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Override the inline width:100% so the SVG stays large enough to read */
+  .bp-svg-wrap svg {
+    min-width: 580px;
+    width: 580px !important;
+  }
+
+  .page-header { padding: 1rem 1rem .75rem; gap: .6rem; }
+  .main { padding: 0 .75rem 1.5rem; }
+  .kpi-value { font-size: 1.75rem; }
+  .page-title { font-size: 1.15rem; }
+  .header-badge { font-size: 0.82rem; padding: .4rem .9rem; }
+}

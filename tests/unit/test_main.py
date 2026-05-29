@@ -486,17 +486,47 @@ class TestGetTask:
 
 
 # ---------------------------------------------------------------------------
-# GET /api/tasks  — list public tasks
+# GET /api/tasks  — list visible tasks for current teacher
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestListTasks:
-    async def test_includes_public_excludes_private(self, client, task, private_task, test_teacher):
+    async def test_includes_public_and_own_private(self, client, task, private_task, test_teacher):
         r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
         assert r.status_code == 200
         ids = [t["id"] for t in r.json()]
         assert task.id in ids
-        assert private_task.id not in ids
+        assert private_task.id in ids
+
+    async def test_excludes_private_from_other_teacher(self, client, db_session, test_teacher):
+        other_teacher = Teacher(
+            username="otherteacher",
+            email="other@example.com",
+            is_active=True,
+        )
+        other_teacher.set_password("testpassword123")
+        db_session.add(other_teacher)
+        await db_session.commit()
+        await db_session.refresh(other_teacher)
+
+        other_private = Parsons(
+            created_by_teacher_id=other_teacher.id,
+            title="Other Private Task",
+            task_instructions='{"task_instructions": "Internal only."}',
+            description='{"description": "Not visible to others."}',
+            task_type="python",
+            code_blocks={"blocks": []},
+            correct_solution={"solution": []},
+            is_public=False,
+        )
+        db_session.add(other_private)
+        await db_session.commit()
+        await db_session.refresh(other_private)
+
+        r = await client.get("/api/tasks", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        ids = [t["id"] for t in r.json()]
+        assert other_private.id not in ids
 
     async def test_parses_json_description_field(self, client, task, test_teacher):
         r = await client.get("/api/tasks", headers=_auth(test_teacher.username))

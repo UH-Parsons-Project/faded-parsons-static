@@ -1,7 +1,7 @@
 """safe unique constraints for parsons and task_sets
 
 Revision ID: af4b5c6d7e8f
-Revises: 9f1a2b3c4d5e
+Revises: 36530b82db8d
 Create Date: 2026-05-26 12:30:00.000000
 
 This migration is written defensively so it can run in test and production
@@ -18,7 +18,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "af4b5c6d7e8f"
-down_revision: Union[str, Sequence[str], None] = "9f1a2b3c4d5e"
+down_revision: Union[str, Sequence[str], None] = "36530b82db8d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

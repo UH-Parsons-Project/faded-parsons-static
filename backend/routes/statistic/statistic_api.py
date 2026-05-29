@@ -80,7 +80,14 @@ async def get_student_attempts(
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
-    task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
+    task_ids_stmt = (
+        select(TaskSetItem.task_id)
+        .join(Parsons, Parsons.id == TaskSetItem.task_id)
+        .where(
+            TaskSetItem.task_set_id == set_id,
+            (Parsons.is_public | (Parsons.created_by_teacher_id == current_user.id)),
+        )
+    )
 
     async def _handler(task_ids):
         stmt = (
@@ -133,6 +140,12 @@ async def get_student_task_statistics(
     task = task_result.scalar_one_or_none()
 
     if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {task_id} not found"
+        )
+
+    if not task.is_public and task.created_by_teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found"
@@ -344,6 +357,12 @@ async def get_task_statistics(
     task = task_result.scalar_one_or_none()
 
     if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with id {task_id} not found"
+        )
+
+    if not task.is_public and task.created_by_teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found"

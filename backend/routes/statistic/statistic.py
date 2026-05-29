@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pathlib import Path
 
 from ...database import get_db
 from ...auth import get_current_user
+from ...models import Parsons
 from ..utils.commons import set_no_cache_headers, require_session_or_redirect
 
 router = APIRouter()
@@ -17,6 +19,31 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
         return redirect
+
+    task_id_raw = request.query_params.get("id")
+    if task_id_raw:
+        try:
+            task_id = int(task_id_raw)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found",
+            ) from exc
+
+        current_user = await get_current_user(request, db)
+        task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+        task = task_result.scalar_one_or_none()
+        if task is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found",
+            )
+
+        if not task.is_public and task.created_by_teacher_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found",
+            )
 
     statistics_path = BASE_DIR / "templates" / "task_statistics.html"
     response = FileResponse(statistics_path)

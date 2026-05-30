@@ -37,6 +37,17 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+function makeKeyActivatable(el, handler) {
+	el.setAttribute('tabindex', '0');
+	el.setAttribute('role', 'button');
+	el.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handler(e);
+		}
+	});
+}
+
 function renderHeader(username, completedTasks, attemptedTasks, totalTasks, taskSetName) {
 	const CIRC = 376.99;
 	const notCompletedTasks = Math.max(attemptedTasks - completedTasks, 0);
@@ -122,9 +133,11 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
-	item.onclick = () => {
-	window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
+	const navigate = () => {
+		window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
+	item.onclick = navigate;
+	makeKeyActivatable(item, navigate);
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';

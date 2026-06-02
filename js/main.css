@@ -1,3 +1,121 @@
+/* ── WCAG AA: link colours ───────────────────────────────────────────────── */
+a,
+a:link {
+	color: #0056b3;
+	text-decoration: underline;
+}
+
+a:visited {
+	color: #003d80;
+	text-decoration: underline;
+}
+
+a:hover,
+a:focus {
+	color: #003d80;
+	text-decoration: underline;
+}
+
+/* Buttons styled as <a> and nav items must NOT get underlines.
+   Their role is already communicated by border/background/context. */
+a.btn,
+a.btn:link,
+a.btn:visited,
+a.btn:hover,
+a.btn:focus,
+.navbar-burger-item,
+.navbar-burger-item:hover,
+.navbar-burger-item:focus,
+.title-logo-link,
+.title-logo-link:hover,
+.title-logo-link:focus {
+	text-decoration: none;
+}
+
+/* a:link has specificity (0,1,1) — one higher than a plain class selector (0,1,0).
+   Burger-menu items and logo link must keep their own colours, so we reset them
+   using :link/:visited to match the pseudo-class specificity and win the cascade. */
+.navbar-burger-item:link,
+.navbar-burger-item:visited {
+	color: #333;
+}
+.title-logo-link:link,
+.title-logo-link:visited {
+	color: inherit;
+}
+.btn-cancel:link,
+.btn-cancel:visited {
+	color: white;
+}
+
+/* WCAG AA: badge-success */
+.badge-success { background-color: #1e7e34 !important; }
+
+/* WCAG AA: text-muted and btn-outline-secondary */
+.text-muted { color: #676e75 !important; }
+.btn-outline-secondary { color: #676e75; border-color: #676e75; }
+.btn-outline-secondary:hover { color: #fff; background-color: #676e75; border-color: #676e75; }
+
+/* WCAG AA: navbar btn-outline-dark — a:link specificity overrides the button colour */
+.navbar a.btn-outline-dark,
+.navbar a.btn-outline-dark:link,
+.navbar a.btn-outline-dark:visited {
+	color: #343a40;
+}
+.navbar a.btn-outline-dark:hover,
+.navbar a.btn-outline-dark:focus {
+	color: #fff;        /* Bootstrap hover fills the button dark, text goes white */
+}
+
+/* ── WCAG AA: code colour ─────────────────────────────────────────────────── */
+code {
+	color: #9d174d;
+}
+
+/* ── WCAG AA: solid button colours ─────────────────────────────────────────── */
+.btn-primary {
+	background-color: #0056b3;
+	border-color: #0056b3;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+	background-color: #004494;
+	border-color: #004085;
+}
+
+.btn-success {
+	background-color: #166534;
+	border-color: #166534;
+}
+.btn-success:hover,
+.btn-success:focus {
+	background-color: #14532d;
+	border-color: #14532d;
+}
+
+/* WCAG AA: outline button colours */
+.btn-outline-primary {
+	color: #0056b3;
+	border-color: #0056b3;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+	background-color: #0056b3;
+	border-color: #0056b3;
+	color: #fff;
+}
+
+.btn-outline-info {
+	color: #0b6477;
+	border-color: #0b6477;
+}
+.btn-outline-info:hover,
+.btn-outline-info:focus {
+	background-color: #0b6477;
+	border-color: #0b6477;
+	color: #fff;
+}
+
 .main-nickname {
 	min-height: calc(100vh - 56px);
 	display: flex;
@@ -322,7 +440,7 @@
 
 .task-set-meta {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: #676e75;
   margin-top: 0.5rem;
 }
 
@@ -864,7 +982,7 @@ test-results-element {
 .preview-btn {
   background: none;
   border: none;
-  color: #007bff;
+  color: #0056b3;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   font-size: 0.9rem;
@@ -971,7 +1089,7 @@ test-results-element {
 }
 
 .btn-submit {
-  background: #28a745;
+  background: #1e7e34;
   border: none;
   padding: 0.75rem 2rem;
   font-weight: 500;
@@ -983,7 +1101,7 @@ test-results-element {
 }
 
 .btn-submit:hover {
-  background: #218838;
+  background: #196a2d;
   color: white;
 }
 
@@ -1261,7 +1379,7 @@ test-results-element {
 }
 
 .token-item small.text-muted {
-  color: #6c757d !important;
+  color: #676e75 !important;
 }
 
 .tokens-list {
@@ -1368,7 +1486,7 @@ test-results-element {
 }
 
 .progress-count-done {
-  color: #007bff;
+  color: #0056b3;
 }
 
 .progress-count-sep {
@@ -1389,6 +1507,7 @@ test-results-element {
   transition: width 0.4s ease;
   display: flex;
   align-items: center;
+  background-color: #1e7e34 !important;
   justify-content: center;
   color: white;
   font-weight: 600;
@@ -1430,21 +1549,21 @@ test-results-element {
 }
 
 .task-completed {
-  color: #28a745;
+  color: #1e7e34;
   font-weight: 600;
 }
 
 .task-completed i {
-  color: #28a745;
+  color: #1e7e34;
   margin-right: 0.5rem;
 }
 
 .task-in-progress {
-  color: #ff9800;
+  color: #b35a00;
 }
 
 .task-in-progress i {
-  color: #ff9800;
+  color: #b35a00;
   margin-right: 0.5rem;
 }
 

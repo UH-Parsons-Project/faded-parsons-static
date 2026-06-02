@@ -400,8 +400,8 @@ function loadTokensList() {
 						<small class="text-muted">Created: ${createdDate}</small><br>
 						<small class="text-muted"><i class="fas fa-clock"></i> Expires: ${expiresDate}</small>
 					</div>
-					<button class="btn btn-sm btn-outline-danger ml-2" onclick="deleteToken(${token.id})">
-						<i class="fas fa-trash"></i>
+					<button class="btn btn-sm btn-outline-danger ml-2" onclick="deleteToken(${token.id})" aria-label="Delete token ${token.id}">
+						<i class="fas fa-trash" aria-hidden="true"></i>
 					</button>
 				</div>
 			`;

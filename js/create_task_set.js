@@ -352,6 +352,7 @@ function renderTasks(tasks) {
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
+    checkbox.setAttribute('aria-label', `Select task: ${task.title}`);
     checkbox.checked = selectedTaskIds.includes(task.id);
     checkbox.addEventListener('change', (e) => {
       handleTaskSelection(task.id, e.target.checked);

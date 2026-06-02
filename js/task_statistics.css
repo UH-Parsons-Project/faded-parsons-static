@@ -4,7 +4,7 @@
   --brand:        #a8b4f7;
   --brand-dark:   #7b8df0;
   --brand-text:   #2d3a8c;
-  --green:        #16a34a;
+  --green:        #15803d;
   --green-light:  #dcfce7;
   --red:          #dc2626;
   --red-light:    #fee2e2;
@@ -14,7 +14,7 @@
   --amber-light:  #fef3c7;
   --gray:         #94a3b8;
   --text:         #1e293b;
-  --text-muted:   #64748b;
+  --text-muted:   #5f6b7a;
   --bg:           oklch(97.5% 0.008 262);
   --card:         #ffffff;
   --border:       #e2e8f0;
@@ -458,7 +458,7 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   white-space: nowrap;
   transition: background .15s;
 }
-.bp-legend-wiki:hover { background: var(--brand-dark); color: #fff; }
+.bp-legend-wiki:hover { background: var(--brand-text); color: #fff; }
 .bp-outlier-g { cursor: pointer; }
 .bp-outlier-g .bp-tip-bg,
 .bp-outlier-g .bp-tip-text { visibility: hidden; }

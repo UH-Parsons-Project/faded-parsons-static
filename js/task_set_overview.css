@@ -12,7 +12,7 @@
   --amber-light:  #fef3c7;
   --gray:         #94a3b8;
   --text:         #1e293b;
-  --text-muted:   #64748b;
+  --text-muted:   #5f6b7a;
   --bg:           #ffffff;
   --card:         #ffffff;
   --border:       #e2e8f0;
@@ -402,7 +402,7 @@ h3.mb-3 {
 .viewer-add-form button {
   width: 100%;
   padding: .4rem .7rem;
-  background: var(--brand-dark);
+  background: var(--brand-text);
   color: white;
   border: none;
   border-radius: var(--radius);
@@ -411,7 +411,7 @@ h3.mb-3 {
   cursor: pointer;
   transition: background .15s;
 }
-.viewer-add-form button:hover { background: #5a6edf; }
+.viewer-add-form button:hover { background: #253080; }
 .viewer-add-form button:disabled { opacity: .6; cursor: not-allowed; }
 .viewer-add-hint {
   font-size: .75rem;

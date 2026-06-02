@@ -427,6 +427,48 @@ body {
   cursor: pointer;
 }
 
+/* ── WCAG AA: accessible colours ─────────────────────────────────────────── */
+
+/* !important needed to override Bootstrap's .text-muted { color: … !important } */
+.card-header .text-muted,
+.card-header small {
+  color: #5c636a !important;
+}
+
+/* "Clear All Blocks" – outline-danger in card-header (bg ≈ #f7f7f7) */
+#clear-blocks {
+  color: #b02a37;
+  border-color: #b02a37;
+}
+#clear-blocks:hover,
+#clear-blocks:focus {
+  background-color: #b02a37;
+  border-color: #b02a37;
+  color: #fff;
+}
+
+/* "Set as Model Answer" */
+#set-model-answer {
+  color: #0056b3;
+  border-color: #0056b3;
+}
+#set-model-answer:hover,
+#set-model-answer:focus {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+/* "Preview" */
+#preview-student-view {
+  color: #0b6477;
+  border-color: #0b6477;
+}
+#preview-student-view:hover,
+#preview-student-view:focus {
+  background-color: #0b6477;
+  color: #fff;
+}
+
 .preview-code-block {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
   white-space: pre-wrap;

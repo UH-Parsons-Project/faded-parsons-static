@@ -6,7 +6,8 @@ from pathlib import Path
 
 from ...database import get_db
 from ...auth import get_current_user
-from ...models import Parsons
+from ...models import Parsons, TaskSet
+from ...utils.taskset import can_view_task_in_task_set
 from ..utils.commons import set_no_cache_headers, require_session_or_redirect
 
 router = APIRouter()
@@ -39,7 +40,16 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
             return _not_found_page()
 
         if not task.is_public and task.created_by_teacher_id != current_user.id:
-            return _not_found_page()
+            task_set_code = request.query_params.get("task_set")
+            if not task_set_code:
+                return _not_found_page()
+
+            task_set_result = await db.execute(
+                select(TaskSet).where(TaskSet.unique_link_code == task_set_code)
+            )
+            task_set = task_set_result.scalar_one_or_none()
+            if task_set is None or not await can_view_task_in_task_set(task, task_set, current_user, db):
+                return _not_found_page()
 
     statistics_path = BASE_DIR / "templates" / "task_statistics.html"
     response = FileResponse(statistics_path)

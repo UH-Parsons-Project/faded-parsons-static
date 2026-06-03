@@ -23,7 +23,7 @@ from ...pydantic import (
 from ...auth import CurrentUser
 from backend.utils import has_user_added_own_code, _clean_mistake_code, _mistake_code_fingerprint
 from datetime import datetime, timezone
-from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
+from ...utils.taskset import can_view_task_in_task_set, has_task_set_view_access, require_task_set_view_access
 from ..utils.commons import get_task_set_or_404, run_with_task_ids_or_empty
 
 router = APIRouter()
@@ -80,14 +80,7 @@ async def get_student_attempts(
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
-    task_ids_stmt = (
-        select(TaskSetItem.task_id)
-        .join(Parsons, Parsons.id == TaskSetItem.task_id)
-        .where(
-            TaskSetItem.task_set_id == set_id,
-            (Parsons.is_public | (Parsons.created_by_teacher_id == current_user.id)),
-        )
-    )
+    task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
 
     async def _handler(task_ids):
         stmt = (
@@ -145,7 +138,7 @@ async def get_student_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    if not task.is_public and task.created_by_teacher_id != current_user.id:
+    if not await can_view_task_in_task_set(task, task_set, current_user, db):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found"
@@ -362,7 +355,7 @@ async def get_task_statistics(
             detail=f"Task with id {task_id} not found"
         )
 
-    if not task.is_public and task.created_by_teacher_id != current_user.id:
+    if not task_set_code and not task.is_public and task.created_by_teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {task_id} not found"
@@ -388,6 +381,12 @@ async def get_task_statistics(
             )
 
         await require_task_set_view_access(task_set, current_user, db)
+
+        if not await can_view_task_in_task_set(task, task_set, current_user, db):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Task with id {task_id} not found"
+            )
 
         attempts_query = (
             select(TaskAttempt, StudentTaskEnrollment)

@@ -10,8 +10,9 @@ from sqlalchemy import select
 from unittest.mock import patch, AsyncMock
 
 from backend.models import (
-    Student, TaskSet, Parsons, StudentTaskSetEnrollment, 
-    StudentTaskEnrollment, TaskAttempt, TaskSession, EditEvent, MoveEvent, ModelAnswer
+    Student, TaskSet, Parsons, StudentTaskSetEnrollment,
+    StudentTaskEnrollment, TaskAttempt, TaskSession, EditEvent, MoveEvent, ModelAnswer,
+    Teacher, TaskSetItem, TaskSetViewer,
 )
 from backend.pydantic import StudentTaskAttemptResponse, StudentTaskStatisticsResponse
 from backend.database import get_db
@@ -22,6 +23,18 @@ from backend.main import app
 def _auth(username: str) -> dict:
     """Return an Authorization header dict for the given teacher username."""
     return {"Authorization": f"Bearer {create_access_token({'sub': username})}"}
+
+
+async def _create_shared_viewer(db_session, task_set_id: int) -> Teacher:
+    viewer = Teacher(username="statsviewer", email="statsviewer@example.com", is_active=True)
+    viewer.set_password("password123")
+    db_session.add(viewer)
+    await db_session.commit()
+    await db_session.refresh(viewer)
+
+    db_session.add(TaskSetViewer(task_set_id=task_set_id, teacher_id=viewer.id))
+    await db_session.commit()
+    return viewer
 
 
 @pytest_asyncio.fixture
@@ -174,6 +187,50 @@ class TestGetStudentAttempts:
             headers=_auth(other_teacher.username)
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    async def test_get_student_attempts_shared_viewer_sees_private_task_in_shared_set(
+        self, client, db_session, task_set, private_task, student_with_attempts
+    ):
+        item = TaskSetItem(task_set_id=task_set.id, task_id=private_task.id)
+        db_session.add(item)
+
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student_with_attempts.id,
+            task_id=private_task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0),
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+
+        session = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 5, 0),
+        )
+        db_session.add(session)
+        await db_session.flush()
+
+        db_session.add(TaskAttempt(
+            student_id=student_with_attempts.id,
+            task_id=private_task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 5, 0),
+            success=True,
+            submitted_inputs={"code": "print('private')"},
+        ))
+        await db_session.commit()
+
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        response = await client.get(
+            f"/api/students/attempt_student/attempts?set_id={task_set.id}",
+            headers=_auth(viewer.username),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert any(item["task_id"] == private_task.id for item in data)
 
 class TestGetStudentTaskStatistics:
     """Tests for GET /api/students/{student_username}/tasks/{task_id}/statistics endpoint."""
@@ -401,6 +458,50 @@ class TestGetStudentTaskStatistics:
         # Should be 5 + 5 = 10 minutes = 600 seconds
         assert data["total_time_seconds"] == 600
         assert len(data["sessions"]) == 2
+
+    async def test_get_student_task_statistics_shared_viewer_can_access_private_task(
+        self, client, db_session, task_set, private_task, student_session
+    ):
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=private_task.id))
+        await db_session.flush()
+
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student_session.id,
+            task_id=private_task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0),
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+
+        session = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0),
+            exited_at=datetime(2026, 1, 1, 10, 5, 0),
+        )
+        db_session.add(session)
+        await db_session.flush()
+
+        db_session.add(TaskAttempt(
+            student_id=student_session.id,
+            task_id=private_task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session.id,
+            completed_at=datetime(2026, 1, 1, 10, 5, 0),
+            success=True,
+            submitted_inputs={"code": "print('private')"},
+        ))
+        await db_session.commit()
+
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        response = await client.get(
+            f"/api/students/{student_session.username}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(viewer.username),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["task_name"] == private_task.title
 
 @pytest.mark.asyncio
 class TestStatisticAPIIntegration:

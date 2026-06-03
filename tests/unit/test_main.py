@@ -25,7 +25,7 @@ import utils as utils
 import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
-from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem, RegistrationToken
+from backend.models import Parsons, Student, StudentTaskSetEnrollment, Teacher, TaskAttempt, TaskSet, StudentTaskEnrollment, TaskSession, TaskSetItem, TaskSetViewer, RegistrationToken
 from backend.utils import hash_token
 
 
@@ -100,6 +100,22 @@ async def _add_attempt(db_session, ss_id: int, task_id: int, task_set_id: int, *
     return a
 
 
+async def _create_shared_viewer(db_session, task_set_id: int) -> Teacher:
+    viewer = Teacher(
+        username="sharedviewer",
+        email="sharedviewer@example.com",
+        is_active=True,
+    )
+    viewer.set_password("testpassword123")
+    db_session.add(viewer)
+    await db_session.commit()
+    await db_session.refresh(viewer)
+
+    db_session.add(TaskSetViewer(task_set_id=task_set_id, teacher_id=viewer.id))
+    await db_session.commit()
+    return viewer
+
+
 # ---------------------------------------------------------------------------
 # /test/reset-db
 # ---------------------------------------------------------------------------
@@ -153,6 +169,19 @@ class TestStaticPages:
 
     async def test_task_statistics_view_authenticated_returns_200(self, client, test_teacher):
         r = await client.get("/task-statistics", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
+    async def test_task_statistics_view_shared_viewer_can_open_private_task_in_shared_set(
+        self, client, db_session, task_set, private_task
+    ):
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=private_task.id))
+        await db_session.commit()
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        r = await client.get(
+            f"/task-statistics?id={private_task.id}&task_set={task_set.unique_link_code}&set_id={task_set.id}",
+            headers=_auth(viewer.username),
+        )
         assert r.status_code == 200
 
 
@@ -956,6 +985,42 @@ class TestStatistics:
             headers=_auth(test_teacher.username),
         )
         assert response.status_code == 404
+
+    async def test_shared_viewer_can_get_private_task_statistics_in_shared_set(
+        self, client, db_session, task_set, private_task, student_session
+    ):
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=private_task.id))
+        await db_session.commit()
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        await _add_attempt(db_session, student_session.id, private_task.id, task_set.id, success=True)
+
+        response = await client.get(
+            f"/api/tasks/{private_task.id}/statistics?task_set_code={task_set.unique_link_code}",
+            headers=_auth(viewer.username),
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["task_name"] == private_task.title
+        assert body["students_attempted"] == 1
+
+    async def test_shared_viewer_can_get_private_student_task_statistics_in_shared_set(
+        self, client, db_session, task_set, private_task, student_session
+    ):
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=private_task.id))
+        await db_session.commit()
+        viewer = await _create_shared_viewer(db_session, task_set.id)
+
+        await _add_attempt(db_session, student_session.id, private_task.id, task_set.id, success=True)
+
+        response = await client.get(
+            f"/api/students/{student_session.username}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(viewer.username),
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["task_name"] == private_task.title
+        assert body["student_username"] == student_session.username
 
 
 # ---------------------------------------------------------------------------

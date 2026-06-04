@@ -10,10 +10,10 @@ compose_cmd=(docker compose --profile test)
 
 # Run both test services concurrently and wait for both to finish.
 set +e
-"${compose_cmd[@]}" run --rm unittest &
+"${compose_cmd[@]}" run --build --rm unittest &
 unit_pid=$!
 
-"${compose_cmd[@]}" run --rm test &
+"${compose_cmd[@]}" run --build --rm test &
 playwright_pid=$!
 
 wait "${unit_pid}"

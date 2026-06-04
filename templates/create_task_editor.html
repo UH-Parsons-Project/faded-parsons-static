@@ -53,7 +53,7 @@
             <section class="guide-section" aria-label="Teacher guide for block builder">
               <button type="button" class="guide-toggle" id="problem-guide-toggle" aria-expanded="false" aria-controls="problem-guide-content">
                 <i class="fas fa-chalkboard-teacher"></i>
-                <span>Quick Guide for Teachers</span>
+                <span>Quick Guide for Teachers: Building and Visibility</span>
                 <i class="fas fa-chevron-down"></i>
               </button>
 
@@ -66,7 +66,9 @@
                   <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
                   <li>Click <strong>Set as Model Answer</strong>. You can click it again later to update the saved model answer.</li>
                   <li>Click <strong>Preview</strong> to review the block page.</li>
-                  <li>When all tests pass, click <strong>Add to Problem List</strong> to publish the task.</li>
+                  <li>The <strong>Visible to other teachers</strong> checkbox is on by default, which means the task is public. Turn it off to make the task private.</li>
+                  <li>When a task is private, only the creator can see it, plus teachers who have access to a task set that includes the task.</li>
+                  <li>When all tests pass, click <strong>Save Task to Problem List</strong> to publish the task with the selected visibility.</li>
                 </ol>
                 </div>
               </div>
@@ -92,14 +94,14 @@
             <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
             <textarea id="start-description" class="problem-description" placeholder="In this exercise you will practice adding values."></textarea>
 
-            <div class="form-group mt-3">
-              <div class="checkbox-custom">
+            <div class="form-group mt-3 visibility-card">
+              <div class="checkbox-custom visibility-toggle">
                 <input type="checkbox" id="task-visibility-public" class="form-check-input" checked>
                 <label for="task-visibility-public" class="form-check-label">
-                  Public task (visible to other teachers)
+                  Visible to other teachers
                 </label>
               </div>
-              <small class="form-text text-muted">Uncheck to keep the task private to you.</small>
+              <small class="form-text text-muted visibility-help">On by default. Turn this off to make the task private. Private tasks are visible only to you and teachers who have access to a task set that includes the task.</small>
             </div>
 
             <details class="field-help-details mt-3">
@@ -174,7 +176,7 @@
               <span id="run-status" class="run-status"></span>
               <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
               <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
-              <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Add to Problem List</button>
+              <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Save Task to Problem List</button>
             </div>
           </div>
         </div>

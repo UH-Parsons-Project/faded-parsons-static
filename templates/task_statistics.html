@@ -266,13 +266,27 @@
         </div>
       </div>
 
-      <div class="card model-card" id="model-answer-box">
-        <div class="card-header">
-          <span class="card-title">Model Answer</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="right-col">
+        <div class="card model-card" id="model-answer-box">
+          <button class="card-header collapsible-header" id="model-answer-toggle" aria-expanded="true" aria-controls="model-answer-content">
+            <span class="card-title">Model Answer</span>
+            <span class="collapse-chevron-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <i class="fas fa-chevron-down collapse-chevron"></i>
+            </span>
+          </button>
+          <div class="card-body" id="model-answer-content">
+            <em class="text-muted">No model answer available.</em>
+          </div>
         </div>
-        <div class="card-body" id="model-answer-content">
-          <em class="text-muted">No model answer available.</em>
+
+        <div class="card" id="custom-errors-box" style="display:none">
+          <button class="card-header collapsible-header" id="custom-errors-toggle" aria-expanded="true" aria-controls="custom-errors-content">
+            <span class="card-title">Custom Error Messages</span>
+            <span class="ce-count-chip" id="custom-errors-count"></span>
+            <i class="fas fa-chevron-down collapse-chevron"></i>
+          </button>
+          <div class="card-body" id="custom-errors-content"></div>
         </div>
       </div>
 

@@ -45,12 +45,23 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+function makeKeyActivatable(el, handler) {
+	el.setAttribute('tabindex', '0');
+	el.setAttribute('role', 'button');
+	el.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handler(e);
+		}
+	});
+}
+
 function createTaskSetItem(taskSet) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
-	item.onclick = () => {
-		window.location.href = `/task-set-overview?set_id=${taskSet.id}`;
-	};
+	const navigateToSet = () => { window.location.href = `/task-set-overview?set_id=${taskSet.id}`; };
+	item.onclick = navigateToSet;
+	makeKeyActivatable(item, navigateToSet);
 
 	// Top row: title + join code chip
 	const topRow = document.createElement('div');
@@ -66,7 +77,7 @@ function createTaskSetItem(taskSet) {
 		chip.className = 'task-set-code-chip';
 		chip.title = 'Click to copy link';
 		chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
-		chip.onclick = (e) => {
+		const copyLink = (e) => {
 			e.stopPropagation();
 			const url = `${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
 			navigator.clipboard.writeText(url).then(() => {
@@ -78,6 +89,8 @@ function createTaskSetItem(taskSet) {
 				}, 1500);
 			});
 		};
+		chip.onclick = copyLink;
+		makeKeyActivatable(chip, copyLink);
 		topRow.appendChild(chip);
 	}
 
@@ -251,7 +264,7 @@ function createMyTaskCard(task) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
 	card.style.cursor = 'pointer';
-	card.onclick = () => {
+	const openPreview = () => {
 		const previewWindow = window.open(
 			'/task?id=' + encodeURIComponent(task.id),
 			'_blank',
@@ -259,6 +272,8 @@ function createMyTaskCard(task) {
 		);
 		if (previewWindow) previewWindow.focus();
 	};
+	card.onclick = openPreview;
+	makeKeyActivatable(card, openPreview);
 
 	const header = document.createElement('div');
 	header.className = 'task-set-item-top';

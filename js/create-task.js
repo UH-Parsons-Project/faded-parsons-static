@@ -106,8 +106,20 @@
     autoResize(textarea);
     updateCaretStatus(textarea, statusElement);
 
+    let tabCaptureEnabled = true;
+
     textarea.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        tabCaptureEnabled = false;
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        tabCaptureEnabled = true;
+      }
+
       if (event.key === 'Tab') {
+        if (!tabCaptureEnabled) return;
         event.preventDefault();
         indentOrUnindentSelection(textarea, event.shiftKey);
         autoResize(textarea);

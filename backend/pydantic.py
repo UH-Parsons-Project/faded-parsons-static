@@ -36,6 +36,7 @@ class TaskSetResponse(BaseModel):
     teacher_description: str | None
     created_at: str
     expires_at: str | None
+    deletable: bool = True
 
 
 class TaskSetTaskResponse(BaseModel):
@@ -43,6 +44,7 @@ class TaskSetTaskResponse(BaseModel):
     title: str
     task_type: str
     created_at: str
+    is_hidden: bool = False
 
 
 class ProblemSetInfoResponse(BaseModel):

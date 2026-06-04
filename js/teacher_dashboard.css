@@ -68,7 +68,7 @@ body {
 /* ── Content width constraint ────────────────────────── */
 .page-header,
 .dashboard-main {
-  max-width: 1150px;
+  max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -148,19 +148,39 @@ body {
 }
 .empty-state p { font-size: .875rem; }
 
-/* ── Dashboard two-column layout ─────────────────────── */
-.teacher-dashboard-layout {
+/* ── Dashboard parallel layout ───────────────────────── */
+.parallel-layout {
   display: flex;
-  gap: 1.25rem;
+  gap: 1.5rem;
   align-items: flex-start;
 }
-.task-sets-column { flex: 1; min-width: 0; }
-.add-button-column {
-  width: 240px;
-  flex-shrink: 0;
-  position: sticky;
-  top: calc(80px + 1rem);
+.parallel-col { flex: 1; min-width: 0; }
+
+/* ── Section create-button row ───────────────────────── */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
 }
+.section-header-row h4 { margin: 0; }
+.section-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .8rem;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: .8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.section-create-btn:hover { background: #15803d; color: #fff; text-decoration: none; }
 
 /* ── Section headings ────────────────────────────────── */
 .task-set-section { margin-bottom: 1.5rem; }
@@ -349,6 +369,15 @@ a.btn-success.btn-block:hover {
   font-size: .82rem;
 }
 #all-sets-button-container .btn-primary:hover { background: #253080; border-color: #253080; }
+
+/* ── Your Tasks section ──────────────────────────────── */
+.your-tasks-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .6rem;
+}
+.your-tasks-section-header h4 { margin: 0; }
 
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }

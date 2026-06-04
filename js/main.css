@@ -213,10 +213,11 @@ code {
 
 .screenshots {
   display: block;
-  margin: auto;
   height: 500px;
   width: auto;
   border: 3px solid black;
+  margin-left: 50px;
+  margin-right: 50px;
 }
 
 .screenshot_column {
@@ -230,6 +231,8 @@ code {
 
 .screenshot_row {
   margin-bottom: 1.25rem;
+  margin-left: 50px;
+  margin-right: 50px;
 }
 
 .screenshot_row::after {

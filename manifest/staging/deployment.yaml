@@ -36,6 +36,10 @@ spec:
                 secretKeyRef:
                   name: teachertoken
                   key: TEACHER_REGISTRATION_TOKEN
+            - name: ALLOWED_ORIGINS
+              value: "https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi"
+            - name: COOKIE_SECURE
+              value: "true"
           ports:
             - containerPort: 8000
 

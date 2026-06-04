@@ -19,6 +19,12 @@ async def problem_page():
 	return FileResponse(problem_path)
 
 
+@router.get("/not-found", response_class=HTMLResponse)
+async def not_found_page():
+	not_found_path = BASE_DIR / "templates" / "not_found.html"
+	return FileResponse(not_found_path, status_code=404)
+
+
 @router.get("/global-statistics")
 async def exercise_list(request: Request, db: AsyncSession = Depends(get_db)):
 	redirect = await require_session_or_redirect(get_current_user, "/", request, db)

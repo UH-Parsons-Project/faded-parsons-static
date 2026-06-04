@@ -242,7 +242,7 @@ initBurgerMenu();
 
   function getVisibilityValue() {
     const visibilityInput = document.getElementById('task-visibility-public');
-    return visibilityInput ? visibilityInput.checked : true;
+    return visibilityInput ? !visibilityInput.checked : true;
   }
 
   function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic) {
@@ -761,7 +761,7 @@ initBurgerMenu();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
     const solutionCode = modelAnswerCode;
-    const isPublic = visibilityInput ? visibilityInput.checked : true;
+    const isPublic = visibilityInput ? !visibilityInput.checked : true;
 
     saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic);
 
@@ -1114,7 +1114,7 @@ initBurgerMenu();
       customErrorMessagesInput.value = meta.customErrorMessages || '';
     }
     if (visibilityInput) {
-      visibilityInput.checked = meta.isPublic !== false;
+      visibilityInput.checked = meta.isPublic === false;
     }
 
     const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);

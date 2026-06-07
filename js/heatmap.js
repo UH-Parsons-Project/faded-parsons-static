@@ -47,6 +47,72 @@ function progColor(ratio) {
   return 'var(--red)';
 }
 
+// ─── Task preview modal ────────────────────────────────────────────────────
+const modal        = document.getElementById('hm-modal-overlay');
+const modalTitle   = document.getElementById('hm-modal-title');
+const modalBody    = document.getElementById('hm-modal-body');
+const modalFooter  = document.getElementById('hm-modal-footer');
+const modalClose   = document.getElementById('hm-modal-close');
+
+function openModal() { modal.classList.add('open'); }
+function closeModal() { modal.classList.remove('open'); }
+
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+async function openTaskPreview(task, taskSet) {
+  modalTitle.textContent = task.title;
+  modalBody.innerHTML = `<div class="hm-modal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>`;
+  modalFooter.innerHTML = '';
+  openModal();
+
+  const statsUrl = `/task-statistics?id=${task.id}&task_set=${encodeURIComponent(taskSet.unique_link_code)}&set_id=${setId}`;
+  modalFooter.innerHTML = `
+    <a href="${statsUrl}" class="hm-modal-btn-stats" target="_blank">
+      <i class="fas fa-chart-bar"></i> View Task Statistics
+    </a>
+    <button class="hm-modal-btn-cancel" id="hm-modal-cancel">Close</button>
+  `;
+  document.getElementById('hm-modal-cancel').addEventListener('click', closeModal);
+
+  try {
+    const [stats, taskData] = await Promise.all([
+      fetchJsonWithError(
+        `/api/tasks/${task.id}/statistics?task_set_code=${encodeURIComponent(taskSet.unique_link_code)}`,
+        'Failed to load task statistics'
+      ),
+      fetchJsonWithError(`/api/tasks/${task.id}`, 'Failed to load task'),
+    ]);
+    const modelAnswer = stats.model_answer || '';
+    let parsed = null;
+    try { parsed = JSON.parse(taskData.task_instructions); } catch (_) { /* not JSON */ }
+    const instrText  = parsed?.task_instructions || taskData.task_instructions || '';
+    const examples   = parsed?.examples || '';
+
+    let bodyHtml = '';
+    if (instrText) {
+      bodyHtml += `
+        <div class="hm-modal-section-label">Task Instructions</div>
+        <div class="hm-modal-description">${escapeHtml(instrText)}</div>
+      `;
+    }
+    if (examples) {
+      bodyHtml += `
+        <div class="hm-modal-section-label" style="margin-top:.75rem">Examples</div>
+        <pre class="hm-modal-code" style="max-height:140px">${escapeHtml(examples)}</pre>
+      `;
+    }
+    bodyHtml += `
+      <div class="hm-modal-section-label" style="margin-top:.75rem">Model Answer</div>
+      <pre class="hm-modal-code">${escapeHtml(modelAnswer || '(no model answer available)')}</pre>
+    `;
+    modalBody.innerHTML = bodyHtml;
+  } catch (err) {
+    modalBody.innerHTML = `<div class="hm-modal-loading" style="color:var(--red)"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(err.message)}</div>`;
+  }
+}
+
 // ─── Sort state ────────────────────────────────────────────────────────────
 let currentSort = 'name';
 
@@ -171,6 +237,8 @@ function positionTooltip(e) {
 }
 
 // ─── Render: table ─────────────────────────────────────────────────────────
+let _taskSet = null;
+
 function renderTable(tasks, students) {
   const sorted = sortStudents(students, currentSort);
   const n      = sorted.length;
@@ -186,9 +254,10 @@ function renderTable(tasks, students) {
   thead += '<tr>';
   thead += '<th class="hm-corner-th">Student</th>';
   tasks.forEach((task, ti) => {
-    thead += `<th class="hm-task-th" title="${escapeHtml(task.title)}">
+    thead += `<th class="hm-task-th" data-task-idx="${ti}" title="Click to preview task: ${escapeHtml(task.title)}">
       <span class="hm-th-num">T${ti + 1}</span>
       <span class="hm-th-name">${escapeHtml(task.title)}</span>
+      <span class="hm-th-peek"><i class="fas fa-eye"></i></span>
     </th>`;
   });
   thead += '<th class="hm-progress-th">Progress</th>';
@@ -251,6 +320,13 @@ function renderTable(tasks, students) {
   const table = document.getElementById('hm-table');
   table.innerHTML = thead + tbody;
 
+  table.querySelectorAll('.hm-task-th[data-task-idx]').forEach(th => {
+    th.addEventListener('click', () => {
+      const ti = parseInt(th.dataset.taskIdx);
+      openTaskPreview(tasks[ti], _taskSet);
+    });
+  });
+
   table.querySelectorAll('.hm-cell-td').forEach(td => {
     td.addEventListener('mouseenter', e => {
       const s  = sorted.find(st => st.username === td.dataset.student);
@@ -289,6 +365,7 @@ Promise.all([
 ])
   .then(([taskSet, heatmap]) => {
     const { tasks, students } = heatmap;
+    _taskSet = taskSet;
 
     renderHeader(taskSet);
     renderControls(tasks, students, () => renderTable(tasks, students));

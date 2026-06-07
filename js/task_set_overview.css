@@ -601,10 +601,8 @@ h3.mb-3 {
   padding: .55rem .3rem .45rem; text-align: center; vertical-align: bottom;
   border-right: 1px solid var(--border);
 }
-.hm-task-th.hm-th-flagged { background: #fff5f5; }
 .hm-th-num  { display: block; font-size: .78rem; font-weight: 800; font-family: var(--mono); color: var(--text); margin-bottom: .1rem; }
 .hm-th-name { display: block; font-size: .64rem; color: var(--text-muted); font-weight: 500; line-height: 1.3; max-height: 2.6em; overflow: hidden; }
-.hm-task-th.hm-th-flagged .hm-th-num { color: var(--red); }
 
 /* Completion rate sub-header */
 .hm-rate-th {
@@ -612,7 +610,6 @@ h3.mb-3 {
   padding: .3rem .3rem .4rem; text-align: center;
   border-right: 1px solid var(--border);
 }
-.hm-rate-th.hm-th-flagged { background: #fff5f5; }
 .hm-rate-num  { display: block; font-size: .72rem; font-weight: 800; font-family: var(--mono); margin-bottom: .15rem; }
 .hm-rate-bar  { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0 6px; }
 
@@ -657,7 +654,6 @@ h3.mb-3 {
   border-right: 1px solid var(--border);
   vertical-align: middle; cursor: pointer; position: relative;
 }
-.hm-cell-td.hm-cell-flagged { background: #fff8f8; }
 .hm-cell-inner {
   width: 100%; height: 100%; border-radius: 7px;
   display: flex; align-items: center; justify-content: center;

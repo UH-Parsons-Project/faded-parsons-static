@@ -175,13 +175,6 @@ function renderTable(tasks, students) {
   const sorted = sortStudents(students, currentSort);
   const n      = sorted.length;
 
-  const flaggedCols = new Set(
-    tasks.map((_, ti) => ti).filter(ti => {
-      const strCount = students.filter(s => s.cells[ti]?.status === 'struggling').length;
-      return n > 0 && strCount / n >= 0.15;
-    })
-  );
-
   const colRates = tasks.map((_, ti) => {
     const done = students.filter(s => s.cells[ti]?.status === 'completed').length;
     return n > 0 ? done / n : 0;
@@ -193,8 +186,7 @@ function renderTable(tasks, students) {
   thead += '<tr>';
   thead += '<th class="hm-corner-th">Student</th>';
   tasks.forEach((task, ti) => {
-    const fl = flaggedCols.has(ti) ? ' hm-th-flagged' : '';
-    thead += `<th class="hm-task-th${fl}" title="${escapeHtml(task.title)}">
+    thead += `<th class="hm-task-th" title="${escapeHtml(task.title)}">
       <span class="hm-th-num">T${ti + 1}</span>
       <span class="hm-th-name">${escapeHtml(task.title)}</span>
     </th>`;
@@ -207,8 +199,7 @@ function renderTable(tasks, students) {
   tasks.forEach((_, ti) => {
     const pct   = Math.round(colRates[ti] * 100);
     const color = progColor(colRates[ti]);
-    const fl    = flaggedCols.has(ti) ? ' hm-th-flagged' : '';
-    thead += `<th class="hm-rate-th${fl}">
+    thead += `<th class="hm-rate-th">
       <span class="hm-rate-num" style="color:${color}">${pct}%</span>
       <div class="hm-rate-bar"><div style="width:${pct}%;background:${color};height:100%;border-radius:2px;"></div></div>
     </th>`;
@@ -238,12 +229,12 @@ function renderTable(tasks, students) {
 
     student.cells.forEach((cell, ti) => {
       const stClass = `hm-st-${cell.status}`;
-      const fl      = flaggedCols.has(ti) ? ' hm-cell-flagged' : '';
+
       let   inner   = '';
       if (cell.status === 'completed') inner = '<i class="fas fa-check" style="font-size:.62rem;"></i>';
       else if (cell.attempts > 0)      inner = String(cell.attempts);
 
-      tbody += `<td class="hm-cell-td${fl}" data-student="${escapeHtml(student.username)}" data-task-idx="${ti}">
+      tbody += `<td class="hm-cell-td" data-student="${escapeHtml(student.username)}" data-task-idx="${ti}">
         <div class="hm-cell-inner ${stClass}">${inner}</div>
       </td>`;
     });
@@ -273,7 +264,7 @@ function renderTable(tasks, students) {
       const ti = parseInt(td.dataset.taskIdx);
       if (s) {
         window.location.href =
-          `/student-attempts?student=${encodeURIComponent(s.username)}&set_id=${setId}&task_id=${tasks[ti].id}`;
+          `/student-task-statistics?student=${encodeURIComponent(s.username)}&task_id=${tasks[ti].id}&set_id=${setId}`;
       }
     });
   });

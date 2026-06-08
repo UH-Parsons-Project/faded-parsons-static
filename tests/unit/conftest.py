@@ -26,6 +26,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
+import secrets
 from backend.models import Parsons, Student, StudentTaskSetEnrollment, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from backend.utils import generate_token, hash_token
 import importlib
@@ -235,10 +236,11 @@ async def task_set_with_task(db_session, task_set, task) -> tuple[TaskSet, Parso
 
 @pytest_asyncio.fixture
 async def student_session(db_session, task_set) -> Student:
-    """A student account associated with *task_set*."""
+    """A student account associated with *task_set*, with a valid session_token."""
     ss = Student(
         username="student1",
         email="student1@example.com",
+        session_token=secrets.token_urlsafe(32),
     )
     ss.set_password("studentpass123")
     db_session.add(ss)

@@ -213,6 +213,18 @@ function renderListHeader(taskSet, tasks, students) {
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim();
+	const isOwner = currentUsername && taskSet.owner_username === currentUsername;
+
+	let deleteHTML = '';
+	if (isOwner) {
+		if (taskSet.deletable) {
+			deleteHTML = `<button id="delete-set-btn" type="button" class="btn btn-sm btn-outline-danger mt-2"><i class="fas fa-trash"></i> Delete Task Set</button>`;
+		} else {
+			deleteHTML = `<span class="btn btn-sm btn-secondary disabled mt-2 mb-2" title="Cannot delete — students have already joined"><i class="fas fa-lock"></i> Can not be deleted, in use</span>`;
+		}
+	}
+
 	let leftHTML = `
 		<div class="taskset-page-title">${escapeHtml(taskSet.title)}</div>
 		<div class="taskset-link-box">
@@ -224,6 +236,7 @@ function renderListHeader(taskSet, tasks, students) {
 		<div class="taskset-meta-row">
 			<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}
 		</div>
+		${deleteHTML}
 	`;
 	if (taskSet.teacher_description) {
 		leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
@@ -288,18 +301,102 @@ function renderListHeader(taskSet, tasks, students) {
 			}).catch(() => alert('Failed to copy URL'));
 		});
 	}
+
+	const deleteBtn = document.getElementById('delete-set-btn');
+	if (deleteBtn) {
+		deleteBtn.addEventListener('click', async () => {
+			if (!confirm(`Delete "${taskSet.title}"? This cannot be undone.`)) return;
+			try {
+				const res = await fetch(`/api/my_sets/${setId}`, { method: 'DELETE', credentials: 'include' });
+				if (res.ok) {
+					window.location.href = '/teacher-dashboard';
+				} else {
+					const data = await res.json().catch(() => ({}));
+					alert(data.detail || 'Failed to delete task set.');
+				}
+			} catch (err) {
+				console.error('Delete failed:', err);
+				alert('Failed to delete task set.');
+			}
+		});
+	}
 }
 
-function createTaskItem(task, taskSet) {
+function createTaskItem(task, taskSet, isOwner) {
 	const item = document.createElement('div');
-	item.className = 'task-set-item';
+	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
 	item.onclick = () => {
 		window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
 	};
 
+	const headerRow = document.createElement('div');
+	headerRow.className = 'task-item-header';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = task.title;
+	headerRow.appendChild(title);
+
+	if (isOwner) {
+		const toggleBtn = document.createElement('button');
+		toggleBtn.className = 'task-toggle-btn' + (task.is_hidden ? ' is-inactive' : '');
+		toggleBtn.type = 'button';
+		toggleBtn.innerHTML = task.is_hidden
+			? '<i class="fas fa-toggle-off"></i> Activate'
+			: '<i class="fas fa-toggle-on"></i> Deactivate';
+		toggleBtn.title = task.is_hidden ? 'Make active for students' : 'Deactivate for students';
+		toggleBtn.addEventListener('click', async (e) => {
+			e.stopPropagation();
+			if (!task.is_hidden && !confirm(`Deactivate "${task.title}"? Students will no longer see this task.`)) return;
+			toggleBtn.disabled = true;
+			try {
+				const res = await fetch(`/api/my_sets/${taskSet.id}/tasks/${task.id}/hidden`, {
+					method: 'PATCH',
+					credentials: 'include',
+				});
+				if (res.ok) {
+					const data = await res.json();
+					task.is_hidden = data.is_hidden;
+					item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
+					if (task.is_hidden) {
+						toggleBtn.className = 'task-toggle-btn is-inactive';
+						toggleBtn.innerHTML = '<i class="fas fa-toggle-off"></i> Activate';
+						toggleBtn.title = 'Make active for students';
+						// Move to inactive section
+						const inactiveList = document.getElementById('tasks-list-inactive');
+						const inactiveSection = document.getElementById('tasks-inactive-section');
+						if (inactiveList) inactiveList.appendChild(item);
+						if (inactiveSection) inactiveSection.style.display = '';
+						// Show empty-state in active list if now empty
+						const activeList = document.getElementById('tasks-list-active');
+						if (activeList && activeList.querySelectorAll('.task-set-item').length === 0) {
+							activeList.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
+						}
+					} else {
+						toggleBtn.className = 'task-toggle-btn';
+						toggleBtn.innerHTML = '<i class="fas fa-toggle-on"></i> Deactivate';
+						toggleBtn.title = 'Deactivate for students';
+						// Move to active section
+						const activeList = document.getElementById('tasks-list-active');
+						if (activeList) {
+							activeList.querySelectorAll('.empty-state').forEach(el => el.remove());
+							activeList.appendChild(item);
+						}
+						// Hide inactive section if now empty
+						const inactiveList = document.getElementById('tasks-list-inactive');
+						if (inactiveList && inactiveList.querySelectorAll('.task-set-item').length === 0) {
+							const inactiveSection = document.getElementById('tasks-inactive-section');
+							if (inactiveSection) inactiveSection.style.display = 'none';
+						}
+					}
+				}
+			} catch (err) {
+				console.error('Toggle inactive failed:', err);
+			}
+			toggleBtn.disabled = false;
+		});
+		headerRow.appendChild(toggleBtn);
+	}
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
@@ -309,7 +406,7 @@ function createTaskItem(task, taskSet) {
 	statsRow.id = `task-stats-${task.id}`;
 	statsRow.innerHTML = '<span class="task-stat-loading">Loading stats…</span>';
 
-	item.appendChild(title);
+	item.appendChild(headerRow);
 	item.appendChild(meta);
 	item.appendChild(statsRow);
 
@@ -353,21 +450,51 @@ async function loadTaskStats(tasks, taskSet, enrolledCount) {
 
 function renderTasks(tasks, taskSet) {
 	const tasksList = document.getElementById('tasks-list');
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim();
+	const isOwner = Boolean(currentUsername && taskSet.owner_username === currentUsername);
+
+	tasksList.innerHTML = '';
 
 	if (tasks.length === 0) {
-	tasksList.innerHTML = `
-		<div class="empty-state">
-		<i class="fas fa-tasks"></i>
-		<h4>No Tasks in This List</h4>
-		<p>This task set doesn't have any tasks yet.</p>
-		</div>
-	`;
-	} else {
-	tasksList.innerHTML = '';
-	tasks.forEach(task => {
-		tasksList.appendChild(createTaskItem(task, taskSet));
-	});
+		tasksList.innerHTML = `
+			<div class="empty-state">
+			<i class="fas fa-tasks"></i>
+			<h4>No Tasks in This List</h4>
+			<p>This task set doesn't have any tasks yet.</p>
+			</div>
+		`;
+		return;
 	}
+
+	const activeTasks = tasks.filter(t => !t.is_hidden);
+	const inactiveTasks = tasks.filter(t => t.is_hidden);
+
+	// Active tasks section
+	const activeContainer = document.createElement('div');
+	activeContainer.id = 'tasks-list-active';
+	if (activeTasks.length === 0) {
+		activeContainer.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
+	} else {
+		activeTasks.forEach(task => activeContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+	}
+	tasksList.appendChild(activeContainer);
+
+	// Inactive tasks section (hidden when empty)
+	const inactiveSection = document.createElement('div');
+	inactiveSection.id = 'tasks-inactive-section';
+	inactiveSection.style.display = inactiveTasks.length > 0 ? '' : 'none';
+
+	const inactiveHeader = document.createElement('h3');
+	inactiveHeader.className = 'mb-3 inactive-section-heading';
+	inactiveHeader.textContent = 'Inactive Tasks (Students can no longer complete these tasks)';
+	inactiveSection.appendChild(inactiveHeader);
+
+	const inactiveContainer = document.createElement('div');
+	inactiveContainer.id = 'tasks-list-inactive';
+	inactiveTasks.forEach(task => inactiveContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+	inactiveSection.appendChild(inactiveContainer);
+
+	tasksList.appendChild(inactiveSection);
 }
 
 function formatDateTime(isoString) {
@@ -460,11 +587,13 @@ function showError(message) {
 }
 
 // Load task set details, tasks, and students
-Promise.all([
-	fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details'),
-	fetchJsonWithError(`/api/my_sets/${setId}/tasks`, 'Failed to load tasks'),
-	fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students')
-])
+// Tasks endpoint requires unique_link_code, so fetch details first then parallelize the rest.
+fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
+	.then(taskSet => Promise.all([
+		Promise.resolve(taskSet),
+		fetchJsonWithError(`/api/my_sets/${encodeURIComponent(taskSet.unique_link_code)}/tasks`, 'Failed to load tasks'),
+		fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students'),
+	]))
 	.then(([taskSet, tasks, students]) => {
 	renderListHeader(taskSet, tasks, students);
 	renderTasks(tasks, taskSet);

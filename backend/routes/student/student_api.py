@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -34,7 +35,7 @@ def _parse_iso_datetime(value: str):
 
 async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_number: int) -> tuple[TaskSet, int]:
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    task_id = await resolve_task_id_in_set_or_404(db, task_set, task_number)
+    task_id = await resolve_task_id_in_set_or_404(db, task_set, task_number, visible_only=True)
     return task_set, task_id
 
 
@@ -156,14 +157,22 @@ async def student_login(
                     task_set_id=task_set.id,
                 ))
 
+    student.session_token = secrets.token_urlsafe(32)
     await db.commit()
 
-    set_session_cookie(response, student.id)
+    set_session_cookie(response, student.session_token)
     return {"status": "success", "student_id": student.id, "username": student.username}
 
 
 @router.post("/api/student_logout")
-async def student_logout(response: Response):
+async def student_logout(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    student: Student | None = Depends(get_current_student_session),
+):
+    if student:
+        student.session_token = None
+        await db.commit()
     response.delete_cookie(key="student_session", path="/")
     return {"message": "Successfully logged out"}
 

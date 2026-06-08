@@ -109,67 +109,38 @@ function createTaskSetItem(taskSet) {
 	return item;
 }
 
-function createAddButton() {
-	const button = document.createElement('div');
-	button.className = 'create-new-card';
-	button.onclick = () => {
-	window.location.href = '/create-task-set';
-	};
-
-	button.innerHTML = `
-	<i class="fas fa-plus-circle"></i>
-	<div class="task-set-title">Create New Task Set</div>
-	<p class="mb-0">Add a new task set</p>
-	`;
-
-	return button;
-}
-
-function createNewTaskButton() {
-	const wrapper = document.createElement('div');
-	wrapper.className = 'mb-3';
-
-	const link = document.createElement('a');
-	link.href = '/create-task';
-	link.className = 'btn btn-success btn-block';
-	link.textContent = 'New task';
-
-	wrapper.appendChild(link);
-	return wrapper;
-}
-
-
 function renderTaskSets(taskSets) {
 	const container = document.getElementById('task-sets-container');
 	container.className = '';
 	container.innerHTML = '';
 
+	const headerRow = document.createElement('div');
+	headerRow.className = 'section-header-row';
+	const heading = document.createElement('h4');
+	heading.textContent = 'My Task Sets';
+	const createBtn = document.createElement('a');
+	createBtn.href = '/create-task-set';
+	createBtn.className = 'section-create-btn';
+	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task Set';
+	headerRow.appendChild(heading);
+	headerRow.appendChild(createBtn);
+	container.appendChild(headerRow);
+
 	if (taskSets.length === 0) {
-	container.innerHTML = `
-		<div class="empty-state">
-		<i class="fas fa-folder-open"></i>
-		<h4>No Task Sets Yet</h4>
-		<p>Create your first task set to get started with organizing exercises and viewing statistics.</p>
-		</div>
-	`;
-	const buttonWrapper = document.createElement('div');
-	buttonWrapper.style.maxWidth = '300px';
-	buttonWrapper.style.margin = '0 auto';
-	buttonWrapper.appendChild(createNewTaskButton());
-	buttonWrapper.appendChild(createAddButton());
-
-	container.appendChild(buttonWrapper);
-	} else {
-	const layout = document.createElement('div');
-	layout.className = 'teacher-dashboard-layout';
-
-	const listsColumn = document.createElement('div');
-	listsColumn.className = 'task-sets-column';
+		container.insertAdjacentHTML('beforeend', `
+			<div class="empty-state">
+			<i class="fas fa-folder-open"></i>
+			<h4>No Task Sets Yet</h4>
+			<p>Create your first task set to get started with organizing exercises and viewing statistics.</p>
+			</div>
+		`);
+		return;
+	}
 
 	const searchBox = document.createElement('div');
 	searchBox.className = 'search-box';
 	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-search" placeholder="Search task sets…" autocomplete="off">';
-	listsColumn.appendChild(searchBox);
+	container.appendChild(searchBox);
 
 	const ownedLists = currentUsername
 		? taskSets.filter(taskSet => taskSet.owner_username === currentUsername)
@@ -180,7 +151,6 @@ function renderTaskSets(taskSets) {
 
 	const ownedSection = document.createElement('div');
 	ownedSection.className = 'task-set-section';
-	ownedSection.innerHTML = '<h4 class="mb-3">Your Task Sets</h4>';
 
 	const ownedContainer = document.createElement('div');
 	if (ownedLists.length === 0) {
@@ -206,29 +176,19 @@ function renderTaskSets(taskSets) {
 	}
 	sharedSection.appendChild(sharedContainer);
 
-	listsColumn.appendChild(ownedSection);
-	listsColumn.appendChild(sharedSection);
-
-	const addColumn = document.createElement('div');
-	addColumn.className = 'add-button-column';
-	addColumn.appendChild(createNewTaskButton());
-	addColumn.appendChild(createAddButton());
-
-
-	layout.appendChild(listsColumn);
-	layout.appendChild(addColumn);
-	container.appendChild(layout);
+	container.appendChild(ownedSection);
+	container.appendChild(sharedSection);
 	setupSearch();
-	}
 }
 
 function setupSearch() {
 	const input = document.getElementById('task-search');
 	if (!input) return;
+	const taskSetsContainer = document.getElementById('task-sets-container');
 	input.addEventListener('input', () => {
 		const q = input.value.trim().toLowerCase();
 		let totalVisible = 0;
-		document.querySelectorAll('.task-set-section').forEach(section => {
+		taskSetsContainer.querySelectorAll('.task-set-section').forEach(section => {
 			const items = section.querySelectorAll('.task-set-item');
 			let sectionVisible = 0;
 			items.forEach(item => {
@@ -249,13 +209,15 @@ function setupSearch() {
 				noResults.id = 'search-no-results';
 				noResults.className = 'search-no-results';
 				noResults.textContent = 'No task sets match your search.';
-				document.querySelector('.task-sets-column')?.appendChild(noResults);
+				taskSetsContainer.appendChild(noResults);
 			}
 		} else if (noResults) {
 			noResults.remove();
 		}
 	});
 }
+
+
 
 function showError(message) {
 	const container = document.getElementById('task-sets-container');
@@ -285,9 +247,168 @@ async function loadTaskSets() {
 	}
 }
 
+function createMyTaskCard(task) {
+	const card = document.createElement('div');
+	card.className = 'task-set-item';
+	card.style.cursor = 'pointer';
+	card.onclick = () => {
+		const previewWindow = window.open(
+			'/task?id=' + encodeURIComponent(task.id),
+			'_blank',
+			'width=1000,height=800,resizable=yes,scrollbars=yes'
+		);
+		if (previewWindow) previewWindow.focus();
+	};
+
+	const header = document.createElement('div');
+	header.className = 'task-set-item-top';
+
+	const title = document.createElement('div');
+	title.className = 'task-set-title';
+	title.textContent = task.title;
+	header.appendChild(title);
+	card.appendChild(header);
+
+	const meta = document.createElement('div');
+	meta.className = 'task-set-meta';
+	meta.textContent = `${task.task_type} · Created ${formatDate(task.created_at)}`;
+	card.appendChild(meta);
+
+	const actions = document.createElement('div');
+	actions.className = 'd-flex flex-wrap mt-2';
+	actions.style.gap = '0.5rem';
+	actions.addEventListener('click', (e) => e.stopPropagation());
+
+	if (task.editable) {
+		const editBtn = document.createElement('a');
+		editBtn.href = `/create-task-editor?task_id=${task.id}`;
+		editBtn.className = 'btn btn-sm btn-outline-success';
+		editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
+		actions.appendChild(editBtn);
+
+		const deleteBtn = document.createElement('button');
+		deleteBtn.className = 'btn btn-sm btn-outline-danger';
+		deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
+		deleteBtn.addEventListener('click', async (e) => {
+			e.stopPropagation();
+			if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
+			try {
+				const res = await fetch(`/api/problems/${task.id}`, { method: 'DELETE', credentials: 'include' });
+				if (res.ok) {
+					card.remove();
+				} else {
+					const data = await res.json().catch(() => ({}));
+					alert(data.detail || 'Failed to delete task.');
+				}
+			} catch (err) {
+				console.error('Delete failed:', err);
+				alert('Failed to delete task.');
+			}
+		});
+		actions.appendChild(deleteBtn);
+	} else {
+		const lockedSpan = document.createElement('span');
+		lockedSpan.className = 'btn btn-sm btn-secondary disabled';
+		lockedSpan.title = 'This task is in use and cannot be edited or deleted';
+		lockedSpan.innerHTML = '<i class="fas fa-lock"></i> In use';
+		actions.appendChild(lockedSpan);
+	}
+
+	const statsBtn = document.createElement('a');
+	statsBtn.href = `/task-statistics?id=${task.id}`;
+	statsBtn.className = 'btn btn-sm btn-outline-primary';
+	statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>Global Statistics';
+	actions.appendChild(statsBtn);
+
+	card.appendChild(actions);
+	return card;
+}
+
+function renderMyTasks(tasks) {
+	const container = document.getElementById('your-tasks-container');
+	if (!container) return;
+
+	container.innerHTML = '';
+	const section = document.createElement('div');
+	section.className = 'task-set-section';
+
+	const sectionHeader = document.createElement('div');
+	sectionHeader.className = 'section-header-row';
+
+	const heading = document.createElement('h4');
+	heading.textContent = 'My Tasks';
+
+	const createBtn = document.createElement('a');
+	createBtn.href = '/create-task';
+	createBtn.className = 'section-create-btn';
+	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task';
+
+	sectionHeader.appendChild(heading);
+	sectionHeader.appendChild(createBtn);
+
+	section.appendChild(sectionHeader);
+
+	const searchBox = document.createElement('div');
+	searchBox.className = 'search-box';
+	searchBox.innerHTML = '<i class="fas fa-search"></i><input type="text" id="task-item-search" placeholder="Search tasks…" autocomplete="off">';
+	section.appendChild(searchBox);
+
+	if (tasks.length === 0) {
+		const empty = document.createElement('p');
+		empty.className = 'text-muted mb-0';
+		empty.textContent = 'No tasks created yet.';
+		section.appendChild(empty);
+	} else {
+		tasks.forEach((task) => section.appendChild(createMyTaskCard(task)));
+	}
+
+	container.appendChild(section);
+	setupTaskSearch();
+}
+
+function setupTaskSearch() {
+	const input = document.getElementById('task-item-search');
+	if (!input) return;
+	const tasksContainer = document.getElementById('your-tasks-container');
+	input.addEventListener('input', () => {
+		const q = input.value.trim().toLowerCase();
+		let visible = 0;
+		tasksContainer.querySelectorAll('.task-set-item').forEach(item => {
+			const title = item.querySelector('.task-set-title')?.textContent.toLowerCase() ?? '';
+			const meta = item.querySelector('.task-set-meta')?.textContent.toLowerCase() ?? '';
+			const match = !q || title.includes(q) || meta.includes(q);
+			item.style.display = match ? '' : 'none';
+			if (match) visible++;
+		});
+		let noResults = document.getElementById('task-search-no-results');
+		if (q && visible === 0) {
+			if (!noResults) {
+				noResults = document.createElement('div');
+				noResults.id = 'task-search-no-results';
+				noResults.className = 'search-no-results';
+				noResults.textContent = 'No tasks match your search.';
+				tasksContainer.appendChild(noResults);
+			}
+		} else if (noResults) {
+			noResults.remove();
+		}
+	});
+}
+
+async function loadMyTasks() {
+	try {
+		const response = await fetch('/api/my_tasks', { credentials: 'include' });
+		if (!response.ok) return;
+		const tasks = await response.json();
+		renderMyTasks(tasks);
+	} catch (err) {
+		console.error('Error loading tasks:', err);
+	}
+}
+
 async function initPage() {
 	await loadCurrentUser();
-	await loadTaskSets();
+	await Promise.all([loadTaskSets(), loadMyTasks()]);
 }
 
 initPage();

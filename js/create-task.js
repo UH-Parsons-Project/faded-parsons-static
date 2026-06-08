@@ -5,6 +5,7 @@
 (function initCreateTaskPage() {
   const TASK_CODE_DRAFT_KEY = 'create_task_draft_code';
   const TASK_TESTS_DRAFT_KEY = 'create_task_draft_tests';
+  let editTaskId = null;
 
   function getCursorPositionDetails(text, index) {
     const safeIndex = Math.max(0, Math.min(index, text.length));
@@ -91,14 +92,12 @@
   function setupEditorBehavior(textarea, statusElement, storageKey) {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
-      console.log(`Loading ${storageKey} from localStorage:`, saved);
       textarea.value = saved;
     }
 
     if (storageKey === TASK_CODE_DRAFT_KEY) {
       const preservedCode = sessionStorage.getItem('preserved_task_code');
       if (preservedCode) {
-        console.log('Loading preserved task code from sessionStorage:', preservedCode);
         textarea.value = preservedCode;
         sessionStorage.removeItem('preserved_task_code');
       }
@@ -123,7 +122,6 @@
     });
 
     textarea.addEventListener('input', () => {
-      console.log(`Saving ${storageKey} to localStorage:`, textarea.value);
       localStorage.setItem(storageKey, textarea.value);
       autoResize(textarea);
       updateCaretStatus(textarea, statusElement);
@@ -180,6 +178,38 @@
     });
   }
 
+  async function loadEditData(taskId, taskCodeInput, taskTestsInput) {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`);
+      if (!response.ok) {
+        return;
+      }
+      const task = await response.json();
+      const solutionCode = task.correct_solution?.solution_code || '';
+      const teacherTests = task.correct_solution?.teacher_tests || '';
+
+      if (taskCodeInput) {
+        taskCodeInput.value = solutionCode;
+        taskCodeInput.dispatchEvent(new Event('input'));
+      }
+      if (taskTestsInput) {
+        taskTestsInput.value = teacherTests;
+        taskTestsInput.dispatchEvent(new Event('input'));
+      }
+
+      const pageTitle = document.querySelector('.page-title');
+      if (pageTitle) {
+        pageTitle.textContent = 'Edit Task';
+      }
+      const submitBtn = document.getElementById('submit-task');
+      if (submitBtn) {
+        submitBtn.textContent = 'Continue To Block Builder (Edit)';
+      }
+    } catch (err) {
+      console.error('Failed to load task for editing:', err);
+    }
+  }
+
   function setupCreateTaskForm() {
     const form = document.getElementById('create-task-form');
     const submitBtn = document.getElementById('submit-task');
@@ -192,6 +222,14 @@
 
     if (!form || !submitBtn || !taskCodeInput || !taskTestsInput) {
       return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const taskIdParam = params.get('task_id');
+    if (taskIdParam) {
+      editTaskId = parseInt(taskIdParam, 10);
+      localStorage.removeItem(TASK_CODE_DRAFT_KEY);
+      localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
     }
 
     setupEditorBehavior(taskCodeInput, taskCodeStatus, TASK_CODE_DRAFT_KEY);
@@ -241,6 +279,7 @@
           taskCode,
           taskTests,
           savedAt: new Date().toISOString(),
+          taskId: editTaskId,
         };
 
         sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
@@ -253,6 +292,10 @@
         alert('Failed to submit task. Please try again.');
       }
     });
+
+    if (editTaskId && !localStorage.getItem(TASK_CODE_DRAFT_KEY)) {
+      loadEditData(editTaskId, taskCodeInput, taskTestsInput);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', () => {

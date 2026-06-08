@@ -54,9 +54,18 @@ async def task_set_tasks_page(
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
-    await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+
+    enrollment = await db.execute(
+        select(StudentTaskSetEnrollment).where(
+            StudentTaskSetEnrollment.student_id == student_session.id,
+            StudentTaskSetEnrollment.task_set_id == task_set.id,
+        )
+    )
+    if not enrollment.scalar_one_or_none():
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "task_set.html"
@@ -73,9 +82,18 @@ async def task_set_task_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
+        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+
+    enrollment = await db.execute(
+        select(StudentTaskSetEnrollment).where(
+            StudentTaskSetEnrollment.student_id == student_session.id,
+            StudentTaskSetEnrollment.task_set_id == task_set.id,
+        )
+    )
+    if not enrollment.scalar_one_or_none():
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
@@ -94,7 +112,7 @@ async def task_set_task_start_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id)
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
         return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)

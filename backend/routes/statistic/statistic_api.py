@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, Integer, func
@@ -65,6 +66,17 @@ async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | N
         select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
     )
     return result.scalar_one_or_none()
+
+
+def _parse_custom_error_messages(task: Parsons) -> list:
+    raw = task.correct_solution.get("custom_error_messages")
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
 
 
 # use shared helpers from utils.taskset
@@ -429,6 +441,7 @@ async def get_task_statistics(
             "task_name": task.title,
             "task_set_name": task_set.title if task_set_code and task_set else None,
             "model_answer": await _get_model_answer_for_task(task, db),
+            "custom_error_messages": _parse_custom_error_messages(task),
             "total_completions": 0,
             "students_attempted": 0,
             "students_completed": 0,
@@ -629,6 +642,7 @@ async def get_task_statistics(
     return {
         "task_name": task.title,
         "model_answer": await _get_model_answer_for_task(task, db),
+        "custom_error_messages": _parse_custom_error_messages(task),
         "total_completions": len(attempts_data),
         "students_attempted": students_attempted,
         "students_completed": students_completed,

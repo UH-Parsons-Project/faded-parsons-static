@@ -80,7 +80,7 @@ export async function createTaskSet(
   studentDescription,
   teacherDescription
 ) {
-  await page.locator('text=Create New Task Set').click();
+  await page.locator('a[href="/create-task-set"]').click();
   await page.locator('#task-set-title').fill(taskSetTitle);
   await page.locator('#student-description').fill(studentDescription);
   await page.locator('#teacher-description').fill(teacherDescription);
@@ -101,7 +101,7 @@ export async function createTaskSet(
 }
 
 export async function createTaskSetWithTasks(page, taskSetTitle, studentDescription, teacherDescription, taskNames) {
-  await page.locator('text=Create New Task Set').click();
+  await page.locator('a[href="/create-task-set"]').click();
   await page.locator('#task-set-title').fill(taskSetTitle);
   await page.locator('#student-description').fill(studentDescription);
   await page.locator('#teacher-description').fill(teacherDescription);

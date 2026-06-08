@@ -12,6 +12,7 @@ from ...models import Teacher, RegistrationToken
 from backend.utils import hash_token, cleanup_old_registration_tokens
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
+from ... import config
 from ...pydantic import Token, UserInfo
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
@@ -64,7 +65,7 @@ async def login_access_token(
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
         samesite="lax",
-        secure=False,  # Set to True in production with HTTPS
+        secure=config.COOKIE_SECURE,
     )
 
     return Token(access_token=access_token, token_type="bearer")

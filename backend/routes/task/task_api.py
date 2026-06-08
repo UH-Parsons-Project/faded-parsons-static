@@ -29,6 +29,7 @@ from datetime import datetime
 router = APIRouter()
 from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
+from ...utils.task import is_task_editable
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
@@ -74,6 +75,11 @@ async def get_task_set(
 
     await require_task_set_view_access(task_set, current_user, db)
 
+    enrolled_count = (await db.execute(
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
+    )).scalar() or 0
+
     return TaskSetResponse(
         id=task_set.id,
         title=task_set.title,
@@ -84,23 +90,17 @@ async def get_task_set(
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
+        deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
     )
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
 async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
-    """Get all tasks belonging to a task_set. Accepts either a unique link code or an integer ID."""
-    code_str = str(code)
+    """Get all tasks belonging to a task_set by unique link code."""
     task_set_result = await db.execute(
-        select(TaskSet).where(TaskSet.unique_link_code == code_str)
+        select(TaskSet).where(TaskSet.unique_link_code == code)
     )
     task_set = task_set_result.scalar_one_or_none()
-
-    if task_set is None and code_str.isdigit():
-        task_set_result = await db.execute(
-            select(TaskSet).where(TaskSet.id == int(code_str))
-        )
-        task_set = task_set_result.scalar_one_or_none()
 
     if not task_set:
         raise HTTPException(
@@ -109,13 +109,13 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
         )
 
     stmt = (
-        select(Parsons)
+        select(Parsons, TaskSetItem.is_hidden)
         .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
         .where(TaskSetItem.task_set_id == task_set.id)
         .order_by(TaskSetItem.id.asc())
     )
     result = await db.execute(stmt)
-    tasks = result.scalars().all()
+    rows = result.all()
 
     return [
         TaskSetTaskResponse(
@@ -123,31 +123,49 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
             title=task.title,
             task_type=task.task_type,
             created_at=task.created_at.isoformat(),
+            is_hidden=is_hidden,
         )
-        for task in tasks
+        for task, is_hidden in rows
     ]
+
+
+@router.patch("/api/my_sets/{task_set_id}/tasks/{task_id}/hidden")
+async def toggle_task_hidden(
+    task_set_id: int,
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    """Toggle the hidden status of a task within a task set."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    item_result = await db.execute(
+        select(TaskSetItem).where(
+            TaskSetItem.task_set_id == task_set_id,
+            TaskSetItem.task_id == task_id,
+        )
+    )
+    item = item_result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found in this task set")
+
+    item.is_hidden = not item.is_hidden
+    await db.commit()
+    return {"task_id": task_id, "is_hidden": item.is_hidden}
 
 
 @router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
 async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
-    """Get info for a task set by unique link code or integer ID."""
-    code_str = str(code)
+    """Get info for a task set by unique link code."""
     stmt = (
         select(TaskSet, Teacher.username)
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
-        .where(TaskSet.unique_link_code == code_str)
+        .where(TaskSet.unique_link_code == code)
     )
     result = await db.execute(stmt)
     row = result.first()
-
-    if row is None and code_str.isdigit():
-        stmt = (
-            select(TaskSet, Teacher.username)
-            .join(Teacher, Teacher.id == TaskSet.teacher_id)
-            .where(TaskSet.id == int(code_str))
-        )
-        result = await db.execute(stmt)
-        row = result.first()
 
     if not row:
         raise HTTPException(
@@ -284,6 +302,32 @@ async def create_task_set(
         created_at=task_set.created_at.isoformat(),
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
     )
+
+
+@router.delete("/api/my_sets/{task_set_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task_set(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task set")
+
+    enrolled_stmt = (
+        select(func.count(StudentTaskSetEnrollment.id))
+        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+    )
+    enrolled_count = (await db.execute(enrolled_stmt)).scalar() or 0
+    if enrolled_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This task set cannot be deleted because students have already joined it.",
+        )
+
+    await db.execute(delete(TaskSet).where(TaskSet.id == task_set_id))
+    await db.commit()
 
 
 @router.get("/api/my_sets/{task_set_id}/viewers", response_model=list[TaskSetViewerResponse])
@@ -519,6 +563,51 @@ async def get_task(
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
     )
+
+
+@router.get("/api/my_tasks")
+async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+    tasks_result = await db.execute(
+        select(Parsons)
+        .where(Parsons.created_by_teacher_id == current_user.id)
+        .order_by(Parsons.created_at.desc())
+    )
+    tasks = tasks_result.scalars().all()
+
+    if not tasks:
+        return []
+
+    task_ids = [t.id for t in tasks]
+
+    other_sets_result = await db.execute(
+        select(TaskSetItem.task_id)
+        .join(TaskSet, TaskSet.id == TaskSetItem.task_set_id)
+        .where(TaskSetItem.task_id.in_(task_ids), TaskSet.teacher_id != current_user.id)
+        .distinct()
+    )
+    in_other_sets = set(other_sets_result.scalars().all())
+
+    enrolled_sets_result = await db.execute(
+        select(TaskSetItem.task_id)
+        .join(TaskSet, TaskSet.id == TaskSetItem.task_set_id)
+        .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
+        .where(TaskSetItem.task_id.in_(task_ids), TaskSet.teacher_id == current_user.id)
+        .distinct()
+    )
+    in_enrolled_sets = set(enrolled_sets_result.scalars().all())
+
+    non_editable = in_other_sets | in_enrolled_sets
+
+    return [
+        {
+            "id": t.id,
+            "title": t.title,
+            "task_type": t.task_type,
+            "created_at": t.created_at.isoformat(),
+            "editable": t.id not in non_editable,
+        }
+        for t in tasks
+    ]
 
 
 @router.get("/api/tasks")
@@ -760,3 +849,190 @@ async def create_problem(
     await db.refresh(task)
 
     return {"id": task.id, "message": "Problem created"}
+
+
+@router.get("/api/problems/{task_id}/editable")
+async def check_task_editable(
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to check this task")
+
+    editable = await is_task_editable(task_id, current_user.id, db)
+    return {"task_id": task_id, "editable": editable}
+
+
+@router.put("/api/problems/{task_id}")
+async def update_problem(
+    task_id: int,
+    request: CreateProblemRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to edit this task")
+
+    if not await is_task_editable(task_id, current_user.id, db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This task cannot be edited because it is used in a task set with enrolled students or in another teacher's task set.",
+        )
+
+    task_title = request.taskTitle.strip()
+    solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
+    description = request.description.strip()
+    start_description = request.startDescription.strip()
+    tests = request.tests.strip()
+    custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
+
+    if not task_title or not solution_code or not description or not start_description or not tests:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="taskTitle, description, startDescription, tests and solutionCode are required",
+        )
+
+    parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
+    source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
+
+    lines = [line for line in source_for_blocks.split("\n") if line.strip()]
+    if not lines:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="solutionCode must contain at least one non-empty line",
+        )
+
+    first_code_line = lines[0].strip()
+    if " #" in first_code_line:
+        first_code_line = first_code_line.split(" #", 1)[0].rstrip()
+    if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The first non-empty solution line must start with def or class",
+        )
+
+    import re
+
+    header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
+    function_name = header_match.group(2) if header_match else "custom_task"
+    function_header = first_code_line
+    final_title = task_title
+
+    if task.title != final_title:
+        existing_task_stmt = select(Parsons).where(Parsons.title == final_title, Parsons.id != task_id)
+        existing_task_result = await db.execute(existing_task_stmt)
+        if existing_task_result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Exercise called '{final_title}' already exists. Choose a different task name.",
+            )
+
+    given_indent_re = re.compile(r"#(\d+)given\s*")
+    preplace_re = re.compile(r"#preplace\s*")
+    blank_marker_re = re.compile(r"\s#blank[^#]*")
+
+    blocks = []
+    has_faded = False
+    for line_index, line in enumerate(lines, start=1):
+        given_match = given_indent_re.search(line)
+        preplace_match = preplace_re.search(line)
+        if given_match:
+            indent_count = int(given_match.group(1)) * 4
+        else:
+            indent_count = len(line) - len(line.lstrip())
+
+        line_without_given = given_indent_re.sub("", line)
+        line_without_preplace = preplace_re.sub("", line_without_given)
+        line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
+        stripped_line = line_without_blank_markers.strip()
+        is_faded = "!BLANK" in stripped_line
+        if is_faded:
+            has_faded = True
+
+        clean_code = stripped_line.replace("!BLANK", "___")
+        blocks.append(
+            {
+                "id": f"block_{line_index}",
+                "code": clean_code,
+                "indent": indent_count // 4,
+                "faded": is_faded,
+                "given": preplace_match is not None,
+            }
+        )
+
+    task_instructions_payload = json.dumps(
+        {
+            "function_name": function_name,
+            "task_instructions": description,
+            "examples": "",
+        }
+    )
+
+    task.title = final_title
+    task.task_instructions = task_instructions_payload
+    task.description = start_description
+    task.task_type = "Faded" if has_faded else "normal"
+    task.code_blocks = {"blocks": blocks, "function_header": function_header}
+    task.correct_solution = {
+        "correct_order": [block["id"] for block in blocks],
+        "teacher_tests": tests,
+        "solution_code": solution_code,
+        "custom_error_messages": custom_error_messages,
+    }
+
+    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    model_answer_result = await db.execute(select(ModelAnswer).where(ModelAnswer.parsons_id == task_id))
+    model_answer = model_answer_result.scalar_one_or_none()
+
+    if model_answer:
+        model_answer.answer_code = model_answer_code or solution_code
+    else:
+        model_answer = ModelAnswer(
+            parsons_id=task_id,
+            created_by_teacher_id=current_user.id,
+            answer_code=model_answer_code or solution_code,
+        )
+        db.add(model_answer)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return {"id": task.id, "message": "Problem updated"}
+
+
+@router.delete("/api/problems/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_problem(
+    task_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task")
+
+    if not await is_task_editable(task_id, current_user.id, db):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This task cannot be deleted because it is used in a task set with enrolled students or in another teacher's task set.",
+        )
+
+    await db.execute(delete(Parsons).where(Parsons.id == task_id))
+    await db.commit()

@@ -244,7 +244,7 @@ if (uniqueLinkCode) {
 					return resp.json();
 				})
 				.then(function (json) {
-					render(json);
+					render(json.filter(t => !t.is_hidden));
 				})
 				.catch(function (error) {
 					container.className = 'empty-state';

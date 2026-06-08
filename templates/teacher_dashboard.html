@@ -60,11 +60,16 @@
       <a href="/instructions" class="nav-link-btn"><i class="fas fa-info-circle"></i> Instructions</a>
     </div>
 
-    <div id="task-sets-container" class="loading-spinner">
-      <div class="spinner-border text-primary" role="status">
-        <span class="sr-only">Loading...</span>
+    <div class="parallel-layout">
+      <div class="parallel-col">
+        <div id="task-sets-container" class="loading-spinner">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+          <p class="mt-2">Loading task sets...</p>
+        </div>
       </div>
-      <p class="mt-2">Loading task sets...</p>
+      <div class="parallel-col" id="your-tasks-container"></div>
     </div>
 
   </div>

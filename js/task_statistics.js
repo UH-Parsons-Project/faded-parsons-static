@@ -484,6 +484,46 @@ async function loadStatistics() {
 			`<pre class="model-code">${escapeHtml(data.model_answer)}</pre>`;
 	}
 
+	// Custom error messages
+	const customErrorsBox = document.getElementById('custom-errors-box');
+	if (data.custom_error_messages?.length > 0 && customErrorsBox) {
+		const rules = data.custom_error_messages;
+		const countEl = document.getElementById('custom-errors-count');
+		if (countEl) countEl.textContent = rules.length + (rules.length === 1 ? ' rule' : ' rules');
+
+		const html = rules.map(rule => {
+			const pattern = escapeHtml(rule.pattern || '');
+			const message = escapeHtml(rule.message || '');
+			return `<div class="ce-rule">
+				<div class="ce-rule-pattern">
+					<span class="ce-rule-label">If code contains</span>
+					<code>${pattern}</code>
+				</div>
+				<div class="ce-rule-msg">
+					<span class="ce-rule-label ce-rule-label--arrow">&#8594; Student sees</span>
+					<p>${message}</p>
+				</div>
+			</div>`;
+		}).join('');
+
+		document.getElementById('custom-errors-content').innerHTML =
+			`<div class="ce-grid">${html}</div>`;
+		customErrorsBox.style.display = '';
+	}
+
+	// Collapsible headers
+	document.querySelectorAll('.collapsible-header').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const targetId = btn.getAttribute('aria-controls');
+			const body = document.getElementById(targetId);
+			const chevron = btn.querySelector('.collapse-chevron');
+			const expanded = btn.getAttribute('aria-expanded') === 'true';
+			body.style.display = expanded ? 'none' : '';
+			btn.setAttribute('aria-expanded', String(!expanded));
+			chevron?.classList.toggle('collapsed', expanded);
+		});
+	});
+
 	// Time metrics
 	const tff = data.time_to_first_fail;
 	const tfs = data.time_to_first_success;

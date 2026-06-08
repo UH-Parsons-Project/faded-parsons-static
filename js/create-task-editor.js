@@ -86,6 +86,8 @@ initBurgerMenu();
       solution_label: 'Construct your solution here, including indents',
     });
 
+    previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
+
     const previewRepr = buildCustomRepr() || modelAnswerRepr;
     previewParsonsWidget.init(previewRepr);
 
@@ -337,6 +339,28 @@ initBurgerMenu();
     if (blockCount) {
       blockCount.textContent = `${solutionItems} blocks`;
     }
+  }
+
+  function buildReprFromBlocks(taskData) {
+    const blocks = taskData.code_blocks?.blocks || [];
+    const solutionCode = (taskData.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
+    const INDENT = '    ';
+    const solutionLines = new Set(
+      solutionCode.split('\n')
+        .map((l) => l.trimEnd().replace(/!BLANK/g, '___'))
+        .filter(Boolean)
+    );
+    return blocks.map((block) => {
+      const indented = INDENT.repeat(block.indent) + block.code;
+      if (solutionLines.has(indented)) {
+        let line = `${block.code} #${block.indent}given`;
+        if (block.given) {
+          line += ' #preplace';
+        }
+        return line;
+      }
+      return block.code;
+    }).join('\n');
   }
 
   function renderParsonsBoard(initialText) {
@@ -794,8 +818,12 @@ initBurgerMenu();
       is_public: isPublic,
     };
 
-    fetch('/api/problems', {
-      method: 'POST',
+    const editTaskId = draftPayload?.taskId || null;
+    const fetchUrl = editTaskId ? `/api/problems/${editTaskId}` : '/api/problems';
+    const fetchMethod = editTaskId ? 'PUT' : 'POST';
+
+    fetch(fetchUrl, {
+      method: fetchMethod,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -803,7 +831,7 @@ initBurgerMenu();
     })
       .then(async (response) => {
         if (response.ok) {
-          alert('Problem successfully added to the problem list!');
+          alert(editTaskId ? 'Task updated successfully!' : 'Problem successfully added to the problem list!');
           window.location.href = '/teacher-dashboard';
         } else {
           let detail = '';
@@ -879,7 +907,8 @@ initBurgerMenu();
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         saveCodeToSession();
-        window.location.href = '/create-task';
+        const backTaskId = draftPayload?.taskId;
+        window.location.href = backTaskId ? `/create-task?task_id=${backTaskId}` : '/create-task';
       });
     }
 
@@ -1076,7 +1105,95 @@ initBurgerMenu();
     }
   }
 
-  function initializeBuilder() {
+  async function initializeBuilder() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTaskId = urlParams.get('task_id') ? parseInt(urlParams.get('task_id'), 10) : null;
+
+    const taskTitleInput = document.getElementById('task-title');
+    const descriptionInput = document.getElementById('problem-description');
+    const startDescriptionInput = document.getElementById('start-description');
+    const testsInput = document.getElementById('tests-input');
+    const customErrorMessagesInput = document.getElementById('custom-error-messages');
+    const visibilityInput = document.getElementById('task-visibility-public');
+
+    if (urlTaskId) {
+      // Direct edit mode: load task from API, model answer on right, leftover blocks on left
+      let taskData;
+      try {
+        const [editableResp, taskResp] = await Promise.all([
+          fetch(`/api/problems/${urlTaskId}/editable`),
+          fetch(`/api/tasks/${urlTaskId}`),
+        ]);
+
+        if (!taskResp.ok) {
+          alert('Task not found. Redirecting to dashboard.');
+          window.location.href = '/teacher-dashboard';
+          return;
+        }
+        taskData = await taskResp.json();
+
+        if (editableResp.ok) {
+          const { editable } = await editableResp.json();
+          if (!editable) {
+            alert('This task cannot be edited because it is used in a task set with enrolled students, or another teacher has added it to their task set.');
+            window.location.href = '/teacher-dashboard';
+            return;
+          }
+        }
+      } catch (e) {
+        alert('Failed to load task. Redirecting to dashboard.');
+        window.location.href = '/teacher-dashboard';
+        return;
+      }
+
+      const solutionCode = taskData.correct_solution?.solution_code || '';
+      const teacherTests = taskData.correct_solution?.teacher_tests || '';
+
+      draftPayload = {
+        taskCode: solutionCode,
+        taskTests: teacherTests,
+        savedAt: new Date().toISOString(),
+        taskId: urlTaskId,
+      };
+
+      const cachedRepr = getCachedParsonsRepr(solutionCode);
+      const meta = loadMetaFromSession(solutionCode);
+      const defaultTitle = extractDefaultTitleFromCode(solutionCode);
+      const initialText = cachedRepr || buildReprFromBlocks(taskData);
+
+      let instructions = {};
+      try { instructions = JSON.parse(taskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
+      if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || taskData.title || defaultTitle;
+      if (descriptionInput) descriptionInput.value = meta.description || instructions.task_instructions || '';
+      if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
+      if (testsInput) testsInput.value = meta.tests || teacherTests || '';
+      if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
+
+      const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
+      if (savedModelAnswer.code) {
+        modelAnswerCode = savedModelAnswer.code;
+        modelAnswerRepr = savedModelAnswer.repr;
+        modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
+      } else {
+        saveModelAnswerToSession(solutionCode, '');
+      }
+
+      const addToListBtn = document.getElementById('add-to-problem-list');
+      if (addToListBtn) addToListBtn.textContent = 'Update Task';
+
+      const backBtn = document.getElementById('back-to-code');
+      if (backBtn) backBtn.style.display = 'none';
+
+      renderParsonsBoard(initialText);
+      setupGuideToggle();
+      setupPreviewModal();
+      setupButtons();
+      updateModelAnswerStatus();
+      updateAddToListState();
+      return;
+    }
+
+    // Normal create/edit-via-step-1 mode
     const draft = readDraftPayload();
     if (!draft) {
       alert('No draft task found. Redirecting to task editor.');
@@ -1085,43 +1202,58 @@ initBurgerMenu();
     }
 
     draftPayload = draft;
+    const editTaskId = draft.taskId || null;
     const cachedRepr = getCachedParsonsRepr(draft.taskCode);
-    const initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
-
     const meta = loadMetaFromSession(draft.taskCode);
-    const taskTitleInput = document.getElementById('task-title');
-    const descriptionInput = document.getElementById('problem-description');
-    const startDescriptionInput = document.getElementById('start-description');
-    const testsInput = document.getElementById('tests-input');
-    const customErrorMessagesInput = document.getElementById('custom-error-messages');
-    const visibilityInput = document.getElementById('task-visibility-public');
 
     const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
-    if (taskTitleInput) {
-      taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
+    let initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
+    let fetchedFromApi = false;
+    let apiTaskData = null;
+
+    if (editTaskId && !cachedRepr) {
+      try {
+        const response = await fetch(`/api/tasks/${editTaskId}`);
+        if (response.ok) {
+          apiTaskData = await response.json();
+          initialText = buildReprFromBlocks(apiTaskData);
+          fetchedFromApi = true;
+        }
+      } catch (e) {
+        console.error('Failed to fetch task for editing:', e);
+      }
+    }
+    if (fetchedFromApi && !meta.taskTitle) {
+      let instructions = {};
+      try { instructions = JSON.parse(apiTaskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
+      if (taskTitleInput) taskTitleInput.value = apiTaskData.title || defaultTitle;
+      if (descriptionInput) descriptionInput.value = instructions.task_instructions || '';
+      if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
+      if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
+      if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
+      const savedAnswer = apiTaskData.correct_solution?.solution_code || '';
+      if (savedAnswer) saveModelAnswerToSession(savedAnswer, '');
+    } else {
+      if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
+      if (descriptionInput) descriptionInput.value = meta.description || '';
+      if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
+      if (testsInput) testsInput.value = meta.tests || draft.taskTests || '';
+      if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
+
+      const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
+      modelAnswerCode = savedModelAnswer.code;
+      modelAnswerRepr = savedModelAnswer.repr;
+      modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
     }
 
-    if (descriptionInput) {
-      descriptionInput.value = meta.description || '';
-    }
-    if (startDescriptionInput) {
-      startDescriptionInput.value = meta.startDescription || '';
-    }
-    if (testsInput) {
-      testsInput.value = meta.tests || draft.taskTests || '';
-    }
-    if (customErrorMessagesInput) {
-      customErrorMessagesInput.value = meta.customErrorMessages || '';
-    }
     if (visibilityInput) {
       visibilityInput.checked = meta.isPublic === false;
     }
 
-    const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
-    modelAnswerCode = savedModelAnswer.code;
-    modelAnswerRepr = savedModelAnswer.repr;
-    modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
-
+    if (editTaskId) {
+      const addToListBtn = document.getElementById('add-to-problem-list');
+      if (addToListBtn) addToListBtn.textContent = 'Update Task';
+    }
     renderParsonsBoard(initialText);
     setupGuideToggle();
     setupPreviewModal();

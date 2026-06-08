@@ -113,6 +113,7 @@ class TaskSetItem(Base):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("parsons.id", ondelete="CASCADE"), nullable=False
     )
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
 
 
 class TeacherFavoriteTask(Base):
@@ -141,6 +142,7 @@ class Student(Base):
     username: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    session_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
     student_created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )

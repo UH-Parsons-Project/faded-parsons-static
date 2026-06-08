@@ -42,8 +42,8 @@ test('teacher can add a new task', async ({ page }) => {
   await loginTeacher(page, username, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  // Click the "New task" link and wait for navigation together
-  const newTaskLink = page.getByRole('link', { name: /new task/i });
+  // Click the "New Task" link and wait for navigation together
+  const newTaskLink = page.locator('a[href="/create-task"]');
   await expect(newTaskLink).toBeVisible();
   await expect(newTaskLink).toBeEnabled();
 

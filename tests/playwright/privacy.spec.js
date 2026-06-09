@@ -24,7 +24,7 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   }, { taskCode, blocksRepr });
 
   // Create new task and go through editor flow
-  const newTaskLink = page.getByRole('link', { name: /new task/i });
+  const newTaskLink = page.locator('a[href="/create-task"]');
   await expect(newTaskLink).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/create-task$/,{ timeout: 20000 }),

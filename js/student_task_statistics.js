@@ -42,10 +42,23 @@ function setupCollapsible(toggleId, bodyId, chevronId) {
 	const body    = document.getElementById(bodyId);
 	const chevron = document.getElementById(chevronId);
 	if (!toggle || !body) return;
-	toggle.addEventListener('click', () => {
+
+	toggle.setAttribute('tabindex', '0');
+	toggle.setAttribute('role', 'button');
+
+	const activate = () => {
 		const open = !body.classList.contains('collapsed');
 		body.classList.toggle('collapsed', open);
+		toggle.setAttribute('aria-expanded', String(open));
 		if (chevron) chevron.classList.toggle('open', !open);
+	};
+
+	toggle.addEventListener('click', activate);
+	toggle.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			activate();
+		}
 	});
 }
 

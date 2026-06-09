@@ -1412,6 +1412,11 @@ test-results-element {
   border-color: #dc3545;
 }
 
+/* ── Navbar: collapse username to icon on small screens ─ */
+@media (max-width: 600px) {
+  #user-name { display: none; }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .admin-section {

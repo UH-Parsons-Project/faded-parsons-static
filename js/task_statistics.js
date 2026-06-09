@@ -31,6 +31,8 @@ if (!task_setCode) {
 	if (tasksetChip) tasksetChip.style.display = 'none';
 	const globalChip = document.getElementById('global-chip');
 	if (globalChip) globalChip.style.display = '';
+	const toggleBtn = document.getElementById('sidebar-toggle-btn');
+	if (toggleBtn) toggleBtn.style.display = 'none';
 } else {
 	const codeEl = document.getElementById('taskset-code-label');
 	if (codeEl) codeEl.textContent = task_setCode;
@@ -575,3 +577,28 @@ async function loadStatistics() {
 }
 
 loadStatistics();
+
+// ── Mobile sidebar toggle ────────────────────────────────
+const _toggleBtn = document.getElementById('sidebar-toggle-btn');
+const _backdrop  = document.getElementById('sidebar-backdrop');
+const _sidebar   = document.querySelector('.student-sidebar');
+
+if (_toggleBtn && _backdrop && _sidebar) {
+	const _openSidebar = () => {
+		_sidebar.classList.add('sidebar-open');
+		_backdrop.classList.add('show');
+		document.body.style.overflow = 'hidden';
+	};
+	const _closeSidebar = () => {
+		_sidebar.classList.remove('sidebar-open');
+		_backdrop.classList.remove('show');
+		document.body.style.overflow = '';
+	};
+	_toggleBtn.addEventListener('click', () => {
+		_sidebar.classList.contains('sidebar-open') ? _closeSidebar() : _openSidebar();
+	});
+	_backdrop.addEventListener('click', _closeSidebar);
+	window.addEventListener('resize', () => {
+		if (window.innerWidth > 768) _closeSidebar();
+	});
+}

@@ -13,6 +13,17 @@ const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}/tasks
 
 let tasksList = [];
 
+function makeKeyActivatable(el, handler) {
+	el.setAttribute('tabindex', '0');
+	el.setAttribute('role', 'button');
+	el.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handler(e);
+		}
+	});
+}
+
 async function loadProblemsetInfo() {
 	try {
 		const response = await fetch(`/api/my_sets/${uniqueLinkCode}/info`);
@@ -93,9 +104,9 @@ function createTaskCard(item, index) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
 	const taskNumber = index + 1;
-	card.onclick = () => {
-		window.location.href = `/set/${uniqueLinkCode}/tasks/${taskNumber}/start`;
-	};
+	const navigate = () => { window.location.href = `/set/${uniqueLinkCode}/tasks/${taskNumber}/start`; };
+	card.onclick = navigate;
+	makeKeyActivatable(card, navigate);
 
 	const number = document.createElement('div');
 	number.className = 'task-set-item-number';

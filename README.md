@@ -63,7 +63,10 @@ alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Project Wiki
-https://github.com/UH-Parsons-Project/parsons-code-lab/wiki
+[Wiki](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki)
+
+## Tuntikirjanpito
+[Tuntikirjanpito](https://github.com/UH-Parsons-Project/parsons-code-lab/wiki/Ty%C3%B6aikakirjanpito)
 
 ## Definition of Done
 

@@ -28,6 +28,17 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+function makeKeyActivatable(el, handler) {
+	el.setAttribute('tabindex', '0');
+	el.setAttribute('role', 'button');
+	el.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handler(e);
+		}
+	});
+}
+
 async function fetchJsonWithError(path, failureMessage) {
 	const response = await fetch(path, { credentials: 'include' });
 	if (!response.ok) {
@@ -325,9 +336,11 @@ function renderListHeader(taskSet, tasks, students) {
 function createTaskItem(task, taskSet, isOwner) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
-	item.onclick = () => {
+	const navigateToStats = () => {
 		window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
 	};
+	item.onclick = navigateToStats;
+	makeKeyActivatable(item, navigateToStats);
 
 	const headerRow = document.createElement('div');
 	headerRow.className = 'task-item-header';
@@ -512,9 +525,11 @@ function createStudentItem(student) {
 	const item = document.createElement('div');
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
-	item.onclick = () => {
-	window.location.href = `/student-attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
+	const navigateToAttempts = () => {
+		window.location.href = `/student-attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
 	};
+	item.onclick = navigateToAttempts;
+	makeKeyActivatable(item, navigateToAttempts);
 
 	const name = document.createElement('div');
 	name.className = 'student-name';

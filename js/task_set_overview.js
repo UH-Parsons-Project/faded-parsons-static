@@ -11,8 +11,6 @@ if (!setId) {
 	window.location.href = '/teacher-dashboard';
 }
 
-setupViewerSharing();
-
 function formatDate(isoString) {
 	const date = new Date(isoString);
 	return date.toLocaleDateString('en-US', {
@@ -237,7 +235,14 @@ function renderListHeader(taskSet, tasks, students) {
 	}
 
 	let leftHTML = `
-		<div class="taskset-page-title">${escapeHtml(taskSet.title)}</div>
+		<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;">
+		  <div class="taskset-page-title" style="margin-bottom:0">${escapeHtml(taskSet.title)}</div>
+		  <a href="/heatmap?set_id=${setId}"
+		     class="btn btn-sm"
+		     style="background:var(--brand);border:1.5px solid var(--brand-dark);color:var(--brand-text);font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+		    Completion Heatmap <i class="fas fa-arrow-right"></i>
+		  </a>
+		</div>
 		<div class="taskset-link-box">
 			<span id="link-code" class="taskset-link-text">${url}</span>
 			<button id="copy-btn" type="button" class="copy-btn" title="Copy URL">
@@ -291,12 +296,29 @@ function renderListHeader(taskSet, tasks, students) {
 		</div>
 	`;
 
+	const viewersHTML = `
+		<div class="header-viewers">
+			<div class="header-viewers-title">Shared Viewers</div>
+			<div class="viewer-add-form">
+				<input type="text" id="viewer-identifier" placeholder="Username or email">
+				<button type="button" id="add-viewer-btn">
+					<i class="fas fa-user-plus"></i> Add
+				</button>
+			</div>
+			<div class="viewer-add-hint">Add teachers who can view this task set.</div>
+			<div id="viewers-list"></div>
+		</div>
+	`;
+
 	container.innerHTML = `
 		<div class="header-inner">
 			<div class="header-left">${leftHTML}</div>
+			${viewersHTML}
 			${statsHTML}
 		</div>
 	`;
+
+	setupViewerSharing();
 
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');

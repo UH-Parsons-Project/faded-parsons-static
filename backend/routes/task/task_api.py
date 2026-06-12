@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, and_
@@ -1013,3 +1015,78 @@ async def delete_problem(
 
     await db.execute(delete(Parsons).where(Parsons.id == task_id))
     await db.commit()
+
+
+STRUGGLING_THRESHOLD = 5
+
+
+@router.get("/api/my_sets/{task_set_id}/heatmap")
+async def get_heatmap(
+    task_set_id: int,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    await require_task_set_view_access(task_set, current_user, db)
+
+    tasks_result = await db.execute(
+        select(Parsons, TaskSetItem.is_hidden)
+        .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
+        .where(TaskSetItem.task_set_id == task_set_id, TaskSetItem.is_hidden == False)
+        .order_by(TaskSetItem.id.asc())
+    )
+    tasks = tasks_result.all()
+
+    students_result = await db.execute(
+        select(Student.id, Student.username)
+        .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
+        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
+        .order_by(Student.username.asc())
+    )
+    students = students_result.all()
+
+    attempts_result = await db.execute(
+        select(TaskAttempt)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
+        .where(StudentTaskEnrollment.task_set_id == task_set_id)
+    )
+    attempts = attempts_result.scalars().all()
+
+    attempt_map: dict = defaultdict(list)
+    for a in attempts:
+        attempt_map[(a.student_id, a.task_id)].append(a)
+
+    student_rows = []
+    for student in students:
+        cells = []
+        for task, _ in tasks:
+            student_attempts = attempt_map[(student.id, task.id)]
+            total = len(student_attempts)
+            completed = any(a.success for a in student_attempts)
+            last = max(
+                (a.completed_at for a in student_attempts if a.completed_at),
+                default=None,
+            )
+
+            if completed:
+                cell_status = "completed"
+            elif total >= STRUGGLING_THRESHOLD:
+                cell_status = "struggling"
+            elif total > 0:
+                cell_status = "in_progress"
+            else:
+                cell_status = "not_started"
+
+            cells.append({
+                "task_id": task.id,
+                "status": cell_status,
+                "attempts": total,
+                "last_active_at": last.isoformat() if last else None,
+            })
+
+        student_rows.append({"username": student.username, "cells": cells})
+
+    return {
+        "tasks": [{"id": t.id, "title": t.title, "is_hidden": is_hidden} for t, is_hidden in tasks],
+        "students": student_rows,
+    }

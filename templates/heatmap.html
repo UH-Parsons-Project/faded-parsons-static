@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Task Set Overview — Parsons Code Lab</title>
+  <title>Completion Heatmap — Parsons Code Lab</title>
 
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
@@ -12,7 +12,6 @@
 
   <link rel="stylesheet" href="/js/task_set_overview.css">
 </head>
-
 <body>
 
   <nav class="navbar">
@@ -20,22 +19,24 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3">
-        <i class="fas fa-arrow-left"></i> My Dashboard
+      <a href="#" id="back-to-overview" class="btn btn-outline-dark btn-sm mr-3">
+        <i class="fas fa-arrow-left"></i> Task Overview
       </a>
       <span class="text-dark">
-        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
+        <span id="signed-in-as">
+          <i class="fas fa-user"></i>
+          <span id="user-name"></span>
+          <span id="user-role" class="badge" style="display:none; margin-left:8px;"></span>
+        </span>
       </span>
-      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
-        Logout
-      </button>
-      <div class="navbar-burger-menu" style="margin-left: 1rem;">
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
+      <div class="navbar-burger-menu" style="margin-left:1rem;">
         <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
           <i class="fas fa-bars"></i>
         </button>
         <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
           <a href="/global-statistics" class="navbar-burger-item">
-            <i class="fas fa-chart-bar"></i> All Tasks & Global Statistics
+            <i class="fas fa-chart-bar"></i> All Tasks &amp; Global Statistics
           </a>
           <a href="/teacher-dashboard" class="navbar-burger-item">
             <i class="fas fa-chalkboard-teacher"></i> My Dashboard
@@ -49,34 +50,37 @@
   </nav>
 
   <div class="page-header">
-    <div id="list-header" class="loading-spinner">
+    <div id="heatmap-header" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>
       </div>
-      <p class="mt-2">Loading task set...</p>
+      <p class="mt-2">Loading heatmap…</p>
     </div>
   </div>
 
-  <div class="overview-main">
-    <div id="content-container" style="display: none;">
-
-<div class="statistics-layout">
-
-        <div class="tasks-column">
-          <h3 class="mb-3">Tasks</h3>
-          <div id="tasks-list"></div>
-        </div>
-
-        <div class="right-panel">
-          <h3 class="mb-3">Students <span style="font-weight:500;text-transform:none;letter-spacing:0;font-size:.9rem;">(<span id="student-count">—</span>)</span></h3>
-          <div id="students-list"></div>
-        </div>
-
+  <div class="overview-main" id="heatmap-main" style="display:none;">
+    <div class="hm-controls-bar" id="hm-controls"></div>
+    <div class="hm-card" id="hm-card">
+      <div class="hm-scroll">
+        <table class="hm-table" id="hm-table"></table>
       </div>
     </div>
+    <div class="hm-legend" id="hm-legend"></div>
   </div>
 
-  <script type="module" src="/js/task_set_overview.js"></script>
+  <div class="hm-tooltip" id="hm-tooltip"></div>
 
+  <div class="hm-modal-overlay" id="hm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hm-modal-title">
+    <div class="hm-modal">
+      <div class="hm-modal-header">
+        <div class="hm-modal-title" id="hm-modal-title"></div>
+        <button class="hm-modal-close" id="hm-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="hm-modal-body" id="hm-modal-body"></div>
+      <div class="hm-modal-footer" id="hm-modal-footer"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/heatmap.js"></script>
 </body>
 </html>

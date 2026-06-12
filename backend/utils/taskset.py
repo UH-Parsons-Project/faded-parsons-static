@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
-from ..models import TaskSetViewer
+from ..models import TaskSetItem, TaskSetViewer
 
 
 async def has_task_set_view_access(task_set, current_user, db: AsyncSession) -> bool:
@@ -29,3 +29,23 @@ async def require_task_set_view_access(task_set, current_user, db: AsyncSession)
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to view this task set",
         )
+
+
+async def can_view_task_in_task_set(task, task_set, current_user, db: AsyncSession) -> bool:
+    """Return True if the user can view this task within the given task set."""
+    if getattr(current_user, "is_admin_teacher", False):
+        return True
+
+    if task.is_public or task.created_by_teacher_id == current_user.id:
+        return True
+
+    task_in_set_result = await db.execute(
+        select(TaskSetItem).where(
+            TaskSetItem.task_set_id == task_set.id,
+            TaskSetItem.task_id == task.id,
+        )
+    )
+    if task_in_set_result.scalar_one_or_none() is None:
+        return False
+
+    return await has_task_set_view_access(task_set, current_user, db)

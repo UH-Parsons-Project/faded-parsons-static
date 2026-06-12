@@ -162,6 +162,10 @@ export async function initWidget() {
 		const response = await fetch(taskApiUrl);
 
 		if (!response.ok) {
+			if (response.status === 404) {
+				window.location.replace('/not-found');
+				return;
+			}
 			throw new Error(`Failed to fetch task: ${response.statusText}`);
 		}
 

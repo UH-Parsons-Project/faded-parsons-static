@@ -314,6 +314,37 @@ body {
   line-height: 1.4;
 }
 
+.visibility-card {
+  border: 1px solid #d8e1ef;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fbfdff 0%, #f5f9ff 100%);
+  padding: 0.85rem 1rem 0.8rem;
+}
+
+.visibility-toggle {
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 0.35rem;
+}
+
+.visibility-toggle .form-check-input {
+  position: static;
+  margin: 0.2rem 0 0;
+  flex: 0 0 auto;
+}
+
+.visibility-toggle .form-check-label {
+  margin-bottom: 0;
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.visibility-help {
+  margin: 0;
+  line-height: 1.45;
+}
+
 .field-help-details {
   border: 1px solid #d8e1ef;
   border-radius: 8px;

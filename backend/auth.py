@@ -78,6 +78,44 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Teacher | None:
+    """Return the current user if a token is provided, otherwise None."""
+    token = request.cookies.get("access_token")
+
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        return None
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except jwt.InvalidTokenError as exc:
+        raise credentials_exception from exc
+
+    result = await db.execute(select(Teacher).where(Teacher.username == username))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        raise credentials_exception
+
+    return user
+
+
 async def authenticate_user(username_or_email: str, password: str, db: AsyncSession) -> Optional[Teacher]:
     """Authenticate a teacher by username or email and password.
 
@@ -105,3 +143,4 @@ async def authenticate_user(username_or_email: str, password: str, db: AsyncSess
 
 # Type alias for current user dependency (FastAPI template style)
 CurrentUser = Annotated[Teacher, Depends(get_current_user)]
+OptionalCurrentUser = Annotated[Teacher | None, Depends(get_current_user_optional)]

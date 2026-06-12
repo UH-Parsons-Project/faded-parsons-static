@@ -385,3 +385,8 @@ a.btn-success.btn-block:hover {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ── Navbar: collapse username to icon on small screens ─ */
+@media (max-width: 600px) {
+  #user-name { display: none; }
+}

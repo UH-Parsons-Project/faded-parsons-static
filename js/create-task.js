@@ -226,6 +226,7 @@
     const form = document.getElementById('create-task-form');
     const submitBtn = document.getElementById('submit-task');
     const clearDraftsBtn = document.getElementById('clear-drafts');
+    const cancelBtn = document.getElementById('cancel-task');
     const taskCodeInput = document.getElementById('task-code');
     const taskTestsInput = document.getElementById('task-tests');
     const taskCodeStatus = document.getElementById('task-code-status');
@@ -270,6 +271,12 @@
         taskCodeInput.dispatchEvent(new Event('input'));
         taskTestsInput.dispatchEvent(new Event('input'));
         taskCodeInput.focus();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        window.location.href = '/teacher-dashboard';
       });
     }
 

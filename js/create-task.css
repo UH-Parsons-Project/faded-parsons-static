@@ -127,6 +127,15 @@ body {
 .actions {
     margin-top: 1.15rem;
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.actions-left,
+.actions-right {
+    display: flex;
     gap: 0.6rem;
     flex-wrap: wrap;
 }

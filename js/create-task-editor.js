@@ -903,9 +903,18 @@ initBurgerMenu();
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
     const previewStudentBtn = document.getElementById('preview-student-view');
+    const cancelBtn = document.getElementById('cancel-task-editor');
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
+        saveCodeToSession();
+        const backTaskId = draftPayload?.taskId;
+        window.location.href = backTaskId ? `/create-task?task_id=${backTaskId}` : '/create-task';
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
         saveCodeToSession();
         const backTaskId = draftPayload?.taskId;
         window.location.href = backTaskId ? `/create-task?task_id=${backTaskId}` : '/create-task';

@@ -500,6 +500,18 @@ body {
   color: #fff;
 }
 
+/* "Cancel" */
+#cancel-task-editor {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+#cancel-task-editor:hover,
+#cancel-task-editor:focus {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
 .preview-code-block {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
   white-space: pre-wrap;

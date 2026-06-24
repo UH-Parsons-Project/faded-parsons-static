@@ -2050,3 +2050,8 @@ test-results-element {
   color: #007bff;
 }
 
+.main-page-text-block {
+  border: 2px solid #cbced2;
+  border-radius: 5px;
+  padding: 0.5rem;
+}

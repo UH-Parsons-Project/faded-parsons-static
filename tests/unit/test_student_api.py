@@ -326,7 +326,7 @@ class TestGetTaskForStudent:
 
         # Get task
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}"
         )
         assert response.status_code == 200
         data = response.json()
@@ -389,7 +389,7 @@ class TestCheckTaskHasStarted:
 
         # Check if started
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/has-started"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/has-started"
         )
         assert response.status_code == 200
         assert response.json()["has_started"] is True
@@ -411,7 +411,7 @@ class TestCheckTaskHasStarted:
 
         # Check if started (without creating enrollment)
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/has-started"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/has-started"
         )
         assert response.status_code == 200
         assert response.json()["has_started"] is False
@@ -447,7 +447,7 @@ class TestGetCompletionStatus:
 
         # Get completion status
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/my-completion-status"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/my-completion-status"
         )
         assert response.status_code == 200
         data = response.json()
@@ -489,7 +489,7 @@ class TestGetCompletionStatus:
 
         # Get completion status
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/my-completion-status"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/my-completion-status"
         )
         assert response.status_code == 200
         data = response.json()
@@ -531,7 +531,7 @@ class TestGetCompletionStatus:
 
         # Get completion status
         response = await client.get(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/my-completion-status"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/my-completion-status"
         )
         assert response.status_code == 200
         data = response.json()
@@ -559,7 +559,7 @@ class TestStartTask:
 
         # Start task
         response = await client.post(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/start"
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/start"
         )
         assert response.status_code == 200
         data = response.json()
@@ -638,7 +638,7 @@ class TestRecordTaskExit:
 
         # Try to record exit with non-existent session
         response = await client.post(
-            f"/api/sets/{task_set.unique_link_code}/tasks/1/record-exit",
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}/record-exit",
             json={
                 "session_id": 99999,
                 "exited_at": datetime.now(timezone.utc).isoformat(),

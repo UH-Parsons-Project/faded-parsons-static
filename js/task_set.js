@@ -9,7 +9,8 @@ initNavbarExercisesButton();
 // Load problem list for this task_set
 const container = document.getElementById('problems-list');
 const pathParts = window.location.pathname.split('/');
-const uniqueLinkCode = pathParts[2]; // /set/{unique_link_code}/tasks
+const username = pathParts[1]; // /{username}/set/{unique_link_code}/tasks
+const uniqueLinkCode = pathParts[3];
 
 let tasksList = [];
 
@@ -104,7 +105,7 @@ function createTaskCard(item, index) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
 	const taskNumber = index + 1;
-	const navigate = () => { window.location.href = `/set/${uniqueLinkCode}/tasks/${taskNumber}/start`; };
+	const navigate = () => { window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/${taskNumber}/start`; };
 	card.onclick = navigate;
 	makeKeyActivatable(card, navigate);
 
@@ -241,7 +242,7 @@ if (uniqueLinkCode) {
 		.then(r => r.ok ? r.json() : { enrolled: false })
 		.then(data => {
 			if (!data.enrolled) {
-				window.location.href = `/set/${uniqueLinkCode}`;
+				window.location.href = `/${username}/set/${uniqueLinkCode}`;
 				return;
 			}
 
@@ -269,7 +270,7 @@ if (uniqueLinkCode) {
 		})
 		.catch(function (error) {
 			console.error('Enrollment check failed:', error);
-			window.location.href = `/set/${uniqueLinkCode}`;
+			window.location.href = `/${username}/set/${uniqueLinkCode}`;
 		});
 } else {
 	container.className = 'empty-state';

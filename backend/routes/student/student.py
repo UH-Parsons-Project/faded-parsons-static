@@ -24,8 +24,9 @@ async def student_start_view():
     return FileResponse(index_path)
 
 
-@router.get("/set/{unique_link_code}", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}", response_class=FileResponse)
 async def task_set_page(
+    username: str,
     unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
@@ -40,7 +41,7 @@ async def task_set_page(
             )
         )
         if enrollment.scalar_one_or_none():
-            return RedirectResponse(url=f"/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
+            return RedirectResponse(url=f"/{username}/set/{unique_link_code}/tasks", status_code=status.HTTP_303_SEE_OTHER)
 
     task_set_path = BASE_DIR / "templates" / "student_index.html"
     response = FileResponse(task_set_path)
@@ -48,8 +49,9 @@ async def task_set_page(
     return response
 
 
-@router.get("/set/{unique_link_code}/tasks", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks", response_class=FileResponse)
 async def task_set_tasks_page(
+    username: str,
     unique_link_code: str,
     db: AsyncSession = Depends(get_db),
     student_session: Student | None = Depends(get_current_student_session_no_update),
@@ -57,7 +59,7 @@ async def task_set_tasks_page(
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
     if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     enrollment = await db.execute(
         select(StudentTaskSetEnrollment).where(
@@ -66,7 +68,7 @@ async def task_set_tasks_page(
         )
     )
     if not enrollment.scalar_one_or_none():
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     tasks_path = BASE_DIR / "templates" / "task_set.html"
     response = FileResponse(tasks_path)
@@ -74,8 +76,9 @@ async def task_set_tasks_page(
     return response
 
 
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}", response_class=FileResponse)
 async def task_set_task_page(
+    username: str,
     unique_link_code: str,
     task_id: int,
     db: AsyncSession = Depends(get_db),
@@ -85,7 +88,7 @@ async def task_set_task_page(
     resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     enrollment = await db.execute(
         select(StudentTaskSetEnrollment).where(
@@ -94,7 +97,7 @@ async def task_set_task_page(
         )
     )
     if not enrollment.scalar_one_or_none():
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
@@ -104,8 +107,9 @@ async def task_set_task_page(
     return response
 
 
-@router.get("/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/{task_id:int}/start", response_class=FileResponse)
 async def task_set_task_start_page(
+    username: str,
     unique_link_code: str,
     task_id: int,
     db: AsyncSession = Depends(get_db),
@@ -115,7 +119,7 @@ async def task_set_task_start_page(
     resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
-        return RedirectResponse(url=f"/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
     start_path = BASE_DIR / "templates" / "student_start_task.html"
     response = FileResponse(start_path)

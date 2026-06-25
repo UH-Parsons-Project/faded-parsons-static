@@ -1,4 +1,5 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.js';
+import { createPrivateBadge, isPrivateTask } from '/js/privacy-badge.js';
     initSignedInAs();
     initProtectedPage('/');
     initBurgerMenu();
@@ -347,8 +348,24 @@ function renderTasks(tasks) {
       }
     });
 
-    header.appendChild(title);
-    header.appendChild(favoriteBtn);
+    const titleWrap = document.createElement('div');
+    titleWrap.style.display = 'flex';
+    titleWrap.style.alignItems = 'center';
+    titleWrap.style.gap = '.45rem';
+    titleWrap.style.minWidth = '0';
+    titleWrap.appendChild(title);
+    header.appendChild(titleWrap);
+
+    const controlsWrap = document.createElement('div');
+    controlsWrap.style.display = 'flex';
+    controlsWrap.style.alignItems = 'center';
+    controlsWrap.style.gap = '.2rem';
+    controlsWrap.style.flexShrink = '0';
+    controlsWrap.appendChild(favoriteBtn);
+    if (isPrivateTask(task)) {
+      controlsWrap.appendChild(createPrivateBadge());
+    }
+    header.appendChild(controlsWrap);
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -470,16 +487,26 @@ function updateSelectedTasksPreview() {
     positionEl.style.marginBottom = '0.25rem';
     positionEl.textContent = `#${index + 1}`;
 
+    const titleRow = document.createElement('div');
+    titleRow.style.display = 'flex';
+    titleRow.style.alignItems = 'center';
+    titleRow.style.gap = '.45rem';
+    titleRow.style.minWidth = '0';
+
     const titleEl = document.createElement('div');
     titleEl.className = 'selected-task-item-title';
     titleEl.textContent = task.title;
+    titleRow.appendChild(titleEl);
+    if (isPrivateTask(task)) {
+      titleRow.appendChild(createPrivateBadge());
+    }
 
     const typeEl = document.createElement('div');
     typeEl.className = 'selected-task-item-type';
     typeEl.textContent = task.task_type;
 
     contentEl.appendChild(positionEl);
-    contentEl.appendChild(titleEl);
+    contentEl.appendChild(titleRow);
     contentEl.appendChild(typeEl);
 
     const controlsEl = document.createElement('div');

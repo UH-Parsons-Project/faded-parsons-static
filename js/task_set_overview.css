@@ -237,11 +237,26 @@ body {
 .copy-btn:hover { opacity: 1; }
 .copy-btn.copied { color: var(--green); opacity: 1; }
 .taskset-meta-row {
-  font-size: .875rem;
-  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
   margin-bottom: .6rem;
 }
-.taskset-meta-row i { margin-right: .2rem; }
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: var(--surface, #f8f9fa);
+  border: 1px solid var(--border, #dee2e6);
+  border-radius: var(--radius, 6px);
+  padding: .25rem .65rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.meta-badge:empty { display: none; }
+.meta-badge i { font-size: .75rem; }
 .teacher-notes-box {
   font-size: .875rem;
   color: var(--text-muted);

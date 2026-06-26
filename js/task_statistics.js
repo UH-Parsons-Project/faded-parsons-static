@@ -1,4 +1,5 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '/js/auth-ui.js';
+import { createPrivateBadge, isPrivateTask } from '/js/privacy-badge.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
@@ -39,6 +40,8 @@ if (!task_setCode) {
 }
 
 const CIRC = 376.99; // circumference of r=60 circle
+
+const privateBadgeSlot = document.getElementById('exercise-private-badge');
 
 function formatTime(seconds) {
 	if (seconds === null || seconds === undefined) return '—';
@@ -430,6 +433,12 @@ async function loadStatistics() {
 	// Header
 	const taskName = data.task_name || '—';
 	document.getElementById('exercise-name').textContent = taskName;
+	if (privateBadgeSlot) {
+		privateBadgeSlot.innerHTML = '';
+		if (isPrivateTask(data)) {
+			privateBadgeSlot.appendChild(createPrivateBadge());
+		}
+	}
 	const tasksetNameEl = document.getElementById('taskset-name-label');
 	if (tasksetNameEl && data.task_set_name) tasksetNameEl.textContent = data.task_set_name;
 

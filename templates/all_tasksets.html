@@ -36,7 +36,35 @@
   <div class="container py-4">
 
     <h2 class="mb-4">All Task Sets</h2>
-    <p class="text-muted mb-4">Showing all task sets from all teachers.</p>
+    <p class="text-muted mb-2">Showing all task sets from all teachers.</p>
+    <p id="task-set-count-badge" style="display: none; font-size: 1.1rem; font-weight: 600;" class="mb-4"></p>
+
+    <div class="task-filter-menu mb-4">
+      <button class="btn btn-outline-secondary task-filter-toggle" type="button" id="task-filter-toggle" aria-expanded="false" aria-controls="task-filter-panel">
+        <i class="fas fa-bars"></i> Search & Filter
+      </button>
+      <div class="collapse mt-2" id="task-filter-panel">
+        <div class="filter-panel-content">
+          <div class="form-group mb-3">
+            <input type="text" class="form-control" id="task-search" placeholder="Search task sets...">
+            <small class="form-text text-muted mt-1">Select a field below to search in a specific area</small>
+          </div>
+          <div class="filter-scopes">
+            <label class="filter-scope-label">Search in:</label>
+            <div class="scope-checkboxes">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
+                <label class="custom-control-label" for="scope-title">Title</label>
+              </div>
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input filter-scope" id="scope-teacher" value="teacher">
+                <label class="custom-control-label" for="scope-teacher">Teacher</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div id="task-sets-container" class="loading-spinner mt-5">
       <div class="spinner-border text-primary" role="status">

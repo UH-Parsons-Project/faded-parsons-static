@@ -66,7 +66,10 @@ def build_taskset_response_list(rows: Iterable):
     model usage.
     """
     result = []
-    for ps, owner_username in rows:
+    for row in rows:
+        ps, owner_username, *rest = row
+        student_count = rest[0] if len(rest) > 0 else 0
+        task_count = rest[1] if len(rest) > 1 else 0
         result.append({
             "id": ps.id,
             "title": ps.title,
@@ -77,6 +80,8 @@ def build_taskset_response_list(rows: Iterable):
             "teacher_description": ps.teacher_description,
             "created_at": ps.created_at.isoformat(),
             "expires_at": ps.expires_at.isoformat() if ps.expires_at else None,
+            "student_count": student_count,
+            "task_count": task_count,
         })
     return result
 

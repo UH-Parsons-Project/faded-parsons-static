@@ -390,6 +390,13 @@ body {
   padding: 0.75rem 0 1.5rem;
 }
 
+.finalize-instruction {
+  text-align: right;
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
 .run-status {
   color: #4b5563;
   font-size: 0.9rem;

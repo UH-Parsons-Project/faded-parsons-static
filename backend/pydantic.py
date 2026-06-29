@@ -36,6 +36,8 @@ class TaskSetResponse(BaseModel):
     teacher_description: str | None
     created_at: str
     expires_at: str | None
+    student_count: int = 0
+    task_count: int = 0
     deletable: bool = True
 
 

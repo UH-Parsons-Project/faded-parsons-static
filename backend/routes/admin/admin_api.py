@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt
+from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, TaskSetItem
 from ...pydantic import (
     TaskSetResponse,
     CreateRegistrationTokenRequest,
@@ -338,8 +338,16 @@ async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends
 		)
 
 	stmt = (
-		select(TaskSet, Teacher.username)
+		select(
+			TaskSet,
+			Teacher.username,
+			func.count(func.distinct(StudentTaskSetEnrollment.student_id)).label("student_count"),
+			func.count(func.distinct(TaskSetItem.id)).label("task_count"),
+		)
 		.join(Teacher, Teacher.id == TaskSet.teacher_id)
+		.outerjoin(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
+		.outerjoin(TaskSetItem, TaskSetItem.task_set_id == TaskSet.id)
+		.group_by(TaskSet.id, Teacher.username)
 		.order_by(TaskSet.created_at.desc())
 	)
 	result = await db.execute(stmt)

@@ -386,6 +386,22 @@ code {
   background-color: #fff;
   border-radius: 0.35rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.task-set-item-left {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.task-set-item-right {
+  flex: 2 2 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .task-set-item-header,
@@ -448,15 +464,24 @@ code {
 }
 
 .task-set-description {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #555;
-  margin: 1rem 0 0 0;
+  margin: 0;
   line-height: 1.5;
-  padding: 1rem;
+  padding: 0.6rem 0.8rem;
   background: #f9f9f9;
   border-left: 4px solid #007bff;
   border-radius: 4px;
   font-style: italic;
+}
+
+.task-set-teacher-description {
+  border-left-color: #0f766e;
+  background: #f0fdf9;
+  color: #374151;
+  font-style: normal;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
 .create-new-card {

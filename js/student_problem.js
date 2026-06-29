@@ -11,11 +11,12 @@ initStudentLogout();
 initWidget();
 
 // Set the back button to return to the task set
-// Path: /set/{unique_link_code}/tasks/{task_id}
+// Path: /{username}/set/{unique_link_code}/tasks/{task_id}
 const pathParts = window.location.pathname.split('/').filter(p => p);
-const uniqueLinkCode = pathParts[1];
-const taskId = pathParts[3];
-const dashboardUrl = `/set/${uniqueLinkCode}/tasks`;
+const username = pathParts[0];
+const uniqueLinkCode = pathParts[2];
+const taskId = pathParts[4];
+const dashboardUrl = `/${username}/set/${uniqueLinkCode}/tasks`;
 
 const backButton = document.getElementById('back-to-list');
 if (backButton && uniqueLinkCode) {

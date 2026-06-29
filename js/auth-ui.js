@@ -211,10 +211,11 @@ export function initLoginPage() {
 		}
 
 		try {
-			// If we're on a task_set page (/set/<code>) use student login
-			const pathMatch = window.location.pathname.match(/^\/set\/([^/]+)/);
+			// If we're on a task_set page (/{username}/set/<code>) use student login
+			const pathMatch = window.location.pathname.match(/^\/([^/]+)\/set\/([^/]+)/);
 			if (pathMatch) {
-				const code = pathMatch[1];
+				const teacherUsername = pathMatch[1];
+				const code = pathMatch[2];
 				const response = await fetch('/api/student_login', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -226,7 +227,7 @@ export function initLoginPage() {
 					// Keep navbar greeting consistent on student pages.
 					localStorage.setItem('nickname', displayName);
 					// Student session cookie set by backend; redirect to tasks
-					window.location.href = `/set/${code}/tasks`;
+					window.location.href = `/${teacherUsername}/set/${code}/tasks`;
 					return;
 				} else {
 					const err = await response.json();
@@ -293,7 +294,7 @@ export function initLoginPage() {
 	// Handle logout
 	if (logoutBtn) {
 		logoutBtn.addEventListener('click', async function() {
-			const isStudentPage = window.location.pathname.startsWith('/set/');
+			const isStudentPage = /^\/[^/]+\/set\//.test(window.location.pathname);
 			if (isStudentPage) {
 				await fetch('/api/student_logout', { method: 'POST' });
 				localStorage.removeItem('nickname');
@@ -506,7 +507,7 @@ export async function initSignedInAs({
 }
 
 /**
- * Initialize student logout behavior for /set/{unique_link_code}/... pages.
+ * Initialize student logout behavior for /{username}/set/{unique_link_code}/... pages.
  */
 export function initStudentLogout({
 	logoutButtonId = 'logout-btn',
@@ -520,8 +521,9 @@ export function initStudentLogout({
 		localStorage.removeItem('nickname');
 
 		const pathParts = window.location.pathname.split('/').filter(Boolean);
-		const uniqueLinkCode = pathParts[1];
-		window.location.href = uniqueLinkCode ? `/set/${uniqueLinkCode}` : redirectFallback;
+		const username = pathParts[0];
+		const uniqueLinkCode = pathParts[2];
+		window.location.href = (username && uniqueLinkCode) ? `/${username}/set/${uniqueLinkCode}` : redirectFallback;
 	});
 }
 

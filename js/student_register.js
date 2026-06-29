@@ -1,8 +1,9 @@
 const _params = new URLSearchParams(window.location.search);
 const _code = _params.get('code');
-if (_code) {
+const _username = _params.get('username');
+if (_code && _username) {
 	document.getElementById('login-link-container').innerHTML =
-		'Already have an account? <a href="/set/' + _code + '">Login</a>';
+		'Already have an account? <a href="/' + _username + '/set/' + _code + '">Login</a>';
 }
 
 const form = document.getElementById('register-form');
@@ -50,8 +51,9 @@ form.addEventListener('submit', async (e) => {
 		form.reset();
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
-		if (code) {
-			setTimeout(() => { window.location.href = '/set/' + code; }, 1000);
+		const username = params.get('username');
+		if (code && username) {
+			setTimeout(() => { window.location.href = '/' + username + '/set/' + code; }, 1000);
 		}
 	} catch (err) {
 		showAlert('Network error');

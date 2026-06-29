@@ -3,11 +3,12 @@ import { initStudentLogout } from '/js/auth-ui.js';
 initSignedInAs({ preferNickname: true });
 initStudentLogout();
 
-// Extract unique_link_code and task_id from URL path
-// Path: /set/{unique_link_code}/tasks/{task_id}/start
+// Extract username, unique_link_code and task_id from URL path
+// Path: /{username}/set/{unique_link_code}/tasks/{task_id}/start
 const pathParts = window.location.pathname.split('/').filter(p => p);
-const uniqueLinkCode = pathParts[1];
-const taskId = pathParts[3];
+const username = pathParts[0];
+const uniqueLinkCode = pathParts[2];
+const taskId = pathParts[4];
 const instructionsEl = document.getElementById('task-instructions');
 const startBtn = document.getElementById('start-btn');
 
@@ -43,7 +44,7 @@ async function checkAndRedirectIfStarted() {
 			const data = await response.json();
 			if (data.has_started) {
 				// User has already started this task, redirect them directly to it
-				window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
+				window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/${taskId}`;
 				return; // Stop further execution
 			}
 		}
@@ -62,7 +63,7 @@ checkAndRedirectIfStarted();
 // Set the back button to return to the task set
 const backButton = document.getElementById('back-to-list');
 if (backButton) {
-	backButton.href = `/set/${uniqueLinkCode}/tasks`;
+	backButton.href = `/${username}/set/${uniqueLinkCode}/tasks`;
 }
 
 // Set the start button to create the start record and navigate to the task
@@ -90,7 +91,7 @@ if (startBtn) {
 			sessionStorage.setItem(`task_session_${taskId}`, data.session_id);
 
 			// On success, navigate to the task page
-			window.location.href = `/set/${uniqueLinkCode}/tasks/${taskId}`;
+			window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/${taskId}`;
 
 		} catch (error) {
 			console.error('Error starting task:', error);

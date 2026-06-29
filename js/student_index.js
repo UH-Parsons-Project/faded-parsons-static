@@ -1,11 +1,12 @@
 import { initLoginPage } from '/js/auth-ui.js';
 initLoginPage();
 
-// Pass the task_set code to the register page so it can redirect back
+// Pass the task_set code and username to the register page so it can redirect back
 const pathParts = window.location.pathname.split('/');
-const code = pathParts[2];
+const username = pathParts[1]; // /{username}/set/{code}
+const code = pathParts[3];
 document.getElementById('register-btn').addEventListener('click', () => {
-	window.location.href = code ? `/student-register?code=${code}` : '/student-register';
+	window.location.href = code ? `/student-register?username=${username}&code=${code}` : '/student-register';
 });
 
 // If the student already has a session cookie, show the Join button instead of the login form
@@ -38,7 +39,7 @@ if (code) {
 							credentials: 'include',
 						});
 						if (resp.ok) {
-							window.location.href = `/set/${code}/tasks`;
+							window.location.href = `/${username}/set/${code}/tasks`;
 						} else {
 							const err = await resp.json().catch(() => null);
 							alert(err?.detail || 'Failed to join task set.');

@@ -203,7 +203,7 @@ function renderListHeader(taskSet, tasks, students) {
 	const container = document.getElementById('list-header');
 	container.className = '';
 
-	const url = `${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
+	const url = `${window.location.protocol}//${window.location.host}/${encodeURIComponent(taskSet.owner_username)}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
 	const expiryPart = taskSet.expires_at
 		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
 		: '';

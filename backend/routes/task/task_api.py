@@ -262,13 +262,16 @@ async def create_task_set(
 
     base_slug = generate_slug(request.title)
     unique_link_code = base_slug
-    suffix = 2
+    suffix = 1
     while True:
-        stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+        stmt = select(TaskSet).where(
+            TaskSet.teacher_id == current_user.id,
+            TaskSet.unique_link_code == unique_link_code,
+        )
         result = await db.execute(stmt)
         if not result.scalar_one_or_none():
             break
-        unique_link_code = f"{base_slug}-{suffix}"
+        unique_link_code = f"{base_slug}{suffix}"
         suffix += 1
 
     # Create the task set

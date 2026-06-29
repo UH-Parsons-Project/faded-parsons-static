@@ -92,7 +92,7 @@ function createTaskSetItem(taskSet) {
 		chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
 		const copyLink = (e) => {
 			e.stopPropagation();
-			const url = `${window.location.protocol}//${window.location.host}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
+			const url = `${window.location.protocol}//${window.location.host}/${encodeURIComponent(taskSet.owner_username)}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
 			navigator.clipboard.writeText(url).then(() => {
 				chip.classList.add('copied');
 				chip.innerHTML = `<i class="fas fa-check"></i>${taskSet.unique_link_code}`;

@@ -72,14 +72,17 @@ class TaskSet(Base):
 
     __tablename__ = "task_sets"
 
-    __table_args__ = (UniqueConstraint("teacher_id", "title"),)
+    __table_args__ = (
+        UniqueConstraint("teacher_id", "title"),
+        UniqueConstraint("teacher_id", "unique_link_code"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     teacher_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("teachers.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    unique_link_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    unique_link_code: Mapped[str] = mapped_column(String(50), nullable=False)
     student_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     teacher_description: Mapped[str | None] = mapped_column(String(None), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

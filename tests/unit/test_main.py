@@ -186,88 +186,88 @@ class TestStaticPages:
 
 
 # ---------------------------------------------------------------------------
-# /set/{unique_link_code}  and sub-pages
+# /{username}/set/{unique_link_code}  and sub-pages
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 class TestProblemsetPages:
-    async def test_unknown_code_returns_404(self, client):
-        assert (await client.get("/set/NOCODE")).status_code == 404
+    async def test_unknown_code_returns_404(self, client, test_teacher):
+        assert (await client.get(f"/{test_teacher.username}/set/NOCODE")).status_code == 404
 
-    async def test_no_session_serves_nickname_page(self, client, task_set):
-        r = await client.get(f"/set/{task_set.unique_link_code}", follow_redirects=False)
+    async def test_no_session_serves_nickname_page(self, client, task_set, test_teacher):
+        r = await client.get(f"/{test_teacher.username}/set/{task_set.unique_link_code}", follow_redirects=False)
         assert r.status_code == 200
 
-    async def test_active_session_redirects_to_tasks(self, client, task_set, student_session):
+    async def test_active_session_redirects_to_tasks(self, client, task_set, test_teacher, student_session):
         client.cookies.set("student_session", student_session.session_token)
-        r = await client.get(f"/set/{task_set.unique_link_code}", follow_redirects=False)
+        r = await client.get(f"/{test_teacher.username}/set/{task_set.unique_link_code}", follow_redirects=False)
         client.cookies.clear()
         assert r.status_code == 303
         assert "/tasks" in r.headers["location"]
 
-    async def test_tasks_page_unknown_code_returns_404(self, client):
-        assert (await client.get("/set/NOCODE/tasks")).status_code == 404
+    async def test_tasks_page_unknown_code_returns_404(self, client, test_teacher):
+        assert (await client.get(f"/{test_teacher.username}/set/NOCODE/tasks")).status_code == 404
 
-    async def test_tasks_page_redirects_without_session(self, client, task_set):
-        r = await client.get(f"/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
+    async def test_tasks_page_redirects_without_session(self, client, task_set, test_teacher):
+        r = await client.get(f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
+        assert r.headers["location"] == f"/{test_teacher.username}/set/{task_set.unique_link_code}"
 
-    async def test_tasks_page_returns_200_with_session(self, client, task_set, student_session):
+    async def test_tasks_page_returns_200_with_session(self, client, task_set, test_teacher, student_session):
         client.cookies.set("student_session", student_session.session_token)
-        r = await client.get(f"/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
+        r = await client.get(f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks", follow_redirects=False)
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_task_page_unknown_code_returns_404(self, client):
-        assert (await client.get("/set/NOCODE/tasks/1")).status_code == 404
+    async def test_task_page_unknown_code_returns_404(self, client, test_teacher):
+        assert (await client.get(f"/{test_teacher.username}/set/NOCODE/tasks/1")).status_code == 404
 
-    async def test_task_page_redirects_without_session(self, client, task_set_with_task):
+    async def test_task_page_redirects_without_session(self, client, task_set_with_task, test_teacher):
         task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/1",
+            f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
+        assert r.headers["location"] == f"/{test_teacher.username}/set/{task_set.unique_link_code}"
 
-    async def test_task_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+    async def test_task_page_returns_200_with_session(self, client, task_set_with_task, test_teacher, student_session):
         task_set, _ = task_set_with_task
         client.cookies.set("student_session", student_session.session_token)
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/1",
+            f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks/1",
             follow_redirects=False,
         )
         client.cookies.clear()
         assert r.status_code == 200
 
-    async def test_task_page_out_of_range_returns_404(self, client, task_set_with_task, student_session):
+    async def test_task_page_out_of_range_returns_404(self, client, task_set_with_task, test_teacher, student_session):
         task_set, _ = task_set_with_task
         client.cookies.set("student_session", student_session.session_token)
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/2",
+            f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks/2",
             follow_redirects=False,
         )
         client.cookies.clear()
         assert r.status_code == 404
 
-    async def test_start_page_unknown_code_returns_404(self, client):
-        assert (await client.get("/set/NOCODE/tasks/1/start")).status_code == 404
+    async def test_start_page_unknown_code_returns_404(self, client, test_teacher):
+        assert (await client.get(f"/{test_teacher.username}/set/NOCODE/tasks/1/start")).status_code == 404
 
-    async def test_start_page_redirects_without_session(self, client, task_set_with_task):
+    async def test_start_page_redirects_without_session(self, client, task_set_with_task, test_teacher):
         task_set, _ = task_set_with_task
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/1/start",
+            f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         assert r.status_code == 303
-        assert r.headers["location"] == f"/set/{task_set.unique_link_code}"
+        assert r.headers["location"] == f"/{test_teacher.username}/set/{task_set.unique_link_code}"
 
-    async def test_start_page_returns_200_with_session(self, client, task_set_with_task, student_session):
+    async def test_start_page_returns_200_with_session(self, client, task_set_with_task, test_teacher, student_session):
         task_set, _ = task_set_with_task
         client.cookies.set("student_session", student_session.session_token)
         r = await client.get(
-            f"/set/{task_set.unique_link_code}/tasks/1/start",
+            f"/{test_teacher.username}/set/{task_set.unique_link_code}/tasks/1/start",
             follow_redirects=False,
         )
         client.cookies.clear()

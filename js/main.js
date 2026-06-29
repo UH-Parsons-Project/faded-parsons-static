@@ -27,6 +27,9 @@ let globalTaskId;
 // Global variable to store unique_link_code for API calls
 let globalUniqueLinkCode;
 
+// Global variable to store username from URL
+let globalUsername;
+
 // Global teacher tests for custom tasks (if present)
 let globalTeacherTests = '';
 
@@ -95,10 +98,10 @@ async function resolveNextTaskUrl() {
 
 	const preferred = unfinished.find((item) => item.hasStarted) || unfinished[0];
 	if (preferred.hasStarted) {
-		return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}`;
+		return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}`;
 	}
 
-	return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}/start`;
+	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
 }
 
 function parseCustomErrorRules(rawRules) {
@@ -132,7 +135,7 @@ function parseCustomErrorRules(rawRules) {
 
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {
-	// Extract the task ID from URL path (e.g., /set/starter-list/tasks/1)
+	// Extract the task ID from URL path (e.g., /username/set/starter-list/tasks/1)
 	// or from URL parameters (e.g., ?id=1) for backwards compatibility
 	let params = new URL(document.location).searchParams;
 	globalTaskId = params.get('id');
@@ -140,10 +143,11 @@ export async function initWidget() {
 	// If no query parameter, try extracting from URL path
 	if (!globalTaskId) {
 		const pathParts = window.location.pathname.split('/').filter(p => p);
-		// Path format: set/unique_link_code/tasks/task_id
-		if (pathParts.length >= 4 && pathParts[2] === 'tasks') {
-			globalTaskId = pathParts[3];
-			globalUniqueLinkCode = pathParts[1];
+		// Path format: {username}/set/unique_link_code/tasks/task_id
+		if (pathParts.length >= 5 && pathParts[3] === 'tasks') {
+			globalUsername = pathParts[0];
+			globalUniqueLinkCode = pathParts[2];
+			globalTaskId = pathParts[4];
 		}
 	}
 
@@ -372,7 +376,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 			} else {
 				// No more tasks to do
 				probEl.allTasksCompleted = true;
-				probEl.backToSetUrl = `/set/${globalUniqueLinkCode}/tasks`;
+				probEl.backToSetUrl = `/${globalUsername}/set/${globalUniqueLinkCode}/tasks`;
 			}
 		} catch (error) {
 			console.warn('Failed to resolve next task URL:', error);

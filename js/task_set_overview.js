@@ -1,4 +1,5 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '/js/auth-ui.js';
+import { createPrivateBadge, isPrivateTask } from '/js/privacy-badge.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -367,10 +368,20 @@ function createTaskItem(task, taskSet, isOwner) {
 	const headerRow = document.createElement('div');
 	headerRow.className = 'task-item-header';
 
+	const titleWrap = document.createElement('div');
+	titleWrap.style.display = 'flex';
+	titleWrap.style.alignItems = 'center';
+	titleWrap.style.gap = '.45rem';
+	titleWrap.style.minWidth = '0';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = task.title;
-	headerRow.appendChild(title);
+	titleWrap.appendChild(title);
+	if (isPrivateTask(task)) {
+		titleWrap.appendChild(createPrivateBadge());
+	}
+	headerRow.appendChild(titleWrap);
 
 	if (isOwner) {
 		const toggleBtn = document.createElement('button');

@@ -1,4 +1,5 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '/js/auth-ui.js';
+import { createPrivateBadge, isPrivateTask } from '/js/privacy-badge.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -67,10 +68,22 @@ function createTaskSetItem(taskSet) {
 	const topRow = document.createElement('div');
 	topRow.className = 'task-set-item-top';
 
+	const titleWrap = document.createElement('div');
+	titleWrap.style.display = 'flex';
+	titleWrap.style.alignItems = 'center';
+	titleWrap.style.gap = '.45rem';
+	titleWrap.style.minWidth = '0';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = taskSet.title;
-	topRow.appendChild(title);
+	titleWrap.appendChild(title);
+
+	if (isPrivateTask(taskSet)) {
+		titleWrap.appendChild(createPrivateBadge());
+	}
+
+	topRow.appendChild(titleWrap);
 
 	if (taskSet.unique_link_code) {
 		const chip = document.createElement('div');
@@ -278,10 +291,22 @@ function createMyTaskCard(task) {
 	const header = document.createElement('div');
 	header.className = 'task-set-item-top';
 
+	const titleWrap = document.createElement('div');
+	titleWrap.style.display = 'flex';
+	titleWrap.style.alignItems = 'center';
+	titleWrap.style.gap = '.45rem';
+	titleWrap.style.minWidth = '0';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = task.title;
-	header.appendChild(title);
+	titleWrap.appendChild(title);
+
+	if (isPrivateTask(task)) {
+		titleWrap.appendChild(createPrivateBadge());
+	}
+
+	header.appendChild(titleWrap);
 	card.appendChild(header);
 
 	const meta = document.createElement('div');

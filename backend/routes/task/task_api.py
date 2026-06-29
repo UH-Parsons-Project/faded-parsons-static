@@ -126,6 +126,7 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
             task_type=task.task_type,
             created_at=task.created_at.isoformat(),
             is_hidden=is_hidden,
+            is_public=task.is_public,
         )
         for task, is_hidden in rows
     ]
@@ -610,6 +611,7 @@ async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(ge
             "task_type": t.task_type,
             "created_at": t.created_at.isoformat(),
             "editable": t.id not in non_editable,
+            "is_public": t.is_public,
         }
         for t in tasks
     ]
@@ -673,6 +675,7 @@ async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_d
                 "creator_username": creator_username,
                 "created_at": task.created_at.isoformat(),
                 "is_favorite": favorite_id is not None,
+                "is_public": task.is_public,
             }
         )
 

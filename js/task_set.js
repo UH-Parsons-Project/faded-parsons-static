@@ -59,14 +59,14 @@ async function loadProblemsetInfo() {
 	}
 }
 
-async function loadCompletionStatus(taskNumber, statusElement, itemIndex, numberElement) {
+async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
   try {
-		const encodedTaskNumber = encodeURIComponent(taskNumber);
+		const encodedTaskId = encodeURIComponent(taskId);
 		const [completionResponse, startedResponse] = await Promise.all([
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/my-completion-status`, {
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`, {
         credentials: 'include'
       }),
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/has-started`, {
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started`, {
         credentials: 'include'
       }),
     ]);
@@ -133,7 +133,7 @@ function createTaskCard(item, index) {
 	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
-	loadCompletionStatus(taskNumber, status, index, number);
+	loadCompletionStatus(item.id, status, index, number);
 
 	return card;
 }

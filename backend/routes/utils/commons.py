@@ -58,6 +58,31 @@ async def resolve_task_id_in_set_or_404(db: AsyncSession, task_set, task_positio
     return task_id
 
 
+async def verify_task_in_set_or_404(db: AsyncSession, task_set, task_id: int, visible_only: bool = False) -> None:
+    """Verify that a real task_id belongs to the given task set.
+
+    Raises 404 if the task is not in the set, 410 if it exists but is hidden and visible_only=True.
+    """
+    stmt = select(TaskSetItem).where(
+        TaskSetItem.task_set_id == task_set.id,
+        TaskSetItem.task_id == task_id,
+    )
+    result = await db.execute(stmt)
+    item = result.scalar_one_or_none()
+
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this set",
+        )
+
+    if visible_only and item.is_hidden:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="This task is no longer available",
+        )
+
+
 def build_taskset_response_list(rows: Iterable):
     """Build a list of TaskSetResponse-like dicts from query rows.
 

@@ -58,14 +58,14 @@ async function loadProblemsetInfo() {
 	}
 }
 
-async function loadCompletionStatus(taskNumber, statusElement, itemIndex, numberElement) {
+async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
   try {
-		const encodedTaskNumber = encodeURIComponent(taskNumber);
+		const encodedTaskId = encodeURIComponent(taskId);
 		const [completionResponse, startedResponse] = await Promise.all([
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/my-completion-status`, {
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`, {
         credentials: 'include'
       }),
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskNumber}/has-started`, {
+			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started`, {
         credentials: 'include'
       }),
     ]);
@@ -103,8 +103,7 @@ async function loadCompletionStatus(taskNumber, statusElement, itemIndex, number
 function createTaskCard(item, index) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
-	const taskNumber = index + 1;
-	const navigate = () => { window.location.href = `/set/${uniqueLinkCode}/tasks/${taskNumber}/start`; };
+	const navigate = () => { window.location.href = `/set/${uniqueLinkCode}/tasks/${item.id}/start`; };
 	card.onclick = navigate;
 	makeKeyActivatable(card, navigate);
 
@@ -132,7 +131,7 @@ function createTaskCard(item, index) {
 	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
-	loadCompletionStatus(taskNumber, status, index, number);
+	loadCompletionStatus(item.id, status, index, number);
 
 	return card;
 }

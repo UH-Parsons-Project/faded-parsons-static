@@ -51,26 +51,25 @@ async function resolveNextTaskUrl() {
 		return null;
 	}
 
-	const currentTaskNumber = Number(globalTaskId);
+	const currentTaskId = Number(globalTaskId);
 	const statuses = await Promise.all(
-		tasks.map(async (_task, index) => {
-			const taskNumber = index + 1;
-			const encodedTaskNumber = encodeURIComponent(taskNumber);
+		tasks.map(async (task) => {
+			const encodedTaskId = encodeURIComponent(task.id);
 
 			const [completionResp, startedResp] = await Promise.all([
 				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskNumber}/my-completion-status`,
+					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`,
 					{ credentials: 'include' }
 				),
 				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskNumber}/has-started`,
+					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskId}/has-started`,
 					{ credentials: 'include' }
 				),
 			]);
 
 			if (!completionResp.ok || !startedResp.ok) {
 				return {
-					taskNumber,
+					taskId: task.id,
 					isCompleted: false,
 					hasStarted: false,
 				};
@@ -80,7 +79,7 @@ async function resolveNextTaskUrl() {
 			const started = await startedResp.json();
 
 			return {
-				taskNumber,
+				taskId: task.id,
 				isCompleted: Number(completion.student_completed || 0) > 0,
 				hasStarted: Boolean(started.has_started),
 			};
@@ -88,7 +87,7 @@ async function resolveNextTaskUrl() {
 	);
 
 	const unfinished = statuses.filter(
-		(item) => !item.isCompleted && item.taskNumber !== currentTaskNumber
+		(item) => !item.isCompleted && item.taskId !== currentTaskId
 	);
 	if (unfinished.length === 0) {
 		return null;
@@ -96,10 +95,10 @@ async function resolveNextTaskUrl() {
 
 	const preferred = unfinished.find((item) => item.hasStarted) || unfinished[0];
 	if (preferred.hasStarted) {
-		return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}`;
+		return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}`;
 	}
 
-	return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
+	return `/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}/start`;
 }
 
 function parseCustomErrorRules(rawRules) {

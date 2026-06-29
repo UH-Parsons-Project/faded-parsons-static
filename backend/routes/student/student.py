@@ -12,7 +12,7 @@ from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
-from ..utils.commons import get_task_set_by_code_or_404, resolve_task_id_in_set_or_404
+from ..utils.commons import get_task_set_by_code_or_404, verify_task_in_set_or_404
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -123,8 +123,7 @@ async def task_set_task_page(
     task_path = BASE_DIR / "templates" / "student_problem.html"
     response = FileResponse(task_path)
     response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(resolved_task_id)
-    response.headers["X-Task-Number"] = str(task_id)
+    response.headers["X-Task-Id"] = str(task_id)
     return response
 
 
@@ -148,8 +147,7 @@ async def task_set_task_start_page(
     start_path = BASE_DIR / "templates" / "student_start_task.html"
     response = FileResponse(start_path)
     response.headers["X-Problemset-Code"] = unique_link_code
-    response.headers["X-Task-Id"] = str(resolved_task_id)
-    response.headers["X-Task-Number"] = str(task_id)
+    response.headers["X-Task-Id"] = str(task_id)
     return response
 
 

@@ -20,7 +20,7 @@ from ...rate_limit import limiter, check_brute_force, record_failed_attempt, cle
 from ..utils.commons import (
     ensure_unique_user,
     get_task_set_by_code_or_404,
-    resolve_task_id_in_set_or_404,
+    verify_task_in_set_or_404,
     validate_registration_basic,
 )
 
@@ -33,9 +33,9 @@ def _parse_iso_datetime(value: str):
     return datetime.fromisoformat(value)
 
 
-async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_number: int) -> tuple[TaskSet, int]:
+async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id: int) -> tuple[TaskSet, int]:
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    task_id = await resolve_task_id_in_set_or_404(db, task_set, task_number, visible_only=True)
+    await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
     return task_set, task_id
 
 

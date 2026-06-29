@@ -439,6 +439,7 @@ async def get_task_statistics(
             early_not_started = len(early_not_started_names)
         return {
             "task_name": task.title,
+            "is_public": task.is_public,
             "task_set_name": task_set.title if task_set_code and task_set else None,
             "model_answer": await _get_model_answer_for_task(task, db),
             "custom_error_messages": _parse_custom_error_messages(task),
@@ -641,6 +642,7 @@ async def get_task_statistics(
 
     return {
         "task_name": task.title,
+        "is_public": task.is_public,
         "model_answer": await _get_model_answer_for_task(task, db),
         "custom_error_messages": _parse_custom_error_messages(task),
         "total_completions": len(attempts_data),

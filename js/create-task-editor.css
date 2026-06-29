@@ -382,6 +382,21 @@ body {
   margin-top: 0.85rem;
 }
 
+.run-toolbar-bottom {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0 1.5rem;
+}
+
+.finalize-instruction {
+  text-align: right;
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
 .run-status {
   color: #4b5563;
   font-size: 0.9rem;

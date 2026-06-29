@@ -1,4 +1,5 @@
 import {initNavbarExercisesButton, initSignedInAs, initProtectedPage, initBurgerMenu} from '/js/auth-ui.js';
+import { createPrivateBadge, isPrivateTask } from '/js/privacy-badge.js';
 
 initSignedInAs();
 
@@ -90,10 +91,17 @@ function createExerciseCard(item) {
 	const header = document.createElement('div');
 	header.className = 'task-set-item-header';
 
+	const titleWrap = document.createElement('div');
+	titleWrap.style.display = 'flex';
+	titleWrap.style.alignItems = 'center';
+	titleWrap.style.gap = '.45rem';
+	titleWrap.style.minWidth = '0';
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = item.title;
-	header.appendChild(title);
+	titleWrap.appendChild(title);
+	header.appendChild(titleWrap);
 
 	const favoriteBtn = document.createElement('button');
 	favoriteBtn.type = 'button';
@@ -111,7 +119,16 @@ function createExerciseCard(item) {
 			alert('Could not update favorite right now.');
 		}
 	});
-	header.appendChild(favoriteBtn);
+	const controlsWrap = document.createElement('div');
+	controlsWrap.style.display = 'flex';
+	controlsWrap.style.alignItems = 'center';
+	controlsWrap.style.gap = '.2rem';
+	controlsWrap.style.flexShrink = '0';
+	if (isPrivateTask(item)) {
+		controlsWrap.appendChild(createPrivateBadge());
+	}
+	controlsWrap.appendChild(favoriteBtn);
+	header.appendChild(controlsWrap);
 	card.appendChild(header);
 
 	const meta = document.createElement('div');

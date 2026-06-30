@@ -21,6 +21,13 @@ function formatDate(isoString) {
 	});
 }
 
+
+function toDatetimeLocalValue(isoString) {
+	const d = new Date(isoString);
+	const pad = n => String(n).padStart(2, '0');
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function escapeHtml(text) {
 	const div = document.createElement('div');
 	div.textContent = text;
@@ -199,6 +206,71 @@ async function removeViewer(teacherId) {
 	}
 }
 
+function buildExpiryInnerHTML(taskSet, isOwner) {
+	const editBtn = isOwner
+		? ` <button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;" title="Edit expiration date"><i class="fas fa-pencil-alt"></i></button>`
+		: '';
+	if (taskSet.expires_at) {
+		const expired = new Date(taskSet.expires_at) < new Date();
+		const soon = !expired && (new Date(taskSet.expires_at) - new Date()) < 86400000;
+		const color = expired ? '#c0392b' : soon ? '#e67e22' : '';
+		const style = color ? ` style="color:${color}"` : '';
+		return `<span${style}><i class="far fa-clock"></i> Expires ${escapeHtml(formatDateTime(taskSet.expires_at))}</span>${editBtn}`;
+	}
+	if (isOwner) {
+		return `<button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0" style="font-size:.85rem;"><i class="far fa-clock"></i> Set expiry</button>`;
+	}
+	return '';
+}
+
+function setupExpiryEdit(taskSet, isOwner) {
+	if (!isOwner) return;
+
+	const section = document.getElementById('expiry-section');
+	if (!section) return;
+
+	function renderDisplay() {
+		section.innerHTML = buildExpiryInnerHTML(taskSet, true);
+		document.getElementById('edit-expiry-btn')?.addEventListener('click', showEditForm);
+	}
+
+	async function saveExpiry(isoValueOrNull) {
+		try {
+			const res = await fetch(`/api/my_sets/${setId}/expires_at`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ expires_at: isoValueOrNull }),
+			});
+			if (!res.ok) throw new Error();
+			const data = await res.json();
+			taskSet.expires_at = data.expires_at;
+			renderDisplay();
+		} catch {
+			alert('Failed to update expiration date.');
+		}
+	}
+
+	function showEditForm() {
+		const currentValue = taskSet.expires_at ? toDatetimeLocalValue(taskSet.expires_at) : '';
+		section.innerHTML = `
+			<input type="datetime-local" id="expiry-input" value="${currentValue}" style="font-size:.85rem;padding:2px 6px;">
+			<button id="save-expiry-btn" type="button" class="btn btn-sm btn-primary ml-1">Save</button>
+			${taskSet.expires_at ? `<button id="clear-expiry-btn" type="button" class="btn btn-sm btn-outline-secondary ml-1">Remove</button>` : ''}
+			<button id="cancel-expiry-btn" type="button" class="btn btn-sm btn-outline-secondary ml-1">Cancel</button>
+		`;
+		document.getElementById('cancel-expiry-btn').addEventListener('click', renderDisplay);
+		document.getElementById('save-expiry-btn').addEventListener('click', () => {
+			const val = document.getElementById('expiry-input').value;
+			if (!val) { renderDisplay(); return; }
+			saveExpiry(new Date(val).toISOString());
+		});
+		document.getElementById('clear-expiry-btn')?.addEventListener('click', () => saveExpiry(null));
+	}
+
+	document.getElementById('edit-expiry-btn')?.addEventListener('click', showEditForm);
+}
+
 function renderListHeader(taskSet, tasks, students) {
 	const container = document.getElementById('list-header');
 	container.className = '';
@@ -251,7 +323,8 @@ function renderListHeader(taskSet, tasks, students) {
 			</button>
 		</div>
 		<div class="taskset-meta-row">
-			<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}
+			<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
+			<span id="expiry-section" class="meta-badge">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
 		</div>
 		${deleteHTML}
 	`;
@@ -320,6 +393,7 @@ function renderListHeader(taskSet, tasks, students) {
 	`;
 
 	setupViewerSharing();
+	setupExpiryEdit(taskSet, isOwner);
 
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');

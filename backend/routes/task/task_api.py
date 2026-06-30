@@ -23,6 +23,7 @@ from ...pydantic import (
     CreateTaskSetRequest,
     StudentInTaskSetResponse,
     TeacherLookupResponse,
+    UpdateExpiresAtRequest,
 )
 from backend.utils import generate_slug
 from datetime import datetime
@@ -308,6 +309,29 @@ async def create_task_set(
         created_at=task_set.created_at.isoformat(),
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
     )
+
+
+@router.patch("/api/my_sets/{task_set_id}/expires_at")
+async def update_task_set_expires_at(
+    task_set_id: int,
+    request: UpdateExpiresAtRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    if request.expires_at:
+        try:
+            task_set.expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
+    else:
+        task_set.expires_at = None
+
+    await db.commit()
+    return {"expires_at": task_set.expires_at.isoformat() if task_set.expires_at else None}
 
 
 @router.delete("/api/my_sets/{task_set_id}", status_code=status.HTTP_204_NO_CONTENT)

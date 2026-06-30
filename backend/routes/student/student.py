@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -11,11 +12,24 @@ from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import (
     get_current_student_session_no_update,
 )
-from ..utils.commons import get_task_set_by_code_or_404, verify_task_in_set_or_404
+from ..utils.commons import get_task_set_by_code_or_404, resolve_task_id_in_set_or_404, verify_task_in_set_or_404
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
+
+
+def _closed_response() -> FileResponse:
+    return FileResponse(BASE_DIR / "templates" / "task_set_closed.html")
+
+
+def _is_expired(task_set) -> bool:
+    if not task_set.expires_at:
+        return False
+    expires = task_set.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) > expires
 
 
 @router.get("/student-start-task", response_class=FileResponse)
@@ -32,6 +46,9 @@ async def task_set_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+
+    if _is_expired(task_set):
+        return _closed_response()
 
     if student_session:
         enrollment = await db.execute(
@@ -57,6 +74,9 @@ async def task_set_tasks_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+
+    if _is_expired(task_set):
+        return _closed_response()
 
     if not student_session:
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -85,7 +105,11 @@ async def task_set_task_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
+
+    if _is_expired(task_set):
+        return _closed_response()
+
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
@@ -115,7 +139,11 @@ async def task_set_task_start_page(
     student_session: Student | None = Depends(get_current_student_session_no_update),
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
+
+    if _is_expired(task_set):
+        return _closed_response()
+
+    resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
 
     if not student_session:
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)

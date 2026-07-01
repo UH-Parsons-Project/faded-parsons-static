@@ -449,7 +449,12 @@
 					"style = 'width: " +
 					(replaceText.length + 3) * 8 +
 					"px'" +
-					"onkeypress=\"this.style.width = ((this.value.length + 3) * 8) + 'px';\"'/>"
+					// Use 'input' instead of 'keypress': keypress never fires for
+					// Backspace/Delete (or paste/cut) in modern browsers, so the box
+					// would grow when typing but never shrink back down when text was
+					// removed. 'input' fires for every value change regardless of how
+					// it happened.
+					"oninput=\"this.style.width = ((this.value.length + 3) * 8) + 'px';\"'/>"
 				);
 			});
 		}

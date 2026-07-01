@@ -38,7 +38,18 @@
 				.replace(preplaceRegexp, '')
 				.replace(trimRegexp, '$1')
 				.replace(/\\n/g, '\n');
-			this.indent = codestring.length - codestring.replace(/^\s+/, '').length;
+			// Leading whitespace is measured in characters, but the rest of the
+			// widget (x_indent snapping, updateHTMLIndent, solutionCode, etc.)
+			// works in indent "levels". Convert here using indent_size (the
+			// number of whitespace characters representing one level in the
+			// source text) so non-given lines start with a correct level instead
+			// of a raw character count. Without this, the first time such a
+			// line is dragged into the solution, its stale character-count
+			// "indent" gets combined with the drag's pixel offset and the block
+			// jumps to a wildly wrong indentation.
+			var leadingWhitespace = codestring.length - codestring.replace(/^\s+/, '').length;
+			var indentSize = (widget && widget.options && widget.options.indent_size) || 1;
+			this.indent = Math.round(leadingWhitespace / indentSize);
 		}
 	};
 
@@ -58,6 +69,9 @@
 
 		var defaults = {
 			x_indent: 50,
+			// Number of leading whitespace characters in the source text that
+			// represent one indent level for non-given lines (see ParsonsCodeline).
+			indent_size: 4,
 			can_indent: true,
 			max_wrong_lines: 10,
 			onSortableUpdate: () => {},
@@ -557,8 +571,15 @@
 				if ($(event.target)[0] != ui.item.parent()[0]) {
 					return;
 				}
+				// Use page-absolute offsets (ui.offset / jQuery .offset()) instead of
+				// ui.position / .position(), which are relative to each element's own
+				// offsetParent. Those can differ between the dragged helper and the
+				// list, especially once the item has been reordered/reparented to a
+				// slot far from where it was dropped (e.g. dropped low, then
+				// auto-corrected up to the right row) — causing a slightly wrong
+				// indent even though the row position itself ends up correct.
 				that.updateIndent(
-					ui.position.left - ui.item.parent().position().left,
+					ui.offset.left - ui.item.parent().offset().left,
 					ui.item[0].id
 				);
 				that.updateHTMLIndent(ui.item[0].id);
@@ -572,8 +593,9 @@
 				setTimeout(() => { _stopHandledUpdate = false; }, 0);
 			},
 			receive: function (event, ui) {
+				// See comment in stop() above re: page-absolute offsets.
 				that.updateIndent(
-					ui.position.left - ui.item.parent().position().left,
+					ui.offset.left - ui.item.parent().offset().left,
 					ui.item[0].id
 				);
 				that.updateHTMLIndent(ui.item[0].id);
@@ -615,6 +637,14 @@
 						return;
 					}
 				},
+				// Match the solution list's grid so dragging FROM the starter list
+				// snaps to the same indentation steps. Without this, jQuery UI's
+				// connected-sortable drag is governed entirely by the list the drag
+				// STARTED from, so starter->solution drags moved freely (no visual
+				// snapping) and could land on an off-grid pixel position, causing
+				// updateIndent() to compute an indent level a few steps off from
+				// where the block was visually dropped.
+				grid: that.options.can_indent ? [that.options.x_indent, 1] : false,
 			});
 			sortable.sortable('option', 'connectWith', trash);
 			patchCursorContainment($(trashUl));

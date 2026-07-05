@@ -38,7 +38,12 @@
 				.replace(preplaceRegexp, '')
 				.replace(trimRegexp, '$1')
 				.replace(/\\n/g, '\n');
-			this.indent = codestring.length - codestring.replace(/^\s+/, '').length;
+			// Convert leading whitespace (characters) into an indent "level"
+			// using indent_size, matching the units used everywhere else (x_indent,
+			// updateHTMLIndent, solutionCode, ...).
+			var leadingWhitespace = codestring.length - codestring.replace(/^\s+/, '').length;
+			var indentSize = (widget && widget.options && widget.options.indent_size) || 1;
+			this.indent = Math.round(leadingWhitespace / indentSize);
 		}
 	};
 
@@ -58,6 +63,9 @@
 
 		var defaults = {
 			x_indent: 50,
+			// Number of leading whitespace characters in the source text that
+			// represent one indent level for non-given lines (see ParsonsCodeline).
+			indent_size: 4,
 			can_indent: true,
 			max_wrong_lines: 10,
 			onSortableUpdate: () => {},
@@ -435,7 +443,8 @@
 					"style = 'width: " +
 					(replaceText.length + 3) * 8 +
 					"px'" +
-					"onkeypress=\"this.style.width = ((this.value.length + 3) * 8) + 'px';\"'/>"
+					// 'input' (not 'keypress') so the box also shrinks on delete/paste/cut.
+					"oninput=\"this.style.width = ((this.value.length + 3) * 8) + 'px';\"'/>"
 				);
 			});
 		}
@@ -557,8 +566,10 @@
 				if ($(event.target)[0] != ui.item.parent()[0]) {
 					return;
 				}
+				// Page-absolute offsets, not .position() (offsetParent-relative and
+				// can mismatch after the item is reordered to a different slot).
 				that.updateIndent(
-					ui.position.left - ui.item.parent().position().left,
+					ui.offset.left - ui.item.parent().offset().left,
 					ui.item[0].id
 				);
 				that.updateHTMLIndent(ui.item[0].id);
@@ -572,8 +583,9 @@
 				setTimeout(() => { _stopHandledUpdate = false; }, 0);
 			},
 			receive: function (event, ui) {
+				// Page-absolute offsets, see stop() above.
 				that.updateIndent(
-					ui.position.left - ui.item.parent().position().left,
+					ui.offset.left - ui.item.parent().offset().left,
 					ui.item[0].id
 				);
 				that.updateHTMLIndent(ui.item[0].id);
@@ -615,6 +627,10 @@
 						return;
 					}
 				},
+				// Match the solution list's grid so drags starting from the starter
+				// list also snap to indentation steps (jQuery UI's connected-sortable
+				// drag uses the origin list's options for the whole drag).
+				grid: that.options.can_indent ? [that.options.x_indent, 1] : false,
 			});
 			sortable.sortable('option', 'connectWith', trash);
 			patchCursorContainment($(trashUl));

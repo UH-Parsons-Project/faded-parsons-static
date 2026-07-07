@@ -48,7 +48,10 @@ async def lifespan(_app: FastAPI):
     """Initialize database and seed data on startup."""
     if config.AUTO_INIT_DB:
         await init_db()
-    await seed_module.seed_db()
+    if config.RUN_SEED_ON_STARTUP:
+        await seed_module.seed_db()
+    else:
+        print("RUN_SEED_ON_STARTUP is false, skipping seed_db() on startup")
     async with async_session() as session:
         await cleanup_old_registration_tokens(session)
         await session.commit()

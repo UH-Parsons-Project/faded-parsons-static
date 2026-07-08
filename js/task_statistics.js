@@ -34,6 +34,12 @@ if (!task_setCode) {
 	if (globalChip) globalChip.style.display = '';
 	const toggleBtn = document.getElementById('sidebar-toggle-btn');
 	if (toggleBtn) toggleBtn.style.display = 'none';
+	// Common mistakes show student-submitted code, which can contain
+	// personal data, so they're only shown within a teacher's own task set.
+	const mistakesBox = document.getElementById('mistakes-box');
+	if (mistakesBox) mistakesBox.style.display = 'none';
+	const bottomRow = document.querySelector('.bottom-row');
+	if (bottomRow) bottomRow.classList.add('mistakes-hidden');
 } else {
 	const codeEl = document.getElementById('taskset-code-label');
 	if (codeEl) codeEl.textContent = task_setCode;
@@ -276,8 +282,9 @@ function escapeHtml(text) {
 }
 
 function showLoadError(message) {
-	document.getElementById('exercise-name').textContent = 'Error loading data';
-	document.getElementById('input-logs').innerHTML = `<em>${escapeHtml(message || 'Could not load data.')}</em>`;
+	document.getElementById('exercise-name').textContent = message || 'Error loading data';
+	const logsDiv = document.getElementById('input-logs');
+	if (logsDiv) logsDiv.innerHTML = `<em>${escapeHtml(message || 'Could not load data.')}</em>`;
 }
 
 
@@ -388,7 +395,6 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 async function loadStatistics() {
 	if (!taskId) {
 		document.getElementById('exercise-name').textContent = 'No task ID provided';
-		document.getElementById('input-logs').innerHTML = '';
 		return;
 	}
 
@@ -557,31 +563,34 @@ async function loadStatistics() {
 		renderBoxPlot('bp-moves', data.number_of_moves, { name: 'Number of Moves', color: '#94a3b8', colorLight: '#e2e8f0', colorDark: '#334155', fmt: formatCount });
 	}
 
-	// Common mistakes
+	// Common mistakes (student-submitted code) are only shown within a
+	// teacher's own task set, never on the anonymous global statistics view.
 	const logsDiv = document.getElementById('input-logs');
-	if (data.common_mistakes?.length > 0) {
-		const total = data.common_mistakes.reduce((sum, m) => sum + m.count, 0);
-		const totalChip = document.getElementById('mistakes-total-chip');
-		if (totalChip) totalChip.textContent = `${total} failed submission${total !== 1 ? 's' : ''} total`;
+	if (task_setCode && logsDiv) {
+		if (data.common_mistakes?.length > 0) {
+			const total = data.common_mistakes.reduce((sum, m) => sum + m.count, 0);
+			const totalChip = document.getElementById('mistakes-total-chip');
+			if (totalChip) totalChip.textContent = `${total} failed submission${total !== 1 ? 's' : ''} total`;
 
-		const maxCount = data.common_mistakes[0].count;
-		let html = '';
-		data.common_mistakes.forEach((m, i) => {
-			const pct = Math.round((m.count / maxCount) * 100);
-			const rankLabel = i === 0 ? 'Most frequent' : '';
-			html += `
-			<div class="mistake-item">
-				<div class="mistake-rank-row">
-					<span class="mistake-rank"><span class="rank-num">${i + 1}</span>${rankLabel}</span>
-					<span class="mistake-count-chip">${m.count} time${m.count !== 1 ? 's' : ''}</span>
-				</div>
-				<div class="mistake-freq-bar"><div class="mistake-freq-fill" style="width:${pct}%"></div></div>
-				<pre class="mistake-code">${escapeHtml(m.code)}</pre>
-			</div>`;
-		});
-		logsDiv.innerHTML = html;
-	} else {
-		logsDiv.innerHTML = '<em style="font-size:.85rem;">No failed attempts recorded yet.</em>';
+			const maxCount = data.common_mistakes[0].count;
+			let html = '';
+			data.common_mistakes.forEach((m, i) => {
+				const pct = Math.round((m.count / maxCount) * 100);
+				const rankLabel = i === 0 ? 'Most frequent' : '';
+				html += `
+				<div class="mistake-item">
+					<div class="mistake-rank-row">
+						<span class="mistake-rank"><span class="rank-num">${i + 1}</span>${rankLabel}</span>
+						<span class="mistake-count-chip">${m.count} time${m.count !== 1 ? 's' : ''}</span>
+					</div>
+					<div class="mistake-freq-bar"><div class="mistake-freq-fill" style="width:${pct}%"></div></div>
+					<pre class="mistake-code">${escapeHtml(m.code)}</pre>
+				</div>`;
+			});
+			logsDiv.innerHTML = html;
+		} else {
+			logsDiv.innerHTML = '<em style="font-size:.85rem;">No failed attempts recorded yet.</em>';
+		}
 	}
 }
 

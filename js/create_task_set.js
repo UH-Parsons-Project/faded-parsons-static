@@ -29,7 +29,27 @@ function initializePage() {
   setupTaskSearch();
   setupViewerSharing();
   setupFormSubmission();
+  setupCancelButton();
   loadTasks();
+}
+
+/**
+ * Confirm before discarding the in-progress task set and returning to the dashboard.
+ */
+function setupCancelButton() {
+  const cancelLink = document.getElementById('cancel-task-set');
+  if (!cancelLink) return;
+
+  cancelLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel? Any unsaved changes will be lost.'
+    );
+    if (!confirmed) {
+      return;
+    }
+    window.location.href = cancelLink.href;
+  });
 }
 
 /**

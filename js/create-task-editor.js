@@ -313,6 +313,7 @@ initBurgerMenu();
     }
 
     status.classList.toggle('saved', Boolean(modelAnswerCode));
+    status.classList.toggle('missing', !modelAnswerCode);
     if (!modelAnswerCode) {
       status.textContent = 'No model answer saved yet.';
       return;
@@ -915,9 +916,13 @@ initBurgerMenu();
 
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => {
-        saveCodeToSession();
-        const backTaskId = draftPayload?.taskId;
-        window.location.href = backTaskId ? `/create-task?task_id=${backTaskId}` : '/create-task';
+        const confirmed = window.confirm(
+          'Are you sure you want to cancel? All changes will be lost.'
+        );
+        if (!confirmed) {
+          return;
+        }
+        window.location.href = '/teacher-dashboard';
       });
     }
 

@@ -132,7 +132,7 @@
             <div style="clear: both;"></div>
 
             <div class="model-answer-toolbar" aria-live="polite">
-              <span id="model-answer-status" class="model-answer-status">No model answer saved yet.</span>
+              <span id="model-answer-status" class="model-answer-status missing">No model answer saved yet.</span>
               <button id="set-model-answer" class="btn btn-outline-primary btn-sm" type="button">Set as Model Answer</button>
             </div>
 
@@ -176,6 +176,8 @@
               <span id="run-status" class="run-status"></span>
               <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
             </div>
+            <label for="test-results" class="mb-2 mt-3">Test results</label>
+            <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
           </div>
         </div>
       </div>
@@ -188,19 +190,13 @@
             <h4 class="mb-0">Step 5: Preview & Save</h4>
           </div>
           <div class="card-body">
-            <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+            <p class="finalize-instruction">Finalize your new task by first previewing it, then click <strong>Save new task</strong>. Click <strong>Cancel</strong> to discard your changes and return to the dashboard.</p>
+            <div class="run-toolbar-bottom finalize-actions">
+              <button id="cancel-task-editor" class="btn btn-outline-secondary" type="button">Cancel</button>
+              <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
+              <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Save new task</button>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row mt-3">
-      <div class="col-sm-12">
-        <p class="finalize-instruction">Finalize your new task by first previewing it and then clicking <strong>Save new task</strong>.</p>
-        <div class="run-toolbar-bottom">
-          <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
-          <button id="cancel-task-editor" class="btn btn-outline-secondary" type="button">Cancel</button>
-          <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Save new task</button>
         </div>
       </div>
     </div>

@@ -40,6 +40,73 @@
     </div>
   </nav>
 
+  <div class="checklist-sidebar" aria-label="Task checklist">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0">Task Checklist</h4>
+      </div>
+      <div class="card-body">
+        <p class="field-help">Track what's left before this task is ready to save.</p>
+        <ul id="task-checklist" class="checklist-list">
+          <li class="checklist-item" data-check="title">
+            <button type="button" class="checklist-item-btn" data-target="task-title">
+              <span class="checklist-label">Task name</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="start-description">
+            <button type="button" class="checklist-item-btn" data-target="start-description">
+              <span class="checklist-label">Start page intro</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="problem-description">
+            <button type="button" class="checklist-item-btn" data-target="problem-description">
+              <span class="checklist-label">Problem statement</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="solution-blocks">
+            <button type="button" class="checklist-item-btn" data-target="solution-sortable">
+              <span class="checklist-label">Blocks in solution</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="model-answer">
+            <button type="button" class="checklist-item-btn" data-target="model-answer-status">
+              <span class="checklist-label">Model answer set</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="custom-errors">
+            <button type="button" class="checklist-item-btn" data-target="custom-error-messages">
+              <span class="checklist-label">Custom error messages</span>
+              <span class="checklist-status badge badge-secondary">Optional</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="tests-written">
+            <button type="button" class="checklist-item-btn" data-target="tests-input">
+              <span class="checklist-label">Tests written</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="tests-passed">
+            <button type="button" class="checklist-item-btn" data-target="test-results">
+              <span class="checklist-label">Tests passed</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+          <li class="checklist-item" data-check="previewed">
+            <button type="button" class="checklist-item-btn" data-target="preview-student-view">
+              <span class="checklist-label">Task previewed</span>
+              <span class="checklist-status badge badge-danger">Missing</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="container page-wrap">
     <div class="row mt-2">
       <div class="col-sm-12">
@@ -113,12 +180,8 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="builder-layout row mt-4">
-      <div class="col-sm-12">
-        <div class="card">
+        <div class="builder-layout card mt-4">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Step 2: Model Answer</h4>
             <div class="d-flex align-items-center" style="gap: 0.75rem;">
@@ -144,12 +207,8 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="row mt-1">
-      <div class="col-sm-12">
-        <div class="card">
+        <div class="card mt-1">
           <div class="card-header">
             <h4 class="mb-0">Step 3: Custom Error Messages (optional)</h4>
           </div>
@@ -160,13 +219,8 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-
-    <div class="row mt-1">
-      <div class="col-sm-12">
-        <div class="card">
+        <div class="card mt-1">
           <div class="card-header">
             <h4 class="mb-0">Step 4: Check Tests</h4>
           </div>
@@ -180,12 +234,8 @@
             <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="row mt-3">
-      <div class="col-sm-12">
-        <div class="card">
+        <div class="card mt-3">
           <div class="card-header">
             <h4 class="mb-0">Step 5: Preview & Save</h4>
           </div>

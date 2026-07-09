@@ -31,11 +31,60 @@ initBurgerMenu();
 
   function updateAddToListState() {
     const addToListBtn = document.getElementById('add-to-problem-list');
-    if (!addToListBtn) {
+    if (addToListBtn) {
+      addToListBtn.disabled = !(testsPassed && hasOpenedStudentPreview);
+    }
+
+    updateChecklist();
+  }
+
+  function updateChecklist() {
+    const checklist = document.getElementById('task-checklist');
+    if (!checklist) {
       return;
     }
 
-    addToListBtn.disabled = !(testsPassed && hasOpenedStudentPreview);
+    const taskTitleInput = document.getElementById('task-title');
+    const startDescriptionInput = document.getElementById('start-description');
+    const descriptionInput = document.getElementById('problem-description');
+    const testsInput = document.getElementById('tests-input');
+    const customErrorMessagesInput = document.getElementById('custom-error-messages');
+    const solutionList = document.querySelector('#solution-sortable ul');
+    const hasSolutionBlocks = Boolean(solutionList && solutionList.querySelectorAll('li').length > 0);
+
+    const items = [
+      { key: 'title', done: Boolean(taskTitleInput && taskTitleInput.value.trim()) },
+      { key: 'start-description', done: Boolean(startDescriptionInput && startDescriptionInput.value.trim()) },
+      { key: 'problem-description', done: Boolean(descriptionInput && descriptionInput.value.trim()) },
+      { key: 'solution-blocks', done: hasSolutionBlocks },
+      { key: 'model-answer', done: Boolean(modelAnswerCode) },
+      { key: 'custom-errors', done: Boolean(customErrorMessagesInput && customErrorMessagesInput.value.trim()), optional: true },
+      { key: 'tests-written', done: Boolean(testsInput && testsInput.value.trim()) },
+      { key: 'tests-passed', done: testsPassed },
+      { key: 'previewed', done: hasOpenedStudentPreview },
+    ];
+
+    items.forEach(({ key, done, optional }) => {
+      const item = checklist.querySelector(`[data-check="${key}"]`);
+      if (!item) {
+        return;
+      }
+
+      item.classList.toggle('is-done', done);
+
+      const status = item.querySelector('.checklist-status');
+      if (!status) {
+        return;
+      }
+
+      if (done) {
+        status.textContent = optional ? 'Added' : 'Done';
+        status.className = 'checklist-status badge badge-success';
+      } else {
+        status.textContent = optional ? 'Optional' : 'Missing';
+        status.className = `checklist-status badge ${optional ? 'badge-secondary' : 'badge-danger'}`;
+      }
+    });
   }
 
   function escapeHtml(unsafe) {
@@ -587,6 +636,35 @@ initBurgerMenu();
       const isExpanded = toggle.classList.toggle('expanded');
       content.classList.toggle('expanded', isExpanded);
       toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    });
+  }
+
+  function setupChecklistNavigation() {
+    const checklist = document.getElementById('task-checklist');
+    if (!checklist) {
+      return;
+    }
+
+    checklist.addEventListener('click', (event) => {
+      const btn = event.target.closest('.checklist-item-btn');
+      if (!btn) {
+        return;
+      }
+
+      const targetId = btn.dataset.target;
+      const target = targetId && document.getElementById(targetId);
+      if (!target) {
+        return;
+      }
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      target.classList.add('checklist-highlight');
+      setTimeout(() => target.classList.remove('checklist-highlight'), 1200);
+
+      if (typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+      }
     });
   }
 
@@ -1201,6 +1279,7 @@ initBurgerMenu();
       renderParsonsBoard(initialText);
       setupGuideToggle();
       setupPreviewModal();
+      setupChecklistNavigation();
       setupButtons();
       updateModelAnswerStatus();
       updateAddToListState();
@@ -1271,6 +1350,7 @@ initBurgerMenu();
     renderParsonsBoard(initialText);
     setupGuideToggle();
     setupPreviewModal();
+    setupChecklistNavigation();
     setupButtons();
     updateModelAnswerStatus();
     updateAddToListState();

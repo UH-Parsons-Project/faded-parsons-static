@@ -28,9 +28,11 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <span class="text-dark">
-        <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
-      </span>
+    <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
+	    <i class="fas fa-user"></i>
+	    <span id="user-name"></span>
+	    <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
+	</a>
       <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
       <div class="navbar-burger-menu" style="margin-left: 1rem;">
         <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
@@ -188,27 +190,27 @@
                 <label class="filter-scope-label">Search in:</label>
                 <div class="scope-checkboxes">
                   <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope" 
+                    <input type="checkbox" class="custom-control-input filter-scope"
                            id="scope-title" value="title">
                     <label class="custom-control-label" for="scope-title">Title</label>
                   </div>
                   <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope" 
+                    <input type="checkbox" class="custom-control-input filter-scope"
                            id="scope-teacher" value="teacher">
                     <label class="custom-control-label" for="scope-teacher">Teacher</label>
                   </div>
                   <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope" 
+                    <input type="checkbox" class="custom-control-input filter-scope"
                            id="scope-type" value="type">
                     <label class="custom-control-label" for="scope-type">Type</label>
                   </div>
                   <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope" 
+                    <input type="checkbox" class="custom-control-input filter-scope"
                            id="scope-my-exercises" value="my-exercises">
                     <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
                   </div>
                   <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope" 
+                    <input type="checkbox" class="custom-control-input filter-scope"
                            id="scope-favorites" value="favorites">
                     <label class="custom-control-label" for="scope-favorites">Favorites</label>
                   </div>

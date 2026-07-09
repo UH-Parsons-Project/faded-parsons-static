@@ -473,6 +473,17 @@ body {
   cursor: pointer;
 }
 
+/* Bold section titles and key field labels */
+.card-header h3,
+.card-header h4 {
+  font-weight: 700;
+}
+
+label[for="start-description"],
+label[for="problem-description"] {
+  font-weight: 700;
+}
+
 /* ── WCAG AA: accessible colours ─────────────────────────────────────────── */
 
 /* !important needed to override Bootstrap's .text-muted { color: … !important } */

@@ -82,17 +82,25 @@
       <div class="col-sm-12">
         <div class="card">
           <div class="card-header">
-            <h3 class="mb-0">Problem Statement</h3>
+            <h3 class="mb-0">Step 1: Task Description</h3>
           </div>
           <div class="card-body">
             <label for="task-title" class="mb-2">Task name shown in task sets</label>
             <input id="task-title" class="form-control mb-3" placeholder="add" />
-            <label for="problem-description" class="mb-2">Problem statement shown on the exercise page</label>
-            <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
-            <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
-            <label for="start-description" class="mb-2 mt-3">Start page intro shown above the Start button</label>
+            <label for="start-description" class="mb-2">Start page intro shown above the Start button</label>
             <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
             <textarea id="start-description" class="problem-description" placeholder="In this exercise you will practice adding values."></textarea>
+            <label for="problem-description" class="mb-2 mt-3">Problem statement shown on the exercise page</label>
+            <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
+            <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
+
+            <details class="field-help-details mt-3">
+              <summary>Where do students see these texts?</summary>
+              <div class="field-help-details-body">
+                <p><strong>Start page intro:</strong> Appears on the start screen right before students click the Start button.</p>
+                <p><strong>Problem statement:</strong> Appears on the exercise page where students work with code blocks and inputs.</p>
+              </div>
+            </details>
 
             <div class="form-group mt-3 visibility-card">
               <div class="checkbox-custom visibility-toggle">
@@ -103,14 +111,6 @@
               </div>
               <small class="form-text text-muted visibility-help">Unchecked by default, so the task stays public. Check this box to make the task private. Private tasks are visible only to you and teachers who have access to a task set that includes the task.</small>
             </div>
-
-            <details class="field-help-details mt-3">
-              <summary>Where do students see these texts?</summary>
-              <div class="field-help-details-body">
-                <p><strong>Problem statement:</strong> Appears on the exercise page where students work with code blocks and inputs.</p>
-                <p><strong>Start page intro:</strong> Appears on the start screen right before students click the Start button.</p>
-              </div>
-            </details>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@
       <div class="col-sm-12">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Parsons Workspace</h4>
+            <h4 class="mb-0">Step 2: Model Answer</h4>
             <div class="d-flex align-items-center" style="gap: 0.75rem;">
               <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
               <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
@@ -137,7 +137,7 @@
             </div>
 
             <div class="custom-block-box">
-              <label for="custom-block-input">+ Add Custom Block (stays on left until dragged)</label>
+              <label for="custom-block-input">+ Add Custom Block</label>
               <p class="field-help">Tip: type !BLANK inside a custom block (for example <strong>total = !BLANK</strong>) to create an editable faded input for students.</p>
               <textarea id="custom-block-input" class="custom-block-input" spellcheck="false" placeholder="Write custom block code here..."></textarea>
               <button id="add-custom-block" class="add-btn" type="button">+ Add Custom Block</button>
@@ -151,7 +151,7 @@
       <div class="col-sm-12">
         <div class="card">
           <div class="card-header">
-            <h4 class="mb-0">Custom Error messages (optional)</h4>
+            <h4 class="mb-0">Step 3: Custom Error Messages (optional)</h4>
           </div>
           <div class="card-body">
             <textarea id="custom-error-messages" class="tests-input" spellcheck="false" placeholder="[&#10;  {&#10;    &quot;match_type&quot;: &quot;contains&quot;,&#10;    &quot;pattern&quot;: &quot;IndexError&quot;,&#10;    &quot;message&quot;: &quot;Keep in mind that indexing in Python starts from 0!&quot;&#10;  }&#10;]"></textarea>
@@ -168,14 +168,13 @@
       <div class="col-sm-12">
         <div class="card">
           <div class="card-header">
-            <h4 class="mb-0">Tests</h4>
+            <h4 class="mb-0">Step 4: Check Tests</h4>
           </div>
           <div class="card-body">
             <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
             <div class="run-toolbar">
               <span id="run-status" class="run-status"></span>
               <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
-              <button id="cancel-task-editor" class="btn btn-outline-secondary" type="button">Cancel</button>
             </div>
           </div>
         </div>
@@ -186,7 +185,7 @@
       <div class="col-sm-12">
         <div class="card">
           <div class="card-header">
-            <h4 class="mb-0">Test Cases</h4>
+            <h4 class="mb-0">Step 5: Preview & Save</h4>
           </div>
           <div class="card-body">
             <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
@@ -200,6 +199,7 @@
         <p class="finalize-instruction">Finalize your new task by first previewing it and then clicking <strong>Save new task</strong>.</p>
         <div class="run-toolbar-bottom">
           <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
+          <button id="cancel-task-editor" class="btn btn-outline-secondary" type="button">Cancel</button>
           <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Save new task</button>
         </div>
       </div>

@@ -104,3 +104,7 @@ Instructor:
 
 Project logo made by [Victoria Khoreva](https://www.instagram.com/victheliar/):
 ![Parsons code lab logo](ohtuproj_logo.png)
+
+---
+[Privacy Policy](privacy.html)
+

@@ -634,6 +634,9 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
+.bottom-row.mistakes-hidden {
+  grid-template-columns: 1fr;
+}
 
 /* ── Mistakes panel ──────────────────────────────────── */
 .mistake-item {

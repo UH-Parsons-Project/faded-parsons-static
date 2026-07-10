@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: parsons-db-nightly-backup
+  namespace: timed-parsons
+  labels:
+    app: faded-parsons-production
+    component: db-backup
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: faded-parsons-production
+            component: db-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: registry.redhat.io/rhel8/postgresql-15
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+                  # DATABASE_URL comes from the app's secret and is tailored
+                  # for SQLAlchemy/asyncpg, which pg_dump doesn't understand:
+                  #  - strip the "+driver" suffix (e.g. postgresql+asyncpg://)
+                  #  - rename the "ssl" query param to "sslmode", which is
+                  #    what libpq/pg_dump expects instead
+                  PLAIN_DATABASE_URL=$(echo "$DATABASE_URL" \
+                    | sed -E 's/^postgres(ql)?\+[a-zA-Z0-9_]+:/postgres\1:/' \
+                    | sed -E 's/([?&])ssl=true(&|$)/\1sslmode=require\2/' \
+                    | sed -E 's/([?&])ssl=false(&|$)/\1sslmode=disable\2/' \
+                    | sed -E 's/([?&])ssl=/\1sslmode=/')
+
+                  echo "Starting backup: parsons_${TIMESTAMP}.dump"
+                  pg_dump "$PLAIN_DATABASE_URL" -F c -f "/backups/parsons_${TIMESTAMP}.dump"
+                  echo "Backup completed."
+
+                  echo "Cleaning up more than 14 days old backups..."
+                  find /backups -name "parsons_*.dump" -mtime +14 -delete
+
+                  echo "Current backups:"
+                  ls -lh /backups
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: database-credentials
+                      key: DATABASE_URL
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 300m
+                  memory: 256Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: parsons-db-backup-pvc

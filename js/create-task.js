@@ -276,6 +276,12 @@
 
     if (cancelBtn) {
       cancelBtn.addEventListener('click', () => {
+        const confirmed = window.confirm(
+          'Are you sure you want to cancel? Any unsaved changes will be lost.'
+        );
+        if (!confirmed) {
+          return;
+        }
         window.location.href = '/teacher-dashboard';
       });
     }

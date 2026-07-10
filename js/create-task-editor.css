@@ -99,6 +99,78 @@ body {
   color: #0f766e;
 }
 
+.checklist-sidebar {
+  position: fixed;
+  left: 1rem;
+  top: 100px;
+  width: 230px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.checklist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklist-item {
+  border-bottom: 1px solid #e9edf3;
+}
+
+.checklist-item:last-child {
+  border-bottom: none;
+}
+
+.checklist-item-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.25rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.checklist-item-btn:hover,
+.checklist-item-btn:focus {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.checklist-label {
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.checklist-status {
+  flex-shrink: 0;
+}
+
+.checklist-item.is-done .checklist-label {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+@media (max-width: 1699.98px) {
+  .checklist-sidebar {
+    display: none;
+  }
+}
+
+.checklist-highlight {
+  outline: 3px solid #7aa5f8 !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+  transition: outline-color 0.2s;
+}
+
 .sortable-code {
   min-height: 280px;
 }
@@ -230,6 +302,11 @@ body {
 
 .model-answer-status.saved {
   color: #0f766e;
+  font-weight: 600;
+}
+
+.model-answer-status.missing {
+  color: #b02a37;
   font-weight: 600;
 }
 
@@ -387,11 +464,11 @@ body {
   justify-content: flex-end;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.75rem 0 1.5rem;
+  padding: 0.75rem 0 0;
 }
 
 .finalize-instruction {
-  text-align: right;
+  text-align: left;
   color: #4b5563;
   font-size: 0.9rem;
   margin-bottom: 0.4rem;
@@ -471,6 +548,18 @@ body {
   font-size: 1.55rem;
   line-height: 1;
   cursor: pointer;
+}
+
+/* Bold section titles and key field labels */
+.card-header h3,
+.card-header h4 {
+  font-weight: 700;
+}
+
+label[for="start-description"],
+label[for="problem-description"],
+label[for="test-results"] {
+  font-weight: 700;
 }
 
 /* ── WCAG AA: accessible colours ─────────────────────────────────────────── */

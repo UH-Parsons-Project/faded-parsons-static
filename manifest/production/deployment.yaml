@@ -33,6 +33,8 @@ spec:
                   key: DATABASE_URL
             - name: AUTO_INIT_DB
               value: "false"
+            - name: RUN_SEED_ON_STARTUP # Not needed in production, only for staging
+              value: "false"
             - name: TEACHER_REGISTRATION_TOKEN
               valueFrom:
                 secretKeyRef:

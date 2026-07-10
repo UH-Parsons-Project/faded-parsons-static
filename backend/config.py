@@ -10,6 +10,12 @@ load_dotenv(env_path)
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 DEVELOPMENT_MODE = os.getenv("DEVELOPMENT_MODE", "false").lower() == "true"
 AUTO_INIT_DB = os.getenv("AUTO_INIT_DB", "false").lower() == "true"
+# Controls whether seed_db() runs on application startup (backend/seed.py).
+# Defaults to true so existing dev/staging/local behavior is unaffected;
+# disable explicitly in environments (e.g. production) where seed data
+# has already been created and may have since been modified (e.g. task
+# ownership reassigned), so re-seeding could be harmful.
+RUN_SEED_ON_STARTUP = os.getenv("RUN_SEED_ON_STARTUP", "true").lower() == "true"
 
 # CORS — comma-separated list of allowed origins (no wildcards)
 _raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000")

@@ -284,6 +284,18 @@ function loadStatistics() {
 		.catch(() => {
 			document.getElementById('stat-total-lists').textContent = '—';
 		});
+
+	// Total Users
+	fetch('/api/admin/users', { credentials: 'include' })
+		.then(r => r.ok ? r.json() : Promise.reject())
+		.then(data => {
+			if (Array.isArray(data)) {
+				document.getElementById('stat-total-users').textContent = data.length;
+			}
+		})
+		.catch(() => {
+			document.getElementById('stat-total-users').textContent = '—';
+		});
 }
 
 // ==================== Token Management ====================

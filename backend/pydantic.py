@@ -258,4 +258,5 @@ class UserListItem(BaseModel):
     created_at: datetime
     role: str
     is_active: bool
-
+    is_admin_teacher: bool
+    is_current_user: bool

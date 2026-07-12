@@ -353,6 +353,8 @@ async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(g
 			"created_at": teacher.created_at,
 			"role": "teacher",
 			"is_active": teacher.is_active,
+			"is_admin_teacher": teacher.is_admin_teacher,
+			"is_current_user": teacher.id == current_user.id,
 		})
 
 	for student in students:
@@ -363,9 +365,52 @@ async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(g
 			"created_at": student.student_created_at,
 			"role": "student",
 			"is_active": student.is_active,
+			"is_admin_teacher": False,
+			"is_current_user": False,
 		})
 
 	# Sort by created_at descending
 	users_list.sort(key=lambda u: u["created_at"], reverse=True)
 	return users_list
 
+
+
+@router.delete("/api/admin/users/{role}/{user_id}")
+async def delete_user(
+	role: str,
+	user_id: int,
+	current_user: CurrentUser,
+	db: AsyncSession = Depends(get_db),
+):
+	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
+	if not current_user.is_admin_teacher:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+	if role == "teacher":
+		if user_id == current_user.id:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail="Cannot delete your own account",
+			)
+		stmt = select(Teacher).where(Teacher.id == user_id)
+		result = await db.execute(stmt)
+		teacher = result.scalar_one_or_none()
+		if not teacher:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+		if teacher.is_admin_teacher:
+			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete an admin teacher")
+		await db.delete(teacher)
+
+	elif role == "student":
+		stmt = select(Student).where(Student.id == user_id)
+		result = await db.execute(stmt)
+		student = result.scalar_one_or_none()
+		if not student:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+		await db.delete(student)
+
+	else:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+
+	await db.commit()
+	return {"status": "success", "message": f"{role.capitalize()} deleted"}

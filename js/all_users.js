@@ -97,7 +97,7 @@ function renderUsers() {
 
 		const titleDiv = document.createElement('div');
 		titleDiv.className = 'd-flex align-items-center';
-		
+
 		const icon = document.createElement('i');
 		icon.className = user.role === 'teacher' ? 'fas fa-chalkboard-teacher text-primary mr-2' : 'fas fa-graduation-cap text-success mr-2';
 		titleDiv.appendChild(icon);
@@ -108,16 +108,33 @@ function renderUsers() {
 		titleDiv.appendChild(usernameSpan);
 
 		const badgesDiv = document.createElement('div');
-		
+		badgesDiv.className = 'd-flex align-items-center';
+
 		const roleBadge = document.createElement('span');
 		roleBadge.className = `user-role-badge mr-2 badge-${user.role}`;
 		roleBadge.textContent = user.role.toUpperCase();
 		badgesDiv.appendChild(roleBadge);
 
 		const statusBadge = document.createElement('span');
-		statusBadge.className = `user-status-badge ${user.is_active ? 'status-active' : 'status-inactive'}`;
+		statusBadge.className = `user-status-badge mr-2 ${user.is_active ? 'status-active' : 'status-inactive'}`;
 		statusBadge.textContent = user.is_active ? 'Active' : 'Inactive';
 		badgesDiv.appendChild(statusBadge);
+
+		if (user.is_admin_teacher) {
+			const adminBadge = document.createElement('span');
+			adminBadge.className = 'user-role-badge';
+			adminBadge.style.backgroundColor = '#fff3cd';
+			adminBadge.style.color = '#856404';
+			adminBadge.textContent = 'ADMIN';
+			badgesDiv.appendChild(adminBadge);
+		} else if (!user.is_current_user) {
+			const deleteBtn = document.createElement('button');
+			deleteBtn.className = 'btn btn-sm btn-outline-danger';
+			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+			deleteBtn.title = `Delete ${user.username}`;
+			deleteBtn.addEventListener('click', () => deleteUser(user.role, user.id, user.username));
+			badgesDiv.appendChild(deleteBtn);
+		}
 
 		headerDiv.appendChild(titleDiv);
 		headerDiv.appendChild(badgesDiv);
@@ -180,3 +197,25 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 	.catch(() => {
 		window.location.href = '/';
 	});
+
+
+
+function deleteUser(role, id, username) {
+	if (!confirm(`Delete ${role} "${username}"? This cannot be undone.`)) return;
+
+	fetch(`/api/admin/users/${role}/${id}`, {
+		method: 'DELETE',
+		credentials: 'include',
+	})
+	.then(r => {
+		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Delete failed'));
+		return r.json();
+	})
+	.then(() => {
+		allUsers = allUsers.filter(u => !(u.id === id && u.role === role));
+		renderUsers();
+	})
+	.catch(err => {
+		alert(typeof err === 'string' ? err : 'Failed to delete user.');
+	});
+}

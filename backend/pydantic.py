@@ -1,5 +1,7 @@
 # Pydantic models for request/response
+from datetime import datetime
 from pydantic import BaseModel
+
 
 class Token(BaseModel):
     access_token: str
@@ -246,3 +248,14 @@ class UserActivityResponse(BaseModel):
     """Combined user activity response for students and teachers."""
     students: UserActivityStats
     teachers: UserActivityStats
+
+
+class UserListItem(BaseModel):
+    """Pydantic model representing a user in the unified users list."""
+    id: int
+    username: str
+    email: str
+    created_at: datetime
+    role: str
+    is_active: bool
+

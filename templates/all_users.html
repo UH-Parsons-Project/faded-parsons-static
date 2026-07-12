@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Users - Parsons Code Lab</title>
+
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+
+  <link rel="stylesheet" href="/js/main.css">
+  <style>
+    .user-card {
+      background: #fff;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .user-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+    }
+    .user-role-badge {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 50px;
+    }
+    .badge-teacher {
+      background-color: #e3f2fd;
+      color: #0d47a1;
+    }
+    .badge-student {
+      background-color: #e8f5e9;
+      color: #1b5e20;
+    }
+    .user-status-badge {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .status-active {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .status-inactive {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .user-meta-info {
+      font-size: 0.85rem;
+      color: #676e75;
+      line-height: 1.5;
+    }
+    .user-meta-info i {
+      width: 18px;
+      color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <a href="/">
+      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
+    </a>
+    <div class="ml-auto d-flex align-items-center">
+      <a href="/admin-dashboard"
+         class="btn btn-outline-dark btn-sm mr-3">
+        Admin Dashboard
+      </a>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
+      <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
+		   <i class="fas fa-user"></i>
+		   <span id="user-name"></span>
+		   <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
+      </a>
+      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <h2 class="mb-4"><i class="fas fa-users text-primary"></i> All Registered Users</h2>
+    <p class="text-muted mb-2">Showing all teachers and students registered in the system.</p>
+    <p id="user-count-badge" style="display: none; font-size: 1.1rem; font-weight: 600;" class="mb-4"></p>
+
+    <!-- Filters Panel -->
+    <div class="mb-4">
+      <div class="filter-panel-content p-3 border rounded bg-light" id="user-filter-panel">
+        <div class="row">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <label for="user-search" class="font-weight-bold small">Search Username / Email</label>
+            <input type="text" class="form-control" id="user-search" placeholder="Type to search...">
+          </div>
+          <div class="col-md-6">
+            <label class="font-weight-bold small">Filter by Role</label>
+            <div class="d-flex align-items-center mt-2">
+              <div class="custom-control custom-radio mr-3">
+                <input type="radio" id="role-all" name="role-filter" class="custom-control-input" value="all" checked>
+                <label class="custom-control-label" for="role-all">All Roles</label>
+              </div>
+              <div class="custom-control custom-radio mr-3">
+                <input type="radio" id="role-teachers" name="role-filter" class="custom-control-input" value="teacher">
+                <label class="custom-control-label" for="role-teachers">Teachers</label>
+              </div>
+              <div class="custom-control custom-radio">
+                <input type="radio" id="role-students" name="role-filter" class="custom-control-input" value="student">
+                <label class="custom-control-label" for="role-students">Students</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users List Container -->
+    <div id="users-container" class="loading-spinner mt-5 text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <p class="mt-2">Loading users...</p>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/all_users.js"></script>
+
+<footer style="background:#f5f7fa;margin-top:2rem;padding:1rem 0;text-align:center;border-top:1px solid #e1e4e8;">
+  <div style="max-width:1000px;margin:0 auto;">
+    <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>
+    <a class="footer-btn" href="/contact" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Contact</a>
+    <a class="footer-btn" href="/data-retention-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Data retention</a>
+  </div>
+</footer>
+</body>
+</html>

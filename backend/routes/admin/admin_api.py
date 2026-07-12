@@ -20,6 +20,7 @@ from ...pydantic import (
     UserActivityStats,
     DailyActiveUser,
     MonthlyActiveUser,
+    UserListItem,
 )
 from backend.utils import generate_token, hash_token, cleanup_old_registration_tokens
 import backend.config as config
@@ -295,38 +296,6 @@ async def get_user_activity_statistics(
 	)
 
 
-@router.post("/api/admin/seed-mock-data")
-async def seed_mock_data_endpoint(
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
-):
-	"""Seed mock activity data for the last 7 days. Admin only. Development only."""
-	# Check admin access
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-
-	# Prevent running on production
-	if not config.DEVELOPMENT_MODE:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="Mock data seeding is only available in development mode"
-		)
-
-	# Import the seeding function
-	from ...seed import seed_mock_activity
-
-	try:
-		await seed_mock_activity()
-		return {
-			"status": "success",
-			"message": "Mock activity data seeded successfully. Refresh your dashboard to see the data."
-		}
-	except Exception as e:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail=f"Failed to seed mock data: {str(e)}"
-		)
-
 
 @router.get("/api/all-tasksets", response_model=list[TaskSetResponse])
 async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
@@ -354,3 +323,49 @@ async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends
 	my_sets = result.all()
 
 	return build_taskset_response_list(my_sets)
+
+
+@router.get("/api/admin/users", response_model=list[UserListItem])
+async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+	"""List all teachers and students in the system (requires admin access)."""
+	if not current_user.is_admin_teacher:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="You do not have permission to access this resource.",
+		)
+
+	# Fetch all teachers
+	teachers_stmt = select(Teacher)
+	teachers_res = await db.execute(teachers_stmt)
+	teachers = teachers_res.scalars().all()
+
+	# Fetch all students
+	students_stmt = select(Student)
+	students_res = await db.execute(students_stmt)
+	students = students_res.scalars().all()
+
+	users_list = []
+	for teacher in teachers:
+		users_list.append({
+			"id": teacher.id,
+			"username": teacher.username,
+			"email": teacher.email,
+			"created_at": teacher.created_at,
+			"role": "teacher",
+			"is_active": teacher.is_active,
+		})
+
+	for student in students:
+		users_list.append({
+			"id": student.id,
+			"username": student.username,
+			"email": student.email,
+			"created_at": student.student_created_at,
+			"role": "student",
+			"is_active": student.is_active,
+		})
+
+	# Sort by created_at descending
+	users_list.sort(key=lambda u: u["created_at"], reverse=True)
+	return users_list
+

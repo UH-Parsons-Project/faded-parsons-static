@@ -4,7 +4,7 @@ TOKEN_EXPIRY_DAYS = 7
 TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -381,16 +381,28 @@ async def delete_user(
 	user_id: int,
 	current_user: CurrentUser,
 	db: AsyncSession = Depends(get_db),
+	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
 ):
 	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+	if not x_admin_password or not current_user.verify_password(x_admin_password):
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Incorrect admin password",
+		)
 
 	if role == "teacher":
 		if user_id == current_user.id:
 			raise HTTPException(
 				status_code=status.HTTP_400_BAD_REQUEST,
 				detail="Cannot delete your own account",
+			)
+		if user_id == 999999:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail="Cannot delete the dummy deleted_user",
 			)
 		stmt = select(Teacher).where(Teacher.id == user_id)
 		result = await db.execute(stmt)

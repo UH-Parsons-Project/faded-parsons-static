@@ -127,7 +127,7 @@ function renderUsers() {
 			adminBadge.style.color = '#856404';
 			adminBadge.textContent = 'ADMIN';
 			badgesDiv.appendChild(adminBadge);
-		} else if (!user.is_current_user) {
+		} else if (!user.is_current_user && user.id !== 999999) {
 			const deleteBtn = document.createElement('button');
 			deleteBtn.className = 'btn btn-sm btn-outline-danger';
 			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
@@ -200,11 +200,125 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 
 
 
-function deleteUser(role, id, username) {
-	if (!confirm(`Delete ${role} "${username}"? This cannot be undone.`)) return;
+function showPasswordPrompt(message) {
+	return new Promise((resolve) => {
+		const overlay = document.createElement('div');
+		overlay.style.position = 'fixed';
+		overlay.style.top = '0';
+		overlay.style.left = '0';
+		overlay.style.width = '100vw';
+		overlay.style.height = '100vh';
+		overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+		overlay.style.display = 'flex';
+		overlay.style.alignItems = 'center';
+		overlay.style.justifyContent = 'center';
+		overlay.style.zIndex = '9999';
+
+		const modal = document.createElement('div');
+		modal.style.backgroundColor = '#fff';
+		modal.style.padding = '20px';
+		modal.style.borderRadius = '8px';
+		modal.style.width = '400px';
+		modal.style.maxWidth = '90%';
+		modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
+		modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+
+		const title = document.createElement('h5');
+		title.style.margin = '0 0 10px 0';
+		title.style.fontSize = '1.25rem';
+		title.style.fontWeight = '600';
+		title.textContent = 'Confirm Deletion';
+		modal.appendChild(title);
+
+		const text = document.createElement('p');
+		text.style.margin = '0 0 15px 0';
+		text.style.fontSize = '0.95rem';
+		text.style.color = '#333';
+		text.textContent = message;
+		modal.appendChild(text);
+
+		const input = document.createElement('input');
+		input.type = 'password';
+		input.placeholder = 'Enter password';
+		input.style.width = '100%';
+		input.style.padding = '8px 12px';
+		input.style.marginBottom = '20px';
+		input.style.border = '1px solid #ccc';
+		input.style.borderRadius = '4px';
+		input.style.fontSize = '1rem';
+		modal.appendChild(input);
+
+		const btnContainer = document.createElement('div');
+		btnContainer.style.display = 'flex';
+		btnContainer.style.justifyContent = 'flex-end';
+		btnContainer.style.gap = '10px';
+
+		const cancelBtn = document.createElement('button');
+		cancelBtn.className = 'btn btn-outline-secondary';
+		cancelBtn.textContent = 'Cancel';
+		cancelBtn.type = 'button';
+		btnContainer.appendChild(cancelBtn);
+
+		const confirmBtn = document.createElement('button');
+		confirmBtn.className = 'btn btn-danger';
+		confirmBtn.textContent = 'Confirm';
+		confirmBtn.type = 'button';
+		btnContainer.appendChild(confirmBtn);
+
+		modal.appendChild(btnContainer);
+		overlay.appendChild(modal);
+		document.body.appendChild(overlay);
+
+		input.focus();
+
+		function cleanUp() {
+			document.body.removeChild(overlay);
+		}
+
+		confirmBtn.addEventListener('click', () => {
+			const val = input.value;
+			cleanUp();
+			resolve(val);
+		});
+
+		cancelBtn.addEventListener('click', () => {
+			cleanUp();
+			resolve(null);
+		});
+
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				const val = input.value;
+				cleanUp();
+				resolve(val);
+			} else if (e.key === 'Escape') {
+				cleanUp();
+				resolve(null);
+			}
+		});
+
+		overlay.addEventListener('click', (e) => {
+			if (e.target === overlay) {
+				cleanUp();
+				resolve(null);
+			}
+		});
+	});
+}
+
+async function deleteUser(role, id, username) {
+	const password = await showPasswordPrompt(`To delete the ${role} "${username}", please enter your admin password:`);
+	if (password === null) return;
+	if (!password) {
+		alert('Password cannot be empty.');
+		return;
+	}
 
 	fetch(`/api/admin/users/${role}/${id}`, {
 		method: 'DELETE',
+		headers: {
+			'X-Admin-Password': password
+		},
 		credentials: 'include',
 	})
 	.then(r => {

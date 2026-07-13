@@ -2,12 +2,13 @@ import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import select, func, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
+import re
 
 from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse
 from ...database import get_db
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Parsons, EditEvent
+from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Teacher, TaskSetItem
 from ...student_auth import (
     authenticate_student,
     set_session_cookie,
@@ -46,6 +47,91 @@ async def get_student_me(
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
     return {"username": student_session.username}
+
+EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+
+@router.get("/api/student/profile")
+async def get_student_profile(
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    return {
+        "username": student_session.username,
+        "email": student_session.email,
+        "student_created_at": student_session.student_created_at.isoformat() if student_session.student_created_at else "",
+    }
+
+
+@router.post("/api/student/profile/email")
+async def update_student_email(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    body = await request.json()
+    new_email = body.get("email", "").strip()
+    password = body.get("password", "")
+
+    if not new_email or not password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email and password are required")
+
+    if not student_session.verify_password(password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
+
+    if len(new_email) > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email too long")
+
+    if not re.match(EMAIL_REGEX, new_email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
+
+    # Check email uniqueness against other students
+    email_stmt = select(Student).where(Student.email == new_email, Student.id != student_session.id)
+    email_result = await db.execute(email_stmt)
+    if email_result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already in use")
+
+    student_session.email = new_email
+    await db.commit()
+    return {"status": "success", "message": "Email updated successfully"}
+
+
+@router.post("/api/student/profile/password")
+async def update_student_password(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session),
+):
+    if not student_session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    body = await request.json()
+    current_password = body.get("current_password", "")
+    new_password = body.get("new_password", "")
+    new_password_confirm = body.get("new_password_confirm", "")
+
+    if not current_password or not new_password or not new_password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="All password fields are required")
+
+    if not student_session.verify_password(current_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+
+    if new_password != new_password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match")
+
+    if len(new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must have a minimum length of 8 characters")
+
+    student_session.set_password(new_password)
+    await db.commit()
+    return {"status": "success", "message": "Password updated successfully"}
+
 
 
 @router.post("/api/sets/{unique_link_code}/join")

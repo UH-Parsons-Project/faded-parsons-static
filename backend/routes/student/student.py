@@ -165,3 +165,10 @@ async def demo_task_page():
 async def student_register_page():
     student_register_path = BASE_DIR / "templates" / "student_register.html"
     return FileResponse(student_register_path)
+
+
+@router.get("/student/profile", response_class=FileResponse)
+async def student_profile_page():
+    profile_path = BASE_DIR / "templates" / "student_profile.html"
+    return FileResponse(profile_path)
+

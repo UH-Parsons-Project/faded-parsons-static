@@ -451,6 +451,13 @@ export async function initSignedInAs({
 	userInfoId = 'user-info',
 	preferNickname = false
 } = {}) {
+	// Store last visited task set URL in localStorage
+	const currentPath = window.location.pathname;
+	const setMatch = currentPath.match(/^\/[^/]+\/set\/[^/]+/);
+	if (setMatch) {
+		localStorage.setItem('last_task_set_url', setMatch[0] + '/tasks');
+	}
+
 	const userNameEl = document.getElementById(userNameId);
 	const userRoleEl = document.getElementById(userRoleId);
 	const userInfoEl = document.getElementById(userInfoId);

@@ -264,6 +264,36 @@ class TestUpdateTask:
         )
         assert result.scalar_one_or_none() is not None
 
+    async def test_updates_is_public(self, client, task, test_teacher, db_session):
+        # Starts public (task fixture defaults to public)
+        assert task.is_public is True
+
+        payload = _problem_payload(
+            taskTitle="Update to Private",
+            solutionCode="def some_func(x):\n    return x",
+            tests="assert some_func(1) == 1",
+            is_public=False
+        )
+        r = await client.put(
+            f"/api/problems/{task.id}",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert r.status_code == 200
+        await db_session.refresh(task)
+        assert task.is_public is False
+
+        # Update back to public
+        payload["is_public"] = True
+        r = await client.put(
+            f"/api/problems/{task.id}",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert r.status_code == 200
+        await db_session.refresh(task)
+        assert task.is_public is True
+
 
 # ---------------------------------------------------------------------------
 # GET /api/problems/{task_id}/editable

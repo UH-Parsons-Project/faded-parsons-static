@@ -5,12 +5,12 @@ TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, TaskSetItem
+from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
     TaskSetResponse,
     CreateRegistrationTokenRequest,
@@ -399,6 +399,138 @@ async def delete_user(
 			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
 		if teacher.is_admin_teacher:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete an admin teacher")
+		
+		# 1. Get or create deleted_user with fixed ID 999999
+		deleted_user_id = 999999
+		deleted_user_stmt = select(Teacher).where(Teacher.id == deleted_user_id)
+		deleted_user_res = await db.execute(deleted_user_stmt)
+		deleted_user = deleted_user_res.scalar_one_or_none()
+		if not deleted_user:
+			# Check username conflict just in case
+			deleted_user_name_stmt = select(Teacher).where(Teacher.username == "deleted_user")
+			deleted_user_name_res = await db.execute(deleted_user_name_stmt)
+			if deleted_user_name_res.scalar_one_or_none():
+				# If somehow username "deleted_user" exists with a different ID, raise error
+				raise HTTPException(
+					status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+					detail="A user with username 'deleted_user' exists but has a different ID."
+				)
+			deleted_user = Teacher(
+				id=deleted_user_id,
+				username="deleted_user",
+				email="deleted_user@deleted.invalid",
+				is_active=False,
+				is_admin_teacher=False,
+			)
+			deleted_user.set_password("deleted_user_locked_account_dummy_password_hash")
+			db.add(deleted_user)
+			await db.flush()
+
+		# 2. Fetch and move all of the deleted teacher's TaskSets to deleted_user
+		task_sets_stmt = select(TaskSet).where(TaskSet.teacher_id == user_id)
+		task_sets_res = await db.execute(task_sets_stmt)
+		task_sets = task_sets_res.scalars().all()
+		for ts in task_sets:
+			# Close the task set
+			ts.expires_at = datetime.now(timezone.utc)
+
+			# Resolve unique_link_code conflicts
+			orig_code = ts.unique_link_code
+			conflict_code_stmt = select(TaskSet).where(
+				TaskSet.teacher_id == deleted_user_id,
+				TaskSet.unique_link_code == orig_code
+			)
+			conflict_code_res = await db.execute(conflict_code_stmt)
+			if conflict_code_res.scalar_one_or_none():
+				ts.unique_link_code = f"{orig_code}-{teacher.username}"
+				while True:
+					check = await db.execute(select(TaskSet).where(
+						TaskSet.teacher_id == deleted_user_id,
+						TaskSet.unique_link_code == ts.unique_link_code
+					))
+					if not check.scalar_one_or_none():
+						break
+					import uuid
+					ts.unique_link_code = f"{orig_code}-{uuid.uuid4().hex[:6]}"
+
+			# Resolve title conflicts
+			orig_title = ts.title
+			conflict_title_stmt = select(TaskSet).where(
+				TaskSet.teacher_id == deleted_user_id,
+				TaskSet.title == orig_title
+			)
+			conflict_title_res = await db.execute(conflict_title_stmt)
+			if conflict_title_res.scalar_one_or_none():
+				ts.title = f"{orig_title} ({teacher.username})"
+				suffix = 1
+				while True:
+					check = await db.execute(select(TaskSet).where(
+						TaskSet.teacher_id == deleted_user_id,
+						TaskSet.title == ts.title
+					))
+					if not check.scalar_one_or_none():
+						break
+					ts.title = f"{orig_title} ({teacher.username} - {suffix})"
+					suffix += 1
+
+			ts.teacher_id = deleted_user_id
+
+		# 3. Identify and move Parsons tasks to deleted_user (only keeping public tasks)
+		tasks_to_keep_stmt = select(Parsons).where(
+			Parsons.created_by_teacher_id == user_id,
+			Parsons.is_public == True
+		)
+		tasks_to_keep_res = await db.execute(tasks_to_keep_stmt)
+		tasks_to_keep = tasks_to_keep_res.scalars().all()
+		for task in tasks_to_keep:
+			# Resolve title conflicts
+			orig_task_title = task.title
+			conflict_task_title_stmt = select(Parsons).where(
+				Parsons.created_by_teacher_id == deleted_user_id,
+				Parsons.title == orig_task_title
+			)
+			conflict_task_title_res = await db.execute(conflict_task_title_stmt)
+			if conflict_task_title_res.scalar_one_or_none():
+				task.title = f"{orig_task_title} ({teacher.username})"
+				suffix = 1
+				while True:
+					check = await db.execute(select(Parsons).where(
+						Parsons.created_by_teacher_id == deleted_user_id,
+						Parsons.title == task.title
+					))
+					if not check.scalar_one_or_none():
+						break
+					task.title = f"{orig_task_title} ({teacher.username} - {suffix})"
+					suffix += 1
+
+			# Update model answers created by this teacher for this task
+			model_answers_stmt = select(ModelAnswer).where(
+				ModelAnswer.parsons_id == task.id,
+				ModelAnswer.created_by_teacher_id == user_id
+			)
+			model_answers_res = await db.execute(model_answers_stmt)
+			model_answers = model_answers_res.scalars().all()
+			for ma in model_answers:
+				ma.created_by_teacher_id = deleted_user_id
+
+			task.created_by_teacher_id = deleted_user_id
+
+		# 4. Hard delete all private tasks (is_public == False) owned by the teacher
+		tasks_to_delete_stmt = select(Parsons.id).where(
+			Parsons.created_by_teacher_id == user_id,
+			Parsons.is_public == False
+		)
+		tasks_to_delete_res = await db.execute(tasks_to_delete_stmt)
+		tasks_to_delete_ids = tasks_to_delete_res.scalars().all()
+		if tasks_to_delete_ids:
+			await db.execute(
+				delete(ModelAnswer).where(ModelAnswer.parsons_id.in_(tasks_to_delete_ids))
+			)
+			await db.execute(
+				delete(Parsons).where(Parsons.id.in_(tasks_to_delete_ids))
+			)
+
+		# 5. Delete the teacher account record itself
 		await db.delete(teacher)
 
 	elif role == "student":

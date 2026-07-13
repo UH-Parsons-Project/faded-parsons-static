@@ -133,7 +133,7 @@ function createTaskCard(item, index) {
 	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
-	loadCompletionStatus(item.id, status, index, number);
+	loadCompletionStatus(taskNumber, status, index, number);
 
 	return card;
 }

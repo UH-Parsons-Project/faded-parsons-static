@@ -591,7 +591,16 @@ initBurgerMenu();
       return;
     }
 
-    const nextIndex = parsonsWidget.modified_lines.length;
+    const nextIndex = parsonsWidget.nextCustomIndex !== undefined
+      ? parsonsWidget.nextCustomIndex
+      : parsonsWidget.modified_lines.length;
+
+    if (parsonsWidget.nextCustomIndex !== undefined) {
+      parsonsWidget.nextCustomIndex++;
+    } else {
+      parsonsWidget.nextCustomIndex = nextIndex + 1;
+    }
+
     const lineObject = {
       widget: parsonsWidget,
       code,

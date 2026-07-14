@@ -296,6 +296,30 @@ initBurgerMenu();
     return visibilityInput ? !visibilityInput.checked : true;
   }
 
+  function updateVisibilityWarning() {
+    const warningBox = document.getElementById('visibility-warning-box');
+    const visibilityInput = document.getElementById('task-visibility-public');
+    if (!warningBox || !visibilityInput) {
+      return;
+    }
+
+    if (visibilityInput.checked) {
+      warningBox.innerHTML = `
+        <div class="alert alert-info mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #0ea5e9; background-color: #f0f9ff; color: #0369a1;">
+          <i class="fas fa-lock mr-2" style="color: #0ea5e9;"></i>
+          <strong>Private Task:</strong> This task is private and visible only to you (and teachers sharing task sets containing it). It will be removed if you delete your account (unless it is actively used in other teachers' shared task sets).
+        </div>
+      `;
+    } else {
+      warningBox.innerHTML = `
+        <div class="alert alert-success mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #10b981; background-color: #ecfdf5; color: #065f46;">
+          <i class="fas fa-users mr-2" style="color: #10b981;"></i>
+          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students in our shared community! Please note that since others can use this task, it will remain active in the system even if your account is later removed.
+        </div>
+      `;
+    }
+  }
+
   function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic) {
     sessionStorage.setItem(META_KEY, JSON.stringify({
       taskTitle,
@@ -1163,6 +1187,7 @@ initBurgerMenu();
           customErrorMessagesInput?.value || '',
           getVisibilityValue()
         );
+        updateVisibilityWarning();
         updateAddToListState();
       });
     }
@@ -1270,6 +1295,13 @@ initBurgerMenu();
         saveModelAnswerToSession(solutionCode, '');
       }
 
+      if (visibilityInput) {
+        const hasSessionMeta = sessionStorage.getItem(META_KEY) && sessionStorage.getItem(META_SOURCE_KEY) === normalizeSourceCode(solutionCode);
+        const isPublic = hasSessionMeta ? meta.isPublic : (typeof taskData.is_public === 'boolean' ? taskData.is_public : true);
+        visibilityInput.checked = !isPublic;
+        updateVisibilityWarning();
+      }
+
       const addToListBtn = document.getElementById('add-to-problem-list');
       if (addToListBtn) addToListBtn.textContent = 'Update Task';
 
@@ -1340,7 +1372,10 @@ initBurgerMenu();
     }
 
     if (visibilityInput) {
-      visibilityInput.checked = meta.isPublic === false;
+      const hasSessionMeta = sessionStorage.getItem(META_KEY) && sessionStorage.getItem(META_SOURCE_KEY) === normalizeSourceCode(draft.taskCode);
+      const isPublic = hasSessionMeta ? meta.isPublic : (fetchedFromApi && apiTaskData ? apiTaskData.is_public : true);
+      visibilityInput.checked = !isPublic;
+      updateVisibilityWarning();
     }
 
     if (editTaskId) {

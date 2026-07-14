@@ -190,6 +190,7 @@
 		this.modified_lines.forEach((item, index) => {
 			item.id = this.id_prefix + index;
 		});
+		this.nextCustomIndex = this.modified_lines.length;
 	};
 
 	ParsonsWidget.prototype.setLineNumbers = function () {

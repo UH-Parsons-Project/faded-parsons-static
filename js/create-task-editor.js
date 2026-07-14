@@ -1260,6 +1260,9 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
+      if (visibilityInput) {
+        visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
+      }
 
       const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
       if (savedModelAnswer.code) {
@@ -1340,7 +1343,11 @@ initBurgerMenu();
     }
 
     if (visibilityInput) {
-      visibilityInput.checked = meta.isPublic === false;
+      if (fetchedFromApi && !meta.taskTitle) {
+        visibilityInput.checked = apiTaskData.is_public === false;
+      } else {
+        visibilityInput.checked = meta.isPublic === false;
+      }
     }
 
     if (editTaskId) {

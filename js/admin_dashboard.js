@@ -284,6 +284,18 @@ function loadStatistics() {
 		.catch(() => {
 			document.getElementById('stat-total-lists').textContent = '—';
 		});
+
+	// Total Users
+	fetch('/api/admin/users', { credentials: 'include' })
+		.then(r => r.ok ? r.json() : Promise.reject())
+		.then(data => {
+			if (Array.isArray(data)) {
+				document.getElementById('stat-total-users').textContent = data.length;
+			}
+		})
+		.catch(() => {
+			document.getElementById('stat-total-users').textContent = '—';
+		});
 }
 
 // ==================== Token Management ====================
@@ -444,44 +456,6 @@ function copyTokenToClipboard() {
 		console.error('Failed to copy:', err);
 		alert('Failed to copy token');
 	});
-}
-
-// ==================== Mock Data Seeding ====================
-
-function seedMockData() {
-	const btn = document.getElementById('seed-mock-btn');
-	if (!btn) return;
-
-	btn.disabled = true;
-	const originalText = btn.innerHTML;
-	btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Seeding...';
-
-	fetch('/api/admin/seed-mock-data', {
-		method: 'POST',
-		credentials: 'include'
-	})
-	.then(r => {
-		if (!r.ok) throw new Error('Failed to seed mock data');
-		return r.json();
-	})
-	.then(() => {
-		btn.innerHTML = '<i class="fas fa-check"></i> Done!';
-		alert('Mock data seeded successfully! Refresh the page to see the updated statistics.');
-		setTimeout(() => {
-			window.location.reload();
-		}, 1500);
-	})
-	.catch(err => {
-		console.error('Error seeding mock data:', err);
-		alert('Failed to seed mock data: ' + err.message);
-		btn.disabled = false;
-		btn.innerHTML = originalText;
-	});
-}
-
-const seedBtn = document.getElementById('seed-mock-btn');
-if (seedBtn) {
-	seedBtn.addEventListener('click', seedMockData);
 }
 
 // ==================== Access Check ====================

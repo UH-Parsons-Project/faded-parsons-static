@@ -1098,6 +1098,7 @@ async def update_problem(
         "solution_code": solution_code,
         "custom_error_messages": custom_error_messages,
     }
+    task.is_public = True if request.is_public is None else request.is_public
 
     model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     model_answer_result = await db.execute(select(ModelAnswer).where(ModelAnswer.parsons_id == task_id))

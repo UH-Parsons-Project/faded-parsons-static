@@ -35,6 +35,20 @@ async def teacher_selector(request: Request, db: AsyncSession = Depends(get_db))
     return response
 
 
+@router.get("/teacher/profile", response_class=HTMLResponse)
+async def teacher_profile_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+    profile_path = BASE_DIR / "templates" / "teacher_profile.html"
+    response = FileResponse(profile_path)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 
 @router.get("/teacher-register", response_class=HTMLResponse)
 async def teacher_register_page():

@@ -161,3 +161,77 @@ async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_
 
     clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": teacher.id}
+
+
+@router.get("/api/teacher/profile")
+async def get_teacher_profile(
+    current_user: CurrentUser,
+):
+    return {
+        "username": current_user.username,
+        "email": current_user.email,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else "",
+    }
+
+
+@router.post("/api/teacher/profile/email")
+async def update_teacher_email(
+    request: Request,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    body = await request.json()
+    new_email = body.get("email", "").strip()
+    password = body.get("password", "")
+
+    if not new_email or not password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email and password are required")
+
+    if not current_user.verify_password(password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
+
+    if len(new_email) > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email too long")
+
+    import re
+    EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    if not re.match(EMAIL_REGEX, new_email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format")
+
+    # Check email uniqueness against other teachers
+    email_stmt = select(Teacher).where(Teacher.email == new_email, Teacher.id != current_user.id)
+    email_result = await db.execute(email_stmt)
+    if email_result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already in use")
+
+    current_user.email = new_email
+    await db.commit()
+    return {"status": "success", "message": "Email updated successfully"}
+
+
+@router.post("/api/teacher/profile/password")
+async def update_teacher_password(
+    request: Request,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+    body = await request.json()
+    current_password = body.get("current_password", "")
+    new_password = body.get("new_password", "")
+    new_password_confirm = body.get("new_password_confirm", "")
+
+    if not current_password or not new_password or not new_password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="All password fields are required")
+
+    if not current_user.verify_password(current_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect current password")
+
+    if new_password != new_password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match")
+
+    if len(new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must have a minimum length of 8 characters")
+
+    current_user.set_password(new_password)
+    await db.commit()
+    return {"status": "success", "message": "Password updated successfully"}

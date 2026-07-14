@@ -26,6 +26,7 @@ except ImportError:
 
 from backend.database import Base, get_db
 from backend.main import app
+app.state.limiter.enabled = False
 import secrets
 from backend.models import Parsons, Student, StudentTaskSetEnrollment, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from backend.utils import generate_token, hash_token

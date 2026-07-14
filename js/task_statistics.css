@@ -1004,3 +1004,12 @@ body.accent-slate {
   .page-title { font-size: 1.15rem; }
   .header-badge { font-size: 0.82rem; padding: .4rem .9rem; }
 }
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+footer[style*="background:#f5f7fa"] {
+  margin-top: auto !important;
+}

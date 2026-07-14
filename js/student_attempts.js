@@ -18,6 +18,42 @@ if (backBtn) {
 	backBtn.href = `/task-set-overview?set_id=${setId}`;
 }
 
+function bindRemoveStudentButton() {
+	const removeStudentBtn = document.getElementById('remove-student-btn');
+	if (!removeStudentBtn) return;
+	removeStudentBtn.addEventListener('click', async () => {
+		const confirmed = window.confirm('Are you sure you want to remove this student and all their data from this task set?');
+		if (!confirmed) return;
+
+		removeStudentBtn.disabled = true;
+		try {
+			const response = await fetch(
+				`/api/my_sets/${encodeURIComponent(setId)}/students/${encodeURIComponent(studentUsername)}`,
+				{
+					method: 'DELETE',
+					credentials: 'include'
+				}
+			);
+
+			if (response.status === 401) {
+				window.location.href = '/';
+				return;
+			}
+
+			if (!response.ok) {
+				const body = await response.json().catch(() => null);
+				const detail = body?.detail || 'Failed to remove student from this task set.';
+				throw new Error(detail);
+			}
+
+			window.location.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
+		} catch (error) {
+			console.error('Error removing student from task set:', error);
+			window.alert(error.message || 'Failed to remove student from this task set.');
+			removeStudentBtn.disabled = false;
+		}
+	});
+}
 
 function formatDateTime(isoString) {
 	if (!isoString) return 'N/A';
@@ -70,10 +106,14 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 		<span class="badge badge-pill sa-user-badge">
 			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
 		</span>
+		<button type="button" id="remove-student-btn" class="btn btn-sm sa-remove-student-btn">
+			Remove student from task set
+		</button>
 	</div>
 	${taskSetName ? `<div class="sa-taskset-info"><i class="fas fa-tasks mr-2"></i><strong>Task Set:</strong> ${escapeHtml(taskSetName)}</div>` : ''}
 	<p class="text-muted">All tasks attempted by this student in this task set</p>
 	`;
+	bindRemoveStudentButton();
 
 	const completionPanel = document.getElementById('completion-panel');
 	if (completionPanel) {

@@ -17,8 +17,27 @@ body {
   font-size: 0.875rem;
 }
 
+.sa-remove-student-btn {
+  background: #fff;
+  color: #495057;
+  border: 1px solid #dc3545;
+  font-weight: 500;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  line-height: 1.2;
+}
+
+.sa-remove-student-btn:hover,
+.sa-remove-student-btn:focus {
+  background: #fff5f5;
+  color: #495057;
+  border-color: #dc3545;
+}
+
 .sa-user-row {
   gap: 0.6rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .sa-user-badge {

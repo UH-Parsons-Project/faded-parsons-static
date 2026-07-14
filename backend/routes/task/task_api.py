@@ -10,7 +10,15 @@ from ...models import Parsons
 from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser, OptionalCurrentUser
 from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem, TeacherFavoriteTask
-from ...models import Student, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskAttempt
+from ...models import (
+    Student,
+    StudentTaskSetEnrollment,
+    StudentTaskEnrollment,
+    TaskAttempt,
+    TaskSession,
+    MoveEvent,
+    EditEvent,
+)
 from ...models import ModelAnswer
 from ...pydantic import (
     TaskResponse,
@@ -555,6 +563,72 @@ async def get_task_set_students(
         ]
 
     return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
+
+
+@router.delete("/api/my_sets/{task_set_id}/students/{student_username}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_student_from_task_set(
+    task_set_id: int,
+    student_username: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+):
+	# Removes students enrollment and attempts from the task set, does NOT delete the student account.
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+
+    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to modify this task set",
+        )
+
+    student_result = await db.execute(select(Student).where(Student.username == student_username))
+    student = student_result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student not found",
+        )
+
+    enrollment_result = await db.execute(
+        select(StudentTaskSetEnrollment.id).where(
+            StudentTaskSetEnrollment.student_id == student.id,
+            StudentTaskSetEnrollment.task_set_id == task_set_id,
+        )
+    )
+    task_set_enrollment_id = enrollment_result.scalar_one_or_none()
+    if task_set_enrollment_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student is not enrolled in this task set",
+        )
+
+    enrollment_ids_subquery = select(StudentTaskEnrollment.id).where(
+        StudentTaskEnrollment.student_id == student.id,
+        StudentTaskEnrollment.task_set_id == task_set_id,
+    )
+    attempt_ids_subquery = select(TaskAttempt.id).where(
+        TaskAttempt.student_task_enrollment_id.in_(enrollment_ids_subquery)
+    )
+
+    await db.execute(delete(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids_subquery)))
+    await db.execute(delete(EditEvent).where(EditEvent.attempt_id.in_(attempt_ids_subquery)))
+    await db.execute(delete(TaskAttempt).where(TaskAttempt.id.in_(attempt_ids_subquery)))
+    await db.execute(
+        delete(TaskSession).where(
+            TaskSession.student_task_enrollment_id.in_(enrollment_ids_subquery)
+        )
+    )
+    await db.execute(
+        delete(StudentTaskEnrollment).where(
+            StudentTaskEnrollment.id.in_(enrollment_ids_subquery)
+        )
+    )
+    await db.execute(
+        delete(StudentTaskSetEnrollment).where(
+            StudentTaskSetEnrollment.id == task_set_enrollment_id
+        )
+    )
+    await db.commit()
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(

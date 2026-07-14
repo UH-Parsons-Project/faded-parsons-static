@@ -14,9 +14,15 @@ from sqlalchemy import delete, select
 
 from backend.auth import create_access_token
 from backend.models import (
+    EditEvent,
     ModelAnswer,
+    MoveEvent,
     Parsons,
+    Student,
+    StudentTaskEnrollment,
     StudentTaskSetEnrollment,
+    TaskAttempt,
+    TaskSession,
     TaskSet,
     TaskSetItem,
     Teacher,
@@ -381,3 +387,160 @@ class TestDeleteTaskSet:
         assert r.status_code == 204
         result = await db_session.execute(select(TaskSet).where(TaskSet.id == task_set.id))
         assert result.scalar_one_or_none() is None
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/my_sets/{task_set_id}/students/{student_username}
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestRemoveStudentFromTaskSet:
+    async def test_success_removes_only_this_task_set_data(
+        self, client, db_session, test_teacher, task_set, task
+    ):
+        other_set = TaskSet(
+            teacher_id=test_teacher.id,
+            title="Week 2 Exercises",
+            unique_link_code="WEEK2",
+        )
+        db_session.add(other_set)
+        await db_session.flush()
+
+        db_session.add_all([
+            TaskSetItem(task_set_id=task_set.id, task_id=task.id),
+            TaskSetItem(task_set_id=other_set.id, task_id=task.id),
+        ])
+
+        student = Student(username="student_remove", email="student_remove@example.com")
+        student.set_password("studentpass123")
+        db_session.add(student)
+        await db_session.flush()
+
+        db_session.add_all([
+            StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id),
+            StudentTaskSetEnrollment(student_id=student.id, task_set_id=other_set.id),
+        ])
+        await db_session.flush()
+
+        enrollment_target = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+        )
+        enrollment_other = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=other_set.id,
+        )
+        db_session.add_all([enrollment_target, enrollment_other])
+        await db_session.flush()
+
+        session_target = TaskSession(student_task_enrollment_id=enrollment_target.id)
+        session_other = TaskSession(student_task_enrollment_id=enrollment_other.id)
+        db_session.add_all([session_target, session_other])
+        await db_session.flush()
+
+        attempt_target = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=enrollment_target.id,
+            task_session_id=session_target.id,
+            success=False,
+        )
+        attempt_other = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=enrollment_other.id,
+            task_session_id=session_other.id,
+            success=True,
+        )
+        db_session.add_all([attempt_target, attempt_other])
+        await db_session.flush()
+
+        db_session.add_all([
+            MoveEvent(
+                attempt_id=attempt_target.id,
+                block_id="b1",
+                from_container="source",
+                to_container="solution",
+                from_index=0,
+                to_index=0,
+                from_indent=0,
+                to_indent=0,
+            ),
+            MoveEvent(
+                attempt_id=attempt_other.id,
+                block_id="b2",
+                from_container="source",
+                to_container="solution",
+                from_index=0,
+                to_index=0,
+                from_indent=0,
+                to_indent=0,
+            ),
+            EditEvent(attempt_id=attempt_target.id, block_id="b1", blank_index=0, value="x"),
+            EditEvent(attempt_id=attempt_other.id, block_id="b2", blank_index=0, value="y"),
+        ])
+        await db_session.commit()
+
+        response = await client.delete(
+            f"/api/my_sets/{task_set.id}/students/{student.username}",
+            headers=_auth(test_teacher.username),
+        )
+        assert response.status_code == 204
+
+        student_in_db = (
+            await db_session.execute(select(Student).where(Student.id == student.id))
+        ).scalar_one_or_none()
+        assert student_in_db is not None
+
+        removed_set_enrollment = (
+            await db_session.execute(
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == task_set.id,
+                )
+            )
+        ).scalar_one_or_none()
+        assert removed_set_enrollment is None
+
+        kept_set_enrollment = (
+            await db_session.execute(
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == other_set.id,
+                )
+            )
+        ).scalar_one_or_none()
+        assert kept_set_enrollment is not None
+
+        removed_task_enrollment = (
+            await db_session.execute(
+                select(StudentTaskEnrollment).where(StudentTaskEnrollment.id == enrollment_target.id)
+            )
+        ).scalar_one_or_none()
+        assert removed_task_enrollment is None
+
+        kept_task_enrollment = (
+            await db_session.execute(
+                select(StudentTaskEnrollment).where(StudentTaskEnrollment.id == enrollment_other.id)
+            )
+        ).scalar_one_or_none()
+        assert kept_task_enrollment is not None
+
+        removed_attempt = (
+            await db_session.execute(select(TaskAttempt).where(TaskAttempt.id == attempt_target.id))
+        ).scalar_one_or_none()
+        assert removed_attempt is None
+
+        kept_attempt = (
+            await db_session.execute(select(TaskAttempt).where(TaskAttempt.id == attempt_other.id))
+        ).scalar_one_or_none()
+        assert kept_attempt is not None
+
+    async def test_not_owner_gets_403(self, client, task_set, other_teacher):
+        response = await client.delete(
+            f"/api/my_sets/{task_set.id}/students/student1",
+            headers=_auth(other_teacher.username),
+        )
+        assert response.status_code == 403

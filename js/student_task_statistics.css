@@ -258,3 +258,59 @@ body {
 footer[style*="background:#f5f7fa"] {
   margin-top: auto !important;
 }
+
+/* ── Segmented Time Toggle Control ───────────────────── */
+.time-toggle-control {
+  display: inline-flex;
+  background: #f1f5f9 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+}
+.toggle-segment {
+  border: 1px solid transparent !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  flex: 1 !important;
+  text-align: center !important;
+  min-width: 165px !important;
+  user-select: none !important;
+  background: transparent !important;
+}
+.toggle-segment:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+.toggle-segment.active {
+  background: var(--brand-dark) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--brand-dark) !important;
+}
+.segment-title {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 2px !important;
+  color: var(--text-muted) !important;
+  transition: color 0.15s ease !important;
+}
+.segment-desc {
+  font-size: 0.6rem !important;
+  color: var(--text-muted) !important;
+  font-weight: 400 !important;
+  transition: color 0.15s ease !important;
+}
+.toggle-segment.active .segment-title {
+  color: #ffffff !important;
+}
+.toggle-segment.active .segment-desc {
+  color: rgba(255, 255, 255, 0.9) !important;
+}

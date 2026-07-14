@@ -94,14 +94,18 @@ class StudentTaskStatisticsResponse(BaseModel):
     failed_attempts: int
     empty_attempts: int
     time_to_first_success: dict | None
+    time_to_first_success_on_page: dict | None = None
     time_to_first_fail: dict | None
+    time_to_first_fail_on_page: dict | None = None
     thinking_time: dict | None
+    thinking_time_on_page: dict | None = None
     move_count: int | None
     attempts_detail: list[dict]
     total_time_seconds: float | None = None
     sessions: list[dict] = []
     task_set_name: str | None = None
     task_set_code: str | None = None
+    median_page_exits: float | None = None
 
 
 class MoveData(BaseModel):

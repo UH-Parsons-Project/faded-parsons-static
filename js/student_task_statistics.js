@@ -200,27 +200,65 @@ function renderStatistics(data) {
 		document.getElementById('kpi-time-to-pass').textContent = formatTime(data.total_time_seconds);
 	}
 
-	if (data.time_to_first_success) {
-		document.getElementById('time-to-success').textContent =
-			formatTime(data.time_to_first_success.seconds);
+	const toggleTotal = document.getElementById('toggle-total');
+	const toggleActive = document.getElementById('toggle-active');
+
+	function renderTimeMetrics() {
+		const activeOnly = toggleActive?.classList.contains('active') || false;
+
+		const tfs = activeOnly ? data.time_to_first_success_on_page : data.time_to_first_success;
+		const tff = activeOnly ? data.time_to_first_fail_on_page : data.time_to_first_fail;
+		const think = activeOnly ? data.thinking_time_on_page : data.thinking_time;
+
+		const successEl = document.getElementById('time-to-success');
+		if (successEl) {
+			successEl.textContent = tfs ? formatTime(tfs.seconds) : '—';
+		}
+
+		const failEl = document.getElementById('time-to-fail');
+		if (failEl) {
+			failEl.textContent = tff ? formatTime(tff.seconds) : '—';
+		}
+
+		const thinkEl = document.getElementById('thinking-time');
+		const subEl = document.getElementById('thinking-time-sub');
+		if (thinkEl) {
+			if (think) {
+				thinkEl.textContent = formatTime(think.seconds);
+				thinkEl.style.fontSize = '';
+				thinkEl.style.color = '';
+				if (subEl) subEl.style.display = 'none';
+			} else {
+				thinkEl.textContent = '—';
+				thinkEl.style.fontSize = '1rem';
+				thinkEl.style.color = 'var(--gray)';
+				if (subEl) subEl.style.display = '';
+			}
+		}
 	}
 
-	if (data.time_to_first_fail) {
-		document.getElementById('time-to-fail').textContent =
-			formatTime(data.time_to_first_fail.seconds);
+	if (toggleTotal && toggleActive) {
+		toggleTotal.onclick = () => {
+			toggleTotal.classList.add('active');
+			toggleActive.classList.remove('active');
+			renderTimeMetrics();
+		};
+		toggleActive.onclick = () => {
+			toggleActive.classList.add('active');
+			toggleTotal.classList.remove('active');
+			renderTimeMetrics();
+		};
 	}
 
-	if (data.thinking_time) {
-		const el = document.getElementById('thinking-time');
-		el.textContent = formatTime(data.thinking_time.seconds);
-		el.style.fontSize = '';
-		el.style.color = '';
-		const sub = document.getElementById('thinking-time-sub');
-		if (sub) sub.style.display = 'none';
-	}
+	renderTimeMetrics();
 
 	if (data.move_count !== null && data.move_count !== undefined) {
 		document.getElementById('move-count').textContent = data.move_count;
+	}
+
+	const exitsEl = document.getElementById('page-exits');
+	if (exitsEl) {
+		exitsEl.textContent = data.median_page_exits != null ? String(data.median_page_exits) : '—';
 	}
 }
 

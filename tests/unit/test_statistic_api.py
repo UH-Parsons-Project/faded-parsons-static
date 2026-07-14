@@ -657,3 +657,121 @@ class TestStatisticAPIIntegration:
         assert response.status_code == 200
         data = response.json()
         assert data["model_answer"] is None
+
+    async def test_get_statistics_on_page_vs_wall_clock(self, db_session, client,
+                                                        test_teacher, task_set, task):
+        """Test detailed calculation of wall-clock vs on-page metrics and exits."""
+        student = Student(username="new_analytics_student", email="analytics@example.com")
+        student.set_password("password123")
+        db_session.add(student)
+        await db_session.flush()
+
+        enrollment = StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id)
+        db_session.add(enrollment)
+        await db_session.flush()
+
+        task_enrollment = StudentTaskEnrollment(
+            student_id=student.id,
+            task_id=task.id,
+            task_set_id=task_set.id,
+            started_at=datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        )
+        db_session.add(task_enrollment)
+        await db_session.flush()
+
+        # Session 1: 10:00:00 to 10:01:00 (60s)
+        session1 = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc),
+            exited_at=datetime(2026, 1, 1, 10, 1, 0, tzinfo=timezone.utc),
+        )
+        # Session 2: 10:02:00 to 10:03:00 (60s)
+        session2 = TaskSession(
+            student_task_enrollment_id=task_enrollment.id,
+            entered_at=datetime(2026, 1, 1, 10, 2, 0, tzinfo=timezone.utc),
+            exited_at=datetime(2026, 1, 1, 10, 3, 0, tzinfo=timezone.utc),
+        )
+        db_session.add(session1)
+        db_session.add(session2)
+        await db_session.flush()
+
+        # Attempt 1 (Fail) at 10:02:40
+        attempt1 = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session2.id,
+            completed_at=datetime(2026, 1, 1, 10, 2, 40, tzinfo=timezone.utc),
+            success=False,
+            submitted_inputs={"code": "test fail"}
+        )
+        # Attempt 2 (Success) at 10:03:00
+        attempt2 = TaskAttempt(
+            student_id=student.id,
+            task_id=task.id,
+            student_task_enrollment_id=task_enrollment.id,
+            task_session_id=session2.id,
+            completed_at=datetime(2026, 1, 1, 10, 3, 0, tzinfo=timezone.utc),
+            success=True,
+            submitted_inputs={"code": "test success"}
+        )
+        db_session.add(attempt1)
+        db_session.add(attempt2)
+        await db_session.flush()
+
+        # First move event at 10:02:30 (first action time)
+        move_event = MoveEvent(
+            attempt_id=attempt1.id,
+            block_id="block_1",
+            from_container="source",
+            to_container="target",
+            from_index=0,
+            to_index=1,
+            from_indent=0,
+            to_indent=0,
+            event_time=datetime(2026, 1, 1, 10, 2, 30, tzinfo=timezone.utc)
+        )
+        db_session.add(move_event)
+        await db_session.commit()
+
+        # Request student-specific endpoint
+        response = await client.get(
+            f"/api/students/new_analytics_student/tasks/{task.id}/statistics?set_id={task_set.id}",
+            headers=_auth(test_teacher.username)
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        # Thinking time: wall-clock is 150s, on-page is 90s
+        assert data["thinking_time"]["seconds"] == 150.0
+        assert data["thinking_time_on_page"]["seconds"] == 90.0
+
+        # Success time: wall-clock is 180s, on-page is 120s
+        assert data["time_to_first_success"]["seconds"] == 180.0
+        assert data["time_to_first_success_on_page"]["seconds"] == 120.0
+
+        # Fail time: wall-clock is 160s, on-page is 100s
+        assert data["time_to_first_fail"]["seconds"] == 160.0
+        assert data["time_to_first_fail_on_page"]["seconds"] == 100.0
+
+        # Exits: student has 2 sessions, so 1 exit
+        assert data["median_page_exits"] == 1.0
+
+        # Request aggregate task statistics endpoint
+        agg_response = await client.get(
+            f"/api/tasks/{task.id}/statistics?task_set_code={task_set.unique_link_code}",
+            headers=_auth(test_teacher.username)
+        )
+        assert agg_response.status_code == 200
+        agg_data = agg_response.json()
+        assert agg_data["thinking_time"]["median"] == 150.0
+        assert agg_data["thinking_time_on_page"]["median"] == 90.0
+        assert agg_data["time_to_first_success"]["median"] == 180.0
+        assert agg_data["time_to_first_success_on_page"]["median"] == 120.0
+        assert agg_data["time_to_first_fail"]["median"] == 160.0
+        assert agg_data["time_to_first_fail_on_page"]["median"] == 100.0
+        assert agg_data["median_page_exits"] == 1.0
+        assert agg_data["min_page_exits"] == 1
+        assert agg_data["max_page_exits"] == 1
+        assert agg_data["avg_page_exits"] == 1.0
+

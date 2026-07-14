@@ -165,8 +165,18 @@
 
         <!-- Time metrics 2×2 -->
         <div class="card">
-          <div class="card-header static">
+          <div class="card-header static" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; padding-bottom:.5rem;">
             <span class="card-title">Time Metrics</span>
+            <div class="time-toggle-control" id="time-toggle-container" style="display:flex;">
+              <div class="toggle-segment" data-value="total" id="toggle-total" role="button" tabindex="0">
+                <span class="segment-title">Total / Wall-clock</span>
+                <span class="segment-desc">Includes off-page reading</span>
+              </div>
+              <div class="toggle-segment active" data-value="active" id="toggle-active" role="button" tabindex="0">
+                <span class="segment-title">Active / On-page</span>
+                <span class="segment-desc">Only active in task tab</span>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             <div class="metric-grid">
@@ -186,6 +196,10 @@
               <div class="metric-cell c-gray">
                 <div class="metric-lbl">Moves Made</div>
                 <div class="metric-val" id="move-count">—</div>
+              </div>
+              <div class="metric-cell c-gray" style="grid-column: span 2;">
+                <div class="metric-lbl">Page Exits</div>
+                <div class="metric-val" id="page-exits">—</div>
               </div>
             </div>
             <div id="empty-attempts-item" style="display:none;margin-top:.75rem;font-size:.78rem;color:var(--text-muted);">

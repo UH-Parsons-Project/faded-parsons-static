@@ -154,9 +154,21 @@
 
       <!-- Time metrics -->
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">Time Metrics</span>
-          <span style="font-size:.72rem;color:var(--text-muted);">box plot · all students</span>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <span class="card-title">Time Metrics</span>
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">box plot · all students</div>
+          </div>
+          <div class="time-toggle-control" id="time-toggle-container" style="margin-left:auto; display:flex;">
+            <div class="toggle-segment" data-value="total" id="toggle-total" role="button" tabindex="0">
+              <span class="segment-title">Total / Wall-clock</span>
+              <span class="segment-desc">Includes off-page reading</span>
+            </div>
+            <div class="toggle-segment active" data-value="active" id="toggle-active" role="button" tabindex="0">
+              <span class="segment-title">Active / On-page</span>
+              <span class="segment-desc">Only active in task tab</span>
+            </div>
+          </div>
         </div>
         <div class="card-body">
           <div class="time-chart">
@@ -262,6 +274,30 @@
             </div>
           </div>
 
+        </div>
+        <hr class="completion-divider">
+        <div class="avg-tries-strip" style="margin-top: 1rem;">
+          <div style="display:flex;justify-content:center;"><span class="avg-tries-label">Page exits</span></div>
+          <div class="avg-tries-cells">
+            <div class="avg-tries-cell">
+              <div class="avg-tries-cell-lbl">Min</div>
+              <div class="avg-tries-cell-val" id="page-exits-min">—</div>
+            </div>
+            <div class="avg-tries-cell is-avg">
+              <div class="avg-tries-cell-lbl">Avg</div>
+              <div class="avg-tries-cell-val" id="page-exits-avg">—</div>
+            </div>
+            <div class="avg-tries-cell">
+              <div class="avg-tries-cell-lbl">Max</div>
+              <div class="avg-tries-cell-val" id="page-exits-max">—</div>
+            </div>
+          </div>
+          <div class="avg-tries-bar-wrap" id="page-exits-bar-wrap" style="display:none">
+            <div class="avg-tries-bar-track">
+              <div class="avg-tries-bar-fill" id="page-exits-bar-fill"></div>
+              <div class="avg-tries-bar-marker" id="page-exits-bar-marker"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -181,30 +181,7 @@ async def get_student_task_statistics(
     enrollment_record = enrollment_result.scalar_one_or_none()
 
     thinking_time = None
-    if enrollment_record and enrollment_record.started_at:
-        first_move_stmt = (
-            select(func.min(MoveEvent.event_time))
-            .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
-            .join(Student, Student.id == TaskAttempt.student_id)
-            .where(Student.username == student_username)
-            .where(TaskAttempt.task_id == task_id)
-        )
-        first_edit_stmt = (
-            select(func.min(EditEvent.event_time))
-            .join(TaskAttempt, TaskAttempt.id == EditEvent.attempt_id)
-            .join(Student, Student.id == TaskAttempt.student_id)
-            .where(Student.username == student_username)
-            .where(TaskAttempt.task_id == task_id)
-        )
-        first_move_time = (await db.execute(first_move_stmt)).scalar()
-        first_edit_time = (await db.execute(first_edit_stmt)).scalar()
-
-        candidates = [t for t in [first_move_time, first_edit_time] if t is not None]
-        if candidates:
-            first_event_time = min(candidates)
-            seconds = (first_event_time - enrollment_record.started_at).total_seconds()
-            if seconds >= 0:
-                thinking_time = {"seconds": seconds}
+    thinking_time_on_page = None
 
     attempts_data = list(attempts_with_enrollments)
 
@@ -240,6 +217,7 @@ async def get_student_task_statistics(
     # Fetch all sessions for this student+task
     sessions_data = []
     total_time_seconds = None
+    task_sessions = []
     if enrollment_record:
         sessions_stmt = (
             select(TaskSession)
@@ -263,6 +241,49 @@ async def get_student_task_statistics(
         if total_secs > 0:
             total_time_seconds = total_secs
 
+        # Now compute thinking times
+        if enrollment_record.started_at:
+            first_move_stmt = (
+                select(func.min(MoveEvent.event_time))
+                .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
+                .join(Student, Student.id == TaskAttempt.student_id)
+                .where(Student.username == student_username)
+                .where(TaskAttempt.task_id == task_id)
+            )
+            first_edit_stmt = (
+                select(func.min(EditEvent.event_time))
+                .join(TaskAttempt, TaskAttempt.id == EditEvent.attempt_id)
+                .join(Student, Student.id == TaskAttempt.student_id)
+                .where(Student.username == student_username)
+                .where(TaskAttempt.task_id == task_id)
+            )
+            first_move_time = (await db.execute(first_move_stmt)).scalar()
+            first_edit_time = (await db.execute(first_edit_stmt)).scalar()
+
+            candidates = [t for t in [first_move_time, first_edit_time] if t is not None]
+            if candidates:
+                first_event_time = min(candidates)
+                # Normalize to naive
+                started_at_naive = enrollment_record.started_at.replace(tzinfo=None)
+                first_event_time_naive = first_event_time.replace(tzinfo=None)
+                seconds = (first_event_time_naive - started_at_naive).total_seconds()
+                if seconds >= 0:
+                    thinking_time = {"seconds": seconds}
+                    
+                    on_page_secs = 0.0
+                    for s in task_sessions:
+                        s_entered = s.entered_at.replace(tzinfo=None)
+                        if s_entered >= first_event_time_naive:
+                            break
+                        s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else first_event_time_naive
+                        start = max(s_entered, started_at_naive)
+                        end = min(s_exited, first_event_time_naive)
+                        if end > start:
+                            on_page_secs += (end - start).total_seconds()
+                    thinking_time_on_page = {"seconds": on_page_secs}
+
+    student_page_exits = float(max(0, len(task_sessions) - 1)) if task_sessions else 0.0
+
     if not attempts_data:
         return StudentTaskStatisticsResponse(
             task_name=task.title,
@@ -274,14 +295,18 @@ async def get_student_task_statistics(
             failed_attempts=0,
             empty_attempts=0,
             time_to_first_success=None,
+            time_to_first_success_on_page=None,
             time_to_first_fail=None,
+            time_to_first_fail_on_page=None,
             thinking_time=thinking_time,
+            thinking_time_on_page=thinking_time_on_page,
             move_count=move_count,
             attempts_detail=[],
             total_time_seconds=total_time_seconds,
             sessions=sessions_data,
             task_set_name=task_set.title,
             task_set_code=task_set.unique_link_code,
+            median_page_exits=student_page_exits,
         )
 
     successful_attempts = sum(1 for a, _ in attempts_data if a.success)
@@ -291,31 +316,46 @@ async def get_student_task_statistics(
         """Sum session durations up to target_dt (active page time only)."""
         if not target_dt or not task_sessions:
             return None
+        target_dt_naive = target_dt.replace(tzinfo=None)
         total = 0.0
         for s in task_sessions:
-            if s.entered_at >= target_dt:
+            s_entered = s.entered_at.replace(tzinfo=None)
+            if s_entered >= target_dt_naive:
                 break
-            end = min(s.exited_at, target_dt) if s.exited_at else target_dt
-            total += (end - s.entered_at).total_seconds()
+            s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else target_dt_naive
+            end = min(s_exited, target_dt_naive)
+            total += (end - s_entered).total_seconds()
         return total if total > 0 else None
 
     time_to_first_success = None
+    time_to_first_success_on_page = None
     first_success_pair = next(((a, en) for a, en in attempts_data if a.success), None)
     if first_success_pair:
         attempt, _ = first_success_pair
-        if attempt.completed_at:
-            secs = active_time_to(attempt.completed_at)
-            if secs is not None:
-                time_to_first_success = {"seconds": secs}
+        if attempt.completed_at and enrollment_record and enrollment_record.started_at:
+            attempt_completed_naive = attempt.completed_at.replace(tzinfo=None)
+            started_at_naive = enrollment_record.started_at.replace(tzinfo=None)
+            secs_wall = (attempt_completed_naive - started_at_naive).total_seconds()
+            if secs_wall >= 0:
+                time_to_first_success = {"seconds": secs_wall}
+            secs_active = active_time_to(attempt.completed_at)
+            if secs_active is not None:
+                time_to_first_success_on_page = {"seconds": secs_active}
 
     first_fail_pair = next(((a, en) for a, en in attempts_data if not a.success), None)
     time_to_first_fail = None
+    time_to_first_fail_on_page = None
     if first_fail_pair:
         attempt, _ = first_fail_pair
-        if attempt.completed_at:
-            secs = active_time_to(attempt.completed_at)
-            if secs is not None:
-                time_to_first_fail = {"seconds": secs}
+        if attempt.completed_at and enrollment_record and enrollment_record.started_at:
+            attempt_completed_naive = attempt.completed_at.replace(tzinfo=None)
+            started_at_naive = enrollment_record.started_at.replace(tzinfo=None)
+            secs_wall = (attempt_completed_naive - started_at_naive).total_seconds()
+            if secs_wall >= 0:
+                time_to_first_fail = {"seconds": secs_wall}
+            secs_active = active_time_to(attempt.completed_at)
+            if secs_active is not None:
+                time_to_first_fail_on_page = {"seconds": secs_active}
 
     attempts_detail = []
     for i, (attempt, enrollment) in enumerate(attempts_data, 1):
@@ -340,14 +380,18 @@ async def get_student_task_statistics(
         failed_attempts=failed_attempts,
         empty_attempts=empty_attempts_count,
         time_to_first_success=time_to_first_success,
+        time_to_first_success_on_page=time_to_first_success_on_page,
         time_to_first_fail=time_to_first_fail,
+        time_to_first_fail_on_page=time_to_first_fail_on_page,
         thinking_time=thinking_time,
+        thinking_time_on_page=thinking_time_on_page,
         move_count=move_count,
         attempts_detail=attempts_detail,
         total_time_seconds=total_time_seconds,
         sessions=sessions_data,
         task_set_name=task_set.title,
         task_set_code=task_set.unique_link_code,
+        median_page_exits=student_page_exits,
     )
 
 
@@ -449,8 +493,11 @@ async def get_task_statistics(
             "students_not_started": early_not_started,
             "avg_tries": 0,
             "time_to_first_fail": None,
+            "time_to_first_fail_on_page": None,
             "time_to_first_success": None,
+            "time_to_first_success_on_page": None,
             "thinking_time": None,
+            "thinking_time_on_page": None,
             "number_of_moves": None,
             "common_mistakes": [],
             "students": {
@@ -458,6 +505,10 @@ async def get_task_statistics(
                 "not_yet_completed": [],
                 "not_started": [{"name": n, "meta": ""} for n in early_not_started_names],
             },
+            "median_page_exits": 0.0,
+            "min_page_exits": None,
+            "max_page_exits": None,
+            "avg_page_exits": 0.0,
         }
 
     successful_attempts = [(a, ts) for a, ts in attempts_data if a.success]
@@ -482,13 +533,16 @@ async def get_task_statistics(
         """Sum session durations up to target_dt for a given enrollment."""
         if not target_dt:
             return None
+        target_dt_naive = target_dt.replace(tzinfo=None)
         slist = sessions_by_enrollment.get(enrollment_id, [])
         total = 0.0
         for s in slist:
-            if s.entered_at >= target_dt:
+            s_entered = s.entered_at.replace(tzinfo=None)
+            if s_entered >= target_dt_naive:
                 break
-            end = min(s.exited_at, target_dt) if s.exited_at else target_dt
-            total += (end - s.entered_at).total_seconds()
+            s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else target_dt_naive
+            end = min(s_exited, target_dt_naive)
+            total += (end - s_entered).total_seconds()
         return total if total > 0 else None
 
     student_attempts: dict = {}
@@ -499,7 +553,7 @@ async def get_task_statistics(
     for session_attempts in student_attempts.values():
         sorted_attempts = sorted(
             session_attempts,
-            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+            key=lambda pair: pair[0].completed_at.replace(tzinfo=None) if pair[0].completed_at else datetime.now().replace(tzinfo=None)
         )
         for idx, (attempt, _) in enumerate(sorted_attempts):
             if attempt.success:
@@ -511,37 +565,50 @@ async def get_task_statistics(
     max_tries = max(tries_before_success) if tries_before_success else None
 
     tff_values = []
+    tff_on_page_values = []
     for session_attempts in student_attempts.values():
         sorted_attempts = sorted(
             session_attempts,
-            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+            key=lambda pair: pair[0].completed_at.replace(tzinfo=None) if pair[0].completed_at else datetime.now().replace(tzinfo=None)
         )
         for attempt, enrollment in sorted_attempts:
             if not attempt.success and attempt.completed_at:
-                secs = active_time_to(enrollment.id, attempt.completed_at)
-                if secs is not None:
-                    tff_values.append(secs)
+                if enrollment.started_at:
+                    secs_wall = (attempt.completed_at.replace(tzinfo=None) - enrollment.started_at.replace(tzinfo=None)).total_seconds()
+                    if secs_wall >= 0:
+                        tff_values.append(secs_wall)
+                secs_active = active_time_to(enrollment.id, attempt.completed_at)
+                if secs_active is not None:
+                    tff_on_page_values.append(secs_active)
                 break
     tff = compute_box_stats(tff_values)
+    tff_on_page = compute_box_stats(tff_on_page_values)
 
     tfs_values = []
+    tfs_on_page_values = []
     for session_attempts in student_attempts.values():
         sorted_attempts = sorted(
             session_attempts,
-            key=lambda pair: pair[0].completed_at or datetime.now(timezone.utc)
+            key=lambda pair: pair[0].completed_at.replace(tzinfo=None) if pair[0].completed_at else datetime.now().replace(tzinfo=None)
         )
         for attempt, enrollment in sorted_attempts:
             if attempt.success and attempt.completed_at:
-                secs = active_time_to(enrollment.id, attempt.completed_at)
-                if secs is not None:
-                    tfs_values.append(secs)
+                if enrollment.started_at:
+                    secs_wall = (attempt.completed_at.replace(tzinfo=None) - enrollment.started_at.replace(tzinfo=None)).total_seconds()
+                    if secs_wall >= 0:
+                        tfs_values.append(secs_wall)
+                secs_active = active_time_to(enrollment.id, attempt.completed_at)
+                if secs_active is not None:
+                    tfs_on_page_values.append(secs_active)
                 break
 
     tfs = compute_box_stats(tfs_values)
+    tfs_on_page = compute_box_stats(tfs_on_page_values)
 
     # Thinking time: time from enrollment.started_at to first move/edit per student
     enrollment_ids_map = {en.id: en for _, en in attempts_data}
     thinking_values = []
+    thinking_on_page_values = []
     for enrollment in enrollment_ids_map.values():
         if not enrollment.started_at:
             continue
@@ -557,11 +624,29 @@ async def get_task_statistics(
         )
         candidates = [t for t in [first_move_res.scalar(), first_edit_res.scalar()] if t is not None]
         if candidates:
-            secs = (min(candidates) - enrollment.started_at).total_seconds()
+            first_event_time = min(candidates)
+            started_at_naive = enrollment.started_at.replace(tzinfo=None)
+            first_event_time_naive = first_event_time.replace(tzinfo=None)
+            secs = (first_event_time_naive - started_at_naive).total_seconds()
             if 0 <= secs < 3600:  # ignore implausible values
                 thinking_values.append(secs)
+                
+                # On-page thinking time: sum of active sessions prior to first event
+                on_page_secs = 0.0
+                slist = sessions_by_enrollment.get(enrollment.id, [])
+                for s in slist:
+                    s_entered = s.entered_at.replace(tzinfo=None)
+                    if s_entered >= first_event_time_naive:
+                        break
+                    s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else first_event_time_naive
+                    start = max(s_entered, started_at_naive)
+                    end = min(s_exited, first_event_time_naive)
+                    if end > start:
+                        on_page_secs += (end - start).total_seconds()
+                thinking_on_page_values.append(on_page_secs)
 
     thinking_time = compute_box_stats(thinking_values)
+    thinking_time_on_page = compute_box_stats(thinking_on_page_values)
 
     # Number of moves per student: avg/min/max
     move_counts_per_student = []
@@ -575,6 +660,26 @@ async def get_task_statistics(
         move_counts_per_student.append(cnt)
 
     number_of_moves = compute_box_stats(move_counts_per_student)
+
+    # Page exits per student (median/min/max/avg exits)
+    page_exits_list = []
+    for enrollment_id in enrollment_ids_map.keys():
+        slist = sessions_by_enrollment.get(enrollment_id, [])
+        exits = max(0, len(slist) - 1)
+        page_exits_list.append(exits)
+        
+    median_page_exits = 0.0
+    min_page_exits = min(page_exits_list) if page_exits_list else None
+    max_page_exits = max(page_exits_list) if page_exits_list else None
+    avg_page_exits = round(sum(page_exits_list) / len(page_exits_list), 2) if page_exits_list else 0.0
+
+    if page_exits_list:
+        sorted_exits = sorted(page_exits_list)
+        n_exits = len(sorted_exits)
+        if n_exits % 2 == 1:
+            median_page_exits = float(sorted_exits[n_exits // 2])
+        else:
+            median_page_exits = (sorted_exits[n_exits // 2 - 1] + sorted_exits[n_exits // 2]) / 2.0
 
     # Students enrolled in the task set but never attempted this task (not started)
     students_not_started = 0
@@ -653,8 +758,15 @@ async def get_task_statistics(
         "min_tries": min_tries,
         "max_tries": max_tries,
         "time_to_first_fail": tff,
+        "time_to_first_fail_on_page": tff_on_page,
         "time_to_first_success": tfs,
+        "time_to_first_success_on_page": tfs_on_page,
         "thinking_time": thinking_time,
+        "thinking_time_on_page": thinking_time_on_page,
+        "median_page_exits": median_page_exits,
+        "min_page_exits": min_page_exits,
+        "max_page_exits": max_page_exits,
+        "avg_page_exits": avg_page_exits,
         "number_of_moves": number_of_moves,
         "common_mistakes": common_mistakes,
         "students": {

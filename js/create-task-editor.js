@@ -307,14 +307,14 @@ initBurgerMenu();
       warningBox.innerHTML = `
         <div class="alert alert-info mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #0ea5e9; background-color: #f0f9ff; color: #0369a1;">
           <i class="fas fa-lock mr-2" style="color: #0ea5e9;"></i>
-          <strong>Private Task:</strong> This task is private and visible only to you (and teachers sharing task sets containing it). It will be removed if you delete your account (unless it is actively used in other teachers' shared task sets).
+          <strong>Private Task:</strong> This task is private and visible only to you.
         </div>
       `;
     } else {
       warningBox.innerHTML = `
         <div class="alert alert-success mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #10b981; background-color: #ecfdf5; color: #065f46;">
           <i class="fas fa-users mr-2" style="color: #10b981;"></i>
-          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students in our shared community! Please note that since others can use this task, it will remain active in the system even if your account is later removed.
+          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students. Please note that since others can use this task, it will remain active in the system even if your account is later removed.
         </div>
       `;
     }

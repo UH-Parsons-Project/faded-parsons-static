@@ -56,16 +56,16 @@ async function resolveNextTaskUrl() {
 
 	const currentTaskId = Number(globalTaskId);
 	const statuses = await Promise.all(
-		tasks.map(async (task) => {
-			const encodedTaskId = encodeURIComponent(task.id);
+		tasks.map(async (task, idx) => {
+			const taskNumber = idx + 1;
 
 			const [completionResp, startedResp] = await Promise.all([
 				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`,
+					`/api/sets/${globalUniqueLinkCode}/tasks/${taskNumber}/my-completion-status`,
 					{ credentials: 'include' }
 				),
 				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${encodedTaskId}/has-started`,
+					`/api/sets/${globalUniqueLinkCode}/tasks/${taskNumber}/has-started`,
 					{ credentials: 'include' }
 				),
 			]);
@@ -73,6 +73,7 @@ async function resolveNextTaskUrl() {
 			if (!completionResp.ok || !startedResp.ok) {
 				return {
 					taskId: task.id,
+					taskNumber: taskNumber,
 					isCompleted: false,
 					hasStarted: false,
 				};
@@ -83,6 +84,7 @@ async function resolveNextTaskUrl() {
 
 			return {
 				taskId: task.id,
+				taskNumber: taskNumber,
 				isCompleted: Number(completion.student_completed || 0) > 0,
 				hasStarted: Boolean(started.has_started),
 			};
@@ -90,7 +92,7 @@ async function resolveNextTaskUrl() {
 	);
 
 	const unfinished = statuses.filter(
-		(item) => !item.isCompleted && item.taskId !== currentTaskId
+		(item) => !item.isCompleted && item.taskNumber !== currentTaskId
 	);
 	if (unfinished.length === 0) {
 		return null;

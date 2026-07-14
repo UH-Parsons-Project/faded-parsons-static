@@ -63,6 +63,29 @@ a.btn:focus,
 	color: white;
 }
 
+a.btn-primary:link,
+a.btn-primary:visited,
+a.btn-secondary:link,
+a.btn-secondary:visited,
+a.btn-success:link,
+a.btn-success:visited,
+a.btn-danger:link,
+a.btn-danger:visited {
+	color: white;
+}
+
+a.btn-primary:hover,
+a.btn-primary:focus,
+a.btn-secondary:hover,
+a.btn-secondary:focus,
+a.btn-success:hover,
+a.btn-success:focus,
+a.btn-danger:hover,
+a.btn-danger:focus {
+	color: white;
+}
+
+
 /* WCAG AA: badge-success */
 .badge-success { background-color: #1e7e34 !important; }
 

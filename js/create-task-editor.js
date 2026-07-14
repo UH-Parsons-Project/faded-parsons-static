@@ -615,7 +615,16 @@ initBurgerMenu();
       return;
     }
 
-    const nextIndex = parsonsWidget.modified_lines.length;
+    const nextIndex = parsonsWidget.nextCustomIndex !== undefined
+      ? parsonsWidget.nextCustomIndex
+      : parsonsWidget.modified_lines.length;
+
+    if (parsonsWidget.nextCustomIndex !== undefined) {
+      parsonsWidget.nextCustomIndex++;
+    } else {
+      parsonsWidget.nextCustomIndex = nextIndex + 1;
+    }
+
     const lineObject = {
       widget: parsonsWidget,
       code,
@@ -1285,6 +1294,9 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
+      if (visibilityInput) {
+        visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
+      }
 
       const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
       if (savedModelAnswer.code) {

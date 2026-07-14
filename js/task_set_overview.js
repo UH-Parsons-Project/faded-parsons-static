@@ -129,6 +129,29 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 		.join('\n');
 }
 
+function buildStudentCompletionCsv(tasks, students) {
+	const headers = [
+		'Username',
+		'Email',
+		'Completed Tasks',
+		...tasks.map(task => task.title),
+	];
+
+	const rows = students.map(student => [
+		student.username,
+		student.email,
+		formatCsvNumber(student.completed_tasks ?? 0),
+		...(student.task_completion_flags || []).map(flag => String(flag ? 1 : 0)),
+	]);
+
+	const allRows = [headers, ...rows];
+	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
+
+	return allRows
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.join('\n');
+}
+
 async function fetchOverviewTaskStats(tasks, taskSet) {
 	if (!overviewTaskStatsPromise) {
 		overviewTaskStatsPromise = Promise.all(
@@ -172,6 +195,35 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 		if (button) {
 			button.disabled = false;
 			button.innerHTML = '<i class="fas fa-download"></i> Download CSV';
+		}
+	}
+}
+
+async function downloadStudentCompletionCsv(taskSet, tasks, students) {
+	const button = document.getElementById('download-task-set-teacher-csv-btn');
+	if (button) {
+		button.disabled = true;
+		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing CSV';
+	}
+
+	try {
+		const csv = buildStudentCompletionCsv(tasks, students);
+		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}_teacher_completions.csv`;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		console.error('Error generating teacher CSV:', error);
+		alert('Failed to generate teacher CSV export.');
+	} finally {
+		if (button) {
+			button.disabled = false;
+			button.innerHTML = '<i class="fas fa-download"></i> Download Teacher CSV';
 		}
 	}
 }
@@ -451,6 +503,12 @@ function renderListHeader(taskSet, tasks, students) {
 		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
 		    <i class="fas fa-download"></i> Download CSV
 		  </button>
+		  <button id="download-task-set-teacher-csv-btn"
+		     type="button"
+		     class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
+		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+		    <i class="fas fa-download"></i> Download Teacher CSV
+		  </button>
 		</div>
 		<div class="taskset-link-box">
 			<span id="link-code" class="taskset-link-text">${url}</span>
@@ -532,6 +590,9 @@ function renderListHeader(taskSet, tasks, students) {
 	setupExpiryEdit(taskSet, isOwner);
 	document.getElementById('download-task-set-csv-btn')?.addEventListener('click', () => {
 		downloadTaskSetCsv(taskSet, tasks, students);
+	});
+	document.getElementById('download-task-set-teacher-csv-btn')?.addEventListener('click', () => {
+		downloadStudentCompletionCsv(taskSet, tasks, students);
 	});
 
 	const copyBtn = document.getElementById('copy-btn');

@@ -91,6 +91,7 @@ body {
 .taskset-action-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: .35rem;
   white-space: nowrap;
 }

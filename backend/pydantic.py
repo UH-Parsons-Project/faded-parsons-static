@@ -69,10 +69,13 @@ class StudentLoginRequest(BaseModel):
     unique_link_code: str | None = None
 class StudentInTaskSetResponse(BaseModel):
     username: str
+    email: str
     started_at: str
     last_activity_at: str
     total_attempts: int
     tasks_attempted: int
+    completed_tasks: int
+    task_completion_flags: list[int]
 
 
 class StudentTaskAttemptResponse(BaseModel):

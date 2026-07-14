@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, and_, or_
+from sqlalchemy import select, delete, func, and_, or_, case
 import json
 
 from ...database import get_db
@@ -521,43 +521,61 @@ async def get_task_set_students(
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     await require_task_set_view_access(task_set, current_user, db)
 
-    task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == task_set_id)
+    task_ids_stmt = (
+        select(TaskSetItem.task_id)
+        .where(TaskSetItem.task_set_id == task_set_id)
+        .order_by(TaskSetItem.id.asc())
+    )
 
     async def _handler(task_ids):
+        task_completion_columns = [
+            func.max(
+                case(
+                    (and_(StudentTaskEnrollment.task_id == task_id, TaskAttempt.success.is_(True)), 1),
+                    else_=0,
+                )
+            ).label(f'task_{task_id}_completed')
+            for task_id in task_ids
+        ]
+
         stmt = (
             select(
                 Student.username,
+                Student.email,
                 StudentTaskSetEnrollment.enrolled_at.label('started_at'),
                 func.max(TaskAttempt.completed_at).label('last_activity_at'),
                 func.count(TaskAttempt.id).label('total_attempts'),
-                func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted')
+                func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted'),
+                *task_completion_columns,
             )
             .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
+            .outerjoin(StudentTaskEnrollment, and_(
+                StudentTaskEnrollment.student_id == Student.id,
+                StudentTaskEnrollment.task_set_id == task_set_id,
+                StudentTaskEnrollment.task_id.in_(task_ids),
+            ))
             .outerjoin(TaskAttempt, and_(
+                TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id,
                 TaskAttempt.student_id == Student.id,
-                TaskAttempt.task_id.in_(task_ids),
-                TaskAttempt.task_id.in_(
-                    select(StudentTaskEnrollment.task_id).where(
-                        (StudentTaskEnrollment.student_id == Student.id) &
-                        (StudentTaskEnrollment.task_set_id == task_set_id)
-                    )
-                )
             ))
             .where(Student.username.isnot(None))
-            .group_by(Student.id, Student.username, StudentTaskSetEnrollment.enrolled_at)
+            .group_by(Student.id, Student.username, Student.email, StudentTaskSetEnrollment.enrolled_at)
             .order_by(func.max(TaskAttempt.completed_at).desc())
         )
 
         result = await db.execute(stmt)
-        students = result.all()
+        students = result.mappings().all()
 
         return [
             StudentInTaskSetResponse(
-                username=student.username,
-                started_at=student.started_at.isoformat(),
-                last_activity_at=student.last_activity_at.isoformat() if student.last_activity_at else student.started_at.isoformat(),
-                total_attempts=student.total_attempts,
-                tasks_attempted=student.tasks_attempted
+                username=student['username'],
+                email=student['email'],
+                started_at=student['started_at'].isoformat(),
+                last_activity_at=student['last_activity_at'].isoformat() if student['last_activity_at'] else student['started_at'].isoformat(),
+                total_attempts=student['total_attempts'],
+                tasks_attempted=student['tasks_attempted'],
+                completed_tasks=sum(int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids),
+                task_completion_flags=[int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids],
             )
             for student in students
         ]

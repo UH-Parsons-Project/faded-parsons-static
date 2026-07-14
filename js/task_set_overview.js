@@ -45,6 +45,189 @@ function makeKeyActivatable(el, handler) {
 	});
 }
 
+let overviewTaskStatsPromise = null;
+
+function formatCsvNumber(value) {
+	if (value === null || value === undefined || Number.isNaN(value)) return '';
+	return String(value);
+}
+
+function formatCsvPercent(value, total) {
+	if (!total) return '';
+	return formatCsvNumber(Math.round((value / total) * 10000) / 100);
+}
+
+function pipeCell(value, width) {
+	const text = value === null || value === undefined ? '' : String(value);
+	return text.padEnd(width, ' ');
+}
+
+function buildTaskSetCsv(tasks, taskStats, totalStudents) {
+	const headers = [
+		'Task Name',
+		'Task Type',
+		'Tries Count',
+		'Tries % of Enrolled',
+		'Completions Count',
+		'Completions % of Enrolled',
+		'Thinking Time Mean',
+		'Thinking Time Median',
+		'Thinking Time Min',
+		'Thinking Time Max',
+		'Time to First Success Mean',
+		'Time to First Success Median',
+		'Time to First Success Min',
+		'Time to First Success Max',
+		'Time to First Fail Mean',
+		'Time to First Fail Median',
+		'Time to First Fail Min',
+		'Time to First Fail Max',
+		'Moves Mean',
+		'Moves Median',
+		'Moves Min',
+		'Moves Max',
+	];
+
+	const rows = tasks.map((task, index) => {
+		const stats = taskStats[index] || {};
+		const thinkingTime = stats.thinking_time || {};
+		const timeToFirstSuccess = stats.time_to_first_success || {};
+		const timeToFirstFail = stats.time_to_first_fail || {};
+		const moves = stats.number_of_moves || {};
+
+		return [
+			task.title,
+			task.task_type,
+			formatCsvNumber(stats.students_attempted ?? 0),
+			formatCsvPercent(stats.students_attempted ?? 0, totalStudents),
+			formatCsvNumber(stats.students_completed ?? 0),
+			formatCsvPercent(stats.students_completed ?? 0, totalStudents),
+			formatCsvNumber(thinkingTime.avg),
+			formatCsvNumber(thinkingTime.median),
+			formatCsvNumber(thinkingTime.min),
+			formatCsvNumber(thinkingTime.max),
+			formatCsvNumber(timeToFirstSuccess.avg),
+			formatCsvNumber(timeToFirstSuccess.median),
+			formatCsvNumber(timeToFirstSuccess.min),
+			formatCsvNumber(timeToFirstSuccess.max),
+			formatCsvNumber(timeToFirstFail.avg),
+			formatCsvNumber(timeToFirstFail.median),
+			formatCsvNumber(timeToFirstFail.min),
+			formatCsvNumber(timeToFirstFail.max),
+			formatCsvNumber(moves.avg),
+			formatCsvNumber(moves.median),
+			formatCsvNumber(moves.min),
+			formatCsvNumber(moves.max),
+		];
+	});
+
+	const allRows = [headers, ...rows];
+	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
+
+	return allRows
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.join('\n');
+}
+
+function buildStudentCompletionCsv(tasks, students) {
+	const headers = [
+		'Username',
+		'Email',
+		'Completed Tasks',
+		...tasks.map(task => task.title),
+	];
+
+	const rows = students.map(student => [
+		student.username,
+		student.email,
+		formatCsvNumber(student.completed_tasks ?? 0),
+		...(student.task_completion_flags || []).map(flag => String(flag ? 1 : 0)),
+	]);
+
+	const allRows = [headers, ...rows];
+	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
+
+	return allRows
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.join('\n');
+}
+
+async function fetchOverviewTaskStats(tasks, taskSet) {
+	if (!overviewTaskStatsPromise) {
+		overviewTaskStatsPromise = Promise.all(
+			tasks.map(task =>
+				fetch(`/api/tasks/${task.id}/statistics?task_set_code=${encodeURIComponent(taskSet.unique_link_code)}`, { credentials: 'include' })
+					.then(response => response.ok ? response.json() : null)
+					.catch(() => null)
+			)
+		).catch(error => {
+			overviewTaskStatsPromise = null;
+			throw error;
+		});
+	}
+
+	return overviewTaskStatsPromise;
+}
+
+async function downloadTaskSetCsv(taskSet, tasks, students) {
+	const button = document.getElementById('download-task-set-csv-btn');
+	if (button) {
+		button.disabled = true;
+		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing CSV';
+	}
+
+	try {
+		const taskStats = await fetchOverviewTaskStats(tasks, taskSet);
+		const csv = buildTaskSetCsv(tasks, taskStats, students.length);
+		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}.csv`;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		console.error('Error generating CSV:', error);
+		alert('Failed to generate CSV export.');
+	} finally {
+		if (button) {
+			button.disabled = false;
+			button.innerHTML = '<i class="fas fa-download"></i> Download CSV';
+		}
+	}
+}
+
+async function downloadStudentCompletionCsv(taskSet, tasks, students) {
+	const button = document.getElementById('download-task-set-teacher-csv-btn');
+	if (button) {
+		button.disabled = true;
+		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing CSV';
+	}
+
+	try {
+		const csv = buildStudentCompletionCsv(tasks, students);
+		const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}_teacher_completions.csv`;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		console.error('Error generating teacher CSV:', error);
+		alert('Failed to generate teacher CSV export.');
+	} finally {
+		if (button) {
+			button.disabled = false;
+			button.innerHTML = '<i class="fas fa-download"></i> Download Teacher CSV';
+		}
+	}
+}
+
 async function fetchJsonWithError(path, failureMessage) {
 	const response = await fetch(path, { credentials: 'include' });
 	if (!response.ok) {
@@ -276,9 +459,6 @@ function renderListHeader(taskSet, tasks, students) {
 	container.className = '';
 
 	const url = `${window.location.protocol}//${window.location.host}/${encodeURIComponent(taskSet.owner_username)}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
-	const expiryPart = taskSet.expires_at
-		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
-		: '';
 
 	// Compute stats
 	const studentCount = students.length;
@@ -310,11 +490,25 @@ function renderListHeader(taskSet, tasks, students) {
 	let leftHTML = `
 		<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;">
 		  <div class="taskset-page-title" style="margin-bottom:0">${escapeHtml(taskSet.title)}</div>
+		</div>
+		<div class="taskset-actions-row">
 		  <a href="/heatmap?set_id=${setId}"
-		     class="btn btn-sm"
+		     class="btn btn-sm taskset-action-btn"
 		     style="background:var(--brand);border:1.5px solid var(--brand-dark);color:var(--brand-text);font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
 		    Completion Heatmap <i class="fas fa-arrow-right"></i>
 		  </a>
+		  <button id="download-task-set-csv-btn"
+		     type="button"
+		     class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
+		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+		    <i class="fas fa-download"></i> Download CSV
+		  </button>
+		  <button id="download-task-set-teacher-csv-btn"
+		     type="button"
+		     class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
+		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+		    <i class="fas fa-download"></i> Download Teacher CSV
+		  </button>
 		</div>
 		<div class="taskset-link-box">
 			<span id="link-code" class="taskset-link-text">${url}</span>
@@ -394,6 +588,12 @@ function renderListHeader(taskSet, tasks, students) {
 
 	setupViewerSharing();
 	setupExpiryEdit(taskSet, isOwner);
+	document.getElementById('download-task-set-csv-btn')?.addEventListener('click', () => {
+		downloadTaskSetCsv(taskSet, tasks, students);
+	});
+	document.getElementById('download-task-set-teacher-csv-btn')?.addEventListener('click', () => {
+		downloadStudentCompletionCsv(taskSet, tasks, students);
+	});
 
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');
@@ -534,13 +734,7 @@ function createTaskItem(task, taskSet, isOwner) {
 }
 
 async function loadTaskStats(tasks, taskSet, enrolledCount) {
-	const results = await Promise.all(
-		tasks.map(task =>
-			fetch(`/api/tasks/${task.id}/statistics?task_set_code=${encodeURIComponent(taskSet.unique_link_code)}`, { credentials: 'include' })
-				.then(r => r.ok ? r.json() : null)
-				.catch(() => null)
-		)
-	);
+	const results = await fetchOverviewTaskStats(tasks, taskSet);
 	tasks.forEach((task, i) => {
 		const el = document.getElementById(`task-stats-${task.id}`);
 		if (!el) return;
@@ -717,6 +911,7 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 		fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students'),
 	]))
 	.then(([taskSet, tasks, students]) => {
+		overviewTaskStatsPromise = null;
 	renderListHeader(taskSet, tasks, students);
 	renderTasks(tasks, taskSet);
 	renderStudents(students);

@@ -81,6 +81,37 @@ body {
   gap: 2rem;
 }
 .header-left { flex: 1; min-width: 0; }
+.taskset-actions-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .55rem;
+}
+.taskset-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  white-space: nowrap;
+}
+.taskset-action-btn-csv {
+  background: #334155;
+  border: 1.5px solid #334155;
+  color: #fff;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.taskset-action-btn-csv:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.taskset-action-btn-csv:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+  transform: none;
+}
 .header-viewers {
   flex-shrink: 0;
   width: 190px;

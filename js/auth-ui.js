@@ -375,11 +375,11 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Call logout endpoint to clear cookie
 			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
-			
+
 			// Hide user info elements immediately
 			const userInfo = document.getElementById('user-info');
 			if (userInfo) userInfo.style.display = 'none';
-			
+
 			// Hide user-name span and logout button if not in user-info div
 			const userNameSpan = document.querySelector('#user-name')?.parentElement;
 			if (userNameSpan && !userInfo?.contains(userNameSpan)) {
@@ -388,7 +388,7 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			if (logoutBtn && !userInfo?.contains(logoutBtn)) {
 				logoutBtn.style.display = 'none';
 			}
-			
+
 			// Redirect with cache-busting query parameter to force page reload
 			window.location.href = loginPageUrl + '?' + new Date().getTime();
 		});
@@ -566,4 +566,405 @@ export function initBurgerMenu() {
 			toggle.setAttribute('aria-expanded', 'false');
 		}
 	});
+}
+
+/**
+ * Dynamic CDN loader for Driver.js
+ */
+async function loadDriverJSAndCSS() {
+	return new Promise((resolve, reject) => {
+		// Check and load CSS
+		if (!document.querySelector('link[href*="driver.css"]')) {
+			const link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css';
+			document.head.appendChild(link);
+		}
+
+		// Check if script is already loaded
+		if (window.driver && window.driver.js && window.driver.js.driver) {
+			resolve();
+			return;
+		}
+
+		const script = document.createElement('script');
+		script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js';
+		script.onload = () => {
+			if (window.driver && window.driver.js && window.driver.js.driver) {
+				resolve();
+			} else {
+				reject(new Error('Driver.js global object not found after loading'));
+			}
+		};
+		script.onerror = () => reject(new Error('Failed to load Driver.js script'));
+		document.body.appendChild(script);
+	});
+}
+
+/**
+ * Path check helper for teacher-oriented views
+ */
+function shouldShowHelpTour(pathname) {
+	const teacherPaths = [
+		'/teacher-dashboard',
+		'/create-task',
+		'/create-task-editor',
+		'/create-task-set',
+		'/global-statistics',
+		'/all-tasksets',
+		'/all-users',
+		'/admin-dashboard',
+		'/task-set-overview',
+		'/teacher/profile',
+		'/task-statistics'
+	];
+	return teacherPaths.some(p => pathname.startsWith(p));
+}
+
+/**
+ * Return Driver.js steps configured specifically for the active pathname
+ */
+function getTourStepsForPath(pathname) {
+	// Dashboard Tour
+	if (pathname.startsWith('/teacher-dashboard')) {
+		const dashboardSteps = [
+			{
+				element: '.page-header',
+				popover: {
+					title: 'Teacher Dashboard',
+					description: 'Welcome to your main workspace! Here you can create tasks, manage your task sets, and monitor student progress.',
+					side: 'bottom'
+				}
+			}
+		];
+
+		// Check if admin dashboard button is visible
+		const adminBtn = document.getElementById('all-sets-button');
+		if (adminBtn && window.getComputedStyle(adminBtn).display !== 'none') {
+			dashboardSteps.push({
+				element: '#all-sets-button',
+				popover: {
+					title: 'Admin Controls',
+					description: 'As an administrator, click here to access the Admin Dashboard to manage users, task sets and see usage data.',
+					side: 'bottom'
+				}
+			});
+		}
+
+		dashboardSteps.push(
+			{
+				element: '#global-stats-btn',
+				popover: {
+					title: 'Global Statistics',
+					description: 'Access all public tasks, view global statistics and find the right tasks for your own task sets.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#instructions-btn',
+				popover: {
+					title: 'Help Documentation',
+					description: 'Access the general more detailed instructions for using the Parsons Code Lab.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-sets-container',
+				popover: {
+					title: 'My Task Sets',
+					description: 'Here are all the task sets you have created or have been shared with you. Search for a specific task set by task set title.',
+					side: 'right'
+				}
+			}
+		);
+
+		// Conditional step: highlight first created task set if it exists
+		const firstTaskSetItem = document.querySelector('#task-sets-container .task-set-item');
+		if (firstTaskSetItem) {
+			dashboardSteps.push({
+				element: firstTaskSetItem,
+				popover: {
+					title: 'Created Task Set',
+					description: 'Here is one of your created task sets. Click it to access the task set overview, or copy the URL to share it with your students.',
+					side: 'right'
+				}
+			});
+		}
+
+		dashboardSteps.push(
+			{
+				element: '#your-tasks-container',
+				popover: {
+					title: 'My Tasks List',
+					description: 'View, edit, and preview all the individual programming tasks you have created. Tasks can be edited or deleted if they are not yet in use.',
+					side: 'left'
+				}
+			}
+		);
+
+		// Conditional step: highlight first created task if it exists
+		const firstTaskItem = document.querySelector('#your-tasks-container .task-set-item');
+		if (firstTaskItem) {
+			dashboardSteps.push({
+				element: firstTaskItem,
+				popover: {
+					title: 'Created Task',
+					description: 'Here is one of your created tasks. Click it to preview the task how students will see it. You can also edit or delete it if not in use, or access the Global statistics of the task(not limited to your students).',
+					side: 'left'
+				}
+			});
+		}
+
+		dashboardSteps.push(
+			{
+				element: '.navbar .ml-auto',
+				popover: {
+					title: 'Account Settings',
+					description: 'Change profile settings, access all quick links, or sign out of your account.',
+					side: 'left'
+				}
+			}
+		);
+
+		return dashboardSteps;
+	}
+
+	// Create Task Set Tour
+	if (pathname.startsWith('/create-task-set')) {
+		return [
+			{
+				element: '.create-task-set-container h1',
+				popover: {
+					title: 'Create Task Set',
+					description: 'Group multiple tasks together for a specific class or assignment.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-set-title',
+				popover: {
+					title: 'Task Set Title',
+					description: 'Enter a descriptive title for your student group (e.g., "Python Basics Week 1").',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#student-description',
+				popover: {
+					title: 'Student Descriptions',
+					description: 'Add an optional description visible to students on their starting page.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#viewer-identifiers',
+				popover: {
+					title: 'Collaborating Teachers',
+					description: 'Enter usernames or emails of other teachers to grant them viewing rights to this task set.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#set-expiration',
+				popover: {
+					title: 'Deadline Expiration',
+					description: 'Check this box and specify a date/time if you want this task set to close automatically at a deadline.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-selector',
+				popover: {
+					title: 'Select Exercises',
+					description: 'Select the coding problems you want to include in this set. You can preview exercises here too.',
+					side: 'top'
+				}
+			},
+			{
+				element: 'button[type="submit"]',
+				popover: {
+					title: 'Save and Deploy',
+					description: 'Click "Create Task Set" to save and generate a unique student join link.',
+					side: 'top'
+				}
+			}
+		];
+	}
+
+	// Create Task (Plain Editor) Tour
+	if (pathname.startsWith('/create-task') && !pathname.startsWith('/create-task-editor')) {
+		return [
+			{
+				element: '.page-title',
+				popover: {
+					title: 'Create a New Task',
+					description: 'Define the programming exercise and write unit tests to validate student answers.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-code',
+				popover: {
+					title: 'Task Code Model Solution',
+					description: 'Write the complete model solution in Python here. Students will rearrange these lines to reconstruct this code.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-tests',
+				popover: {
+					title: 'Unit Test Cases',
+					description: 'Write Python tests to validate the student\'s code. Standard unittest or assert statements work here.',
+					side: 'top'
+				}
+			},
+			{
+				element: '#submit-task',
+				popover: {
+					title: 'Continue to Block Builder',
+					description: 'Save your code and tests to advance to the next step, where you configure custom code blocks.',
+					side: 'top'
+				}
+			}
+		];
+	}
+
+	// Create Task Editor / Block Builder Tour
+	if (pathname.startsWith('/create-task-editor')) {
+		return [
+			{
+				element: '.card-header',
+				popover: {
+					title: 'Block Builder & Instructions',
+					description: 'In this second phase, you write exercise instructions and customize the draggable code blocks.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#task-title',
+				popover: {
+					title: 'Task Title',
+					description: 'Enter a descriptive title for this coding exercise.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#problem-description',
+				popover: {
+					title: 'Problem Description',
+					description: 'Write clear instructions for students explaining what the function is supposed to do.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#start-description',
+				popover: {
+					title: 'Start Page Introduction',
+					description: 'Write a short description displayed to students before starting the exercise.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#submit-task',
+				popover: {
+					title: 'Validate and Publish',
+					description: 'Click this button once all your tests pass to save the task to the global exercises pool.',
+					side: 'top'
+				}
+			}
+		];
+	}
+
+	// Fallback Tour
+	return [
+		{
+			element: '.navbar',
+			popover: {
+				title: 'Need Help?',
+				description: 'Access the global menu or navigate to the comprehensive instructions manual for complete guidance.',
+				side: 'bottom'
+			}
+		}
+	];
+}
+
+/**
+ * Injects and initializes the global tour widget
+ */
+function initGlobalHelpTour() {
+	if (!shouldShowHelpTour(window.location.pathname)) {
+		return;
+	}
+
+	// Check if already injected
+	if (document.getElementById('floating-help-btn')) {
+		return;
+	}
+
+	// Injects style
+	const style = document.createElement('style');
+	style.textContent = `
+		.floating-help-btn {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			background: #2b2b2b;
+			color: #ffffff;
+			border: 2px solid #ffffff;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.1rem;
+			z-index: 9999;
+			transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+		}
+		.floating-help-btn:hover {
+			background: #111111;
+			transform: scale(1.08);
+			box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+			outline: none;
+		}
+		.floating-help-btn:focus {
+			outline: none;
+		}
+	`;
+	document.head.appendChild(style);
+
+	// Injects button
+	const btn = document.createElement('button');
+	btn.id = 'floating-help-btn';
+	btn.className = 'floating-help-btn';
+	btn.title = 'Start Help Tour';
+	btn.innerHTML = '<i class="fas fa-question"></i>';
+	document.body.appendChild(btn);
+
+	btn.addEventListener('click', async () => {
+		btn.disabled = true;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+		try {
+			await loadDriverJSAndCSS();
+			const driverObj = window.driver.js.driver({
+				showProgress: true,
+				steps: getTourStepsForPath(window.location.pathname)
+			});
+			driverObj.drive();
+		} catch (err) {
+			console.error('Failed to launch help tour:', err);
+		} finally {
+			btn.disabled = false;
+			btn.innerHTML = '<i class="fas fa-question"></i>';
+		}
+	});
+}
+
+// Automatically bind to DOMContentLoaded to run dynamic widget injection
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', initGlobalHelpTour);
+} else {
+	initGlobalHelpTour();
 }

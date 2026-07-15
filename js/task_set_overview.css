@@ -69,6 +69,7 @@ body {
 
 /* ── Page header ─────────────────────────────────────── */
 .page-header {
+  width: 100%;
   padding: 1.25rem 2.5rem .75rem;
   border-bottom: 1px solid var(--border);
   max-width: 1600px;
@@ -311,6 +312,7 @@ body {
 
 /* ── Main layout ─────────────────────────────────────── */
 .overview-main {
+  width: 100%;
   padding: 1.25rem 2.5rem 3rem;
   max-width: 1600px;
   margin-left: auto;
@@ -616,7 +618,7 @@ h3.mb-3 {
   border-radius: var(--radius); box-shadow: var(--shadow-md); overflow: hidden;
 }
 .hm-scroll { overflow-x: auto; }
-#heatmap-main { max-width: 1600px; }
+#heatmap-main { width: 100%; max-width: 1600px; }
 
 /* Table base */
 .hm-table {

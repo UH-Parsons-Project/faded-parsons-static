@@ -7,7 +7,7 @@ initBurgerMenu();
 
 // Load user info
 const userNameEl = document.getElementById('user-name');
-const allSetsButtonContainer = document.getElementById('all-sets-button-container');
+const allSetsButton = document.getElementById('all-sets-button');
 let currentUsername = null;
 
 async function loadCurrentUser() {
@@ -23,7 +23,7 @@ async function loadCurrentUser() {
 			localStorage.setItem('username', data.username);
 		}
 		if (data?.is_admin_teacher) {
-			allSetsButtonContainer.style.display = 'block';
+			allSetsButton.style.display = 'inline-block';
 		}
 	} catch (error) {
 		console.error(error);

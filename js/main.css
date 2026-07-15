@@ -967,6 +967,7 @@ test-results-element {
 }
 
 .create-task-set-container {
+  width: 100%;
   max-width: 1000px;
   margin: 2rem auto;
 }

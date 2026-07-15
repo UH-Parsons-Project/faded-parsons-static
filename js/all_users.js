@@ -1,7 +1,8 @@
-import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+import {initProtectedPage, initSignedInAs, initBurgerMenu} from '/js/auth-ui.js';
 
 initProtectedPage('/');
 initSignedInAs();
+initBurgerMenu();
 
 const userNameEl = document.getElementById('user-name');
 const storedUsername = localStorage.getItem('username');
@@ -91,6 +92,16 @@ function renderUsers() {
 	filteredUsers.forEach(user => {
 		const card = document.createElement('div');
 		card.className = 'user-card';
+		if (user.role === 'teacher') {
+			card.style.cursor = 'pointer';
+			card.title = `Click to view ${user.username}'s dashboard`;
+			card.addEventListener('click', (e) => {
+				if (e.target.closest('button') || e.target.closest('.fa-trash-alt')) {
+					return;
+				}
+				window.location.href = `/admin/admins_teacher_view?teacher_id=${user.id}`;
+			});
+		}
 
 		const headerDiv = document.createElement('div');
 		headerDiv.className = 'd-flex justify-content-between align-items-center mb-2';

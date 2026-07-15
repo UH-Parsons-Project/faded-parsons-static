@@ -468,6 +468,10 @@ async function loadStatistics() {
 	if (totalInSet > 0) {
 		document.getElementById('kpi-not-started-denom').textContent = ` / ${totalInSet}`;
 	}
+	const medianExitsEl = document.getElementById('median-page-exits');
+	if (medianExitsEl) {
+		medianExitsEl.textContent = data.median_page_exits != null ? data.median_page_exits : '—';
+	}
 
 	// Sidebar
 	updateSidebar(studentsCompleted, studentsNotYetCompleted, studentsNotStarted, totalInSet, data.students);
@@ -490,6 +494,28 @@ async function loadStatistics() {
 			barWrap.style.display = '';
 			const range = maxTries - minTries;
 			const avgPct = ((data.avg_tries - minTries) / range) * 100;
+			fill.style.width = `${avgPct}%`;
+			marker.style.left = `${avgPct}%`;
+		}
+	}
+
+	// Page exits min/avg/max rendering
+	const avgExitsEl = document.getElementById('page-exits-avg');
+	if (avgExitsEl) avgExitsEl.textContent = data.avg_page_exits != null ? data.avg_page_exits : '—';
+	const minExits = data.min_page_exits ?? null;
+	const maxExits = data.max_page_exits ?? null;
+	const minExitsEl = document.getElementById('page-exits-min');
+	const maxExitsEl = document.getElementById('page-exits-max');
+	if (minExitsEl) minExitsEl.textContent = minExits != null ? minExits : '—';
+	if (maxExitsEl) maxExitsEl.textContent = maxExits != null ? maxExits : '—';
+	if (minExits != null && maxExits != null && maxExits > minExits) {
+		const barWrap = document.getElementById('page-exits-bar-wrap');
+		const fill = document.getElementById('page-exits-bar-fill');
+		const marker = document.getElementById('page-exits-bar-marker');
+		if (barWrap && fill && marker) {
+			barWrap.style.display = '';
+			const range = maxExits - minExits;
+			const avgPct = ((data.avg_page_exits - minExits) / range) * 100;
 			fill.style.width = `${avgPct}%`;
 			marker.style.left = `${avgPct}%`;
 		}
@@ -542,22 +568,50 @@ async function loadStatistics() {
 	});
 
 	// Time metrics
-	const tff = data.time_to_first_fail;
-	const tfs = data.time_to_first_success;
-	const think = data.thinking_time;
+	function renderTimeCharts() {
+		const activeOnly = document.getElementById('toggle-active')?.classList.contains('active') || false;
 
-	if (tff) {
-		document.getElementById('tff-metric').style.opacity = '';
-		renderBoxPlot('bp-tff', tff, { name: 'Time to First Fail', color: '#dc2626', colorLight: '#fee2e2', colorDark: '#7f1d1d', fmt: formatTime });
+		const tff = activeOnly ? data.time_to_first_fail_on_page : data.time_to_first_fail;
+		const tfs = activeOnly ? data.time_to_first_success_on_page : data.time_to_first_success;
+		const think = activeOnly ? data.thinking_time_on_page : data.thinking_time;
+
+		if (tff) {
+			document.getElementById('tff-metric').style.opacity = '';
+			renderBoxPlot('bp-tff', tff, { name: 'Time to First Fail', color: '#dc2626', colorLight: '#fee2e2', colorDark: '#7f1d1d', fmt: formatTime });
+		} else {
+			renderBoxPlot('bp-tff', null, { name: 'Time to First Fail', color: '#dc2626' });
+		}
+		if (tfs) {
+			document.getElementById('tfs-metric').style.opacity = '';
+			renderBoxPlot('bp-tfs', tfs, { name: 'Time to First Success', color: '#16a34a', colorLight: '#dcfce7', colorDark: '#14532d', fmt: formatTime });
+		} else {
+			renderBoxPlot('bp-tfs', null, { name: 'Time to First Success', color: '#16a34a' });
+		}
+		if (think) {
+			document.getElementById('thinking-time-metric').style.opacity = '';
+			renderBoxPlot('bp-think', think, { name: 'Thinking Time', color: '#7b8df0', colorLight: '#e0e7ff', colorDark: '#3730a3', fmt: formatTime });
+		} else {
+			renderBoxPlot('bp-think', null, { name: 'Thinking Time', color: '#7b8df0' });
+		}
 	}
-	if (tfs) {
-		document.getElementById('tfs-metric').style.opacity = '';
-		renderBoxPlot('bp-tfs', tfs, { name: 'Time to First Success', color: '#16a34a', colorLight: '#dcfce7', colorDark: '#14532d', fmt: formatTime });
+
+	renderTimeCharts();
+
+	const toggleTotal = document.getElementById('toggle-total');
+	const toggleActive = document.getElementById('toggle-active');
+	if (toggleTotal && toggleActive) {
+		toggleTotal.onclick = () => {
+			toggleTotal.classList.add('active');
+			toggleActive.classList.remove('active');
+			renderTimeCharts();
+		};
+		toggleActive.onclick = () => {
+			toggleActive.classList.add('active');
+			toggleTotal.classList.remove('active');
+			renderTimeCharts();
+		};
 	}
-	if (think) {
-		document.getElementById('thinking-time-metric').style.opacity = '';
-		renderBoxPlot('bp-think', think, { name: 'Thinking Time', color: '#7b8df0', colorLight: '#e0e7ff', colorDark: '#3730a3', fmt: formatTime });
-	}
+
 	if (data.number_of_moves) {
 		document.getElementById('moves-metric').style.opacity = '';
 		renderBoxPlot('bp-moves', data.number_of_moves, { name: 'Number of Moves', color: '#94a3b8', colorLight: '#e2e8f0', colorDark: '#334155', fmt: formatCount });

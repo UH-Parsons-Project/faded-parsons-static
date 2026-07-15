@@ -78,6 +78,7 @@ function renderUsers() {
 	userCountBadge.style.display = 'inline-block';
 
 	// Clear container
+	usersContainer.classList.remove('loading-spinner');
 	usersContainer.innerHTML = '';
 
 	if (filteredUsers.length === 0) {
@@ -149,6 +150,19 @@ function renderUsers() {
 
 		card.appendChild(headerDiv);
 		card.appendChild(bodyDiv);
+
+		if (!user.is_admin_teacher && user.role === 'teacher' && !user.is_current_user && user.id !== 999999) {
+			const cardActions = document.createElement('div');
+			cardActions.className = 'd-flex justify-content-end mt-2';
+			const makeAdminBtn = document.createElement('button');
+			makeAdminBtn.className = 'btn btn-sm btn-outline-success';
+			makeAdminBtn.innerHTML = '<i class="fas fa-user-shield"></i> Make Admin';
+			makeAdminBtn.title = `Make ${user.username} Admin`;
+			makeAdminBtn.addEventListener('click', () => makeAdmin(user.id, user.username));
+			cardActions.appendChild(makeAdminBtn);
+			card.appendChild(cardActions);
+		}
+
 		usersContainer.appendChild(card);
 	});
 }
@@ -200,7 +214,14 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 
 
 
-function showPasswordPrompt(message) {
+function showPasswordPrompt(options = {}) {
+	const {
+		titleText = 'Confirm Action',
+		warningText = '',
+		warningColor = '#333',
+		instructionText = 'To confirm, enter your admin password:'
+	} = options;
+
 	return new Promise((resolve) => {
 		const overlay = document.createElement('div');
 		overlay.style.position = 'fixed';
@@ -224,17 +245,27 @@ function showPasswordPrompt(message) {
 		modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
 
 		const title = document.createElement('h5');
-		title.style.margin = '0 0 10px 0';
+		title.style.margin = '0 0 15px 0';
 		title.style.fontSize = '1.25rem';
 		title.style.fontWeight = '600';
-		title.textContent = 'Confirm Deletion';
+		title.textContent = titleText;
 		modal.appendChild(title);
+
+		if (warningText) {
+			const warningEl = document.createElement('div');
+			warningEl.style.margin = '0 0 12px 0';
+			warningEl.style.fontSize = '1.05rem';
+			warningEl.style.fontWeight = '600';
+			warningEl.style.color = warningColor;
+			warningEl.textContent = warningText;
+			modal.appendChild(warningEl);
+		}
 
 		const text = document.createElement('p');
 		text.style.margin = '0 0 15px 0';
-		text.style.fontSize = '0.95rem';
-		text.style.color = '#333';
-		text.textContent = message;
+		text.style.fontSize = '0.9rem';
+		text.style.color = '#5f6b7a';
+		text.textContent = instructionText;
 		modal.appendChild(text);
 
 		const input = document.createElement('input');
@@ -260,7 +291,11 @@ function showPasswordPrompt(message) {
 		btnContainer.appendChild(cancelBtn);
 
 		const confirmBtn = document.createElement('button');
-		confirmBtn.className = 'btn btn-danger';
+		if (warningColor === '#28a745' || warningColor === 'green') {
+			confirmBtn.className = 'btn btn-success';
+		} else {
+			confirmBtn.className = 'btn btn-danger';
+		}
 		confirmBtn.textContent = 'Confirm';
 		confirmBtn.type = 'button';
 		btnContainer.appendChild(confirmBtn);
@@ -307,7 +342,12 @@ function showPasswordPrompt(message) {
 }
 
 async function deleteUser(role, id, username) {
-	const password = await showPasswordPrompt(`To delete the ${role} "${username}", please enter your admin password:`);
+	const password = await showPasswordPrompt({
+		titleText: 'Confirm Deletion',
+		warningText: `Are you sure you want to delete the ${role} "${username}"?`,
+		warningColor: '#dc3545', // Red
+		instructionText: 'To confirm, enter your admin password:'
+	});
 	if (password === null) return;
 	if (!password) {
 		alert('Password cannot be empty.');
@@ -333,3 +373,40 @@ async function deleteUser(role, id, username) {
 		alert(typeof err === 'string' ? err : 'Failed to delete user.');
 	});
 }
+
+async function makeAdmin(id, username) {
+	const password = await showPasswordPrompt({
+		titleText: 'Confirm Make Admin',
+		warningText: `Are you sure you want to make "${username}" an admin?`,
+		warningColor: '#28a745', // Green
+		instructionText: 'To confirm, enter your admin password:'
+	});
+	if (password === null) return;
+	if (!password) {
+		alert('Password cannot be empty.');
+		return;
+	}
+
+	fetch(`/api/admin/users/teacher/${id}/make-admin`, {
+		method: 'POST',
+		headers: {
+			'X-Admin-Password': password
+		},
+		credentials: 'include',
+	})
+	.then(r => {
+		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Failed to make admin'));
+		return r.json();
+	})
+	.then(() => {
+		const user = allUsers.find(u => u.id === id && u.role === 'teacher');
+		if (user) {
+			user.is_admin_teacher = true;
+		}
+		renderUsers();
+	})
+	.catch(err => {
+		alert(typeof err === 'string' ? err : 'Failed to make admin.');
+	});
+}
+

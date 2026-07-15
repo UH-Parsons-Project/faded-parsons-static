@@ -558,3 +558,41 @@ async def delete_user(
 
 	await db.commit()
 	return {"status": "success", "message": f"{role.capitalize()} deleted"}
+
+
+@router.post("/api/admin/users/teacher/{user_id}/make-admin")
+async def promote_teacher_to_admin(
+	user_id: int,
+	current_user: CurrentUser,
+	db: AsyncSession = Depends(get_db),
+	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
+):
+	"""Promote a teacher to admin. Admin only. Requires admin password confirmation."""
+	if not current_user.is_admin_teacher:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+	if not x_admin_password or not current_user.verify_password(x_admin_password):
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Incorrect admin password",
+		)
+
+	stmt = select(Teacher).where(Teacher.id == user_id)
+	result = await db.execute(stmt)
+	teacher = result.scalar_one_or_none()
+	if not teacher:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="Teacher not found",
+		)
+
+	if teacher.is_admin_teacher:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Teacher is already an admin",
+		)
+
+	teacher.is_admin_teacher = True
+	await db.commit()
+	return {"status": "success", "message": "Teacher promoted to admin"}
+

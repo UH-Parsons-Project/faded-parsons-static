@@ -63,3 +63,23 @@ async def all_users_page(request: Request, db: AsyncSession = Depends(get_db)):
 	response.headers["Pragma"] = "no-cache"
 	return response
 
+
+@router.get("/admin/admins_teacher_view", response_class=HTMLResponse)
+async def admins_teacher_view_page(request: Request, db: AsyncSession = Depends(get_db)):
+	"""Serve the page for viewing a specific teacher's sets and tasks (requires admin access)."""
+	try:
+		current_user = await get_current_user(request, db)
+		if not current_user.is_admin_teacher:
+			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+	except HTTPException:
+		return RedirectResponse(
+			url="/", status_code=status.HTTP_303_SEE_OTHER
+		)
+
+	admins_teacher_view_path = BASE_DIR / "templates" / "admins_teacher_view.html"
+	response = FileResponse(admins_teacher_view_path)
+	response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+	response.headers["Pragma"] = "no-cache"
+	return response
+
+

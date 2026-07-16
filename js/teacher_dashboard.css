@@ -72,6 +72,7 @@ footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
 /* ── Content width constraint ────────────────────────── */
 .page-header,
 .dashboard-main {
+  width: 100%;
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;

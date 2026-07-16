@@ -77,18 +77,30 @@
           </div>
         </div>
 
+        <!-- Joined Task Sets -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">
+              <i class="fas fa-list-ul"></i> My Task Sets
+            </h2>
+            <div id="enrolled-sets-container" class="mt-3">
+              <div class="text-muted">Loading my task sets...</div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Right Column: Change Password -->
-      <div class="col-lg-6 d-flex flex-column">
+      <div class="col-lg-6">
         <!-- Change Password Form -->
-        <div class="card mb-4 flex-grow-1">
-          <div class="card-body d-flex flex-column">
+        <div class="card mb-4">
+          <div class="card-body">
             <h2 class="card-title">
               <i class="fas fa-key"></i> Change Password
             </h2>
             <div id="password-alert-placeholder"></div>
-            <form id="change-password-form" class="d-flex flex-column flex-grow-1 justify-content-between">
+            <form id="change-password-form">
               <div class="form-group">
                 <label for="current-password" class="font-weight-bold text-secondary">Current Password</label>
                 <input type="password" class="form-control" id="current-password" name="current_password" required>

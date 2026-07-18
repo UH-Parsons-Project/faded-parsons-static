@@ -5,6 +5,18 @@ initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
 
+// Clear any draft states from the task creator when loading the dashboard
+sessionStorage.removeItem('create_task_draft_payload');
+sessionStorage.removeItem('create_task_builder_blocks');
+sessionStorage.removeItem('create_task_builder_blocks_source');
+sessionStorage.removeItem('create_task_builder_meta');
+sessionStorage.removeItem('create_task_builder_meta_source');
+sessionStorage.removeItem('create_task_builder_model_answer');
+sessionStorage.removeItem('create_task_builder_model_answer_repr');
+sessionStorage.removeItem('create_task_builder_model_answer_source');
+sessionStorage.removeItem('create_task_builder_model_answer_updated_at');
+sessionStorage.removeItem('preserved_task_code');
+
 // Load user info
 const userNameEl = document.getElementById('user-name');
 const allSetsButtonContainer = document.getElementById('all-sets-button-container');

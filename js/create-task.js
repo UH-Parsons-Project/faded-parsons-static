@@ -308,6 +308,7 @@
         };
 
         sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
+        sessionStorage.setItem('preserved_task_code', taskCode);
 
         localStorage.removeItem(TASK_CODE_DRAFT_KEY);
         localStorage.removeItem(TASK_TESTS_DRAFT_KEY);

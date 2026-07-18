@@ -69,10 +69,88 @@ async def get_student_profile(
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
 
+    joined_sets_stmt = (
+        select(
+            TaskSet.id,
+            TaskSet.title,
+            TaskSet.unique_link_code,
+            Teacher.username.label("teacher_username"),
+            StudentTaskSetEnrollment.enrolled_at,
+        )
+        .join(TaskSet, TaskSet.id == StudentTaskSetEnrollment.task_set_id)
+        .join(Teacher, Teacher.id == TaskSet.teacher_id)
+        .where(StudentTaskSetEnrollment.student_id == student_session.id)
+        .order_by(StudentTaskSetEnrollment.enrolled_at.desc(), TaskSet.title.asc())
+    )
+    joined_sets_result = await db.execute(joined_sets_stmt)
+    joined_sets = joined_sets_result.all()
+
+    joined_task_sets = []
+    joined_set_ids = [row.id for row in joined_sets]
+
+    task_counts: dict[int, int] = {}
+    completed_counts: dict[int, int] = {}
+
+    if joined_set_ids:
+        task_counts_result = await db.execute(
+            select(
+                TaskSetItem.task_set_id,
+                func.count(TaskSetItem.id).label("task_count"),
+            )
+            .where(TaskSetItem.task_set_id.in_(joined_set_ids))
+            .group_by(TaskSetItem.task_set_id)
+        )
+        task_counts = {
+            row.task_set_id: int(row.task_count or 0)
+            for row in task_counts_result.all()
+        }
+
+        completed_counts_result = await db.execute(
+            select(
+                StudentTaskEnrollment.task_set_id,
+                func.count(func.distinct(StudentTaskEnrollment.task_id)).label("completed_tasks"),
+            )
+            .join(TaskAttempt, TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+            .where(
+                StudentTaskEnrollment.student_id == student_session.id,
+                StudentTaskEnrollment.task_set_id.in_(joined_set_ids),
+                TaskAttempt.success.is_(True),
+            )
+            .group_by(StudentTaskEnrollment.task_set_id)
+        )
+        completed_counts = {
+            row.task_set_id: int(row.completed_tasks or 0)
+            for row in completed_counts_result.all()
+        }
+
+    for row in joined_sets:
+        task_count = task_counts.get(row.id, 0)
+        completed_tasks = completed_counts.get(row.id, 0)
+        joined_task_sets.append(
+            {
+                "id": row.id,
+                "title": row.title,
+                "unique_link_code": row.unique_link_code,
+                "teacher_username": row.teacher_username,
+                "enrolled_at": row.enrolled_at.isoformat() if row.enrolled_at else "",
+                "task_count": task_count,
+                "completed_tasks": completed_tasks,
+                "is_completed": task_count > 0 and completed_tasks >= task_count,
+            }
+        )
+
+    joined_task_sets.sort(
+        key=lambda item: (
+            item["is_completed"],
+            -_parse_iso_datetime(item["enrolled_at"]).timestamp() if item["enrolled_at"] else 0,
+        )
+    )
+
     return {
         "username": student_session.username,
         "email": student_session.email,
         "student_created_at": student_session.student_created_at.isoformat() if student_session.student_created_at else "",
+        "joined_task_sets": joined_task_sets,
     }
 
 

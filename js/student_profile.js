@@ -56,6 +56,55 @@ function formatDate(isoString) {
 	}
 }
 
+function renderJoinedTaskSets(taskSets) {
+	if (!enrolledSetsContainer) return;
+
+	if (!taskSets || taskSets.length === 0) {
+		enrolledSetsContainer.innerHTML = `
+			<div class="text-muted">You have not joined any task sets yet.</div>
+		`;
+		return;
+	}
+
+	const activeSets = taskSets.filter((taskSet) => !taskSet.is_completed);
+	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
+
+	const renderSetItem = (taskSet) => `
+		<li class="list-group-item d-flex justify-content-between align-items-center">
+			<div>
+				<div class="font-weight-bold text-dark">${taskSet.title}</div>
+				<div class="text-muted small">Teacher: ${taskSet.teacher_username || '—'}</div>
+				<div class="text-muted small">${taskSet.completed_tasks || 0}/${taskSet.task_count || 0} completed</div>
+			</div>
+			<div class="d-flex flex-column align-items-end">
+				<span class="badge ${taskSet.is_completed ? 'badge-success' : 'badge-light border'}">${taskSet.is_completed ? 'Completed' : 'In progress'}</span>
+				<span class="badge badge-light border mt-2">${taskSet.unique_link_code}</span>
+			</div>
+		</li>
+	`;
+
+	const renderGroup = (title, sets) => `
+		<div class="mb-3">
+			<div class="text-uppercase text-muted small font-weight-bold mb-2">${title}</div>
+			<ul class="list-group list-group-flush">
+				${sets.map(renderSetItem).join('')}
+			</ul>
+		</div>
+	`;
+
+	const sections = [];
+	if (activeSets.length > 0) {
+		sections.push(renderGroup('Recent joined sets', activeSets));
+	}
+	if (completedSets.length > 0) {
+		sections.push(renderGroup('Completed sets', completedSets));
+	}
+
+	enrolledSetsContainer.innerHTML = `
+		${sections.join('')}
+	`;
+}
+
 // Load student profile data
 async function loadProfile() {
 	try {
@@ -80,6 +129,7 @@ async function loadProfile() {
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
+		renderJoinedTaskSets(data.joined_task_sets);
 
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);

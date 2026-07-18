@@ -609,7 +609,9 @@ function shouldShowHelpTour(pathname) {
 		'/teacher-dashboard',
 		'/task-set-overview',
 		'/heatmap',
-		'/task-statistics'
+		'/task-statistics',
+		'/student-attempts',
+		'/student-task-statistics'
 	];
 	return teacherPaths.some(p => pathname.startsWith(p));
 }
@@ -1000,6 +1002,180 @@ function getTourStepsForPath(pathname) {
 				}
 			});
 		}
+
+		return steps;
+	}
+
+	// Student Attempts Tour
+	if (pathname.startsWith('/student-attempts')) {
+		const steps = [
+			{
+				element: '#page-header',
+				popover: {
+					title: 'Student Attempts Overview',
+					description: 'This page shows all task attempts and overall progress statistics for a specific student in this task set.',
+					side: 'bottom'
+				}
+			}
+		];
+
+		// Check if remove student button is visible
+		const removeBtn = document.getElementById('remove-student-btn');
+		if (removeBtn) {
+			steps.push({
+				element: '#remove-student-btn',
+				popover: {
+					title: 'Remove Student',
+					description: 'Click this button to completely remove this student and all of their progress data from this task set. <b>Warning:</b> This action is permanent and cannot be undone.',
+					side: 'bottom'
+				}
+			});
+		}
+
+		steps.push(
+			{
+				element: '#completion-panel',
+				popover: {
+					title: 'Progress Breakdown',
+					description: 'This card contains a donut chart and a legend detailing the student\'s progress: how many tasks they have <b>Completed</b>, <b>Not completed</b> (attempted but not yet passed), and <b>Not started</b>.',
+					side: 'right'
+				}
+			},
+			{
+				element: '#attempts-list',
+				popover: {
+					title: 'Tasks Attempted',
+					description: 'A list of all the tasks the student has attempted in this set. Each card shows the task title, success status, attempt count, and last attempt timestamp. <b>Clicking on any card</b> will navigate you to the student\'s detailed workspace and code execution history for that task.',
+					side: 'left'
+				}
+			}
+		);
+
+		return steps;
+	}
+
+	// Student Task Statistics Tour
+	if (pathname.startsWith('/student-task-statistics')) {
+		const steps = [
+			{
+				element: '#content-header',
+				popover: {
+					title: 'Student Attempt Review',
+					description: 'Review a specific student\'s attempt statistics and solve history for this particular task.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#student-name-badge',
+				popover: {
+					title: 'Student Profile Link',
+					description: 'Displays the student\'s username. Clicking this badge navigates you to their general attempt history for this task set.',
+					side: 'bottom'
+				}
+			}
+		];
+
+		// Check if instructions are visible
+		const instructionsContent = document.getElementById('task-instructions-content');
+		if (instructionsContent && instructionsContent.innerHTML.trim() !== '') {
+			steps.push({
+				element: '#task-instructions-box',
+				popover: {
+					title: 'Task Instructions',
+					description: 'Shows the problem description, rules, and example inputs/outputs that were given to the student.',
+					side: 'bottom'
+				},
+				onHighlightStarted: () => {
+					const body = document.getElementById('instructions-body');
+					if (body && body.classList.contains('collapsed')) {
+						document.getElementById('instructions-toggle')?.click();
+					}
+				}
+			});
+		}
+
+		steps.push(
+			{
+				element: '.summary-strip',
+				popover: {
+					title: 'Summary Metrics',
+					description: 'High-level summary of the student\'s performance on this task: total attempts, success/fail count, and total active time spent.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#attempts-list',
+				popover: {
+					title: 'All Code Submissions',
+					description: 'Lists every single submission made by the student in chronological order. Each entry shows the time, success status, and the exact code blocks they submitted.',
+					side: 'right'
+				},
+				onHighlightStarted: () => {
+					const body = document.getElementById('attempts-body');
+					if (body && body.classList.contains('collapsed')) {
+						document.getElementById('attempts-toggle')?.click();
+					}
+				}
+			},
+			{
+				element: '#replay-body',
+				popover: {
+					title: 'Interactive Replay Player',
+					description: 'This interactive tool allows you to replay the student\'s entire block-solving process step-by-step. Use the slider and play buttons to see exactly how they constructed and edited their code blocks.',
+					side: 'right'
+				},
+				onHighlightStarted: () => {
+					const body = document.getElementById('replay-body');
+					if (body && body.classList.contains('collapsed')) {
+						document.getElementById('replay-toggle')?.click();
+					}
+				}
+			},
+			{
+				element: '#time-toggle-container',
+				popover: {
+					title: 'Active vs. Wall-Clock Time Toggle',
+					description: 'Use this toggle to switch the time metrics displayed below between:<br>- <b>Active / On-page</b>: Only counts time when the student actively focused on the exercise tab.<br>- <b>Total / Wall-clock</b>: Includes time when the student had other tabs/windows open.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.metric-grid',
+				popover: {
+					title: 'Detailed Time & Move Metrics',
+					description: 'Displays precise time measurements (Time to First Success, Time to First Fail, Thinking Time) and interactions (Moves Made, Page Exits) for this student.',
+					side: 'left'
+				}
+			},
+			{
+				element: '#sessions-body',
+				popover: {
+					title: 'Active Work Sessions',
+					description: 'Displays a timeline of active sessions: when the student opened the task, how long they worked, and why they left (e.g. timeout or closed tab).',
+					side: 'left'
+				},
+				onHighlightStarted: () => {
+					const body = document.getElementById('sessions-body');
+					if (body && body.classList.contains('collapsed')) {
+						document.getElementById('sessions-toggle')?.click();
+					}
+				}
+			},
+			{
+				element: '#model-body',
+				popover: {
+					title: 'Model Answer Solution',
+					description: 'Shows the reference correct solution of this programming exercise for easy comparison.',
+					side: 'top'
+				},
+				onHighlightStarted: () => {
+					const body = document.getElementById('model-body');
+					if (body && body.classList.contains('collapsed')) {
+						document.getElementById('model-toggle')?.click();
+					}
+				}
+			}
+		);
 
 		return steps;
 	}

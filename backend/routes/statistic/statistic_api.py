@@ -288,6 +288,7 @@ async def get_student_task_statistics(
         return StudentTaskStatisticsResponse(
             task_name=task.title,
             task_description=task.description,
+            task_instructions=task.task_instructions,
             model_answer=await _get_model_answer_for_task(task, db),
             student_username=student_username,
             total_attempts=0,
@@ -373,6 +374,7 @@ async def get_student_task_statistics(
     return StudentTaskStatisticsResponse(
         task_name=task.title,
         task_description=task.description,
+        task_instructions=task.task_instructions,
         model_answer=await _get_model_answer_for_task(task, db),
         student_username=student_username,
         total_attempts=len(attempts_data),

@@ -90,6 +90,7 @@ class StudentTaskAttemptResponse(BaseModel):
 class StudentTaskStatisticsResponse(BaseModel):
     task_name: str
     task_description: str | None
+    task_instructions: str | None = None
     model_answer: str | None = None
     student_username: str
     total_attempts: int

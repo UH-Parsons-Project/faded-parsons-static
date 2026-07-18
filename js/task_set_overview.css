@@ -847,3 +847,13 @@ h3.mb-3 {
 @media (max-width: 600px) {
   #user-name { display: none; }
 }
+
+/* Helper styles for Driver.js tour highlights */
+.csv-buttons-group {
+  display: inline-flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.descriptions-wrapper {
+  display: block;
+}

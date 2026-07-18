@@ -607,15 +607,8 @@ async function loadDriverJSAndCSS() {
 function shouldShowHelpTour(pathname) {
 	const teacherPaths = [
 		'/teacher-dashboard',
-		'/create-task',
-		'/create-task-editor',
-		'/create-task-set',
-		'/global-statistics',
-		'/all-tasksets',
-		'/all-users',
-		'/admin-dashboard',
 		'/task-set-overview',
-		'/teacher/profile',
+		'/heatmap',
 		'/task-statistics'
 	];
 	return teacherPaths.some(p => pathname.startsWith(p));
@@ -729,150 +722,286 @@ function getTourStepsForPath(pathname) {
 		return dashboardSteps;
 	}
 
-	// Create Task Set Tour
-	if (pathname.startsWith('/create-task-set')) {
+	// Task Set Overview Tour
+	if (pathname.startsWith('/task-set-overview')) {
 		return [
 			{
-				element: '.create-task-set-container h1',
-				popover: {
-					title: 'Create Task Set',
-					description: 'Group multiple tasks together for a specific class or assignment.',
-					side: 'bottom'
-				}
-			},
-			{
-				element: '#task-set-title',
+				element: '.taskset-page-title',
 				popover: {
 					title: 'Task Set Title',
-					description: 'Enter a descriptive title for your student group (e.g., "Python Basics Week 1").',
+					description: 'Welcome to you task set! Here you can view and manage your task set, including student join links and shared viewers.',
 					side: 'bottom'
 				}
 			},
 			{
-				element: '#student-description',
+				element: 'a[href*="heatmap"]',
 				popover: {
-					title: 'Student Descriptions',
-					description: 'Add an optional description visible to students on their starting page.',
+					title: 'Completion Heatmap',
+					description: 'Access the Completion Heatmap, where you can see the completion progress of your students in a simple table format.',
 					side: 'bottom'
 				}
 			},
 			{
-				element: '#viewer-identifiers',
+				element: '.csv-buttons-group',
 				popover: {
-					title: 'Collaborating Teachers',
-					description: 'Enter usernames or emails of other teachers to grant them viewing rights to this task set.',
+					title: 'Download CSVs',
+					description: 'You can download the CSV for all data available of each task, or the Teacher CSV that has a simple table of what tasks each student has completed',
 					side: 'bottom'
 				}
 			},
 			{
-				element: '#set-expiration',
+				element: '.taskset-link-box',
 				popover: {
-					title: 'Deadline Expiration',
-					description: 'Check this box and specify a date/time if you want this task set to close automatically at a deadline.',
+					title: 'Student Join Link',
+					description: 'Share this unique link with your students to allow them to join your task set. After login in students will be able to do all active tasks in the task set.',
 					side: 'bottom'
 				}
 			},
 			{
-				element: '#task-selector',
+				element: '#expiry-section',
 				popover: {
-					title: 'Select Exercises',
-					description: 'Select the coding problems you want to include in this set. You can preview exercises here too.',
+					title: 'Expiry',
+					description: 'Set or edit your expiry date and time. After expiry, the task set will no longer be available to students, but teachers will still be able to view all data like normal.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.header-viewers',
+				popover: {
+					title: 'Shared Viewers',
+					description: 'Here you can manage shared viewers. Giving viewing rights allows the teacher to view all data in this task set, including student specific data.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.header-stats',
+				popover: {
+					title: 'Statistics',
+					description: 'Here you can have a quick look at how many students have joind and overview on how they are doing.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.descriptions-wrapper',
+				popover: {
+					title: 'Notes and Instructions',
+					description: '<strong>Teacher Notes</strong> are visuable to you and teachers with viewing rights. Students will never see this. <strong>Student Instructions</strong> are visuable to students on the main dashboard when they open this task set. ',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#tasks-list',
+				popover: {
+					title: 'Tasks List',
+					description: 'These are all tasks within your task set. By clicking on a task you can view the tasks statistics. Tasks can be deactivated, which hides them from all students. They can be reactivated if needed. No data is lost by deactivation, but make sure no students are attempting the task before deactivation.',
+					side: 'right'
+				}
+			},
+			{
+				element: '#students-list',
+				popover: {
+					title: 'Students List',
+					description: 'All students that have enrolled through your shared link. Clicking a student opens their overview and allowing to view task specific statistics.',
+					side: 'left'
+				}
+			},
+			{
+				element: '.navbar .ml-auto',
+				popover: {
+					title: 'Account Settings',
+					description: 'Change profile settings, access all quick links, or sign out of your account.',
+					side: 'left'
+				}
+			}
+		];
+	}
+
+	// Heatmap Tour
+	if (pathname.startsWith('/heatmap')) {
+		return [
+			{
+				element: '.taskset-page-title',
+				popover: {
+					title: 'Completion Heatmap',
+					description: 'Welcome to the Completion Heatmap! This interactive grid provides a high-level visual overview of how all students are progressing through the tasks in this set.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '#hm-controls',
+				popover: {
+					title: 'Sort Controls',
+					description: 'Use these controls to sort the student list. You can sort alphabetically by <b>Student Name</b>, or by progression: <b>Most complete</b> (or most attempts if not completed) or <b>Least complete</b> (or least attempts if) ',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.hm-corner-th:not(.hm-corner-rate)',
+				popover: {
+					title: 'Student Column & Struggling Badges',
+					description: 'This column lists student names. If a student is failing or struggling with multiple tasks (3 or more tasks with high attempt counts without success), a red <b>Struggling</b> badge will appear next to their name.',
+					side: 'right'
+				}
+			},
+			{
+				element: '.hm-task-th',
+				popover: {
+					title: 'Task Columns & Modal Previews',
+					description: 'Columns correspond to individual tasks in this set (labeled T1, T2, etc.). <b>Clicking on a task header</b> opens a quick preview of what the task is.',
+					side: 'bottom'
+				}
+			},
+			{
+				element: '.hm-corner-rate',
+				popover: {
+					title: 'Task Completion Rates',
+					description: 'This row shows the overall percentage of enrolled students who have successfully completed each task.',
+					side: 'right'
+				}
+			},
+			{
+				element: '.hm-cell-td',
+				popover: {
+					title: 'Status Cells',
+					description: 'Each cell represents a student\'s attempt status on a task. Hovering over any cell reveals a detailed tooltip showing the status, total attempts, and last active timestamp. <b>Clicking a cell</b> opens student-task-specific statistics.',
 					side: 'top'
 				}
 			},
 			{
-				element: 'button[type="submit"]',
+				element: '.hm-prog-td',
 				popover: {
-					title: 'Save and Deploy',
-					description: 'Click "Create Task Set" to save and generate a unique student join link.',
+					title: 'Individual Progress',
+					description: 'The progress column shows the completion ratio and percentage for each individual student over all tasks',
+					side: 'left'
+				}
+			},
+			{
+				element: '#hm-legend',
+				popover: {
+					title: 'Legend & Quick Info',
+					description: 'Refer to this legend to quickly identify the color codes and status states used in the heatmap table.',
 					side: 'top'
 				}
 			}
 		];
 	}
 
-	// Create Task (Plain Editor) Tour
-	if (pathname.startsWith('/create-task') && !pathname.startsWith('/create-task-editor')) {
-		return [
+	// Exercise Analytics Tour
+	if (pathname.startsWith('/task-statistics')) {
+		const steps = [
 			{
-				element: '.page-title',
+				element: '.page-header',
 				popover: {
-					title: 'Create a New Task',
-					description: 'Define the programming exercise and write unit tests to validate student answers.',
+					title: 'Exercise Analytics',
+					description: 'Welcome to the Exercise Analytics page! Here you can analyze student attempts, completion rates, time spent, common mistakes, and more.',
 					side: 'bottom'
-				}
-			},
-			{
-				element: '#task-code',
-				popover: {
-					title: 'Task Code Model Solution',
-					description: 'Write the complete model solution in Python here. Students will rearrange these lines to reconstruct this code.',
-					side: 'bottom'
-				}
-			},
-			{
-				element: '#task-tests',
-				popover: {
-					title: 'Unit Test Cases',
-					description: 'Write Python tests to validate the student\'s code. Standard unittest or assert statements work here.',
-					side: 'top'
-				}
-			},
-			{
-				element: '#submit-task',
-				popover: {
-					title: 'Continue to Block Builder',
-					description: 'Save your code and tests to advance to the next step, where you configure custom code blocks.',
-					side: 'top'
 				}
 			}
 		];
-	}
 
-	// Create Task Editor / Block Builder Tour
-	if (pathname.startsWith('/create-task-editor')) {
-		return [
-			{
-				element: '.card-header',
+		// Check if sidebar is visible
+		const sidebar = document.querySelector('.student-sidebar');
+		if (sidebar && window.getComputedStyle(sidebar).display !== 'none') {
+			steps.push({
+				element: '.student-sidebar',
 				popover: {
-					title: 'Block Builder & Instructions',
-					description: 'In this second phase, you write exercise instructions and customize the draggable code blocks.',
+					title: 'Student Overview Sidebar',
+					description: 'This sidebar lists all enrolled students grouped by their completion status: <b>Completed</b>, <b>Not Yet Completed</b>, or <b>Not Started</b>. Click a student\'s name to view their individual attempts.',
+					side: 'right'
+				}
+			});
+		}
+
+		steps.push(
+			{
+				element: '.kpi-strip',
+				popover: {
+					title: 'Key Performance Indicators',
+					description: 'Quickly see high-level statistics from this task.',
 					side: 'bottom'
 				}
 			},
 			{
-				element: '#task-title',
+				element: '#time-toggle-container',
 				popover: {
-					title: 'Task Title',
-					description: 'Enter a descriptive title for this coding exercise.',
+					title: 'Time Metric Toggle',
+					description: 'Switch time metrics. <b>Total / Wall-clock</b> time is a absolute value from the start of the task to the completion timestamp, including time when the task was not open in the browser. <b>Active / On-page</b> time only measures the time the student had the task open in their browser (and not inactive for more then 30min).',
 					side: 'bottom'
-				}
-			},
-			{
-				element: '#problem-description',
-				popover: {
-					title: 'Problem Description',
-					description: 'Write clear instructions for students explaining what the function is supposed to do.',
-					side: 'bottom'
-				}
-			},
-			{
-				element: '#start-description',
-				popover: {
-					title: 'Start Page Introduction',
-					description: 'Write a short description displayed to students before starting the exercise.',
-					side: 'bottom'
-				}
-			},
-			{
-				element: '#submit-task',
-				popover: {
-					title: 'Validate and Publish',
-					description: 'Click this button once all your tests pass to save the task to the global exercises pool.',
-					side: 'top'
 				}
 			}
-		];
+		);
+
+		// Check if time metric shows raw numbers (insufficient data for box plot)
+		const showsNumbers = document.querySelector('.time-metric:not(:has(.bp-svg-wrap))');
+		if (showsNumbers) {
+			steps.push({
+				element: '.time-metric:not(:has(.bp-svg-wrap))',
+				popover: {
+					title: 'Time Metrics (Text View)',
+					description: 'When there are fewer than 5 attempts, there is insufficient data to construct a box plot. Instead, this section shows the raw <b>minimum</b>, <b>median</b>, <b>average</b>, and <b>maximum</b> values directly.',
+					side: 'top'
+				}
+			});
+		}
+
+		// Check if time metric shows box plot
+		const showsBoxPlot = document.querySelector('.time-metric:has(.bp-svg-wrap)');
+		if (showsBoxPlot) {
+			steps.push({
+				element: '.time-metric:has(.bp-svg-wrap)',
+				popover: {
+					title: 'Time Metrics (Box Plot View)',
+					description: 'With 5 or more attempts, this interactive <b>Box Plot</b> is generated showing the distribution of time or moves:<br>- <b>Box</b>: Middle 50% of students.<br>- <b>Vertical Line</b>: Median value.<br>- <b>Diamond</b>: Average (mean) value.<br>- <b>Whiskers</b>: Outlier limits.<br>- <b>Dots</b>: Individual outliers. Hovering shows accurate time stamps.',
+					side: 'top'
+				}
+			});
+		}
+
+		steps.push({
+			element: '.completion-card',
+			popover: {
+				title: 'Completion Details',
+				description: 'Displays a visual breakdown of completion status, average/min/max attempts to pass, and page exits (how often students left the task tab).',
+				side: 'left'
+			}
+		});
+
+		// Check if mistakes box is visible
+		const mistakesBox = document.getElementById('mistakes-box');
+		if (mistakesBox && window.getComputedStyle(mistakesBox).display !== 'none') {
+			steps.push({
+				element: '#mistakes-box',
+				popover: {
+					title: 'Most Common Mistakes',
+					description: 'Lists the five most frequently submitted incorrect solutions, helping you identify common mistakes.',
+					side: 'top'
+				}
+			});
+		}
+
+		steps.push({
+			element: '#model-answer-box',
+			popover: {
+				title: 'Model Answer',
+				description: 'Shows the model answer set for this task. Note: there can be more then one correct answer to some tasks.',
+				side: 'top'
+			}
+		});
+
+		// Check if custom errors box is visible
+		const customErrorsBox = document.getElementById('custom-errors-box');
+		if (customErrorsBox && window.getComputedStyle(customErrorsBox).display !== 'none') {
+			steps.push({
+				element: '#custom-errors-box',
+				popover: {
+					title: 'Custom Error Messages',
+					description: 'Displays custom feedback and hints configured for specific incorrect student submissions.',
+					side: 'top'
+				}
+			});
+		}
+
+		return steps;
 	}
 
 	// Fallback Tour

@@ -497,18 +497,20 @@ function renderListHeader(taskSet, tasks, students) {
 		     style="background:var(--brand);border:1.5px solid var(--brand-dark);color:var(--brand-text);font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
 		    Completion Heatmap <i class="fas fa-arrow-right"></i>
 		  </a>
-		  <button id="download-task-set-csv-btn"
-		     type="button"
-		     class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
-		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
-		    <i class="fas fa-download"></i> Download CSV
-		  </button>
-		  <button id="download-task-set-teacher-csv-btn"
-		     type="button"
-		     class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
-		     style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
-		    <i class="fas fa-download"></i> Download Teacher CSV
-		  </button>
+		  <div class="csv-buttons-group">
+			  <button id="download-task-set-csv-btn"
+				 type="button"
+				 class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
+				 style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+				<i class="fas fa-download"></i> Download CSV
+			  </button>
+			  <button id="download-task-set-teacher-csv-btn"
+				 type="button"
+				 class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
+				 style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
+				<i class="fas fa-download"></i> Download Teacher CSV
+			  </button>
+		  </div>
 		</div>
 		<div class="taskset-link-box">
 			<span id="link-code" class="taskset-link-text">${url}</span>
@@ -522,11 +524,15 @@ function renderListHeader(taskSet, tasks, students) {
 		</div>
 		${deleteHTML}
 	`;
-	if (taskSet.teacher_description) {
-		leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
-	}
-	if (taskSet.student_description) {
-		leftHTML += `<div class="student-instructions-box"><strong>Student Instructions:</strong><br>${escapeHtml(taskSet.student_description)}</div>`;
+	if (taskSet.teacher_description || taskSet.student_description) {
+		leftHTML += `<div class="descriptions-wrapper">`;
+		if (taskSet.teacher_description) {
+			leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
+		}
+		if (taskSet.student_description) {
+			leftHTML += `<div class="student-instructions-box"><strong>Student Instructions:</strong><br>${escapeHtml(taskSet.student_description)}</div>`;
+		}
+		leftHTML += `</div>`;
 	}
 
 	const statsHTML = `

@@ -277,16 +277,11 @@ function createMyTaskCard(task) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
 	card.style.cursor = 'pointer';
-	const openPreview = () => {
-		const previewWindow = window.open(
-			'/task?id=' + encodeURIComponent(task.id),
-			'_blank',
-			'width=1000,height=800,resizable=yes,scrollbars=yes'
-		);
-		if (previewWindow) previewWindow.focus();
+	const openDetails = () => {
+		window.location.href = `/task-details?id=${task.id}`;
 	};
-	card.onclick = openPreview;
-	makeKeyActivatable(card, openPreview);
+	card.onclick = openDetails;
+	makeKeyActivatable(card, openDetails);
 
 	const header = document.createElement('div');
 	header.className = 'task-set-item-top';

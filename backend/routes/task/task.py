@@ -61,6 +61,18 @@ async def create_task_problem_page(request: Request, db: AsyncSession = Depends(
 	return set_no_cache_headers(response)
 
 
+@router.get("/task-details", response_class=HTMLResponse)
+async def task_details_page(request: Request, db: AsyncSession = Depends(get_db)):
+	redirect = await require_session_or_redirect(get_current_user, "/", request, db)
+	if redirect:
+		return redirect
+
+	details_path = BASE_DIR / "templates" / "task_details.html"
+	response = FileResponse(details_path)
+	return set_no_cache_headers(response)
+
+
+
 @router.get("/task-set-overview", response_class=HTMLResponse)
 async def task_set_overview(request: Request, db: AsyncSession = Depends(get_db)):
 	redirect = await require_session_or_redirect(get_current_user, "/", request, db)

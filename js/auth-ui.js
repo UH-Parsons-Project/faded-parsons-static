@@ -375,11 +375,11 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			// Call logout endpoint to clear cookie
 			await fetch('/api/logout', { method: 'POST' });
 			clearAuth();
-			
+
 			// Hide user info elements immediately
 			const userInfo = document.getElementById('user-info');
 			if (userInfo) userInfo.style.display = 'none';
-			
+
 			// Hide user-name span and logout button if not in user-info div
 			const userNameSpan = document.querySelector('#user-name')?.parentElement;
 			if (userNameSpan && !userInfo?.contains(userNameSpan)) {
@@ -388,7 +388,7 @@ export async function initProtectedPage(loginPageUrl = '/') {
 			if (logoutBtn && !userInfo?.contains(logoutBtn)) {
 				logoutBtn.style.display = 'none';
 			}
-			
+
 			// Redirect with cache-busting query parameter to force page reload
 			window.location.href = loginPageUrl + '?' + new Date().getTime();
 		});

@@ -538,6 +538,16 @@ async def get_task_set_students(
             for task_id in task_ids
         ]
 
+        task_attempt_count_columns = [
+            func.count(
+                case(
+                    (StudentTaskEnrollment.task_id == task_id, TaskAttempt.id),
+                    else_=None,
+                )
+            ).label(f'task_{task_id}_attempts')
+            for task_id in task_ids
+        ]
+
         stmt = (
             select(
                 Student.username,
@@ -547,6 +557,7 @@ async def get_task_set_students(
                 func.count(TaskAttempt.id).label('total_attempts'),
                 func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted'),
                 *task_completion_columns,
+                *task_attempt_count_columns,
             )
             .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
             .outerjoin(StudentTaskEnrollment, and_(
@@ -576,6 +587,7 @@ async def get_task_set_students(
                 tasks_attempted=student['tasks_attempted'],
                 completed_tasks=sum(int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids),
                 task_completion_flags=[int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids],
+                task_attempts=[int(student[f'task_{task_id}_attempts'] or 0) for task_id in task_ids],
             )
             for student in students
         ]

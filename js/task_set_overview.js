@@ -8,6 +8,10 @@ initBurgerMenu();
 const params = new URLSearchParams(window.location.search);
 const setId = params.get('set_id');
 
+let currentTaskSet = null;
+let currentTasks = [];
+let currentStudents = [];
+
 if (!setId) {
 	window.location.href = '/teacher-dashboard';
 }
@@ -462,16 +466,38 @@ function renderListHeader(taskSet, tasks, students) {
 
 	// Compute stats
 	const studentCount = students.length;
-	const taskCount = tasks.length;
-	const totalAttempts = students.reduce((s, st) => s + (st.total_attempts ?? 0), 0);
+	const activeTasks = tasks.filter(t => !t.is_hidden);
+	const taskCount = activeTasks.length;
+
+	const studentStats = students.map(st => {
+		const completedActive = tasks.reduce((sum, task, index) => {
+			return sum + (!task.is_hidden && st.task_completion_flags?.[index] ? 1 : 0);
+		}, 0);
+		const attemptedActive = tasks.reduce((sum, task, index) => {
+			return sum + (!task.is_hidden && st.task_attempts?.[index] > 0 ? 1 : 0);
+		}, 0);
+		const activeAttempts = tasks.reduce((sum, task, index) => {
+			return sum + (!task.is_hidden ? (st.task_attempts?.[index] ?? 0) : 0);
+		}, 0);
+
+		return {
+			completedActive,
+			attemptedActive,
+			activeAttempts
+		};
+	});
+
+	const totalAttempts = studentStats.reduce((sum, s) => sum + s.activeAttempts, 0);
+	const totalCompletedActive = studentStats.reduce((sum, s) => sum + s.completedActive, 0);
+
 	const avgProgress = studentCount > 0 && taskCount > 0
-		? Math.round(students.reduce((s, st) => s + (st.completed_tasks ?? 0), 0) / studentCount / taskCount * 100)
+		? Math.round(totalCompletedActive / studentCount / taskCount * 100)
 		: 0;
 
 	// Distribution: fully done / in progress / not started
-	const fullyDone = students.filter(st => taskCount > 0 && (st.completed_tasks ?? 0) >= taskCount).length;
-	const inProgress = students.filter(st => (st.tasks_attempted ?? 0) > 0 && (st.completed_tasks ?? 0) < taskCount).length;
-	const notStarted = students.filter(st => (st.tasks_attempted ?? 0) === 0).length;
+	const fullyDone = studentStats.filter(s => taskCount > 0 && s.completedActive >= taskCount).length;
+	const inProgress = studentStats.filter(s => taskCount > 0 && s.attemptedActive > 0 && s.completedActive < taskCount).length;
+	const notStarted = studentStats.filter(s => taskCount === 0 || s.attemptedActive === 0).length;
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
@@ -715,6 +741,9 @@ function createTaskItem(task, taskSet, isOwner) {
 							if (inactiveSection) inactiveSection.style.display = 'none';
 						}
 					}
+					// Refresh stats
+					renderListHeader(currentTaskSet, currentTasks, currentStudents);
+					renderStudents(currentStudents, currentTasks);
 				}
 			} catch (err) {
 				console.error('Toggle inactive failed:', err);
@@ -828,7 +857,7 @@ function formatDateTime(isoString) {
 	});
 }
 
-function createStudentItem(student) {
+function createStudentItem(student, tasks) {
 	const item = document.createElement('div');
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
@@ -841,6 +870,13 @@ function createStudentItem(student) {
 	const name = document.createElement('div');
 	name.className = 'student-name';
 	name.textContent = student.username;
+
+	const activeTasksAttempted = tasks.reduce((sum, task, index) => {
+		return sum + (!task.is_hidden && student.task_attempts?.[index] > 0 ? 1 : 0);
+	}, 0);
+	const activeTotalAttempts = tasks.reduce((sum, task, index) => {
+		return sum + (!task.is_hidden ? (student.task_attempts?.[index] ?? 0) : 0);
+	}, 0);
 
 	const meta = document.createElement('div');
 	meta.className = 'student-meta';
@@ -855,11 +891,11 @@ function createStudentItem(student) {
 	</div>
 	<div class="student-meta-item">
 		<i class="fas fa-tasks"></i>
-		<span>Tasks attempted: ${student.tasks_attempted}</span>
+		<span>Tasks attempted: ${activeTasksAttempted}</span>
 	</div>
 	<div class="student-meta-item">
 		<i class="fas fa-clipboard-list"></i>
-		<span>Total attempts: ${student.total_attempts}</span>
+		<span>Total attempts: ${activeTotalAttempts}</span>
 	</div>
 	`;
 
@@ -869,7 +905,7 @@ function createStudentItem(student) {
 	return item;
 }
 
-function renderStudents(students) {
+function renderStudents(students, tasks) {
 	const studentsList = document.getElementById('students-list');
 
 	// Update student count
@@ -887,7 +923,7 @@ function renderStudents(students) {
 	studentsList.innerHTML = '';
 	studentsList.className = 'students-list';
 	students.forEach(student => {
-		studentsList.appendChild(createStudentItem(student));
+		studentsList.appendChild(createStudentItem(student, tasks));
 	});
 	}
 }
@@ -918,12 +954,15 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 	]))
 	.then(([taskSet, tasks, students]) => {
 		overviewTaskStatsPromise = null;
-	renderListHeader(taskSet, tasks, students);
-	renderTasks(tasks, taskSet);
-	renderStudents(students);
-	loadViewers();
-	document.getElementById('content-container').style.display = 'block';
-	loadTaskStats(tasks, taskSet, students.length);
+		currentTaskSet = taskSet;
+		currentTasks = tasks;
+		currentStudents = students;
+		renderListHeader(taskSet, tasks, students);
+		renderTasks(tasks, taskSet);
+		renderStudents(students, tasks);
+		loadViewers();
+		document.getElementById('content-container').style.display = 'block';
+		loadTaskStats(tasks, taskSet, students.length);
 	})
 	.catch(err => {
 	console.error('Error loading data:', err);

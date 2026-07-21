@@ -5,12 +5,12 @@ TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from sqlalchemy import select, func, or_, delete
+from sqlalchemy import select, func, or_, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, TaskSetItem, Parsons, ModelAnswer
+from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
     TaskSetResponse,
     CreateRegistrationTokenRequest,
@@ -595,4 +595,124 @@ async def promote_teacher_to_admin(
 	teacher.is_admin_teacher = True
 	await db.commit()
 	return {"status": "success", "message": "Teacher promoted to admin"}
+
+
+@router.get("/api/admin/students/{student_id}", response_model=dict)
+async def get_student_details(
+	student_id: int,
+	current_user: CurrentUser,
+	db: AsyncSession = Depends(get_db)
+):
+	"""Get detailed info about a student, including enrolled task sets and task attempts. Admin only."""
+	if not current_user.is_admin_teacher:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="You do not have permission to access this resource.",
+		)
+
+	# Fetch student
+	student_stmt = select(Student).where(Student.id == student_id)
+	student_res = await db.execute(student_stmt)
+	student = student_res.scalar_one_or_none()
+	if not student:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail="Student not found.",
+		)
+
+	# Query enrolled task sets
+	task_sets_stmt = (
+		select(
+			TaskSet.id,
+			TaskSet.title,
+			TaskSet.unique_link_code,
+			Teacher.username.label("teacher_username"),
+			StudentTaskSetEnrollment.enrolled_at
+		)
+		.join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
+		.join(Teacher, Teacher.id == TaskSet.teacher_id)
+		.where(StudentTaskSetEnrollment.student_id == student_id)
+		.order_by(StudentTaskSetEnrollment.enrolled_at.desc())
+	)
+	task_sets_res = await db.execute(task_sets_stmt)
+	enrolled_task_sets = task_sets_res.all()
+
+	task_sets_list = []
+	for ts in enrolled_task_sets:
+		# Total tasks in the set
+		total_stmt = select(func.count(TaskSetItem.id)).where(TaskSetItem.task_set_id == ts.id)
+		total_res = await db.execute(total_stmt)
+		total_tasks = total_res.scalar() or 0
+
+		# Completed tasks in the set
+		completed_stmt = (
+			select(func.count(func.distinct(StudentTaskEnrollment.task_id)))
+			.join(TaskAttempt, TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+			.where(
+				StudentTaskEnrollment.student_id == student_id,
+				StudentTaskEnrollment.task_set_id == ts.id,
+				TaskAttempt.success.is_(True)
+			)
+		)
+		completed_res = await db.execute(completed_stmt)
+		completed_tasks = completed_res.scalar() or 0
+
+		task_sets_list.append({
+			"id": ts.id,
+			"title": ts.title,
+			"unique_link_code": ts.unique_link_code,
+			"teacher_username": ts.teacher_username,
+			"enrolled_at": ts.enrolled_at.isoformat() if ts.enrolled_at else None,
+			"total_tasks": total_tasks,
+			"completed_tasks": completed_tasks,
+		})
+
+	# Query student task attempts across all sets
+	attempts_stmt = (
+		select(
+			Parsons.id.label("task_id"),
+			Parsons.title.label("task_title"),
+			Parsons.task_type.label("task_type"),
+			TaskSet.id.label("task_set_id"),
+			TaskSet.title.label("task_set_title"),
+			func.count(TaskAttempt.id).label("attempts_count"),
+			func.max(case((TaskAttempt.success.is_(True), 1), else_=0)).label("is_successful"),
+			func.max(TaskAttempt.completed_at).label("last_attempt_at"),
+			StudentTaskEnrollment.started_at.label("started_at")
+		)
+		.join(StudentTaskEnrollment, StudentTaskEnrollment.task_id == Parsons.id)
+		.join(TaskSet, TaskSet.id == StudentTaskEnrollment.task_set_id)
+		.outerjoin(TaskAttempt, TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+		.where(StudentTaskEnrollment.student_id == student_id)
+		.group_by(Parsons.id, Parsons.title, Parsons.task_type, TaskSet.id, TaskSet.title, StudentTaskEnrollment.started_at)
+		.order_by(func.coalesce(func.max(TaskAttempt.completed_at), StudentTaskEnrollment.started_at).desc())
+	)
+	attempts_res = await db.execute(attempts_stmt)
+	attempts = attempts_res.all()
+
+	attempts_list = []
+	for attempt in attempts:
+		attempts_list.append({
+			"task_id": attempt.task_id,
+			"task_title": attempt.task_title,
+			"task_type": attempt.task_type,
+			"task_set_id": attempt.task_set_id,
+			"task_set_title": attempt.task_set_title,
+			"attempts": attempt.attempts_count,
+			"success": bool(attempt.is_successful),
+			"last_attempt_at": attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else None,
+		})
+
+	return {
+		"student": {
+			"id": student.id,
+			"username": student.username,
+			"email": student.email,
+			"is_active": student.is_active,
+			"created_at": student.student_created_at.isoformat(),
+		},
+		"task_sets": task_sets_list,
+		"task_attempts": attempts_list,
+	}
+
 

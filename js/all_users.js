@@ -93,14 +93,18 @@ function renderUsers() {
 	filteredUsers.forEach(user => {
 		const card = document.createElement('div');
 		card.className = 'user-card';
-		if (user.role === 'teacher') {
+		if (user.role === 'teacher' || user.role === 'student') {
 			card.style.cursor = 'pointer';
-			card.title = `Click to view ${user.username}'s dashboard`;
+			card.title = `Click to view ${user.username}'s details`;
 			card.addEventListener('click', (e) => {
 				if (e.target.closest('button') || e.target.closest('.fa-trash-alt')) {
 					return;
 				}
-				window.location.href = `/admin/admins_teacher_view?teacher_id=${user.id}`;
+				if (user.role === 'teacher') {
+					window.location.href = `/admin/admins_teacher_view?teacher_id=${user.id}`;
+				} else {
+					window.location.href = `/admin/admins_student_view?student_id=${user.id}`;
+				}
 			});
 		}
 

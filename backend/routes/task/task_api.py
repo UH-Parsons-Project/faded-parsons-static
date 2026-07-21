@@ -674,6 +674,13 @@ async def get_task(
                 detail=f"Task with id {task_id} not found",
             )
 
+    model_answer_code = None
+    if current_user:
+        model_answer_result = await db.execute(
+            select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
+        )
+        model_answer_code = model_answer_result.scalar_one_or_none()
+
     return TaskResponse(
         id=task.id,
         title=task.title,
@@ -684,6 +691,7 @@ async def get_task(
         correct_solution=task.correct_solution,
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
+        model_answer=model_answer_code,
     )
 
 

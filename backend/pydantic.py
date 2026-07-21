@@ -26,6 +26,8 @@ class TaskResponse(BaseModel):
     correct_solution: dict
     is_public: bool
     created_at: str
+    model_answer: str | None = None
+
 
 
 class TaskSetResponse(BaseModel):

@@ -497,6 +497,28 @@ class TestGetTask:
         assert body["title"] == "Hello World"
         assert body["task_instructions"] == "Arrange the blocks to print 'Hello, World!'"
         assert body["task_type"] == "python"
+        assert body["model_answer"] is None
+
+    async def test_returns_model_answer_when_authenticated_teacher(self, client, db_session, test_teacher, task):
+        from backend.models import ModelAnswer
+        ma = ModelAnswer(
+            parsons_id=task.id,
+            created_by_teacher_id=test_teacher.id,
+            answer_code="print('Hello, World!')"
+        )
+        db_session.add(ma)
+        await db_session.commit()
+
+        # Anonymous gets None
+        r = await client.get(f"/api/tasks/{task.id}")
+        assert r.status_code == 200
+        assert r.json()["model_answer"] is None
+
+        # Authenticated teacher gets the model answer
+        r2 = await client.get(f"/api/tasks/{task.id}", headers=_auth(test_teacher.username))
+        assert r2.status_code == 200
+        assert r2.json()["model_answer"] == "print('Hello, World!')"
+
 
     async def test_task_without_description_returns_null(self, client, db_session, test_teacher):
         t = Parsons(
@@ -1264,6 +1286,16 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_create_task_editor_html_alias_returns_200_when_authenticated(self, client, test_teacher):
         r = await client.get("/create-task-editor.html", headers=_auth(test_teacher.username))
         assert r.status_code == 200
+
+    async def test_task_details_page_requires_authentication(self, client):
+        r = await client.get("/task-details", follow_redirects=False)
+        assert r.status_code == 303
+        assert r.headers["location"] == "/"
+
+    async def test_task_details_page_returns_200_when_authenticated(self, client, test_teacher):
+        r = await client.get("/task-details", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
 
     async def test_student_register_page_returns_200(self, client):
         r = await client.get("/student-register")

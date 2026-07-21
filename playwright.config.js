@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Read environment variables from .env file when available (local dev).
  * In Docker, env vars are injected via docker-compose env_file.
  */
-try { require('dotenv/config'); } catch {} // eslint-disable-line no-empty
+import 'dotenv/config';
 
 /**
  * @see https://playwright.dev/docs/test-configuration

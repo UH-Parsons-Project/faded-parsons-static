@@ -262,17 +262,11 @@ initBurgerMenu();
     sessionStorage.setItem(BLOCKS_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
-  function loadMetaFromSession(sourceCode) {
+  function loadMetaFromSession() {
     try {
       const raw = sessionStorage.getItem(META_KEY);
-      const rawSource = sessionStorage.getItem(META_SOURCE_KEY);
-      const normalizedSource = normalizeSourceCode(sourceCode || '');
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
-      }
-
-      if (typeof rawSource !== 'string' || rawSource !== normalizedSource) {
         return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
       }
 
@@ -1181,6 +1175,10 @@ initBurgerMenu();
           customErrorMessagesInput.value,
           getVisibilityValue()
         );
+        if (draftPayload) {
+          draftPayload.taskTests = testsInput.value;
+          sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
+        }
         updateAddToListState();
       });
     }
@@ -1308,7 +1306,7 @@ initBurgerMenu();
       }
 
       if (visibilityInput) {
-        const hasSessionMeta = sessionStorage.getItem(META_KEY) && sessionStorage.getItem(META_SOURCE_KEY) === normalizeSourceCode(solutionCode);
+        const hasSessionMeta = sessionStorage.getItem(META_KEY) !== null;
         const isPublic = hasSessionMeta ? meta.isPublic : (typeof taskData.is_public === 'boolean' ? taskData.is_public : true);
         visibilityInput.checked = !isPublic;
         updateVisibilityWarning();
@@ -1374,7 +1372,7 @@ initBurgerMenu();
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
-      if (testsInput) testsInput.value = meta.tests || draft.taskTests || '';
+      if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
@@ -1384,7 +1382,7 @@ initBurgerMenu();
     }
 
     if (visibilityInput) {
-      const hasSessionMeta = sessionStorage.getItem(META_KEY) && sessionStorage.getItem(META_SOURCE_KEY) === normalizeSourceCode(draft.taskCode);
+      const hasSessionMeta = sessionStorage.getItem(META_KEY) !== null;
       const isPublic = hasSessionMeta ? meta.isPublic : (fetchedFromApi && apiTaskData ? apiTaskData.is_public : true);
       visibilityInput.checked = !isPublic;
       updateVisibilityWarning();

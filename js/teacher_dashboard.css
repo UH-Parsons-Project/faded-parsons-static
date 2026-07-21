@@ -340,7 +340,6 @@ a.btn-success.btn-block:hover {
   gap: .5rem;
   margin-bottom: 1rem;
 }
-#all-sets-button-container { margin-bottom: 0; }
 .nav-link-btn {
   display: inline-flex;
   align-items: center;
@@ -365,7 +364,7 @@ a.btn-success.btn-block:hover {
 }
 
 /* ── Admin button area ───────────────────────────────── */
-#all-sets-button-container .btn-primary {
+#all-sets-button {
   background: var(--brand-text);
   border-color: var(--brand-text);
   border-radius: var(--radius);
@@ -373,7 +372,7 @@ a.btn-success.btn-block:hover {
   padding: .45rem 1rem;
   font-size: .82rem;
 }
-#all-sets-button-container .btn-primary:hover { background: #253080; border-color: #253080; }
+#all-sets-button:hover { background: #253080; border-color: #253080; }
 
 /* ── Your Tasks section ──────────────────────────────── */
 .your-tasks-section-header {

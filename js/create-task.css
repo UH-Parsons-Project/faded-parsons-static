@@ -31,6 +31,7 @@ body {
 }
 
 .create-task-shell {
+    width: 100%;
     max-width: 1100px;
     margin: 0 auto;
     padding: 1.5rem 1rem 2rem;

@@ -517,6 +517,7 @@ async function initReplay(studentUsername, taskId, setId) {
 
 // ── Collapsibles ───────────────────────────────────────────────────────────
 
+setupCollapsible('instructions-toggle', 'instructions-body', 'instructions-chevron');
 setupCollapsible('attempts-toggle', 'attempts-body',  'attempts-chevron');
 setupCollapsible('replay-toggle',   'replay-body',    'replay-chevron');
 setupCollapsible('sessions-toggle', 'sessions-body',  'sessions-chevron');

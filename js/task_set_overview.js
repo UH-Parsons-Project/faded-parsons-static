@@ -465,13 +465,13 @@ function renderListHeader(taskSet, tasks, students) {
 	const taskCount = tasks.length;
 	const totalAttempts = students.reduce((s, st) => s + (st.total_attempts ?? 0), 0);
 	const avgProgress = studentCount > 0 && taskCount > 0
-		? Math.round(students.reduce((s, st) => s + (st.tasks_attempted ?? 0), 0) / studentCount / taskCount * 100)
+		? Math.round(students.reduce((s, st) => s + (st.completed_tasks ?? 0), 0) / studentCount / taskCount * 100)
 		: 0;
 
 	// Distribution: fully done / in progress / not started
-	const fullyDone = students.filter(st => taskCount > 0 && st.tasks_attempted >= taskCount).length;
-	const inProgress = students.filter(st => st.tasks_attempted > 0 && st.tasks_attempted < taskCount).length;
-	const notStarted = studentCount - fullyDone - inProgress;
+	const fullyDone = students.filter(st => taskCount > 0 && (st.completed_tasks ?? 0) >= taskCount).length;
+	const inProgress = students.filter(st => (st.tasks_attempted ?? 0) > 0 && (st.completed_tasks ?? 0) < taskCount).length;
+	const notStarted = students.filter(st => (st.tasks_attempted ?? 0) === 0).length;
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 

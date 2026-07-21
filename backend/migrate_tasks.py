@@ -223,6 +223,15 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         code_lines = yaml_data.get("code_lines", "")
         blocks, has_faded = parse_code_lines(code_lines)
 
+        # Load model answer code to reconstruct solution_code and set block indentations
+        model_answer_code = load_model_answer_file(task_name)
+        if model_answer_code:
+            md_lines = [line for line in model_answer_code.split("\n") if line.strip()]
+            if len(blocks) == len(md_lines):
+                for block, md_line in zip(blocks, md_lines):
+                    indent_count = len(md_line) - len(md_line.lstrip())
+                    block["indent"] = indent_count // 4
+
         # Generate correct order based on block IDs
         correct_order = [block["id"] for block in blocks]
 
@@ -231,6 +240,63 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
 
         # Get test function name
         test_fn = yaml_data.get("test_fn", get_function_name(function_header))
+
+        solution_code = None
+        if model_answer_code:
+            # Reconstruct solution_code with !BLANK markers and proper indentation
+            yaml_lines = []
+            for line in code_lines.split("\n"):
+                if not line.strip():
+                    continue
+                clean = line.strip()
+                clean = re.sub(r"#[0-9]+given", "", clean).strip()
+                if clean:
+                    yaml_lines.append(clean)
+
+            md_lines = [line for line in model_answer_code.split("\n") if line.strip()]
+
+            if len(yaml_lines) == len(md_lines):
+                result_lines = []
+                for yaml_line, md_line in zip(yaml_lines, md_lines):
+                    indent_count = len(md_line) - len(md_line.lstrip())
+                    indent_spaces = " " * indent_count
+                    result_lines.append(indent_spaces + yaml_line)
+                solution_code = "\n".join(result_lines)
+            else:
+                solution_code = model_answer_code
+
+        # Generate teacher tests assertions from examples
+        examples = parsed_instructions.get("examples", "")
+        teacher_tests = ""
+        if examples:
+            assertions = []
+            lines = examples.split("\n")
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
+                if line.startswith(">>>"):
+                    code_expr = line[3:].strip()
+                    if " #" in code_expr:
+                        code_expr = code_expr.split(" #", 1)[0].rstrip()
+                    elif "#" in code_expr:
+                        code_expr = code_expr.split("#", 1)[0].rstrip()
+
+                    if i + 1 < len(lines):
+                        next_line = lines[i+1].strip()
+                        if " #" in next_line:
+                            next_line = next_line.split(" #", 1)[0].rstrip()
+                        elif "#" in next_line:
+                            next_line = next_line.split("#", 1)[0].rstrip()
+
+                        if not next_line.startswith(">>>") and next_line:
+                            assertions.append(f"assert {code_expr} == {next_line}")
+                            i += 2
+                            continue
+                    assertions.append(code_expr)
+                    i += 1
+                else:
+                    i += 1
+            teacher_tests = "\n".join(assertions)
 
         return {
             "title": task_name,
@@ -241,6 +307,8 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             "correct_solution": {
                 "correct_order": correct_order,
                 "test_function": test_fn,
+                "solution_code": solution_code or "",
+                "teacher_tests": teacher_tests,
             },
         }
 

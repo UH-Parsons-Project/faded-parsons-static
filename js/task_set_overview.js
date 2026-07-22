@@ -129,7 +129,7 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
 
 	return allRows
-		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' ; '))
 		.join('\n');
 }
 
@@ -152,7 +152,7 @@ function buildStudentCompletionCsv(tasks, students) {
 	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
 
 	return allRows
-		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' ; '))
 		.join('\n');
 }
 

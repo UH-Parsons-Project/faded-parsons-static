@@ -32,6 +32,21 @@ function toDatetimeLocalValue(isoString) {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function formatCsvExportTimestamp(date = new Date()) {
+	const pad = value => String(value).padStart(2, '0');
+	return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${String(date.getFullYear()).slice(-2)}_${pad(date.getHours())}_${pad(date.getMinutes())}`;
+}
+
+function sanitizeCsvFilenamePart(value, fallback) {
+	return (value || fallback).replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase();
+}
+
+function buildCsvExportFilename(taskSet, exportType) {
+	const safeTitle = sanitizeCsvFilenamePart(taskSet.title, 'task_set');
+	const safeTeacherName = sanitizeCsvFilenamePart(taskSet.owner_username, 'teacher');
+	return `${safeTitle}_${safeTeacherName}_${exportType}_${formatCsvExportTimestamp()}.csv`;
+}
+
 function escapeHtml(text) {
 	const div = document.createElement('div');
 	div.textContent = text;
@@ -187,7 +202,7 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}.csv`;
+		link.download = buildCsvExportFilename(taskSet, 'ALL_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
@@ -216,7 +231,7 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}_teacher_completions.csv`;
+		link.download = buildCsvExportFilename(taskSet, 'EXERCISE_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();

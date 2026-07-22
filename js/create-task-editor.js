@@ -412,22 +412,56 @@ initBurgerMenu();
   function buildReprFromBlocks(taskData) {
     const blocks = taskData.code_blocks?.blocks || [];
     const solutionCode = (taskData.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
+    const modelAnswer = (taskData.model_answer || '').replace(/\r\n/g, '\n');
     const INDENT = '    ';
-    const solutionLines = new Set(
-      solutionCode.split('\n')
-        .map((l) => l.trimEnd().replace(/!BLANK/g, '___'))
-        .filter(Boolean)
-    );
+
+    const solLinesList = solutionCode.split('\n').map(l => l.trimRight());
+    const ansLinesList = modelAnswer.split('\n').map(l => l.trimRight());
+
+    // Create a list of solution line objects for sequential matching
+    const solLines = solLinesList.map((solLine, idx) => ({
+      solLine,
+      ansLine: ansLinesList[idx] || '',
+      matched: false,
+    }));
+
     return blocks.map((block) => {
+      const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
       const indented = INDENT.repeat(block.indent) + block.code;
-      if (solutionLines.has(indented)) {
-        let line = `${block.code} #${block.indent}given`;
+
+      // Find the first unmatched solution line that matches this block's indented code
+      const matchItem = solLines.find(item => {
+        if (item.matched) return false;
+        return item.solLine.replace(/!BLANK/g, '___') === indented;
+      });
+
+      if (matchItem) {
+        matchItem.matched = true;
+        let blanksSuffix = '';
+        const solLine = matchItem.solLine;
+        const ansLine = matchItem.ansLine;
+
+        if (solLine.includes('!BLANK') && ansLine) {
+          // Extract values using regex matching
+          const segments = solLine.trim().split('!BLANK');
+          const escapedSegments = segments.map(seg => seg.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
+          const regexStr = '^' + escapedSegments.join('(.*?)') + '$';
+          const regex = new RegExp(regexStr);
+          const match = ansLine.trim().match(regex);
+          if (match) {
+            const values = match.slice(1);
+            blanksSuffix = values.map(val => ' #blank' + val).join('');
+          }
+        }
+
+        let line = `${codeWithBlanks}${blanksSuffix} #${block.indent}given`;
         if (block.given) {
           line += ' #preplace';
         }
         return line;
       }
-      return block.code;
+
+      return codeWithBlanks;
     }).join('\n');
   }
 

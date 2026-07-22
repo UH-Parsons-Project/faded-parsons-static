@@ -32,6 +32,21 @@ function toDatetimeLocalValue(isoString) {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function formatCsvExportTimestamp(date = new Date()) {
+	const pad = value => String(value).padStart(2, '0');
+	return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${String(date.getFullYear()).slice(-2)}_${pad(date.getHours())}_${pad(date.getMinutes())}`;
+}
+
+function sanitizeCsvFilenamePart(value, fallback) {
+	return (value || fallback).replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase();
+}
+
+function buildCsvExportFilename(taskSet, exportType) {
+	const safeTitle = sanitizeCsvFilenamePart(taskSet.title, 'task_set');
+	const safeTeacherName = sanitizeCsvFilenamePart(taskSet.owner_username, 'teacher');
+	return `${safeTitle}_${safeTeacherName}_${exportType}_${formatCsvExportTimestamp()}.csv`;
+}
+
 function escapeHtml(text) {
 	const div = document.createElement('div');
 	div.textContent = text;
@@ -74,18 +89,18 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 		'Tries % of Enrolled',
 		'Completions Count',
 		'Completions % of Enrolled',
-		'Thinking Time Mean',
-		'Thinking Time Median',
-		'Thinking Time Min',
-		'Thinking Time Max',
-		'Time to First Success Mean',
-		'Time to First Success Median',
-		'Time to First Success Min',
-		'Time to First Success Max',
-		'Time to First Fail Mean',
-		'Time to First Fail Median',
-		'Time to First Fail Min',
-		'Time to First Fail Max',
+		'Thinking Time Mean (s)',
+		'Thinking Time Median (s)',
+		'Thinking Time Min (s)',
+		'Thinking Time Max (s)',
+		'Time to First Success Mean (s)',
+		'Time to First Success Median (s)',
+		'Time to First Success Min (s)',
+		'Time to First Success Max (s)',
+		'Time to First Fail Mean (s)',
+		'Time to First Fail Median (s)',
+		'Time to First Fail Min (s)',
+		'Time to First Fail Max (s)',
 		'Moves Mean',
 		'Moves Median',
 		'Moves Min',
@@ -129,13 +144,13 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
 
 	return allRows
-		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' ; '))
 		.join('\n');
 }
 
 function buildStudentCompletionCsv(tasks, students) {
 	const headers = [
-		'Username',
+		'Student',
 		'Email',
 		'Completed Tasks',
 		...tasks.map(task => task.title),
@@ -152,7 +167,7 @@ function buildStudentCompletionCsv(tasks, students) {
 	const widths = headers.map((_, columnIndex) => Math.max(...allRows.map(row => String(row[columnIndex] ?? '').length)));
 
 	return allRows
-		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' | '))
+		.map(row => row.map((cell, columnIndex) => pipeCell(cell, widths[columnIndex])).join(' ; '))
 		.join('\n');
 }
 
@@ -187,7 +202,7 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}.csv`;
+		link.download = buildCsvExportFilename(taskSet, 'ALL_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
@@ -216,7 +231,7 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `${taskSet.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'task_set'}_teacher_completions.csv`;
+		link.download = buildCsvExportFilename(taskSet, 'EXERCISE_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();

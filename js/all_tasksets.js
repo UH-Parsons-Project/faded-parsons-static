@@ -1,7 +1,8 @@
-import {initProtectedPage, initSignedInAs} from '/js/auth-ui.js';
+import {initProtectedPage, initSignedInAs, initBurgerMenu} from '/js/auth-ui.js';
 
 initProtectedPage('/');
 initSignedInAs();
+initBurgerMenu();
 
 const userNameEl = document.getElementById('user-name');
 const storedUsername = localStorage.getItem('username');
@@ -68,7 +69,7 @@ function createTaskSetItem(taskSet) {
 	const code = document.createElement('div');
 	code.className = 'mb-2';
 	const codeSpan = document.createElement('span');
-	codeSpan.className = 'task-set-code';
+	codeSpan.className = 'task-set-code-chip';
 	codeSpan.textContent = taskSet.unique_link_code;
 	code.appendChild(codeSpan);
 
@@ -91,15 +92,15 @@ function createTaskSetItem(taskSet) {
 
 	if (taskSet.student_description) {
 		const studentDesc = document.createElement('div');
-		studentDesc.className = 'task-set-description';
-		studentDesc.textContent = taskSet.student_description;
+		studentDesc.className = 'student-instructions-box';
+		studentDesc.innerHTML = `<strong style="font-weight: 700; font-size: 0.78rem; display: block; margin-bottom: 0.2rem; color: #0284c7;"><i class="fas fa-info-circle"></i> Student Instructions</strong>${escapeHtml(taskSet.student_description)}`;
 		right.appendChild(studentDesc);
 	}
 
 	if (taskSet.teacher_description) {
 		const teacherDesc = document.createElement('div');
-		teacherDesc.className = 'task-set-description task-set-teacher-description';
-		teacherDesc.innerHTML = `<i class="fas fa-chalkboard-teacher"></i> ${escapeHtml(taskSet.teacher_description)}`;
+		teacherDesc.className = 'teacher-notes-box';
+		teacherDesc.innerHTML = `<strong style="font-weight: 700; font-size: 0.78rem; display: block; margin-bottom: 0.2rem; color: var(--brand-text);"><i class="fas fa-chalkboard-teacher"></i> Teacher Notes</strong>${escapeHtml(taskSet.teacher_description)}`;
 		right.appendChild(teacherDesc);
 	}
 

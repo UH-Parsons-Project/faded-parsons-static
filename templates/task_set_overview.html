@@ -65,7 +65,18 @@
   <div class="overview-main">
     <div id="content-container" style="display: none;">
 
-<div class="statistics-layout">
+      <div class="view-toggle-control" id="view-toggle-container">
+        <div class="toggle-segment active" data-value="lists" id="toggle-lists" role="button" tabindex="0">
+          <span class="segment-title">Tasks & Students</span>
+          <span class="segment-desc">Task list and student cards</span>
+        </div>
+        <div class="toggle-segment" data-value="heatmap" id="toggle-heatmap" role="button" tabindex="0">
+          <span class="segment-title">Completion Heatmap</span>
+          <span class="segment-desc">Student × task matrix</span>
+        </div>
+      </div>
+
+<div class="statistics-layout" id="statistics-layout">
 
         <div class="tasks-column">
           <h3 class="mb-3">Tasks</h3>
@@ -78,6 +89,30 @@
         </div>
 
       </div>
+
+      <div id="heatmap-container" style="display:none;">
+        <div class="hm-controls-bar" id="hm-controls"></div>
+        <div class="hm-card" id="hm-card">
+          <div class="hm-scroll">
+            <table class="hm-table" id="hm-table"></table>
+          </div>
+        </div>
+        <div class="hm-legend" id="hm-legend"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="hm-tooltip" id="hm-tooltip"></div>
+
+  <div class="hm-modal-overlay" id="hm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="hm-modal-title">
+    <div class="hm-modal">
+      <div class="hm-modal-header">
+        <div class="hm-modal-title" id="hm-modal-title"></div>
+        <button class="hm-modal-close" id="hm-modal-close" aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="hm-modal-body" id="hm-modal-body"></div>
+      <div class="hm-modal-footer" id="hm-modal-footer"></div>
     </div>
   </div>
 

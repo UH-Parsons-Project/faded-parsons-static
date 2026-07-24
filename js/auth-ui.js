@@ -635,7 +635,6 @@ function shouldShowHelpTour(pathname) {
 	const teacherPaths = [
 		'/teacher-dashboard',
 		'/task-set-overview',
-		'/heatmap',
 		'/task-statistics',
 		'/student-attempts',
 		'/student-task-statistics',
@@ -778,11 +777,11 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: 'a[href*="heatmap"]',
+				element: '#view-toggle-container',
 				popover: {
-					title: 'Completion Heatmap',
+					title: 'View Toggle & Completion Heatmap',
 					description:
-						'Access the Completion Heatmap, where you can see the completion progress of your students in a simple table format.',
+						'Switch between the list view (Tasks and Students) and the Completion Heatmap view to inspect overall student progress in a table format.',
 					side: 'bottom',
 				},
 			},
@@ -870,83 +869,7 @@ function getTourStepsForPath(pathname) {
 		];
 	}
 
-	// Heatmap Tour
-	if (pathname.startsWith('/heatmap')) {
-		return [
-			{
-				element: '.taskset-page-title',
-				popover: {
-					title: 'Completion Heatmap',
-					description:
-						'Welcome to the Completion Heatmap! This interactive grid provides a high-level visual overview of how all students are progressing through the tasks in this set.',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '#hm-controls',
-				popover: {
-					title: 'Sort Controls',
-					description:
-						'Use these controls to sort the student list. You can sort alphabetically by <b>Student Name</b>, or by progression: <b>Most complete</b> (or most attempts if not completed) or <b>Least complete</b> (or least attempts if) ',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '.hm-corner-th:not(.hm-corner-rate)',
-				popover: {
-					title: 'Student Column & Struggling Badges',
-					description:
-						'This column lists student names. If a student is failing or struggling with multiple tasks (3 or more tasks with high attempt counts without success), a red <b>Struggling</b> badge will appear next to their name.',
-					side: 'right',
-				},
-			},
-			{
-				element: '.hm-task-th',
-				popover: {
-					title: 'Task Columns & Modal Previews',
-					description:
-						'Columns correspond to individual tasks in this set (labeled T1, T2, etc.). <b>Clicking on a task header</b> opens a quick preview of what the task is.',
-					side: 'bottom',
-				},
-			},
-			{
-				element: '.hm-corner-rate',
-				popover: {
-					title: 'Task Completion Rates',
-					description:
-						'This row shows the overall percentage of enrolled students who have successfully completed each task.',
-					side: 'right',
-				},
-			},
-			{
-				element: '.hm-cell-td',
-				popover: {
-					title: 'Status Cells',
-					description:
-						"Each cell represents a student's attempt status on a task. Hovering over any cell reveals a detailed tooltip showing the status, total attempts, and last active timestamp. <b>Clicking a cell</b> opens student-task-specific statistics.",
-					side: 'top',
-				},
-			},
-			{
-				element: '.hm-prog-td',
-				popover: {
-					title: 'Individual Progress',
-					description:
-						'The progress column shows the completion ratio and percentage for each individual student over all tasks',
-					side: 'left',
-				},
-			},
-			{
-				element: '#hm-legend',
-				popover: {
-					title: 'Legend & Quick Info',
-					description:
-						'Refer to this legend to quickly identify the color codes and status states used in the heatmap table.',
-					side: 'top',
-				},
-			},
-		];
-	}
+
 
 	// Exercise Analytics Tour
 	if (pathname.startsWith('/task-statistics')) {

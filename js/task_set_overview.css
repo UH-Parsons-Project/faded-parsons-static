@@ -573,6 +573,62 @@ h3.mb-3 {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+/* ── View Toggle (Lists / Heatmap) ───────────────────── */
+.view-toggle-control {
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  gap: 4px;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+}
+.view-toggle-control .toggle-segment {
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex: 1;
+  text-align: center;
+  min-width: 165px;
+  user-select: none;
+  background: transparent;
+}
+.view-toggle-control .toggle-segment:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.view-toggle-control .toggle-segment.active {
+  background: var(--brand-dark);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-dark);
+}
+.view-toggle-control .segment-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+.view-toggle-control .segment-desc {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+.view-toggle-control .toggle-segment.active .segment-title {
+  color: #ffffff;
+}
+.view-toggle-control .toggle-segment.active .segment-desc {
+  color: rgba(255, 255, 255, 0.9);
+}
 
 /* ══════════════════════════════════════════════════════════════
    HEATMAP  (heatmap.html / heatmap.js)

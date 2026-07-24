@@ -84,17 +84,6 @@ async def task_set_overview(request: Request, db: AsyncSession = Depends(get_db)
 	return set_no_cache_headers(response)
 
 
-@router.get("/heatmap", response_class=HTMLResponse)
-async def heatmap_page(request: Request, db: AsyncSession = Depends(get_db)):
-	redirect = await require_session_or_redirect(get_current_user, "/", request, db)
-	if redirect:
-		return redirect
-
-	heatmap_path = BASE_DIR / "templates" / "heatmap.html"
-	response = FileResponse(heatmap_path)
-	return set_no_cache_headers(response)
-
-
 @router.get("/create-task-set", response_class=HTMLResponse)
 async def create_task_set_page(request: Request, db: AsyncSession = Depends(get_db)):
 	redirect = await require_session_or_redirect(get_current_user, "/", request, db)

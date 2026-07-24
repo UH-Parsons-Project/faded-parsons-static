@@ -522,111 +522,132 @@ function renderListHeader(taskSet, tasks, students) {
 	let deleteHTML = '';
 	if (isOwner) {
 		if (taskSet.deletable) {
-			deleteHTML = `<button id="delete-set-btn" type="button" class="btn btn-sm btn-outline-danger mt-2"><i class="fas fa-trash"></i> Delete Task Set</button>`;
+			deleteHTML = `<button id="delete-set-btn" type="button" class="btn btn-sm btn-outline-danger" style="width:100%; justify-content:center; font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;border-radius:var(--radius);"><i class="fas fa-trash"></i> Delete Task Set</button>`;
 		} else {
-			deleteHTML = `<span class="btn btn-sm btn-secondary disabled mt-2 mb-2" title="Cannot delete — students have already joined"><i class="fas fa-lock"></i> Can not be deleted, in use</span>`;
+			deleteHTML = `<span class="btn btn-sm btn-secondary disabled" style="width:100%; justify-content:center; font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;border-radius:var(--radius);" title="Cannot delete — students have already joined"><i class="fas fa-lock"></i> In use</span>`;
 		}
 	}
 
-	let leftHTML = `
-		<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem;">
-		  <div class="taskset-page-title" style="margin-bottom:0">${escapeHtml(taskSet.title)}</div>
-		</div>
-		<div class="taskset-actions-row">
-		  <div class="csv-buttons-group">
-			  <button id="download-task-set-csv-btn"
-				 type="button"
-				 class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
-				 style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
-				<i class="fas fa-download"></i> Download CSV
-			  </button>
-			  <button id="download-task-set-teacher-csv-btn"
-				 type="button"
-				 class="btn btn-sm taskset-action-btn taskset-action-btn-csv"
-				 style="font-weight:700;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;">
-				<i class="fas fa-download"></i> Download Teacher CSV
-			  </button>
-		  </div>
-		</div>
-		<div class="taskset-link-box">
-			<span id="link-code" class="taskset-link-text">${url}</span>
-			<button id="copy-btn" type="button" class="copy-btn" title="Copy URL">
-				<i class="fas fa-copy"></i>
-			</button>
-		</div>
-		<div class="taskset-meta-row">
-			<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
-			<span id="expiry-section" class="meta-badge">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
-		</div>
-		${deleteHTML}
-	`;
+	let descriptionsHTML = '';
 	if (taskSet.teacher_description || taskSet.student_description) {
-		leftHTML += `<div class="descriptions-wrapper">`;
+		descriptionsHTML += `<div class="descriptions-wrapper" style="margin-top:.25rem;">`;
 		if (taskSet.teacher_description) {
-			leftHTML += `<div class="teacher-notes-box"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
+			descriptionsHTML += `<div class="teacher-notes-box" style="margin-bottom:.5rem;"><strong>Teacher Notes:</strong><br>${escapeHtml(taskSet.teacher_description)}</div>`;
 		}
 		if (taskSet.student_description) {
-			leftHTML += `<div class="student-instructions-box"><strong>Student Instructions:</strong><br>${escapeHtml(taskSet.student_description)}</div>`;
+			descriptionsHTML += `<div class="student-instructions-box" style="margin-bottom:0;"><strong>Student Instructions:</strong><br>${escapeHtml(taskSet.student_description)}</div>`;
 		}
-		leftHTML += `</div>`;
+		descriptionsHTML += `</div>`;
 	}
 
 	const statsHTML = `
-		<div class="header-stats">
-			<div class="hkpi-grid">
-				<div class="hkpi c-brand">
-					<div class="hkpi-label">Students</div>
-					<div class="hkpi-value">${studentCount}</div>
+		<div class="header-stats" style="width:100%; display:flex; flex-direction:row; flex-wrap:nowrap; gap:1.5rem; justify-content:flex-end; align-items:stretch; overflow-x:auto; padding-bottom:.5rem;">
+			<div class="hkpi-grid" style="display:flex; flex-wrap:nowrap; gap:.75rem; margin-bottom:0; flex:0 0 auto;">
+				<div class="hkpi c-brand" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Students</div>
+					<div class="hkpi-value" style="font-size:1.3rem;">${studentCount}</div>
 				</div>
-				<div class="hkpi c-gray">
-					<div class="hkpi-label">Tasks</div>
-					<div class="hkpi-value">${taskCount}</div>
+				<div class="hkpi c-gray" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Tasks</div>
+					<div class="hkpi-value" style="font-size:1.3rem;">${taskCount}</div>
 				</div>
-				<div class="hkpi c-green">
-					<div class="hkpi-label">Avg Progress</div>
-					<div class="hkpi-value">${avgProgress}%</div>
+				<div class="hkpi c-green" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Avg Progress</div>
+					<div class="hkpi-value" style="font-size:1.3rem;">${avgProgress}%</div>
 				</div>
-				<div class="hkpi c-amber">
-					<div class="hkpi-label">Total Attempts</div>
-					<div class="hkpi-value">${totalAttempts}</div>
+				<div class="hkpi c-amber" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Total Attempts</div>
+					<div class="hkpi-value" style="font-size:1.3rem;">${totalAttempts}</div>
 				</div>
 			</div>
-			<div class="dist-bar-wrap">
-				<div class="dist-bar-label">Student Progression</div>
-				<div class="dist-bar">
+			<div class="dist-bar-wrap" style="flex:1; min-width:250px; padding:.6rem .8rem; margin:0; display:flex; flex-direction:column; justify-content:center;">
+				<div class="dist-bar-label" style="font-size:.65rem; margin-bottom:.3rem;">Student Progression</div>
+				<div class="dist-bar" style="margin-bottom:.3rem; height:6px;">
 					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
 					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
 				</div>
-				<div class="dist-bar-legend">
-					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
-					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--amber)"></span>${inProgress} in progress</span>
-					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--border);border:1px solid var(--gray)"></span>${notStarted} not started</span>
+				<div class="dist-bar-legend" style="gap:.5rem; display:flex; flex-wrap:wrap;">
+					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
+					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--amber)"></span>${inProgress} in progress</span>
+					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--border);border:1px solid var(--gray)"></span>${notStarted} not started</span>
 				</div>
 			</div>
+		</div>
+	`;
+
+	const actionsHTML = `
+		<div class="header-manage" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:.8rem; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:.75rem; min-width:260px;">
+			<div>
+				<div class="header-viewers-title" style="margin-bottom:.4rem; font-size:.7rem;">Data & Actions</div>
+				<div class="csv-buttons-group" style="display:flex;gap:.4rem;flex-wrap:wrap;">
+					<button id="download-task-set-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
+						<i class="fas fa-download"></i> CSV
+					</button>
+					<button id="download-task-set-teacher-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
+						<i class="fas fa-download"></i> Teacher CSV
+					</button>
+				</div>
+				<div style="margin-top:.4rem; display:flex;">
+					${deleteHTML}
+				</div>
+			</div>
+		</div>
+	`;
+
+	const leftColHTML = `
+		<div style="display:flex; flex-direction:column; gap:1.5rem; min-width:0;">
+			<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1.5rem; flex-wrap:wrap;">
+				<div style="min-width:0;">
+					<h1 class="taskset-page-title" style="margin-bottom:.25rem;">${escapeHtml(taskSet.title)}</h1>
+					<div class="taskset-meta-row" style="margin-bottom:.6rem;display:flex;gap:.4rem;">
+						<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
+						<span id="expiry-section" class="meta-badge">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
+					</div>
+					<div class="taskset-link-box" style="margin-bottom:0; width:fit-content; max-width:100%;">
+						<span id="link-code" class="taskset-link-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${url}</span>
+						<button id="copy-btn" type="button" class="copy-btn" title="Copy URL"><i class="fas fa-copy"></i></button>
+					</div>
+				</div>
+				${actionsHTML}
+			</div>
+			${descriptionsHTML ? `
+				<div class="header-info-col" style="display:flex; flex-direction:column; min-width:0;">
+					${descriptionsHTML}
+				</div>
+			` : ''}
 		</div>
 	`;
 
 	const viewersHTML = `
-		<div class="header-viewers">
-			<div class="header-viewers-title">Shared Viewers</div>
-			<div class="viewer-add-form">
-				<input type="text" id="viewer-identifier" placeholder="Username or email">
-				<button type="button" id="add-viewer-btn">
-					<i class="fas fa-user-plus"></i> Add
-				</button>
+		<div class="header-viewers" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:.8rem; box-shadow:var(--shadow); min-width:0; flex:1; display:flex; flex-direction:column;">
+			<div class="header-viewers-title" style="margin-bottom:.4rem; font-size:.7rem; flex-shrink:0;">Shared Viewers</div>
+			<div class="viewer-add-form" style="margin-bottom:.5rem; flex-shrink:0;">
+				<div style="display:flex; gap:.4rem;">
+					<input type="text" id="viewer-identifier" placeholder="Username or email" style="flex:1; min-width:0;">
+					<button type="button" id="add-viewer-btn" style="width:auto; padding:.4rem .8rem;"><i class="fas fa-user-plus"></i></button>
+				</div>
 			</div>
-			<div class="viewer-add-hint">Add teachers who can view this task set.</div>
-			<div id="viewers-list"></div>
+			<div id="viewers-list" style="flex:1; overflow-y: auto; padding-right: .25rem; min-height:0;"></div>
+		</div>
+	`;
+
+	const rightColHTML = `
+		<div style="display:flex; flex-direction:column; gap:1.5rem; min-width:0; width:100%; height:100%;">
+			${viewersHTML}
 		</div>
 	`;
 
 	container.innerHTML = `
-		<div class="header-inner">
-			<div class="header-left">${leftHTML}</div>
-			${viewersHTML}
-			${statsHTML}
+		<div class="header-inner" style="display:grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 350px); gap:2rem; width:100%; align-items:stretch; margin-bottom:1.5rem;">
+			${leftColHTML}
+			${rightColHTML}
 		</div>
 	`;
+
+	const statsContainer = document.getElementById('stats-container');
+	if (statsContainer) {
+		statsContainer.innerHTML = statsHTML;
+	}
 
 	setupViewerSharing();
 	setupExpiryEdit(taskSet, isOwner);

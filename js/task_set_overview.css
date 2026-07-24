@@ -97,26 +97,30 @@ body {
   white-space: nowrap;
 }
 .taskset-action-btn-csv {
-  background: #334155;
-  border: 1.5px solid #334155;
-  color: #fff;
-  transition: background .15s, border-color .15s, transform .15s;
+  background: var(--brand);
+  border: 1px solid var(--brand-dark);
+  color: var(--brand-text);
+  transition: all .15s ease;
+  border-radius: var(--radius);
+  padding: 0.4rem 0.8rem;
 }
 .taskset-action-btn-csv:hover {
-  background: #1f2937;
-  border-color: #1f2937;
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
   color: #fff;
   transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 .taskset-action-btn-csv:disabled {
   opacity: .7;
   cursor: not-allowed;
   transform: none;
 }
+
 .header-viewers {
   flex-shrink: 0;
-  width: 190px;
   align-self: flex-start;
+  width: 100%;
 }
 .header-viewers-title {
   font-size: .68rem;
@@ -133,7 +137,7 @@ body {
   flex-direction: column;
   gap: .6rem;
   flex-shrink: 0;
-  width: 280px;
+  width: 100%;
 }
 .hkpi-grid {
   display: grid;
@@ -237,23 +241,22 @@ body {
   display: inline-flex;
   align-items: center;
   gap: .6rem;
-  background: var(--brand);
-  border: 1.5px solid #9aa8f0;
+  background: var(--surface, #f8f9fa);
+  border: 1px solid var(--border, #dee2e6);
   border-radius: var(--radius);
-  padding: .4rem .9rem;
-  margin-bottom: .5rem;
+  padding: .3rem .8rem;
   cursor: pointer;
-  transition: background .15s, border-color .15s;
+  transition: all .15s;
 }
 .taskset-link-box:hover {
-  background: #bec8f9;
-  border-color: var(--brand-dark);
+  background: #e2e8f0;
+  border-color: #cbd5e1;
 }
 .taskset-link-text {
   font-family: var(--mono);
-  font-size: .85rem;
-  font-weight: 600;
-  color: #4a5cb8;
+  font-size: .8rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 .copy-btn {
   background: none;
@@ -292,22 +295,26 @@ body {
 .teacher-notes-box {
   font-size: .875rem;
   color: var(--text-muted);
-  padding: .6rem .9rem;
-  background: #f8fafc;
-  border-left: 3px solid var(--brand-dark);
-  border-radius: 0 6px 6px 0;
-  margin-bottom: .6rem;
+  padding: .75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand-dark);
+  border-radius: var(--radius);
+  margin-bottom: .75rem;
   line-height: 1.55;
+  box-shadow: var(--shadow);
 }
 .student-instructions-box {
   font-size: .875rem;
   color: var(--text);
-  padding: .6rem .9rem;
-  background: #f0f9ff;
-  border-left: 3px solid #38bdf8;
-  border-radius: 0 6px 6px 0;
-  margin-bottom: .6rem;
+  padding: .75rem 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid #38bdf8;
+  border-radius: var(--radius);
+  margin-bottom: .75rem;
   line-height: 1.55;
+  box-shadow: var(--shadow);
 }
 
 /* ── Main layout ─────────────────────────────────────── */
@@ -386,19 +393,19 @@ h3.mb-3 {
   border-top: 1px solid var(--border);
 }
 .task-toggle-btn {
-  background: none;
+  background: var(--surface, #f8f9fa);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: .2rem .55rem;
+  border-radius: var(--radius);
+  padding: .3rem .65rem;
   font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
   color: var(--text-muted);
-  transition: background .15s, border-color .15s, color .15s;
+  transition: all .15s ease;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: .25rem;
+  gap: .3rem;
 }
 .task-toggle-btn:hover {
   background: var(--red-light);

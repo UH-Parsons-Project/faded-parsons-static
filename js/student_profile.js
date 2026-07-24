@@ -60,7 +60,11 @@ function buildTaskSetUrl(username, uniqueLinkCode) {
 	return `/${encodeURIComponent(username)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
 }
 
-function renderJoinedTaskSets(taskSets, username) {
+function normalizePath(path) {
+	return (path || '').replace(/\/$/, '');
+}
+
+function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	if (!enrolledSetsContainer) return;
 
 	if (!taskSets || taskSets.length === 0) {
@@ -72,8 +76,13 @@ function renderJoinedTaskSets(taskSets, username) {
 
 	const activeSets = taskSets.filter((taskSet) => !taskSet.is_completed);
 	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
+	const normalizedLastSetUrl = normalizePath(lastSetUrl);
 
-	const renderSetItem = (taskSet) => `
+	const renderSetItem = (taskSet) => {
+		const taskSetUrl = buildTaskSetUrl(username, taskSet.unique_link_code);
+		const buttonLabel = normalizePath(taskSetUrl) === normalizedLastSetUrl ? 'Current set' : 'Open set';
+
+		return `
 		<li class="list-group-item d-flex justify-content-between align-items-center">
 			<div>
 				<div class="font-weight-bold text-dark">${taskSet.title}</div>
@@ -83,12 +92,12 @@ function renderJoinedTaskSets(taskSets, username) {
 			<div class="d-flex flex-column align-items-end">
 				<span class="badge ${taskSet.is_completed ? 'badge-success' : 'badge-light border'}">${taskSet.is_completed ? 'Completed' : 'In progress'}</span>
 				<span class="badge badge-light border mt-2">${taskSet.unique_link_code}</span>
-				<a class="btn btn-sm btn-outline-primary mt-2 profile-task-set-link" href="${buildTaskSetUrl(username, taskSet.unique_link_code)}">
-					Open set
+				<a class="btn btn-sm btn-outline-primary mt-2 profile-task-set-link" href="${taskSetUrl}">
+					${buttonLabel}
 				</a>
 			</div>
-		</li>
-	`;
+		</li>`;
+	};
 
 	const renderGroup = (title, sets) => `
 		<div class="mb-3">
@@ -157,6 +166,7 @@ async function loadProfile() {
 			userRoleEl.style.display = 'inline-block';
 			userRoleEl.className = 'badge badge-success';
 		}
+		renderJoinedTaskSets(data.joined_task_sets, data.username, lastSetUrl);
 	} catch (error) {
 		console.error('Error loading student profile:', error);
 		if (enrolledSetsContainer) {

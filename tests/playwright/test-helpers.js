@@ -161,9 +161,17 @@ export async function createTestStudent(page, username, email, password = 'passw
   return resp;
 }
 
-export async function loginStudent(page, username, password = 'password123') {
+export async function loginStudent(page, username, password = 'password123', uniqueLinkCode = null) {
   await page.locator('#login-form #username').fill(username);
   await page.locator('#login-form #password').fill(password);
+
+  if (uniqueLinkCode) {
+    const hiddenCodeInput = page.locator('#login-form input[name="unique_link_code"]');
+    if (await hiddenCodeInput.count()) {
+      await hiddenCodeInput.fill(uniqueLinkCode);
+    }
+  }
+
   await page.locator('#login-btn').click();
 }
 

@@ -56,7 +56,11 @@ function formatDate(isoString) {
 	}
 }
 
-function renderJoinedTaskSets(taskSets) {
+function buildTaskSetUrl(username, uniqueLinkCode) {
+	return `/${encodeURIComponent(username)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
+}
+
+function renderJoinedTaskSets(taskSets, username) {
 	if (!enrolledSetsContainer) return;
 
 	if (!taskSets || taskSets.length === 0) {
@@ -79,6 +83,9 @@ function renderJoinedTaskSets(taskSets) {
 			<div class="d-flex flex-column align-items-end">
 				<span class="badge ${taskSet.is_completed ? 'badge-success' : 'badge-light border'}">${taskSet.is_completed ? 'Completed' : 'In progress'}</span>
 				<span class="badge badge-light border mt-2">${taskSet.unique_link_code}</span>
+				<a class="btn btn-sm btn-outline-primary mt-2 profile-task-set-link" href="${buildTaskSetUrl(username, taskSet.unique_link_code)}">
+					Open set
+				</a>
 			</div>
 		</li>
 	`;
@@ -129,7 +136,7 @@ async function loadProfile() {
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
-		renderJoinedTaskSets(data.joined_task_sets);
+		renderJoinedTaskSets(data.joined_task_sets, data.username);
 
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);

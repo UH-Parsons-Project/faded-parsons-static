@@ -542,34 +542,34 @@ function renderListHeader(taskSet, tasks, students) {
 
 	const statsHTML = `
 		<div class="header-stats" style="width:100%; display:flex; flex-direction:row; flex-wrap:nowrap; gap:1.5rem; justify-content:flex-end; align-items:stretch; overflow-x:auto; padding-bottom:.5rem;">
-			<div class="hkpi-grid" style="display:flex; flex-wrap:nowrap; gap:.75rem; margin-bottom:0; flex:0 0 auto;">
-				<div class="hkpi c-brand" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
-					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Students</div>
-					<div class="hkpi-value" style="font-size:1.3rem;">${studentCount}</div>
+			<div class="hkpi-grid" style="display:flex; flex-wrap:nowrap; gap:1rem; margin-bottom:0; flex:1.5; min-width:350px;">
+				<div class="hkpi c-brand" style="padding:.7rem 1rem; flex:1; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.75rem; margin-bottom:.2rem; white-space:nowrap;">Students</div>
+					<div class="hkpi-value" style="font-size:1.6rem;">${studentCount}</div>
 				</div>
-				<div class="hkpi c-gray" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
-					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Tasks</div>
-					<div class="hkpi-value" style="font-size:1.3rem;">${taskCount}</div>
+				<div class="hkpi c-gray" style="padding:.7rem 1rem; flex:1; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.75rem; margin-bottom:.2rem; white-space:nowrap;">Tasks</div>
+					<div class="hkpi-value" style="font-size:1.6rem;">${taskCount}</div>
 				</div>
-				<div class="hkpi c-green" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
-					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Avg Progress</div>
-					<div class="hkpi-value" style="font-size:1.3rem;">${avgProgress}%</div>
+				<div class="hkpi c-green" style="padding:.7rem 1rem; flex:1; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.75rem; margin-bottom:.2rem; white-space:nowrap;">Avg Progress</div>
+					<div class="hkpi-value" style="font-size:1.6rem;">${avgProgress}%</div>
 				</div>
-				<div class="hkpi c-amber" style="padding:.5rem .75rem; min-width:80px; display:flex; flex-direction:column; justify-content:center;">
-					<div class="hkpi-label" style="font-size:.65rem; margin-bottom:.15rem; white-space:nowrap;">Total Attempts</div>
-					<div class="hkpi-value" style="font-size:1.3rem;">${totalAttempts}</div>
+				<div class="hkpi c-amber" style="padding:.7rem 1rem; flex:1; display:flex; flex-direction:column; justify-content:center;">
+					<div class="hkpi-label" style="font-size:.75rem; margin-bottom:.2rem; white-space:nowrap;">Total Attempts</div>
+					<div class="hkpi-value" style="font-size:1.6rem;">${totalAttempts}</div>
 				</div>
 			</div>
-			<div class="dist-bar-wrap" style="flex:1; min-width:250px; padding:.6rem .8rem; margin:0; display:flex; flex-direction:column; justify-content:center;">
-				<div class="dist-bar-label" style="font-size:.65rem; margin-bottom:.3rem;">Student Progression</div>
-				<div class="dist-bar" style="margin-bottom:.3rem; height:6px;">
+			<div class="dist-bar-wrap" style="flex:1; min-width:250px; padding:.75rem 1rem; margin:0; display:flex; flex-direction:column; justify-content:center;">
+				<div class="dist-bar-label" style="font-size:.75rem; margin-bottom:.4rem;">Student Progression</div>
+				<div class="dist-bar" style="margin-bottom:.4rem; height:8px;">
 					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
 					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
 				</div>
-				<div class="dist-bar-legend" style="gap:.5rem; display:flex; flex-wrap:wrap;">
-					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
-					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--amber)"></span>${inProgress} in progress</span>
-					<span class="dist-legend-item" style="font-size:.65rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--border);border:1px solid var(--gray)"></span>${notStarted} not started</span>
+				<div class="dist-bar-legend" style="gap:.6rem; display:flex; flex-wrap:wrap;">
+					<span class="dist-legend-item" style="font-size:.7rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
+					<span class="dist-legend-item" style="font-size:.7rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--amber)"></span>${inProgress} in progress</span>
+					<span class="dist-legend-item" style="font-size:.7rem; white-space:nowrap;"><span class="dist-legend-dot" style="background:var(--border);border:1px solid var(--gray)"></span>${notStarted} not started</span>
 				</div>
 			</div>
 		</div>

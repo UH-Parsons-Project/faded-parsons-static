@@ -743,13 +743,25 @@ async function openTaskPreview(taskListItem) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const closeBtn = document.getElementById('close-student-preview');
+  const modal = document.getElementById('student-preview-modal');
+  
+  function closeModal() {
+    if (modal) {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+  }
+
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      const modal = document.getElementById('student-preview-modal');
-      if (modal) {
-        modal.classList.remove('open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+    closeBtn.addEventListener('click', closeModal);
+  }
+  
+  if (modal) {
+    modal.addEventListener('click', (event) => {
+      // Close only if clicking directly on the modal backdrop, not the dialog inside
+      if (event.target === modal) {
+        closeModal();
       }
     });
   }

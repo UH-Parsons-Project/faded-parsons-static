@@ -514,6 +514,11 @@ function applyTaskFilters() {
 		const creatorUsername = (task.creator_username || '').toLowerCase();
 		const ownTask = isOwnTask(task, creatorUsername);
 
+		// Hide private tasks unless they belong to the current user
+		if (isPrivateTask(task) && !ownTask) {
+			return false;
+		}
+
 		if (!query) {
 			if (activeScope === 'my-exercises') {
 				return ownTask;

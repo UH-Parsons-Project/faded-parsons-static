@@ -19,6 +19,25 @@ const passwordAlertPlaceholder = document.getElementById(
 	'password-alert-placeholder'
 );
 
+let taskSetNavigationModal = null;
+let taskSetNavigationKeyHandler = null;
+
+if (enrolledSetsContainer) {
+	enrolledSetsContainer.addEventListener('click', (event) => {
+		const link = event.target.closest('.profile-task-set-link');
+		if (!link) return;
+
+		const currentSetUrl = normalizePath(enrolledSetsContainer.dataset.currentSetUrl);
+		const currentSetIncomplete = enrolledSetsContainer.dataset.currentSetIncomplete === 'true';
+		const targetUrl = normalizePath(link.getAttribute('href'));
+
+		if (currentSetIncomplete && currentSetUrl && targetUrl !== currentSetUrl) {
+			event.preventDefault();
+			showTaskSetNavigationModal(link.href);
+		}
+	});
+}
+
 // Helpers for alerts
 function showEmailAlert(message, type = 'danger') {
 	emailAlertPlaceholder.innerHTML = `
@@ -64,6 +83,56 @@ function normalizePath(path) {
 	return (path || '').replace(/\/$/, '');
 }
 
+function hideTaskSetNavigationModal() {
+	if (!taskSetNavigationModal) return;
+	if (taskSetNavigationKeyHandler) {
+		document.removeEventListener('keydown', taskSetNavigationKeyHandler);
+		taskSetNavigationKeyHandler = null;
+	}
+	taskSetNavigationModal.remove();
+	taskSetNavigationModal = null;
+}
+
+function showTaskSetNavigationModal(targetUrl) {
+	hideTaskSetNavigationModal();
+
+	const overlay = document.createElement('div');
+	overlay.className = 'task-set-nav-overlay';
+	overlay.innerHTML = `
+		<div class="task-set-nav-modal" role="dialog" aria-modal="true" aria-labelledby="task-set-nav-title">
+			<div class="task-set-nav-icon">!</div>
+			<h3 id="task-set-nav-title">Current task set is still in progress</h3>
+			<p>Please finish the current task set before moving on to another one.</p>
+			<div class="task-set-nav-actions">
+				<button type="button" class="btn btn-outline-secondary" data-action="close">OK</button>
+				<button type="button" class="btn btn-primary" data-action="open">Open anyway</button>
+			</div>
+		</div>
+	`;
+
+	overlay.addEventListener('click', (event) => {
+		if (event.target === overlay) {
+			hideTaskSetNavigationModal();
+		}
+	});
+
+	overlay.querySelector('[data-action="close"]').addEventListener('click', hideTaskSetNavigationModal);
+	overlay.querySelector('[data-action="open"]').addEventListener('click', () => {
+		hideTaskSetNavigationModal();
+		window.location.href = targetUrl;
+	});
+
+	taskSetNavigationKeyHandler = function onKeyDown(event) {
+		if (event.key === 'Escape') {
+			hideTaskSetNavigationModal();
+		}
+	};
+	document.addEventListener('keydown', taskSetNavigationKeyHandler);
+
+	document.body.appendChild(overlay);
+	taskSetNavigationModal = overlay;
+}
+
 function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	if (!enrolledSetsContainer) return;
 
@@ -77,6 +146,13 @@ function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	const activeSets = taskSets.filter((taskSet) => !taskSet.is_completed);
 	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
 	const normalizedLastSetUrl = normalizePath(lastSetUrl);
+	const currentSet = taskSets.find(
+		(taskSet) => normalizePath(buildTaskSetUrl(username, taskSet.unique_link_code)) === normalizedLastSetUrl
+	);
+	const currentSetIncomplete = Boolean(currentSet && !currentSet.is_completed);
+
+	enrolledSetsContainer.dataset.currentSetUrl = normalizedLastSetUrl;
+	enrolledSetsContainer.dataset.currentSetIncomplete = String(currentSetIncomplete);
 
 	const renderSetItem = (taskSet) => {
 		const taskSetUrl = buildTaskSetUrl(username, taskSet.unique_link_code);
@@ -145,7 +221,6 @@ async function loadProfile() {
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
-		renderJoinedTaskSets(data.joined_task_sets, data.username);
 
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);

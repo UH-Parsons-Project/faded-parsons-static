@@ -13,9 +13,12 @@
 		<img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
 		<div class="ml-auto d-flex align-items-center">
 			<a id="back-to-list" href="#" class="btn btn-outline-dark btn-sm mr-3">Back to task set</a>
-			<span class="text-dark mr-3">
-				<i class="fas fa-user"></i> <span id="user-name"></span>
-			</span>
+			<div class="text-dark mr-3">
+				<i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
+			</div>
+			<a href="/student/profile" class="btn btn-outline-dark btn-sm mr-2" id="profile-link" title="View Profile">
+				<i class="fas fa-cog"></i> Profile
+			</a>
 			<button id="logout-btn" class="btn btn-outline-dark btn-sm">Logout</button>
 		</div>
 	</nav>

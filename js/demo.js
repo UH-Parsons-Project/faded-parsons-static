@@ -11,7 +11,16 @@ initSignedInAs({ preferNickname: true });
 initStudentLogout();
 
 const params = new URL(document.location).searchParams;
-const returnUrl = params.get('return') || null;
+let returnUrl = params.get('return') || null;
+
+if (!returnUrl) {
+	const pathParts = window.location.pathname.split('/').filter(p => p);
+	if (pathParts.length >= 4 && pathParts[1] === 'set' && pathParts[3] === 'tasks') {
+		const username = pathParts[0];
+		const uniqueLinkCode = pathParts[2];
+		returnUrl = `/${username}/set/${uniqueLinkCode}/tasks`;
+	}
+}
 
 const backBtn = document.getElementById('back-to-list');
 if (backBtn) backBtn.href = returnUrl || '/';

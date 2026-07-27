@@ -11,6 +11,20 @@ document.getElementById('register-btn').addEventListener('click', () => {
 
 // If the student already has a session cookie, show the Join button instead of the login form
 if (code) {
+	// Fetch and display task set info
+	fetch(`/api/sets/${code}/info`)
+		.then(r => r.ok ? r.json() : null)
+		.then(info => {
+			if (info) {
+				const subheader = document.querySelector('.container.text-center h2');
+				if (subheader) {
+					subheader.innerHTML = `<div class="mb-2 text-dark" style="font-size: 1.25rem;"><strong>${info.title}</strong></div>
+					                       <div class="mb-3">Teacher: ${info.teacher}</div>
+					                       Login to join this exercise packet`;
+				}
+			}
+		});
+
 	fetch('/api/student/me', { credentials: 'include' })
 		.then(r => {
 			if (!r.ok) return null;

@@ -156,6 +156,8 @@ async def task_set_task_start_page(
 
 
 @router.get("/demo", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/demo", response_class=FileResponse)
+@router.get("/{username}/set/{unique_link_code}/tasks/demo/start", response_class=FileResponse)
 async def demo_task_page():
     demo_path = BASE_DIR / "templates" / "demo.html"
     return FileResponse(demo_path)

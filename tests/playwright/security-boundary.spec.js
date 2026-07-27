@@ -56,7 +56,6 @@ test('student role is redirected to home page when attempting to access teacher 
     '/create-task',
     '/create-task-editor',
     '/create-task-set',
-    '/heatmap',
     '/task-details',
     '/task-set-overview',
   ];

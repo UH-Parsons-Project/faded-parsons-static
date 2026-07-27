@@ -37,22 +37,22 @@ async function setupTeacherWithTaskSet(page, unique) {
 
 async function navigateToHeatmap(page, taskSetTitle) {
   await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
-  await page.waitForSelector('a[href*="/heatmap"]', { timeout: 10000 });
-  await page.locator('a[href*="/heatmap"]').click();
+  await page.waitForSelector('#toggle-heatmap', { timeout: 10000 });
+  await page.locator('#toggle-heatmap').click();
   await page.waitForSelector('#hm-table', { timeout: 10000 });
 }
 
-test('teacher can navigate to heatmap from task set overview', async ({ page }) => {
+test('teacher can toggle to heatmap view from task set overview', async ({ page }) => {
   const unique = Date.now();
   const { taskSetTitle } = await setupTeacherWithTaskSet(page, unique);
 
   await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
-  await page.waitForSelector('a[href*="/heatmap"]', { timeout: 10000 });
+  await page.waitForSelector('#toggle-heatmap', { timeout: 10000 });
 
-  await page.locator('a[href*="/heatmap"]').click();
-  await expect(page).toHaveURL(/\/heatmap\?set_id=/);
+  await page.locator('#toggle-heatmap').click();
   await page.waitForSelector('#hm-table', { timeout: 10000 });
   await expect(page.locator('#hm-table')).toBeVisible();
+  await expect(page.locator('#statistics-layout')).not.toBeVisible();
 });
 
 test('heatmap shows a column header for each task in the set', async ({ page }) => {

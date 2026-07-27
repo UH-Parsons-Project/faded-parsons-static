@@ -632,6 +632,11 @@ async function loadDriverJSAndCSS() {
  * Path check helper for teacher-oriented views
  */
 function shouldShowHelpTour(pathname) {
+	// Never show the tour on login or register pages, even if the URL path matches a tour route
+	if (document.getElementById('login-form') || document.getElementById('register-form')) {
+		return false;
+	}
+
 	const teacherPaths = [
 		'/teacher-dashboard',
 		'/task-set-overview',
@@ -645,13 +650,185 @@ function shouldShowHelpTour(pathname) {
 		'/create-task-set',
 		'/teacher/profile',
 	];
-	return teacherPaths.some((p) => pathname.startsWith(p));
+	if (teacherPaths.some((p) => pathname.startsWith(p))) return true;
+
+	// Student Task Set
+	if (pathname.match(/^\/[^/]+\/set\/[^/]+(?:\/tasks)?\/?$/)) return true;
+
+	// Student Task Problem Page
+	if (pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) return true;
+
+	return false;
 }
 
 /**
  * Return Driver.js steps configured specifically for the active pathname
  */
 function getTourStepsForPath(pathname) {
+	// Student Task Set Tour
+	if (pathname.match(/^\/[^/]+\/set\/[^/]+(?:\/tasks)?\/?$/)) {
+		const steps = [
+			{
+				element: 'h2.mb-3',
+				popover: {
+					title: 'Task Set',
+					description:
+						'Welcome to your task set! This is where you can view and access all the exercises assigned to you.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '.task_set-sidebar',
+				popover: {
+					title: 'Progress & Info',
+					description:
+						'Track your completion progress and read any instructions or descriptions provided by your teacher.',
+					side: 'right',
+				},
+			},
+			{
+				element: '#problems-list',
+				popover: {
+					title: 'Exercises List',
+					description:
+						'Here are all the tasks in this set. Click on any task card to start or continue working on it.',
+					side: 'top',
+				},
+			},
+		];
+
+		// Check for warm-up demo section
+		const demoCard = document.querySelector(
+			'#problems-list .task-sets-column > div:first-child .task-set-item'
+		);
+		if (demoCard && demoCard.querySelector('.task-set-item-number')?.textContent === '★') {
+			steps.push({
+				element: demoCard,
+				popover: {
+					title: 'Warm-up Exercise',
+					description:
+						'This is an optional demo exercise to help you get familiar with how to solve Parsons problems.',
+					side: 'right',
+				},
+			});
+		}
+
+		// First actual task
+		const firstTaskCard = document.querySelector(
+			'#problems-list .task-sets-column > .task-set-item'
+		);
+		if (firstTaskCard) {
+			steps.push({
+				element: firstTaskCard,
+				popover: {
+					title: 'Task Status',
+					description:
+						'Each task shows its completion status. Tasks you have successfully completed will be marked with a green checkmark. <strong>It is highly suggested to fully complete a task before moving on to the next one!</strong>',
+					side: 'right',
+				},
+			});
+		}
+
+		steps.push({
+			element: '#profile-link',
+			popover: {
+				title: 'Your Profile',
+				description:
+					'Click here to view your profile, manage your account, or see your overall statistics.',
+				side: 'left',
+			},
+		});
+
+		return steps;
+	}
+
+	// Student Task Problem Tour
+	if (pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) {
+		const steps = [
+			{
+				element: 'problem-element .col-lg-9 .top-info-card',
+				popover: {
+					title: 'Problem Description',
+					description:
+						'Here you will find the instructions, rules, and examples for this programming task.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: 'problem-element .starter',
+				popover: {
+					title: 'Available Blocks',
+					description:
+						'These are the code blocks you can use to build your solution. Drag them into the solution area on the right.',
+					side: 'right',
+				},
+			},
+			{
+				element: 'problem-element .solution',
+				popover: {
+					title: 'Solution Area',
+					description:
+						'Construct your final answer here by dropping the blocks in the correct order and indentation.',
+					side: 'left',
+				},
+			}
+		];
+
+		// Check for faded !BLANK inputs
+		const blankInput = document.querySelector('problem-element input.text-box');
+		if (blankInput) {
+			steps.push({
+				element: blankInput,
+				popover: {
+					title: 'Fill-in-the-Blanks',
+					description:
+						'This exercise contains faded blocks! You will need to click on these blank input fields and type the correct code to complete the block.',
+					side: 'top',
+				},
+			});
+		}
+
+		// Check for helper blocks like DEBUG or comments
+		const helperBlock = Array.from(document.querySelectorAll('problem-element .sortable-code li')).find(li => 
+			li.textContent.includes('DEBUG') || li.textContent.includes('#')
+		);
+		
+		if (helperBlock) {
+			steps.push({
+				element: helperBlock,
+				popover: {
+					title: 'Helper Blocks',
+					description:
+						'Blocks like "DEBUG" prints or comments (#) are optional. They are not required to solve the problem, but you can add them to your solution to test and understand your code!',
+					side: 'top',
+				},
+			});
+		}
+
+		steps.push(
+			{
+				element: 'problem-element button.btn-primary',
+				popover: {
+					title: 'Check Code',
+					description:
+						'Once you are happy with your solution, click this button to run the tests and check your code.',
+					side: 'top',
+				},
+			},
+			{
+				element: 'problem-element .test-results-card',
+				popover: {
+					title: 'Feedback Area',
+					description:
+						'Any error messages, test results, or helpful hints will appear here after you run your code.',
+					side: 'left',
+				},
+			}
+		);
+
+		return steps;
+	}
+
 	// Dashboard Tour
 	if (pathname.startsWith('/teacher-dashboard')) {
 		const dashboardSteps = [

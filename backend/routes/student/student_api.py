@@ -220,6 +220,23 @@ async def update_student_password(
     await db.commit()
     return {"status": "success", "message": "Password updated successfully"}
 
+@router.get("/api/sets/{unique_link_code}/info")
+async def get_task_set_info(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(TaskSet, Teacher).join(Teacher).where(TaskSet.unique_link_code == unique_link_code)
+    result = await db.execute(stmt)
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Task set not found")
+    
+    task_set, teacher = row
+    return {
+        "title": task_set.title,
+        "teacher": teacher.username
+    }
+
 
 
 @router.post("/api/sets/{unique_link_code}/join")

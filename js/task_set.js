@@ -162,9 +162,8 @@ function createDemoSection() {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
 	card.style.cssText = 'border-color: #ced4da; background: #f8f9fa;';
-	const returnUrl = encodeURIComponent(window.location.pathname);
 	card.onclick = () => {
-		window.location.href = `/demo?return=${returnUrl}`;
+		window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/demo`;
 	};
 
 	const badge = document.createElement('div');

@@ -820,7 +820,22 @@ async def get_task_moves(
 
     all_events = sorted(move_events + edit_events + run_events, key=lambda e: e["event_time"])
 
+    stmt_session = (
+        select(TaskSession)
+        .join(StudentTaskEnrollment, TaskSession.student_task_enrollment_id == StudentTaskEnrollment.id)
+        .where(
+            (StudentTaskEnrollment.student_id == student.id) &
+            (StudentTaskEnrollment.task_id == task_id) &
+            (StudentTaskEnrollment.task_set_id == set_id)
+        )
+        .order_by(TaskSession.entered_at.asc())
+    )
+    res_session = await db.execute(stmt_session)
+    first_session = res_session.scalars().first()
+    start_time = first_session.entered_at.isoformat() if (first_session and first_session.entered_at) else (all_events[0]["event_time"] if all_events else None)
+
     return {
         "events": all_events,
         "initial_blocks": initial_blocks,
+        "start_time": start_time,
     }

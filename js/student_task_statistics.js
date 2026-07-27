@@ -387,7 +387,19 @@ function renderReplayBoard(state, highlightBlockId) {
 	renderColumn(state.solution, 'replay-solution-blocks', false);
 }
 
-function renderReplayStep(states, events, stepIndex) {
+function formatRelativeTime(event, startTime) {
+	if (event && event.event_time && startTime) {
+		const t0 = new Date(startTime).getTime();
+		const t1 = new Date(event.event_time).getTime();
+		if (!isNaN(t0) && !isNaN(t1)) {
+			const diff = Math.max(0, (t1 - t0) / 1000);
+			return `+${diff.toFixed(2).replace('.', ',')}s`;
+		}
+	}
+	return 'Not Available';
+}
+
+function renderReplayStep(states, events, stepIndex, startTime) {
 	const total = events.length;
 	document.getElementById('replay-step-label').textContent = `Step ${stepIndex} / ${total}`;
 	document.getElementById('replay-prev').disabled = stepIndex === 0;
@@ -397,19 +409,22 @@ function renderReplayStep(states, events, stepIndex) {
 	const board   = document.getElementById('replay-board');
 
 	if (stepIndex === 0) {
-		labelEl.textContent = 'Initial state';
+		labelEl.innerHTML = 'Initial state <span class="replay-timestamp">+00,00s</span>';
 		board.classList.remove('replay-run-success-board', 'replay-run-fail-board');
 		renderReplayBoard(states[0], null);
 		return;
 	}
 
 	const event = events[stepIndex - 1];
+	const timeStr = formatRelativeTime(event, startTime);
+	const timeSpan = `<span class="replay-timestamp">${escapeHtml(timeStr)}</span>`;
 
 	if (event.type === 'run') {
 		const success = event.success;
-		labelEl.innerHTML = success
+		const badge = success
 			? '<span class="replay-run-badge replay-run-success"><i class="fas fa-check mr-1"></i>Ran code — Passed</span>'
 			: '<span class="replay-run-badge replay-run-fail"><i class="fas fa-times mr-1"></i>Ran code — Failed</span>';
+		labelEl.innerHTML = `${badge} ${timeSpan}`;
 		board.classList.remove('replay-run-success-board', 'replay-run-fail-board');
 		board.classList.add(success ? 'replay-run-success-board' : 'replay-run-fail-board');
 		renderReplayBoard(states[stepIndex], null);
@@ -424,9 +439,10 @@ function renderReplayStep(states, events, stepIndex) {
 	if (event.type === 'edit') {
 		const blankNum = event.blank_index + 1;
 		const val = escapeHtml(event.value);
-		labelEl.innerHTML = val
+		const actionText = val
 			? `Typed <strong>"${val}"</strong> into blank ${blankNum} of ${blockLabel}`
 			: `Cleared blank ${blankNum} of ${blockLabel}`;
+		labelEl.innerHTML = `${actionText} ${timeSpan}`;
 	} else {
 		const sameContainer = event.from_container === event.to_container;
 		const sameIndex = event.from_index === event.to_index;
@@ -441,7 +457,7 @@ function renderReplayStep(states, events, stepIndex) {
 		} else {
 			msg = `Reordered ${blockLabel} in solution${indentLabel}`;
 		}
-		labelEl.innerHTML = msg;
+		labelEl.innerHTML = `${msg} ${timeSpan}`;
 	}
 
 	renderReplayBoard(states[stepIndex], event.block_id);
@@ -467,6 +483,7 @@ async function initReplay(studentUsername, taskId, setId) {
 		const data = await response.json();
 		const events = data.events || [];
 		const initialBlocks = data.initial_blocks || [];
+		const startTime = data.start_time || (events.length > 0 ? events[0].event_time : null);
 
 		loadingEl.style.display = 'none';
 
@@ -494,9 +511,9 @@ async function initReplay(studentUsername, taskId, setId) {
 		const goToStep = (step) => {
 			currentStep = step;
 			slider.value = step;
-			renderReplayStep(states, events, step);
+			renderReplayStep(states, events, step, startTime);
 		};
-		renderReplayStep(states, events, currentStep);
+		renderReplayStep(states, events, currentStep, startTime);
 
 		document.getElementById('replay-prev').addEventListener('click', () => {
 			if (currentStep > 0) goToStep(currentStep - 1);

@@ -19,6 +19,25 @@ const passwordAlertPlaceholder = document.getElementById(
 	'password-alert-placeholder'
 );
 
+let taskSetNavigationModal = null;
+let taskSetNavigationKeyHandler = null;
+
+if (enrolledSetsContainer) {
+	enrolledSetsContainer.addEventListener('click', (event) => {
+		const link = event.target.closest('.profile-task-set-link');
+		if (!link) return;
+
+		const currentSetUrl = normalizePath(enrolledSetsContainer.dataset.currentSetUrl);
+		const currentSetIncomplete = enrolledSetsContainer.dataset.currentSetIncomplete === 'true';
+		const targetUrl = normalizePath(link.getAttribute('href'));
+
+		if (currentSetIncomplete && currentSetUrl && targetUrl !== currentSetUrl) {
+			event.preventDefault();
+			showTaskSetNavigationModal(link.href);
+		}
+	});
+}
+
 // Helpers for alerts
 function showEmailAlert(message, type = 'danger') {
 	emailAlertPlaceholder.innerHTML = `
@@ -56,7 +75,65 @@ function formatDate(isoString) {
 	}
 }
 
-function renderJoinedTaskSets(taskSets) {
+function buildTaskSetUrl(username, uniqueLinkCode) {
+	return `/${encodeURIComponent(username)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
+}
+
+function normalizePath(path) {
+	return (path || '').replace(/\/$/, '');
+}
+
+function hideTaskSetNavigationModal() {
+	if (!taskSetNavigationModal) return;
+	if (taskSetNavigationKeyHandler) {
+		document.removeEventListener('keydown', taskSetNavigationKeyHandler);
+		taskSetNavigationKeyHandler = null;
+	}
+	taskSetNavigationModal.remove();
+	taskSetNavigationModal = null;
+}
+
+function showTaskSetNavigationModal(targetUrl) {
+	hideTaskSetNavigationModal();
+
+	const overlay = document.createElement('div');
+	overlay.className = 'task-set-nav-overlay';
+	overlay.innerHTML = `
+		<div class="task-set-nav-modal" role="dialog" aria-modal="true" aria-labelledby="task-set-nav-title">
+			<div class="task-set-nav-icon">!</div>
+			<h3 id="task-set-nav-title">Current task set is still in progress</h3>
+			<p>Please finish the current task set before moving on to another one.</p>
+			<div class="task-set-nav-actions">
+				<button type="button" class="btn btn-outline-secondary" data-action="close">OK</button>
+				<button type="button" class="btn btn-primary" data-action="open">Open anyway</button>
+			</div>
+		</div>
+	`;
+
+	overlay.addEventListener('click', (event) => {
+		if (event.target === overlay) {
+			hideTaskSetNavigationModal();
+		}
+	});
+
+	overlay.querySelector('[data-action="close"]').addEventListener('click', hideTaskSetNavigationModal);
+	overlay.querySelector('[data-action="open"]').addEventListener('click', () => {
+		hideTaskSetNavigationModal();
+		window.location.href = targetUrl;
+	});
+
+	taskSetNavigationKeyHandler = function onKeyDown(event) {
+		if (event.key === 'Escape') {
+			hideTaskSetNavigationModal();
+		}
+	};
+	document.addEventListener('keydown', taskSetNavigationKeyHandler);
+
+	document.body.appendChild(overlay);
+	taskSetNavigationModal = overlay;
+}
+
+function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	if (!enrolledSetsContainer) return;
 
 	if (!taskSets || taskSets.length === 0) {
@@ -68,8 +145,20 @@ function renderJoinedTaskSets(taskSets) {
 
 	const activeSets = taskSets.filter((taskSet) => !taskSet.is_completed);
 	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
+	const normalizedLastSetUrl = normalizePath(lastSetUrl);
+	const currentSet = taskSets.find(
+		(taskSet) => normalizePath(buildTaskSetUrl(username, taskSet.unique_link_code)) === normalizedLastSetUrl
+	);
+	const currentSetIncomplete = Boolean(currentSet && !currentSet.is_completed);
 
-	const renderSetItem = (taskSet) => `
+	enrolledSetsContainer.dataset.currentSetUrl = normalizedLastSetUrl;
+	enrolledSetsContainer.dataset.currentSetIncomplete = String(currentSetIncomplete);
+
+	const renderSetItem = (taskSet) => {
+		const taskSetUrl = buildTaskSetUrl(username, taskSet.unique_link_code);
+		const buttonLabel = normalizePath(taskSetUrl) === normalizedLastSetUrl ? 'Current set' : 'Open set';
+
+		return `
 		<li class="list-group-item d-flex justify-content-between align-items-center">
 			<div>
 				<div class="font-weight-bold text-dark">${taskSet.title}</div>
@@ -79,9 +168,12 @@ function renderJoinedTaskSets(taskSets) {
 			<div class="d-flex flex-column align-items-end">
 				<span class="badge ${taskSet.is_completed ? 'badge-success' : 'badge-light border'}">${taskSet.is_completed ? 'Completed' : 'In progress'}</span>
 				<span class="badge badge-light border mt-2">${taskSet.unique_link_code}</span>
+				<a class="btn btn-sm btn-outline-primary mt-2 profile-task-set-link" href="${taskSetUrl}">
+					${buttonLabel}
+				</a>
 			</div>
-		</li>
-	`;
+		</li>`;
+	};
 
 	const renderGroup = (title, sets) => `
 		<div class="mb-3">
@@ -129,7 +221,6 @@ async function loadProfile() {
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
-		renderJoinedTaskSets(data.joined_task_sets);
 
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);
@@ -150,6 +241,7 @@ async function loadProfile() {
 			userRoleEl.style.display = 'inline-block';
 			userRoleEl.className = 'badge badge-success';
 		}
+		renderJoinedTaskSets(data.joined_task_sets, data.username, lastSetUrl);
 	} catch (error) {
 		console.error('Error loading student profile:', error);
 		if (enrolledSetsContainer) {

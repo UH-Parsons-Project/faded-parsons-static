@@ -167,6 +167,7 @@ class CreateProblemRequest(BaseModel):
     startDescription: str
     tests: str
     solutionCode: str
+    task_type: str | None = None
     modelAnswerCode: str | None = None
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None

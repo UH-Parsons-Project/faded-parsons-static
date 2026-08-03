@@ -6,6 +6,8 @@
     <title>Create Task</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/js/main.css">
     <link rel="stylesheet" href="/js-parsons/parsons.css">
     <link rel="stylesheet" href="/js/create-task.css">
@@ -158,11 +160,11 @@ assert format_name('  linus', 'torvalds ') == 'Linus Torvalds'</code></pre>
 
             <div class="actions">
                 <div class="actions-left">
-                    <button type="button" id="submit-task" class="primary-btn">Continue To Block Builder</button>
+                    <button type="button" id="cancel-task" class="secondary-btn">Cancel</button>
                     <button type="button" id="clear-drafts" class="secondary-btn">Clear Drafts</button>
                 </div>
                 <div class="actions-right">
-                    <button type="button" id="cancel-task" class="secondary-btn">Cancel</button>
+                    <button type="button" id="submit-task" class="primary-btn">Continue To Block Builder</button>
                 </div>
             </div>
             <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>

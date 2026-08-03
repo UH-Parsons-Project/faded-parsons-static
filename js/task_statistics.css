@@ -107,11 +107,7 @@ body {
   color: var(--brand-text);
   opacity: .7;
 }
-.taskset-name {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--brand-text);
-}
+
 .taskset-code {
   font-family: var(--mono);
   font-size: 0.7rem;

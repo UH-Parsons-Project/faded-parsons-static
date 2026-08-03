@@ -445,8 +445,7 @@ async function loadStatistics() {
 			privateBadgeSlot.appendChild(createPrivateBadge());
 		}
 	}
-	const tasksetNameEl = document.getElementById('taskset-name-label');
-	if (tasksetNameEl && data.task_set_name) tasksetNameEl.textContent = data.task_set_name;
+
 
 	// KPI strip
 	const totalAttempts = data.total_completions ?? 0;

@@ -271,7 +271,7 @@
 	ParsonsWidget.prototype.updateIndent = function (leftDiff, id) {
 		var code_line = this.getLineById(id);
 		var new_indent = this.options.can_indent
-			? code_line.indent + Math.floor(leftDiff / this.options.x_indent)
+			? code_line.indent + Math.round(leftDiff / this.options.x_indent)
 			: 0;
 		new_indent = Math.max(0, new_indent);
 		code_line.indent = new_indent;
@@ -464,6 +464,16 @@
 	/** modifies the DOM by inserting exercise elements into it */
 	ParsonsWidget.prototype.createHTMLFromLists = function (solutionIDs, trashIDs) {
 		var html;
+		var that = this;
+		if (trashIDs && trashIDs.length > 0) {
+			trashIDs.forEach(function(id) {
+				var line = that.getLineById(id);
+				if (line) {
+					line.indent = 0;
+				}
+			});
+		}
+
 		if (this.options.trashId) {
 			html =
 				(this.options.trash_label
@@ -480,7 +490,6 @@
 			this.options.sortableId.innerHTML = html;
 		}
 
-		var that = this;
 		// True when stop already called onSortableUpdate (same-container drop).
 		// Prevents update from calling it a second time for the same interaction.
 		var _stopHandledUpdate = false;

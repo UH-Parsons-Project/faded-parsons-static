@@ -150,7 +150,7 @@ async def toggle_task_hidden(
 ):
     """Toggle the hidden status of a task within a task set."""
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
 
     item_result = await db.execute(
@@ -327,7 +327,7 @@ async def update_task_set_expires_at(
     db: AsyncSession = Depends(get_db),
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
 
     if request.expires_at:
@@ -350,7 +350,7 @@ async def delete_task_set(
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task set")
 
     enrolled_stmt = (
@@ -415,7 +415,7 @@ async def add_task_set_viewer(
 
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"
@@ -482,7 +482,7 @@ async def remove_task_set_viewer(
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set"
@@ -605,7 +605,7 @@ async def remove_student_from_task_set(
 	# Removes students enrollment and attempts from the task set, does NOT delete the student account.
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
-    if task_set.teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task_set.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to modify this task set",
@@ -1007,7 +1007,7 @@ async def check_task_editable(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
 
-    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task.created_by_teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to check this task")
 
     editable = await is_task_editable(task_id, current_user.id, db)
@@ -1027,7 +1027,7 @@ async def update_problem(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
 
-    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task.created_by_teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to edit this task")
 
     if not await is_task_editable(task_id, current_user.id, db):
@@ -1170,7 +1170,7 @@ async def delete_problem(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
 
-    if task.created_by_teacher_id != current_user.id and not current_user.is_admin_teacher:
+    if task.created_by_teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task")
 
     if not await is_task_editable(task_id, current_user.id, db):

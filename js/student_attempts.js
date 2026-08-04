@@ -84,7 +84,7 @@ function makeKeyActivatable(el, handler) {
 	});
 }
 
-function renderHeader(username, completedTasks, attemptedTasks, totalTasks, taskSetName) {
+function renderHeader(username, completedTasks, attemptedTasks, totalTasks, taskSetName, isOwner) {
 	const CIRC = 376.99;
 	const notCompletedTasks = Math.max(attemptedTasks - completedTasks, 0);
 	const notStartedTasks = Math.max(totalTasks - attemptedTasks, 0);
@@ -106,9 +106,11 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 		<span class="badge badge-pill sa-user-badge">
 			<i class="fas fa-user-graduate mr-1"></i>${escapeHtml(username)}
 		</span>
+		${isOwner ? `
 		<button type="button" id="remove-student-btn" class="btn btn-sm sa-remove-student-btn">
 			Remove student from task set
 		</button>
+		` : ''}
 	</div>
 	${taskSetName ? `<div class="sa-taskset-info"><i class="fas fa-tasks mr-2"></i><strong>Task Set:</strong> ${escapeHtml(taskSetName)}</div>` : ''}
 	<p class="text-muted">All tasks attempted by this student in this task set</p>
@@ -267,12 +269,15 @@ Promise.all([
 		}
 
 		let taskSetName = '';
+		let ownerUsername = '';
 		if (taskSetResponse.ok) {
 			const taskSetData = await taskSetResponse.json();
 			taskSetName = taskSetData.title || '';
+			ownerUsername = taskSetData.owner_username || '';
 		}
 
-		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks, taskSetName);
+		const isOwner = localStorage.getItem('username') === ownerUsername;
+		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks, taskSetName, isOwner);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

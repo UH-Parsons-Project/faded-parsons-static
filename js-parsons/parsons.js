@@ -570,6 +570,22 @@
 			};
 		}
 
+		// Patch _intersectsWithPointer so that vertical reordering works even if
+		// the mouse isn't horizontally hovering over an indented item. This temporarily
+		// tricks jQuery UI into ignoring horizontal bounds just for the intersection check.
+		function patchSortableIntersections($ul) {
+			var inst = $ul.data('ui-sortable');
+			if (!inst) return;
+			var orig = inst._intersectsWithPointer;
+			inst._intersectsWithPointer = function (item) {
+				var oldAxis = this.options.axis;
+				this.options.axis = 'y';
+				var result = orig.call(this, item);
+				this.options.axis = oldAxis;
+				return result;
+			};
+		}
+
 		var sortable = $(sortableUl).sortable({
 			start: function (event, ui) {
 				captureOrigin(ui);
@@ -624,6 +640,7 @@
 		});
 		sortable.addClass('output');
 		patchCursorContainment(sortable);
+		patchSortableIntersections(sortable);
 		if (this.options.trashId) {
 			var trash = $(trashUl).sortable({
 				connectWith: sortable,
@@ -655,6 +672,7 @@
 			});
 			sortable.sortable('option', 'connectWith', trash);
 			patchCursorContainment($(trashUl));
+			patchSortableIntersections($(trashUl));
 		}
 		solutionIDs.forEach(function (id) {
 			that.updateHTMLIndent(id);

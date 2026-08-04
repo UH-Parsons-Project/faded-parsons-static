@@ -532,6 +532,15 @@
 			return ($.contains(sortableUl, el)) || (trashUl && $.contains(trashUl, el));
 		}
 
+		function alignGridToSolution($ul) {
+			var inst = $ul.data('ui-sortable');
+			if (!inst || !that.options.can_indent) return;
+			var solLeft = $(sortableUl).offset().left;
+			var offset = inst.originalPageX - inst.offset.click.left - solLeft;
+			var K = Math.round(offset / that.options.x_indent);
+			inst.originalPageX = solLeft + inst.offset.click.left + K * that.options.x_indent;
+		}
+
 		// Patch _generatePosition on a sortable instance so cursor coordinates are
 		// clamped BEFORE grid snapping runs.
 		// Vertical: clamped to the containment element (card-body).
@@ -565,6 +574,7 @@
 			start: function (event, ui) {
 				captureOrigin(ui);
 				captureBounds();
+				alignGridToSolution($(this));
 			},
 			stop: function (event, ui) {
 				cursorBounds = null;
@@ -620,6 +630,7 @@
 				start: function (event, ui) {
 					captureOrigin(ui);
 					captureBounds();
+					alignGridToSolution($(this));
 				},
 				receive: function (event, ui) {
 					that.getLineById(ui.item[0].id).indent = 0;

@@ -35,6 +35,7 @@ export class ProblemElement extends LitElement {
 		showNextTask: {type: Boolean},
 		allTasksCompleted: {type: Boolean},
 		backToSetUrl: {type: String},
+		nextTaskLabel: {type: String},
 	};
 
 	// Refs to the container elements bound to the Parsons widget
@@ -136,7 +137,7 @@ export class ProblemElement extends LitElement {
 												type="button"
 												class="btn btn-success"
 											>
-												Next task
+												${this.nextTaskLabel || 'Next task'}
 											</button>
 										`
 										: this.allTasksCompleted && this.backToSetUrl

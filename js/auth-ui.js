@@ -742,7 +742,7 @@ function getTourStepsForPath(pathname) {
 	}
 
 	// Student Task Problem Tour
-	if (pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) {
+	if (pathname === '/task' || pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) {
 		const steps = [
 			{
 				element: 'problem-element .col-lg-9 .top-info-card',

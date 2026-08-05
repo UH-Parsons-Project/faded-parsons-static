@@ -113,11 +113,14 @@ function createTaskSetItem(taskSet) {
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 	const expiryPart = taskSet.expires_at
-		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
+		? `<div style="margin-bottom: 0.2rem;"><i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}</div>`
 		: '';
-	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}<br>` +
-		`<i class="fas fa-tasks"></i> ${taskSet.task_count} task${taskSet.task_count !== 1 ? 's' : ''} &nbsp;·&nbsp; ` +
-		`<i class="fas fa-user-graduate"></i> ${taskSet.student_count} student${taskSet.student_count !== 1 ? 's' : ''} joined`;
+	meta.innerHTML = `
+		<div style="margin-bottom: 0.2rem;"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</div>
+		${expiryPart}
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-tasks"></i> ${taskSet.task_count} task${taskSet.task_count !== 1 ? 's' : ''}</div>
+		<div><i class="fas fa-user-graduate"></i> ${taskSet.student_count} student${taskSet.student_count !== 1 ? 's' : ''} joined</div>
+	`;
 	item.appendChild(meta);
 
 	if (taskSet.teacher_description) {
@@ -173,7 +176,10 @@ function createTaskItem(task) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	meta.textContent = `${task.task_type} · Created ${formatDate(task.created_at)}`;
+	meta.innerHTML = `
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-code-branch"></i> Type: ${task.task_type}</div>
+		<div><i class="far fa-calendar-alt"></i> Created: ${formatDate(task.created_at)}</div>
+	`;
 	card.appendChild(meta);
 
 	if (task.description) {

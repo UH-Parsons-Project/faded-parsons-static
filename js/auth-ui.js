@@ -1609,7 +1609,7 @@ function getTourStepsForPath(pathname) {
 	if (pathname.startsWith('/create-task-set')) {
 		return [
 			{
-				element: 'h1.mb-4',
+				element: '.page-header',
 				popover: {
 					title: 'Create Task Set',
 					description:

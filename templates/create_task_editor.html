@@ -220,25 +220,30 @@
             <h3 class="card-title">Step 5: Preview & Save</h3>
           </div>
           <div class="card-body">
-            <div class="form-group mb-4">
-              <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
-              <p class="field-help" style="margin-top: 0;">This value is saved with the task and shown in task lists and statistics.</p>
-              <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="max-width: 300px;" />
-              <datalist id="task-type-options">
-                <option value="normal"></option>
-                <option value="Faded"></option>
-              </datalist>
-            </div>
-
-            <div class="form-group visibility-card mb-4">
-              <div class="checkbox-custom visibility-toggle">
-                <input type="checkbox" id="task-visibility-public" class="form-check-input">
-                <label for="task-visibility-public" class="form-check-label font-weight-bold">
-                  Make task private
-                </label>
+            <div class="row align-items-stretch">
+              <div class="col-md-auto">
+                <div class="form-group mb-4">
+                  <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This value is saved with the task and shown in task lists and statistics.</p>
+                  <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="min-width: 200px; max-width: 300px;" />
+                  <datalist id="task-type-options">
+                    <option value="normal"></option>
+                    <option value="Faded"></option>
+                  </datalist>
+                </div>
               </div>
-              <small class="form-text text-muted visibility-help" style="font-size: 0.85rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
-              <div id="visibility-warning-box"></div>
+              <div class="col-md">
+                <div class="form-group visibility-card mb-4 h-100 d-flex flex-column justify-content-center">
+                  <div class="checkbox-custom visibility-toggle">
+                    <input type="checkbox" id="task-visibility-public" class="form-check-input">
+                    <label for="task-visibility-public" class="form-check-label font-weight-bold">
+                      Make task private
+                    </label>
+                  </div>
+                  <small class="form-text text-muted visibility-help" style="font-size: 0.85rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
+                  <div id="visibility-warning-box"></div>
+                </div>
+              </div>
             </div>
 
             <hr class="mb-4">

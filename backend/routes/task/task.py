@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/task", response_class=HTMLResponse)
 async def problem_page():
-	problem_path = BASE_DIR / "templates" / "task.html"
+	problem_path = BASE_DIR / "templates" / "student_problem.html"
 	return FileResponse(problem_path)
 
 

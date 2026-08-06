@@ -107,11 +107,7 @@ body {
   color: var(--brand-text);
   opacity: .7;
 }
-.taskset-name {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--brand-text);
-}
+
 .taskset-code {
   font-family: var(--mono);
   font-size: 0.7rem;
@@ -439,33 +435,34 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .bp-legend {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  gap: .5rem;
-  font-size: 0.8rem;
-  color: var(--brand-text);
-  background: oklch(96% 0.02 262);
-  border-top: 2px solid var(--brand);
-  border-radius: 0 0 var(--radius) var(--radius);
-  padding: .75rem .9rem;
-  margin-top: .5rem;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand);
+  border-radius: 6px;
+  padding: .6rem 1rem;
 }
-.bp-legend-item { display: flex; align-items: center; gap: .5rem; flex: 1 1 auto; justify-content: center; }
-.bp-legend-item--primary { color: var(--text); font-weight: 700; font-size: 0.85rem; }
+.bp-legend-item { display: flex; align-items: center; gap: .4rem; }
+.bp-legend-item--primary { color: var(--text); font-weight: 700; font-size: 0.75rem; }
 .bp-legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .bp-legend-wiki {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: var(--brand-text);
-  background: var(--brand);
+  color: var(--text-muted);
+  background: #e2e8f0;
   text-decoration: none;
   align-self: center;
-  padding: .2rem .65rem;
+  padding: .25rem .6rem;
   border-radius: 2rem;
   white-space: nowrap;
-  transition: background .15s;
+  transition: background .15s, color .15s;
 }
-.bp-legend-wiki:hover { background: var(--brand-text); color: #fff; }
+.bp-legend-wiki:hover { background: var(--gray); color: #fff; }
 .bp-outlier-g { cursor: pointer; }
 .bp-outlier-g .bp-tip-bg,
 .bp-outlier-g .bp-tip-text { visibility: hidden; }

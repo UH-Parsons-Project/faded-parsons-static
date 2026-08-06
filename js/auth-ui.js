@@ -742,7 +742,7 @@ function getTourStepsForPath(pathname) {
 	}
 
 	// Student Task Problem Tour
-	if (pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) {
+	if (pathname === '/task' || pathname.match(/^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)(?:\/start)?\/?$/)) {
 		const steps = [
 			{
 				element: 'problem-element .col-lg-9 .top-info-card',
@@ -1609,7 +1609,7 @@ function getTourStepsForPath(pathname) {
 	if (pathname.startsWith('/create-task-set')) {
 		return [
 			{
-				element: 'h1.mb-4',
+				element: '.page-header',
 				popover: {
 					title: 'Create Task Set',
 					description:

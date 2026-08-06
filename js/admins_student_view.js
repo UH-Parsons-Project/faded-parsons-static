@@ -109,9 +109,11 @@ function createEnrolledTaskSetItem(taskSet) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	meta.innerHTML = `<i class="far fa-calendar"></i> Joined ${formatDate(taskSet.enrolled_at)} &nbsp;·&nbsp; ` +
-		`<i class="fas fa-chalkboard-teacher"></i> Teacher: ${escapeHtml(taskSet.teacher_username)}<br>` +
-		`<i class="fas fa-tasks"></i> ${taskSet.completed_tasks} / ${taskSet.total_tasks} task${taskSet.total_tasks !== 1 ? 's' : ''} completed`;
+	meta.innerHTML = `
+		<div style="margin-bottom: 0.2rem;"><i class="far fa-calendar"></i> Joined ${formatDate(taskSet.enrolled_at)}</div>
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-chalkboard-teacher"></i> Teacher: ${escapeHtml(taskSet.teacher_username)}</div>
+		<div><i class="fas fa-tasks"></i> ${taskSet.completed_tasks} / ${taskSet.total_tasks} task${taskSet.total_tasks !== 1 ? 's' : ''} completed</div>
+	`;
 	item.appendChild(meta);
 
 	return item;
@@ -165,10 +167,13 @@ function createTaskAttemptItem(task) {
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 	const attemptsText = task.attempts === 0 ? 'No attempts yet' : `${task.attempts} attempt${task.attempts !== 1 ? 's' : ''}`;
-	const lastAttemptText = task.last_attempt_at ? ` &nbsp;·&nbsp; Last attempt: ${formatDate(task.last_attempt_at)}` : '';
-	meta.innerHTML = `<i class="fas fa-code-branch"></i> ${task.task_type} &nbsp;·&nbsp; ` +
-		`<i class="fas fa-folder"></i> Set: ${escapeHtml(task.task_set_title)}<br>` +
-		`<i class="fas fa-history"></i> ${attemptsText}${lastAttemptText}`;
+	const lastAttemptText = task.last_attempt_at ? `<div style="margin-bottom: 0.2rem;"><i class="far fa-clock"></i> Last attempt: ${formatDate(task.last_attempt_at)}</div>` : '';
+	meta.innerHTML = `
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-code-branch"></i> ${task.task_type}</div>
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-folder"></i> Set: ${escapeHtml(task.task_set_title)}</div>
+		<div style="margin-bottom: 0.2rem;"><i class="fas fa-history"></i> ${attemptsText}</div>
+		${lastAttemptText}
+	`;
 	card.appendChild(meta);
 
 	return card;

@@ -6,6 +6,8 @@
   <title>Create Task Blocks</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/js-parsons/parsons.css">
   <link rel="stylesheet" href="/js/main.css">
   <link rel="stylesheet" href="/js/create-task-editor.css">
@@ -45,132 +47,102 @@
     </div>
   </nav>
 
-  <div class="checklist-sidebar" aria-label="Task checklist">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="mb-0">Task Checklist</h4>
-      </div>
-      <div class="card-body">
-        <p class="field-help">Track what's left before this task is ready to save.</p>
-        <ul id="task-checklist" class="checklist-list">
-          <li class="checklist-item" data-check="title">
-            <button type="button" class="checklist-item-btn" data-target="task-title">
-              <span class="checklist-label">Task name</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="start-description">
-            <button type="button" class="checklist-item-btn" data-target="start-description">
-              <span class="checklist-label">Start page intro</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="problem-description">
-            <button type="button" class="checklist-item-btn" data-target="problem-description">
-              <span class="checklist-label">Problem statement</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="solution-blocks">
-            <button type="button" class="checklist-item-btn" data-target="solution-sortable">
-              <span class="checklist-label">Blocks in solution</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="model-answer">
-            <button type="button" class="checklist-item-btn" data-target="model-answer-status">
-              <span class="checklist-label">Model answer set</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="custom-errors">
-            <button type="button" class="checklist-item-btn" data-target="custom-error-messages">
-              <span class="checklist-label">Custom error messages</span>
-              <span class="checklist-status badge badge-secondary">Optional</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="tests-written">
-            <button type="button" class="checklist-item-btn" data-target="tests-input">
-              <span class="checklist-label">Tests written</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="tests-passed">
-            <button type="button" class="checklist-item-btn" data-target="test-results">
-              <span class="checklist-label">Tests passed</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-          <li class="checklist-item" data-check="previewed">
-            <button type="button" class="checklist-item-btn" data-target="preview-student-view">
-              <span class="checklist-label">Task previewed</span>
-              <span class="checklist-status badge badge-danger">Missing</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="container page-wrap">
-    <div class="row mt-2">
-      <div class="col-sm-12">
-        <div class="card">
-          <div class="card-header">
-            <h3 class="mb-0">Create Task Blocks</h3>
-          </div>
-          <div class="card-body">
-            <p class="problem-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
-
-            <section class="guide-section" aria-label="Teacher guide for block builder">
-              <button type="button" class="guide-toggle" id="problem-guide-toggle" aria-expanded="false" aria-controls="problem-guide-content">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Quick Guide for Teachers: Building and Visibility</span>
-                <i class="fas fa-chevron-down"></i>
-              </button>
-
-              <div class="guide-content" id="problem-guide-content">
-                <div class="guide-steps">
-                <ol class="steps-list">
-                  <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left.</li>
-                  <li>Optionally <strong>double-click</strong> any right-column block to pin it as pre-given for students &mdash; it will start in their solution area. Pinned blocks show a blue pin (&#128204;) and blue highlight.</li>
-                  <li>Use <strong>+ Add Custom Block</strong> to add a new custom code block.</li>
-                  <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
-                  <li>Click <strong>Set as Model Answer</strong>. You can click it again later to update the saved model answer.</li>
-                  <li>Click <strong>Preview</strong> to review the block page.</li>
-                  <li>The <strong>Make task private</strong> checkbox is off by default (leaving the task public, which is preferred to help the community). Public tasks remain in the system for other teachers even if your account is removed. Check this box to make the task private.</li>
-                  <li>When a task is private, only the creator can see it, plus teachers who have access to a task set that includes the task.</li>
-                  <li>When all tests pass, click <strong>Save Task to Problem List</strong> to publish the task with the selected visibility.</li>
-                </ol>
-                </div>
-              </div>
-            </section>
-          </div>
+  <div class="page-layout">
+    <aside class="student-sidebar checklist-sidebar" aria-label="Task checklist">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Task Checklist</span>
+        <div class="sidebar-enrolled-row" style="margin-top: 0.4rem;">
+          <span class="sidebar-enrolled-label" style="text-transform: none; letter-spacing: normal;">Track what's left before this task is ready to save.</span>
         </div>
       </div>
-    </div>
+      <div class="sidebar-section">
+        <div id="task-checklist" class="sidebar-rows" style="display: flex; flex-direction: column; gap: 0.35rem;">
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="title" data-target="task-title">
+            <span class="sidebar-row-name checklist-label">Task name</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="start-description" data-target="start-description">
+            <span class="sidebar-row-name checklist-label">Start page intro</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="problem-description" data-target="problem-description">
+            <span class="sidebar-row-name checklist-label">Problem statement</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="solution-blocks" data-target="solution-sortable">
+            <span class="sidebar-row-name checklist-label">Blocks in solution</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="model-answer" data-target="model-answer-status">
+            <span class="sidebar-row-name checklist-label">Model answer set</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="custom-errors" data-target="custom-error-messages">
+            <span class="sidebar-row-name checklist-label">Custom error messages</span>
+            <span class="checklist-status badge badge-secondary">Optional</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="tests-written" data-target="tests-input">
+            <span class="sidebar-row-name checklist-label">Tests written</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="tests-passed" data-target="test-results">
+            <span class="sidebar-row-name checklist-label">Tests passed</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="previewed" data-target="preview-student-view">
+            <span class="sidebar-row-name checklist-label">Task previewed</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
+        </div>
+      </div>
+    </aside>
 
-    <div class="row mt-3">
-      <div class="col-sm-12">
+    <div class="page-content">
+      <div class="page-header">
+        <div class="page-title-row">
+          <h1 class="page-title">Create Task Blocks</h1>
+        </div>
+        <p class="page-subtitle">Match the student problem style while building code blocks. Add from source lines or create custom blocks below.</p>
+      </div>
+
+      <div class="main page-wrap">
+        <section class="guide-section mb-3" aria-label="Teacher guide for block builder">
+          <button type="button" class="guide-toggle" id="problem-guide-toggle" aria-expanded="false" aria-controls="problem-guide-content">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Quick Guide for Teachers: Building and Visibility</span>
+            <i class="fas fa-chevron-down"></i>
+          </button>
+
+          <div class="guide-content" id="problem-guide-content">
+            <div class="guide-steps">
+            <ol class="steps-list">
+              <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left.</li>
+              <li>Optionally <strong>double-click</strong> any right-column block to pin it as pre-given for students &mdash; it will start in their solution area. Pinned blocks show a blue pin (&#128204;) and blue highlight.</li>
+              <li>Use <strong>+ Add Custom Block</strong> to add a new custom code block.</li>
+              <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
+              <li>Click <strong>Set as Model Answer</strong>. You can click it again later to update the saved model answer.</li>
+              <li>Click <strong>Preview</strong> to review the block page.</li>
+              <li>The <strong>Make task private</strong> checkbox is off by default (leaving the task public, which is preferred to help the community). Public tasks remain in the system for other teachers even if your account is removed. Check this box to make the task private.</li>
+              <li>When a task is private, only the creator can see it, plus teachers who have access to a task set that includes the task.</li>
+              <li>When all tests pass, click <strong>Save Task to Problem List</strong> to publish the task with the selected visibility.</li>
+            </ol>
+            </div>
+          </div>
+        </section>
+
         <div class="card">
           <div class="card-header">
-            <h3 class="mb-0">Step 1: Task Description</h3>
+            <h3 class="card-title">Step 1: Task Description</h3>
           </div>
           <div class="card-body">
-            <label for="task-title" class="mb-2">Task name shown in task sets</label>
-            <input id="task-title" class="form-control mb-3" placeholder="add" />
-            <label for="start-description" class="mb-2">Start page intro shown above the Start button</label>
-            <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
-            <textarea id="start-description" class="problem-description" placeholder="In this exercise you will practice adding values."></textarea>
-            <label for="problem-description" class="mb-2 mt-3">Problem statement shown on the exercise page</label>
-            <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
-            <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
-
-            <details class="field-help-details mt-3">
-              <summary>Where do students see these texts?</summary>
-              <div class="field-help-details-body">
-                <p><strong>Start page intro:</strong> Appears on the start screen right before students click the Start button.</p>
-                <p><strong>Problem statement:</strong> Appears on the exercise page where students work with code blocks and inputs.</p>
+            <label for="task-title" class="mb-1 font-weight-bold">Task name shown in task sets</label>
+            <input id="task-title" class="form-control mb-3 font-weight-bold" style="font-size: 1.1rem;" placeholder="add" />
+            
+            <div class="editor-bottom-row" style="gap: 1.5rem;">
+              <div>
+                <label for="start-description" class="mb-1">Start page intro shown above the Start button</label>
+                <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
+                <textarea id="start-description" class="problem-description" style="min-height: 96px;" placeholder="In this exercise you will practice adding values."></textarea>
               </div>
             </details>
 
@@ -190,16 +162,18 @@
                 <label for="task-visibility-public" class="form-check-label">
                   Make task private
                 </label>
+              <div>
+                <label for="problem-description" class="mb-1">Problem statement shown on the exercise page</label>
+                <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
+                <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
               </div>
-              <small class="form-text text-muted visibility-help">Unchecked by default, so the task stays public. Check this box to make the task private. Private tasks are visible only to you and teachers who have access to a task set that includes the task.</small>
-              <div id="visibility-warning-box" class="mt-3"></div>
             </div>
           </div>
         </div>
 
-        <div class="builder-layout card mt-4">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Step 2: Model Answer</h4>
+        <div class="builder-layout card">
+          <div class="card-header">
+            <h3 class="card-title">Step 2: Model Answer</h3>
             <div class="d-flex align-items-center" style="gap: 0.75rem;">
               <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
               <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
@@ -224,48 +198,72 @@
           </div>
         </div>
 
-        <div class="card mt-1">
-          <div class="card-header">
-            <h4 class="mb-0">Step 3: Custom Error Messages (optional)</h4>
+        <div class="editor-bottom-row">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Step 3: Check Tests</h3>
+            </div>
+            <div class="card-body">
+              <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
+              <div class="run-toolbar">
+                <span id="run-status" class="run-status"></span>
+                <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+              </div>
+              <label for="test-results" class="mb-2 mt-3">Test results</label>
+              <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
+            </div>
           </div>
-          <div class="card-body">
-            <textarea id="custom-error-messages" class="tests-input" spellcheck="false" placeholder="[&#10;  {&#10;    &quot;match_type&quot;: &quot;contains&quot;,&#10;    &quot;pattern&quot;: &quot;IndexError&quot;,&#10;    &quot;message&quot;: &quot;Keep in mind that indexing in Python starts from 0!&quot;&#10;  }&#10;]"></textarea>
-            <div class="run-toolbar">
-              <button id="add-custom-error-messages" class="btn btn-success" type="button">Add error message</button>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Step 4: Custom Error Messages (optional)</h3>
+            </div>
+            <div class="card-body">
+              <textarea id="custom-error-messages" class="tests-input" style="min-height: 280px;" spellcheck="false" placeholder="[
+  {
+    &quot;match_type&quot;: &quot;contains&quot;,
+    &quot;pattern&quot;: &quot;IndexError&quot;,
+    &quot;message&quot;: &quot;Keep in mind that indexing in Python starts from 0!&quot;
+  }
+]"></textarea>
+              <div class="run-toolbar">
+                <button id="add-custom-error-messages" class="btn btn-success" type="button">Add error message</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="card mt-1">
+        <div class="card">
           <div class="card-header">
-            <h4 class="mb-0">Step 4: Check Tests</h4>
+            <h3 class="card-title">Step 5: Preview & Save</h3>
           </div>
           <div class="card-body">
-            <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
-            <div class="run-toolbar">
-              <span id="run-status" class="run-status"></span>
-              <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
+            <div class="form-group visibility-card mb-4">
+              <div class="checkbox-custom visibility-toggle">
+                <input type="checkbox" id="task-visibility-public" class="form-check-input">
+                <label for="task-visibility-public" class="form-check-label font-weight-bold">
+                  Make task private
+                </label>
+              </div>
+              <small class="form-text text-muted visibility-help" style="font-size: 0.85rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
+              <div id="visibility-warning-box"></div>
             </div>
-            <label for="test-results" class="mb-2 mt-3">Test results</label>
-            <div id="test-results" class="test-results-box">Test results will appear here after clicking "Run Tests" above.</div>
-          </div>
-        </div>
 
-        <div class="card mt-3">
-          <div class="card-header">
-            <h4 class="mb-0">Step 5: Preview & Save</h4>
-          </div>
-          <div class="card-body">
-            <p class="finalize-instruction">Finalize your new task by first previewing it, then click <strong>Save new task</strong>. Click <strong>Cancel</strong> to discard your changes and return to the dashboard.</p>
-            <div class="run-toolbar-bottom finalize-actions">
-              <button id="cancel-task-editor" class="btn btn-outline-secondary" type="button">Cancel</button>
-              <button id="preview-student-view" class="btn btn-outline-info" type="button">Preview</button>
-              <button id="add-to-problem-list" class="btn btn-success" type="button" disabled>Save new task</button>
+            <hr class="mb-4">
+
+            <p class="finalize-instruction mb-3">Finalize your new task by first previewing it, then click <strong>Save new task</strong>. Click <strong>Cancel</strong> to discard your changes and return to the dashboard.</p>
+            
+            <div class="actions">
+              <div class="actions-left" style="display: flex; gap: 0.6rem;">
+                <button id="cancel-task-editor" class="secondary-btn" type="button">Cancel</button>
+                <button id="preview-student-view" class="secondary-btn" type="button">Preview</button>
+              </div>
+              <div class="actions-right">
+                <button id="add-to-problem-list" class="primary-btn" type="button" disabled>Save new task</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
     <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
       <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
@@ -363,7 +361,9 @@
         </div>
       </div>
     </div>
-  </div>
+      </div><!-- /main -->
+    </div><!-- /page-content -->
+  </div><!-- /page-layout -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>

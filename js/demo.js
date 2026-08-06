@@ -150,9 +150,11 @@ async function handleSubmit(submittedCode, codeHeader) {
 	probEl.allTasksCompleted = false;
 	probEl.backToSetUrl = '';
 
-	if (testResults.status === 'pass' && returnUrl) {
-		probEl.nextTaskUrl = returnUrl;
+	if (testResults.status === 'pass') {
+		const finalReturnUrl = returnUrl || '/';
+		probEl.nextTaskUrl = finalReturnUrl;
 		probEl.showNextTask = true;
+		probEl.nextTaskLabel = 'Back to task set';
 	}
 }
 

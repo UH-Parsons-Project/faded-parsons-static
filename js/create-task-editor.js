@@ -265,15 +265,29 @@ initBurgerMenu();
     sessionStorage.setItem(BLOCKS_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
-  function loadMetaFromSession() {
+  function loadMetaFromSession(sourceCode, expectedTaskId = null) {
     try {
       const raw = sessionStorage.getItem(META_KEY);
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: 'normal', isPublic: true };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
       }
 
       const parsed = JSON.parse(raw);
+      const storedSource = sessionStorage.getItem(META_SOURCE_KEY);
+      const normalizedSource = normalizeSourceCode(sourceCode || '');
+      const storedTaskId = typeof parsed.taskId === 'number'
+        ? parsed.taskId
+        : (typeof parsed.taskId === 'string' && parsed.taskId.trim() ? parseInt(parsed.taskId, 10) : null);
+
+      if (expectedTaskId !== null) {
+        if (storedTaskId !== expectedTaskId) {
+          return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+        }
+      } else if (storedSource && normalizedSource && storedSource !== normalizedSource) {
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+      }
+
       return {
         taskTitle: typeof parsed.taskTitle === 'string' ? parsed.taskTitle : '',
         description: typeof parsed.description === 'string' ? parsed.description : '',
@@ -282,10 +296,11 @@ initBurgerMenu();
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
         taskType: typeof parsed.taskType === 'string' ? parsed.taskType : 'normal',
         isPublic: typeof parsed.isPublic === 'boolean' ? parsed.isPublic : true,
+        isValid: true,
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: 'normal', isPublic: true };
+      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
     }
   }
 
@@ -333,6 +348,7 @@ initBurgerMenu();
       customErrorMessages,
       taskType: typeof taskType === 'string' ? taskType : (taskTypeInput?.value || 'normal'),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+      taskId: draftPayload?.taskId ?? null,
     }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
@@ -1360,7 +1376,7 @@ initBurgerMenu();
       };
 
       const cachedRepr = getCachedParsonsRepr(solutionCode);
-      const meta = loadMetaFromSession(solutionCode);
+      const meta = loadMetaFromSession(solutionCode, urlTaskId);
       const defaultTitle = extractDefaultTitleFromCode(solutionCode);
       const initialText = cachedRepr || buildReprFromBlocks(taskData);
 
@@ -1371,7 +1387,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
-      if (taskTypeInput) taskTypeInput.value = meta.taskType || taskData.task_type || 'normal';
+      if (taskTypeInput) taskTypeInput.value = meta.isValid ? (meta.taskType || taskData.task_type || 'normal') : (taskData.task_type || 'normal');
       if (visibilityInput) {
         visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
       }
@@ -1419,7 +1435,7 @@ initBurgerMenu();
     draftPayload = draft;
     const editTaskId = draft.taskId || null;
     const cachedRepr = getCachedParsonsRepr(draft.taskCode);
-    const meta = loadMetaFromSession(draft.taskCode);
+    const meta = loadMetaFromSession(draft.taskCode, editTaskId);
 
     const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
     let initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
@@ -1446,6 +1462,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
+      if (taskTypeInput) taskTypeInput.value = apiTaskData.task_type || draft.taskType || 'normal';
       const savedAnswer = apiTaskData.correct_solution?.solution_code || '';
       if (savedAnswer) saveModelAnswerToSession(savedAnswer, '');
     } else {
@@ -1454,7 +1471,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
-      if (taskTypeInput) taskTypeInput.value = meta.taskType || draft.taskType || 'normal';
+      if (taskTypeInput) taskTypeInput.value = meta.isValid ? (meta.taskType || draft.taskType || 'normal') : (draft.taskType || 'normal');
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
       modelAnswerCode = savedModelAnswer.code;

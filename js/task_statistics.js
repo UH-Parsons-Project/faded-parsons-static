@@ -304,7 +304,7 @@ function updateDonut(completed, attempted, notStarted) {
 		arcCompleted.setAttribute('stroke-dasharray', `${completedLen.toFixed(1)} ${(CIRC - completedLen).toFixed(1)}`);
 	}
 	if (arcNotYetCompleted) {
-		arcNotYetCompleted.setAttribute('stroke', hasNotYetCompleted ? '#fca5a5' : 'transparent');
+		arcNotYetCompleted.setAttribute('stroke', hasNotYetCompleted ? '#dc2626' : 'transparent');
 		arcNotYetCompleted.setAttribute('stroke-dasharray', `${notYetCompletedLen.toFixed(1)} ${(CIRC - notYetCompletedLen).toFixed(1)}`);
 		arcNotYetCompleted.setAttribute('transform', `rotate(${completedDeg} 80 80)`);
 	}
@@ -318,7 +318,7 @@ function updateDonut(completed, attempted, notStarted) {
 	const dotCompleted = document.getElementById('legend-dot-completed');
 	const dotNotYetCompleted = document.getElementById('legend-dot-struggling');
 	if (dotCompleted) dotCompleted.style.background = '#16a34a';
-	if (dotNotYetCompleted) dotNotYetCompleted.style.background = hasNotYetCompleted ? '#fca5a5' : '#cbd5e1';
+	if (dotNotYetCompleted) dotNotYetCompleted.style.background = hasNotYetCompleted ? '#dc2626' : '#cbd5e1';
 	if (elCompleted) elCompleted.textContent = completed;
 	if (elCompleted) elCompleted.style.color = 'var(--green)';
 	if (elNotYetCompleted) {
@@ -445,8 +445,7 @@ async function loadStatistics() {
 			privateBadgeSlot.appendChild(createPrivateBadge());
 		}
 	}
-	const tasksetNameEl = document.getElementById('taskset-name-label');
-	if (tasksetNameEl && data.task_set_name) tasksetNameEl.textContent = data.task_set_name;
+
 
 	// KPI strip
 	const totalAttempts = data.total_completions ?? 0;

@@ -12,6 +12,7 @@
 
   <link rel="stylesheet" href="/js-parsons/parsons.css">
   <link rel="stylesheet" href="/js/create-task-editor.css">
+  <link rel="stylesheet" href="/js/teacher_dashboard.css">
   <link rel="stylesheet" href="/js/main.css">
 
   <!-- jQuery and Bootstrap JS for modal functionality -->
@@ -59,8 +60,12 @@
     </div>
   </nav>
 
-  <div class="create-task-set-container">
-    <h1 class="mb-4">Create New Task Set</h1>
+  <div class="page-header">
+    <div class="page-title">Create New Task Set</div>
+    <div class="page-subtitle">Configure task set details, select and order exercises</div>
+  </div>
+
+  <div class="dashboard-main">
 
     <div id="error-container"></div>
 
@@ -98,163 +103,171 @@
     </div>
 
     <form id="create-task-set-form" class="task-set-form">
-      <!-- Basic Information -->
-      <div class="form-section">
-        <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+      <div class="parallel-layout" style="gap: 3rem;">
+        <!-- Left Column: Tasks -->
+        <div class="parallel-col" style="flex: 2;">
+          <!-- Task Selection -->
+          <div class="form-section">
+            <h5><i class="fas fa-list"></i> Select Tasks</h5>
 
-        <div class="form-group">
-          <label for="task-set-title">Task Set Title</label>
-          <input type="text" class="form-control" id="task-set-title"
-                 placeholder="e.g., Python Basics - Week 1"
-                 required>
-          <small class="form-text text-muted">Give your task set a name</small>
-        </div>
-
-        <div class="form-group">
-          <label for="student-description">
-            <i class="fas fa-graduation-cap"></i> Student Description (optional)
-          </label>
-          <textarea class="form-control" id="student-description"
-                    rows="3"
-                    placeholder="What students will see when they start the task set"></textarea>
-          <small class="form-text text-muted">This is shown to students on the start page</small>
-        </div>
-
-        <div class="form-group">
-          <label for="teacher-description">
-            <i class="fas fa-chalkboard-teacher"></i> Teacher Notes (optional)
-          </label>
-          <textarea class="form-control" id="teacher-description"
-                    rows="3"
-                    placeholder="Notes for the teacher"></textarea>
-          <small class="form-text text-muted">This is only visible to teachers</small>
-        </div>
-
-        <div class="form-group">
-          <label for="viewer-identifiers">
-            <i class="fas fa-user-plus"></i> Share viewing rights (optional)
-          </label>
-          <div class="input-group">
-            <input type="text" class="form-control" id="viewer-identifiers"
-                   placeholder="Username or email">
-            <div class="input-group-append">
-              <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
-                <i class="fas fa-user-plus"></i> Add
+            <div class="task-filter-menu">
+              <button
+                class="btn btn-outline-secondary task-filter-toggle"
+                type="button"
+                data-toggle="collapse"
+                data-target="#task-filter-panel"
+                aria-expanded="false"
+                aria-controls="task-filter-panel"
+              >
+                <i class="fas fa-bars"></i> Search & Filter
               </button>
-            </div>
-          </div>
-          <small class="form-text text-muted">Add teachers who can view this task set.</small>
-          <div id="viewer-errors" class="mt-2"></div>
-          <div id="viewer-list" class="mt-2"></div>
-        </div>
 
-        <div class="form-group">
-          <div class="checkbox-custom">
-            <input type="checkbox" id="set-expiration" class="form-check-input">
-            <label for="set-expiration" class="form-check-label">
-              Set expiration date (optional)
-            </label>
-          </div>
-        </div>
-
-        <div id="expiration-group" style="display: none;">
-          <div class="form-group">
-            <label for="expiration-date">Expiration Date</label>
-            <input type="datetime-local" class="form-control" id="expiration-date">
-            <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
-          </div>
-        </div>
-      </div>
-
-      <!-- Task Selection -->
-      <div class="form-section">
-        <h5><i class="fas fa-list"></i> Select Tasks</h5>
-
-        <div class="task-filter-menu">
-          <button
-            class="btn btn-outline-secondary task-filter-toggle"
-            type="button"
-            data-toggle="collapse"
-            data-target="#task-filter-panel"
-            aria-expanded="false"
-            aria-controls="task-filter-panel"
-          >
-            <i class="fas fa-bars"></i> Search & Filter
-          </button>
-
-          <div class="collapse mt-2" id="task-filter-panel">
-            <div class="filter-panel-content">
-              <div class="form-group mb-3">
-                <input type="text" class="form-control" id="task-search"
-                       placeholder="Search tasks...">
-                <small class="form-text text-muted mt-1">
-                  Select fields below to search in specific areas
-                </small>
-              </div>
-
-              <div class="filter-scopes">
-                <label class="filter-scope-label">Search in:</label>
-                <div class="scope-checkboxes">
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope"
-                           id="scope-title" value="title">
-                    <label class="custom-control-label" for="scope-title">Title</label>
+              <div class="collapse mt-2" id="task-filter-panel">
+                <div class="filter-panel-content">
+                  <div class="form-group mb-3">
+                    <input type="text" class="form-control" id="task-search"
+                           placeholder="Search tasks...">
+                    <small class="form-text text-muted mt-1">
+                      Select fields below to search in specific areas
+                    </small>
                   </div>
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope"
-                           id="scope-teacher" value="teacher">
-                    <label class="custom-control-label" for="scope-teacher">Teacher</label>
-                  </div>
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope"
-                           id="scope-type" value="type">
-                    <label class="custom-control-label" for="scope-type">Type</label>
-                  </div>
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope"
-                           id="scope-my-exercises" value="my-exercises">
-                    <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
-                  </div>
-                  <div class="custom-control custom-checkbox">
-                    <input type="checkbox" class="custom-control-input filter-scope"
-                           id="scope-favorites" value="favorites">
-                    <label class="custom-control-label" for="scope-favorites">Favorites</label>
+
+                  <div class="filter-scopes">
+                    <label class="filter-scope-label">Search in:</label>
+                    <div class="scope-checkboxes">
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-title" value="title">
+                        <label class="custom-control-label" for="scope-title">Title</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-teacher" value="teacher">
+                        <label class="custom-control-label" for="scope-teacher">Teacher</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-type" value="type">
+                        <label class="custom-control-label" for="scope-type">Type</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-my-exercises" value="my-exercises">
+                        <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-favorites" value="favorites">
+                        <label class="custom-control-label" for="scope-favorites">Favorites</label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div id="tasks-loading" class="loading-spinner" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <p>Loading available tasks...</p>
+            </div>
+
+            <div class="task-selector" id="task-selector">
+              <!-- Tasks will be loaded here -->
+            </div>
+          </div>
+
+          <!-- Selected Tasks with Ordering -->
+          <div class="form-section">
+            <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
+            <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
+            <div class="selected-tasks-list" id="selected-tasks-list">
+              <div class="empty-selected">No tasks selected yet</div>
+            </div>
           </div>
         </div>
 
-        <div id="tasks-loading" class="loading-spinner" style="display: none;">
-          <div class="spinner-border text-primary" role="status">
-            <span class="sr-only">Loading...</span>
+        <!-- Right Column: Info & Submit -->
+        <div class="parallel-col" style="flex: 1; position: sticky; top: 100px; align-self: flex-start;">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h5><i class="fas fa-info-circle"></i> Basic Information</h5>
+
+            <div class="form-group">
+              <label for="task-set-title">Task Set Title</label>
+              <input type="text" class="form-control" id="task-set-title"
+                     placeholder="e.g., Python Basics - Week 1"
+                     required>
+              <small class="form-text text-muted">Give your task set a name</small>
+            </div>
+
+            <div class="form-group">
+              <label for="student-description">
+                <i class="fas fa-graduation-cap"></i> Student Description (optional)
+              </label>
+              <textarea class="form-control" id="student-description"
+                        rows="3"
+                        placeholder="What students will see when they start the task set"></textarea>
+              <small class="form-text text-muted">This is shown to students on the start page</small>
+            </div>
+
+            <div class="form-group">
+              <label for="teacher-description">
+                <i class="fas fa-chalkboard-teacher"></i> Teacher Notes (optional)
+              </label>
+              <textarea class="form-control" id="teacher-description"
+                        rows="3"
+                        placeholder="Notes for the teacher"></textarea>
+              <small class="form-text text-muted">This is only visible to teachers</small>
+            </div>
+
+            <div class="form-group">
+              <label for="viewer-identifiers">
+                <i class="fas fa-user-plus"></i> Share viewing rights (optional)
+              </label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="viewer-identifiers"
+                       placeholder="Username or email">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-primary" type="button" id="add-viewer-btn">
+                    <i class="fas fa-user-plus"></i> Add
+                  </button>
+                </div>
+              </div>
+              <small class="form-text text-muted">Add teachers who can view this task set.</small>
+              <div id="viewer-errors" class="mt-2"></div>
+              <div id="viewer-list" class="mt-2"></div>
+            </div>
+
+            <div class="form-group">
+              <div class="checkbox-custom">
+                <input type="checkbox" id="set-expiration" class="form-check-input">
+                <label for="set-expiration" class="form-check-label">
+                  Set expiration date (optional)
+                </label>
+              </div>
+            </div>
+
+            <div id="expiration-group" style="display: none;">
+              <div class="form-group">
+                <label for="expiration-date">Expiration Date</label>
+                <input type="datetime-local" class="form-control" id="expiration-date">
+                <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
+              </div>
+            </div>
           </div>
-          <p>Loading available tasks...</p>
-        </div>
 
-        <div class="task-selector" id="task-selector">
-          <!-- Tasks will be loaded here -->
+          <!-- Submit Buttons -->
+          <div class="button-group mt-4">
+            <a href="/teacher-dashboard" class="btn-cancel" id="cancel-task-set">
+              <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn-submit">
+              <i class="fas fa-save"></i> Create Task Set
+            </button>
+          </div>
         </div>
-      </div>
-
-      <!-- Selected Tasks with Ordering -->
-      <div class="form-section">
-        <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
-        <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
-        <div class="selected-tasks-list" id="selected-tasks-list">
-          <div class="empty-selected">No tasks selected yet</div>
-        </div>
-      </div>
-
-      <!-- Submit Buttons -->
-      <div class="button-group">
-        <button type="submit" class="btn btn-submit">
-          <i class="fas fa-save"></i> Create Task Set
-        </button>
-        <a href="/teacher-dashboard" class="btn btn-cancel" id="cancel-task-set">
-          <i class="fas fa-times"></i> Cancel
-        </a>
       </div>
     </form>
   </div>
@@ -306,11 +319,6 @@
                 <div id="preview-source-sortable" class="sortable-code starter"></div>
                 <div id="preview-solution-sortable" class="sortable-code solution"></div>
                 <div style="clear: both;"></div>
-                <div class="row float-right">
-                  <div class="col-sm-12">
-                    <button type="button" class="btn btn-primary" disabled>Run Tests</button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

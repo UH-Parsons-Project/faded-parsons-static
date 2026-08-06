@@ -815,6 +815,11 @@ label[for="test-results"] {
   font-size: 0.88rem;
 }
 
+#preview-model-answer {
+  border-left: 4px solid var(--green, #16a34a);
+  background: #f0fdf4;
+}
+
 #preview-source-sortable ul,
 #preview-solution-sortable ul {
   min-height: 230px;

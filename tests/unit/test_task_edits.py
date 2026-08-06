@@ -128,13 +128,11 @@ class TestDeleteTask:
         r = await client.delete(f"/api/problems/{task.id}", headers=_auth(test_teacher.username))
         assert r.status_code == 409
 
-    async def test_admin_can_delete_others_task(
-        self, client, task, admin_teacher, db_session
+    async def test_admin_cannot_delete_others_task(
+        self, client, task, admin_teacher
     ):
         r = await client.delete(f"/api/problems/{task.id}", headers=_auth(admin_teacher.username))
-        assert r.status_code == 204
-        result = await db_session.execute(select(Parsons).where(Parsons.id == task.id))
-        assert result.scalar_one_or_none() is None
+        assert r.status_code == 403
 
 
 # ---------------------------------------------------------------------------
@@ -407,16 +405,14 @@ class TestDeleteTaskSet:
         task_result = await db_session.execute(select(Parsons).where(Parsons.id == task.id))
         assert task_result.scalar_one_or_none() is not None
 
-    async def test_admin_can_delete_others_task_set(
-        self, client, task_set, admin_teacher, db_session
+    async def test_admin_cannot_delete_others_task_set(
+        self, client, task_set, admin_teacher
     ):
         r = await client.delete(
             f"/api/my_sets/{task_set.id}",
             headers=_auth(admin_teacher.username),
         )
-        assert r.status_code == 204
-        result = await db_session.execute(select(TaskSet).where(TaskSet.id == task_set.id))
-        assert result.scalar_one_or_none() is None
+        assert r.status_code == 403
 
 
 # ---------------------------------------------------------------------------

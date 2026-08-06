@@ -144,24 +144,6 @@
                 <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
                 <textarea id="start-description" class="problem-description" style="min-height: 96px;" placeholder="In this exercise you will practice adding values."></textarea>
               </div>
-            </details>
-
-            <div class="mt-4">
-              <label for="task-type" class="mb-2"><strong>Task type</strong></label>
-              <p class="field-help">This value is saved with the task and shown in task lists and statistics.</p>
-              <input id="task-type" class="form-control mb-3" list="task-type-options" placeholder="normal" />
-              <datalist id="task-type-options">
-                <option value="normal"></option>
-                <option value="Faded"></option>
-              </datalist>
-            </div>
-
-            <div class="form-group mt-3 visibility-card">
-              <div class="checkbox-custom visibility-toggle">
-                <input type="checkbox" id="task-visibility-public" class="form-check-input">
-                <label for="task-visibility-public" class="form-check-label">
-                  Make task private
-                </label>
               <div>
                 <label for="problem-description" class="mb-1">Problem statement shown on the exercise page</label>
                 <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
@@ -238,10 +220,20 @@
             <h3 class="card-title">Step 5: Preview & Save</h3>
           </div>
           <div class="card-body">
+            <div class="form-group mb-4">
+              <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
+              <p class="field-help" style="margin-top: 0;">This value is saved with the task and shown in task lists and statistics.</p>
+              <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="max-width: 300px;" />
+              <datalist id="task-type-options">
+                <option value="normal"></option>
+                <option value="Faded"></option>
+              </datalist>
+            </div>
+
             <div class="form-group visibility-card mb-4">
               <div class="checkbox-custom visibility-toggle">
-                <input type="checkbox" id="task-visibility-public-preview" class="form-check-input">
-                <label for="task-visibility-public-preview" class="form-check-label font-weight-bold">
+                <input type="checkbox" id="task-visibility-public" class="form-check-input">
+                <label for="task-visibility-public" class="form-check-label font-weight-bold">
                   Make task private
                 </label>
               </div>

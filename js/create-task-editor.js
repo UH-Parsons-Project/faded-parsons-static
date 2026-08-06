@@ -1387,7 +1387,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
-      if (taskTypeInput) taskTypeInput.value = meta.isValid ? (meta.taskType || taskData.task_type || 'normal') : (taskData.task_type || 'normal');
+      if (taskTypeInput) taskTypeInput.value = taskData.task_type || 'normal';
       if (visibilityInput) {
         visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
       }
@@ -1471,7 +1471,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
-      if (taskTypeInput) taskTypeInput.value = meta.isValid ? (meta.taskType || draft.taskType || 'normal') : (draft.taskType || 'normal');
+      if (taskTypeInput) taskTypeInput.value = apiTaskData?.task_type || draft.taskType || 'normal';
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
       modelAnswerCode = savedModelAnswer.code;

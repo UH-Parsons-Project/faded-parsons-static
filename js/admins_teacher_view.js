@@ -140,12 +140,7 @@ function createTaskItem(task) {
 	card.className = 'task-set-item';
 	card.style.cursor = 'pointer';
 	const openPreview = () => {
-		const previewWindow = window.open(
-			'/task?id=' + encodeURIComponent(task.id),
-			'_blank',
-			'width=1000,height=800,resizable=yes,scrollbars=yes'
-		);
-		if (previewWindow) previewWindow.focus();
+		window.location.href = '/task-details?id=' + encodeURIComponent(task.id);
 	};
 	card.onclick = openPreview;
 	makeKeyActivatable(card, openPreview);

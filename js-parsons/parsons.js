@@ -271,7 +271,7 @@
 	ParsonsWidget.prototype.updateIndent = function (leftDiff, id) {
 		var code_line = this.getLineById(id);
 		var new_indent = this.options.can_indent
-			? code_line.indent + Math.floor(leftDiff / this.options.x_indent)
+			? code_line.indent + Math.round(leftDiff / this.options.x_indent)
 			: 0;
 		new_indent = Math.max(0, new_indent);
 		code_line.indent = new_indent;
@@ -464,6 +464,16 @@
 	/** modifies the DOM by inserting exercise elements into it */
 	ParsonsWidget.prototype.createHTMLFromLists = function (solutionIDs, trashIDs) {
 		var html;
+		var that = this;
+		if (trashIDs && trashIDs.length > 0) {
+			trashIDs.forEach(function(id) {
+				var line = that.getLineById(id);
+				if (line) {
+					line.indent = 0;
+				}
+			});
+		}
+
 		if (this.options.trashId) {
 			html =
 				(this.options.trash_label
@@ -480,7 +490,6 @@
 			this.options.sortableId.innerHTML = html;
 		}
 
-		var that = this;
 		// True when stop already called onSortableUpdate (same-container drop).
 		// Prevents update from calling it a second time for the same interaction.
 		var _stopHandledUpdate = false;
@@ -523,6 +532,15 @@
 			return ($.contains(sortableUl, el)) || (trashUl && $.contains(trashUl, el));
 		}
 
+		function alignGridToSolution($ul) {
+			var inst = $ul.data('ui-sortable');
+			if (!inst || !that.options.can_indent) return;
+			var solLeft = $(sortableUl).offset().left;
+			var offset = inst.originalPageX - inst.offset.click.left - solLeft;
+			var K = Math.round(offset / that.options.x_indent);
+			inst.originalPageX = solLeft + inst.offset.click.left + K * that.options.x_indent;
+		}
+
 		// Patch _generatePosition on a sortable instance so cursor coordinates are
 		// clamped BEFORE grid snapping runs.
 		// Vertical: clamped to the containment element (card-body).
@@ -552,10 +570,27 @@
 			};
 		}
 
+		// Patch _intersectsWithPointer so that vertical reordering works even if
+		// the mouse isn't horizontally hovering over an indented item. This temporarily
+		// tricks jQuery UI into ignoring horizontal bounds just for the intersection check.
+		function patchSortableIntersections($ul) {
+			var inst = $ul.data('ui-sortable');
+			if (!inst) return;
+			var orig = inst._intersectsWithPointer;
+			inst._intersectsWithPointer = function (item) {
+				var oldAxis = this.options.axis;
+				this.options.axis = 'y';
+				var result = orig.call(this, item);
+				this.options.axis = oldAxis;
+				return result;
+			};
+		}
+
 		var sortable = $(sortableUl).sortable({
 			start: function (event, ui) {
 				captureOrigin(ui);
 				captureBounds();
+				alignGridToSolution($(this));
 			},
 			stop: function (event, ui) {
 				cursorBounds = null;
@@ -605,12 +640,14 @@
 		});
 		sortable.addClass('output');
 		patchCursorContainment(sortable);
+		patchSortableIntersections(sortable);
 		if (this.options.trashId) {
 			var trash = $(trashUl).sortable({
 				connectWith: sortable,
 				start: function (event, ui) {
 					captureOrigin(ui);
 					captureBounds();
+					alignGridToSolution($(this));
 				},
 				receive: function (event, ui) {
 					that.getLineById(ui.item[0].id).indent = 0;
@@ -635,6 +672,7 @@
 			});
 			sortable.sortable('option', 'connectWith', trash);
 			patchCursorContainment($(trashUl));
+			patchSortableIntersections($(trashUl));
 		}
 		solutionIDs.forEach(function (id) {
 			that.updateHTMLIndent(id);

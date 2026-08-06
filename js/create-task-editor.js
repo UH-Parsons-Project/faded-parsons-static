@@ -101,6 +101,7 @@ initBurgerMenu();
     const previewTaskTitle = document.getElementById('preview-task-title');
     const previewStartIntro = document.getElementById('preview-start-intro');
     const previewText = document.getElementById('preview-problem-text');
+    const previewTaskType = document.getElementById('preview-task-type');
     const previewSource = document.getElementById('preview-source-sortable');
     const previewSolution = document.getElementById('preview-solution-sortable');
     const previewWrittenTests = document.getElementById('preview-written-tests');
@@ -111,16 +112,18 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
 
-    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
+    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewTaskType || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
       return;
     }
 
     const taskTitle = taskTitleInput?.value.trim() || 'No task name provided yet.';
     const startIntro = startDescriptionInput?.value.trim() || 'No start page intro provided yet.';
     const problemStatement = descriptionInput?.value.trim() || 'No problem statement provided yet.';
+    const taskType = getTaskTypeValue();
     previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+    previewTaskType.textContent = `Task type: ${taskType}`;
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
 
@@ -262,27 +265,48 @@ initBurgerMenu();
     sessionStorage.setItem(BLOCKS_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
 
-  function loadMetaFromSession() {
+  function loadMetaFromSession(sourceCode, expectedTaskId = null) {
     try {
       const raw = sessionStorage.getItem(META_KEY);
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
       }
 
       const parsed = JSON.parse(raw);
+      const storedSource = sessionStorage.getItem(META_SOURCE_KEY);
+      const normalizedSource = normalizeSourceCode(sourceCode || '');
+      const storedTaskId = typeof parsed.taskId === 'number'
+        ? parsed.taskId
+        : (typeof parsed.taskId === 'string' && parsed.taskId.trim() ? parseInt(parsed.taskId, 10) : null);
+
+      if (expectedTaskId !== null) {
+        if (storedTaskId !== expectedTaskId) {
+          return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+        }
+      } else if (storedSource && normalizedSource && storedSource !== normalizedSource) {
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+      }
+
       return {
         taskTitle: typeof parsed.taskTitle === 'string' ? parsed.taskTitle : '',
         description: typeof parsed.description === 'string' ? parsed.description : '',
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
+        taskType: typeof parsed.taskType === 'string' ? parsed.taskType : 'normal',
         isPublic: typeof parsed.isPublic === 'boolean' ? parsed.isPublic : true,
+        isValid: true,
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', isPublic: true };
+      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
     }
+  }
+
+  function getTaskTypeValue() {
+    const taskTypeInput = document.getElementById('task-type');
+    return taskTypeInput && taskTypeInput.value.trim() ? taskTypeInput.value.trim() : 'normal';
   }
 
   function getVisibilityValue() {
@@ -314,14 +338,17 @@ initBurgerMenu();
     }
   }
 
-  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic) {
+  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType) {
+    const taskTypeInput = document.getElementById('task-type');
     sessionStorage.setItem(META_KEY, JSON.stringify({
       taskTitle,
       description,
       startDescription,
       tests,
       customErrorMessages,
+      taskType: typeof taskType === 'string' ? taskType : (taskTypeInput?.value || 'normal'),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+      taskId: draftPayload?.taskId ?? null,
     }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
   }
@@ -912,6 +939,7 @@ initBurgerMenu();
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
     const visibilityInput = document.getElementById('task-visibility-public');
+    const taskTypeInput = document.getElementById('task-type');
     const solutionList = document.querySelector('#solution-sortable ul');
 
     if (!taskTitleInput || !descriptionInput || !startDescriptionInput || !testsInput || !solutionList || !parsonsWidget) {
@@ -926,8 +954,9 @@ initBurgerMenu();
     const tests = testsInput.value.trim();
     const solutionCode = modelAnswerCode;
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
+    const taskType = taskTypeInput ? taskTypeInput.value : 'normal';
 
-    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic);
+    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType);
 
     if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
       alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
@@ -954,7 +983,7 @@ initBurgerMenu();
       solutionCode: solutionCodeWithBlanks,
       modelAnswerCode: solutionCode,
       parsonsRepr: buildCustomRepr(),
-      type: solutionCodeWithBlanks.includes('!BLANK') ? 'faded' : 'normal',
+      task_type: taskType,
       is_public: isPublic,
     };
 
@@ -990,7 +1019,8 @@ initBurgerMenu();
             startDescriptionInput.value,
             testsInput.value,
             customErrorMessagesInput.value,
-            getVisibilityValue()
+            getVisibilityValue(),
+            getTaskTypeValue()
           );
           taskTitleInput.focus();
 
@@ -1011,6 +1041,7 @@ initBurgerMenu();
       ? parsonsWidget.solutionCode()
       : (draftPayload?.taskCode || '');
     const currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
+    const currentTaskType = getTaskTypeValue();
 
     localStorage.setItem('create_task_draft_code', currentCode);
     localStorage.setItem('create_task_draft_tests', currentTests);
@@ -1020,6 +1051,7 @@ initBurgerMenu();
         ...draftPayload,
         taskCode: currentCode,
         taskTests: currentTests,
+        taskType: currentTaskType,
         savedAt: new Date().toISOString(),
       };
 
@@ -1040,6 +1072,7 @@ initBurgerMenu();
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const visibilityInput = document.getElementById('task-visibility-public');
+    const taskTypeInput = document.getElementById('task-type');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
     const previewStudentBtn = document.getElementById('preview-student-view');
@@ -1167,7 +1200,8 @@ initBurgerMenu();
           startDescriptionInput.value,
           testsInput.value,
           customErrorMessagesInput.value,
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         updateAddToListState();
       });
@@ -1180,7 +1214,8 @@ initBurgerMenu();
           startDescriptionInput.value,
           testsInput.value,
           customErrorMessagesInput.value,
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         updateAddToListState();
       });
@@ -1193,7 +1228,8 @@ initBurgerMenu();
           startDescriptionInput.value,
           testsInput.value,
           customErrorMessagesInput.value,
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         updateAddToListState();
       });
@@ -1207,10 +1243,31 @@ initBurgerMenu();
           startDescriptionInput.value,
           testsInput.value,
           customErrorMessagesInput.value,
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         if (draftPayload) {
           draftPayload.taskTests = testsInput.value;
+          sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
+        }
+        updateAddToListState();
+      });
+    }
+
+    if (taskTypeInput) {
+      taskTypeInput.addEventListener('change', () => {
+        hasOpenedStudentPreview = false;
+        saveMetaToSession(
+          taskTitleInput?.value || '',
+          descriptionInput?.value || '',
+          startDescriptionInput?.value || '',
+          testsInput?.value || '',
+          customErrorMessagesInput?.value || '',
+          getVisibilityValue(),
+          getTaskTypeValue()
+        );
+        if (draftPayload) {
+          draftPayload.taskType = getTaskTypeValue();
           sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
         }
         updateAddToListState();
@@ -1226,7 +1283,8 @@ initBurgerMenu();
           startDescriptionInput?.value || '',
           testsInput?.value || '',
           customErrorMessagesInput?.value || '',
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         updateVisibilityWarning();
         updateAddToListState();
@@ -1256,7 +1314,8 @@ initBurgerMenu();
           startDescriptionInput.value,
           testsInput.value,
           customErrorMessagesInput.value,
-          getVisibilityValue()
+          getVisibilityValue(),
+          getTaskTypeValue()
         );
         updateAddToListState();
       });
@@ -1273,6 +1332,7 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const visibilityInput = document.getElementById('task-visibility-public');
+    const taskTypeInput = document.getElementById('task-type');
 
     if (urlTaskId) {
       // Direct edit mode: load task from API, model answer on right, leftover blocks on left
@@ -1310,12 +1370,13 @@ initBurgerMenu();
       draftPayload = {
         taskCode: solutionCode,
         taskTests: teacherTests,
+        taskType: taskData.task_type || 'normal',
         savedAt: new Date().toISOString(),
         taskId: urlTaskId,
       };
 
       const cachedRepr = getCachedParsonsRepr(solutionCode);
-      const meta = loadMetaFromSession(solutionCode);
+      const meta = loadMetaFromSession(solutionCode, urlTaskId);
       const defaultTitle = extractDefaultTitleFromCode(solutionCode);
       const initialText = cachedRepr || buildReprFromBlocks(taskData);
 
@@ -1326,6 +1387,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
+      if (taskTypeInput) taskTypeInput.value = taskData.task_type || 'normal';
       if (visibilityInput) {
         visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
       }
@@ -1373,7 +1435,7 @@ initBurgerMenu();
     draftPayload = draft;
     const editTaskId = draft.taskId || null;
     const cachedRepr = getCachedParsonsRepr(draft.taskCode);
-    const meta = loadMetaFromSession(draft.taskCode);
+    const meta = loadMetaFromSession(draft.taskCode, editTaskId);
 
     const defaultTitle = extractDefaultTitleFromCode(draft.taskCode);
     let initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
@@ -1400,6 +1462,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
+      if (taskTypeInput) taskTypeInput.value = apiTaskData.task_type || draft.taskType || 'normal';
       const savedAnswer = apiTaskData.correct_solution?.solution_code || '';
       if (savedAnswer) saveModelAnswerToSession(savedAnswer, '');
     } else {
@@ -1408,6 +1471,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
+      if (taskTypeInput) taskTypeInput.value = apiTaskData?.task_type || draft.taskType || 'normal';
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
       modelAnswerCode = savedModelAnswer.code;

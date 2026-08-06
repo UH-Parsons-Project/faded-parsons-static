@@ -887,6 +887,7 @@ async def create_problem(
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
     source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
     is_public = True if request.is_public is None else request.is_public
+    requested_task_type = (request.task_type or "").strip()
 
     lines = [line for line in source_for_blocks.split("\n") if line.strip()]
     if not lines:
@@ -965,7 +966,7 @@ async def create_problem(
         title=final_title,
         task_instructions=task_instructions_payload,
         description=start_description,
-        task_type="Faded" if has_faded else "normal",
+        task_type=requested_task_type or ("Faded" if has_faded else "normal"),
         code_blocks={
             "blocks": blocks,
             "function_header": function_header,
@@ -1042,6 +1043,7 @@ async def update_problem(
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
+    requested_task_type = (request.task_type or "").strip()
 
     if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(
@@ -1128,7 +1130,7 @@ async def update_problem(
     task.title = final_title
     task.task_instructions = task_instructions_payload
     task.description = start_description
-    task.task_type = "Faded" if has_faded else "normal"
+    task.task_type = requested_task_type or task.task_type or ("Faded" if has_faded else "normal")
     task.code_blocks = {"blocks": blocks, "function_header": function_header}
     task.correct_solution = {
         "correct_order": [block["id"] for block in blocks],

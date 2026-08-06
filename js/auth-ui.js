@@ -550,10 +550,20 @@ export function initStudentLogout({
 		const pathParts = window.location.pathname.split('/').filter(Boolean);
 		const username = pathParts[0];
 		const uniqueLinkCode = pathParts[2];
-		window.location.href =
-			username && uniqueLinkCode
-				? `/${username}/set/${uniqueLinkCode}`
-				: redirectFallback;
+
+		if (username && uniqueLinkCode) {
+			window.location.href = `/${username}/set/${uniqueLinkCode}`;
+			return;
+		}
+
+		const lastSetUrl = localStorage.getItem('last_task_set_url') || '';
+		const setMatch = lastSetUrl.match(/^\/([^/]+)\/set\/([^/]+)(?:\/tasks(?:\/\d+)?)?\/?$/);
+		if (setMatch) {
+			window.location.href = `/${setMatch[1]}/set/${setMatch[2]}`;
+			return;
+		}
+
+		window.location.href = redirectFallback;
 	});
 }
 

@@ -1187,12 +1187,12 @@ a.btn-cancel:visited {
   gap: .5rem;
   width: 100%;
   background: var(--card, #ffffff);
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--red, #dc2626);
   border-radius: var(--radius, 10px);
   padding: .75rem 1rem;
   font-size: .95rem;
   font-weight: 600;
-  color: var(--text-muted, #5f6b7a);
+  color: var(--red, #dc2626);
   cursor: pointer;
   text-decoration: none;
   transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
@@ -1202,9 +1202,9 @@ a.btn-cancel:visited {
 .btn-cancel:hover,
 a.btn-cancel:hover,
 a.btn-cancel:focus {
-  background: var(--bg, #f8f9fa);
-  border-color: var(--gray, #94a3b8);
-  color: var(--text, #1e293b);
+  background: var(--red, #dc2626);
+  border-color: var(--red, #dc2626);
+  color: #fff;
   text-decoration: none;
 }
 

@@ -165,7 +165,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  overflow-y: auto;
+  overflow: hidden;
   position: sticky;
   top: 80px;
   height: calc(100vh - 80px);
@@ -201,7 +201,7 @@ body {
   text-transform: uppercase;
   letter-spacing: .06em;
 }
-.sidebar-section { display: flex; flex-direction: column; gap: .4rem; }
+.sidebar-section { display: flex; flex-direction: column; gap: .4rem; flex: 1 1 0; min-height: 0; }
 .sidebar-section-head {
   display: flex;
   align-items: center;
@@ -225,7 +225,7 @@ body {
   font-size: 0.82rem;
   font-weight: 800;
 }
-.sidebar-rows { display: flex; flex-direction: column; gap: .35rem; }
+.sidebar-rows { display: flex; flex-direction: column; gap: .35rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; padding-right: 0.25rem; }
 .sidebar-row {
   display: flex;
   align-items: center;

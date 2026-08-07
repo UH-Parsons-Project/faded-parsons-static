@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,8 +32,15 @@ def _is_expired(task_set) -> bool:
     return datetime.now(timezone.utc) > expires
 
 
-@router.get("/student-start-task", response_class=FileResponse)
-async def student_start_view():
+@router.get("/student-start-task", response_class=HTMLResponse)
+async def student_start_view(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
     index_path = BASE_DIR / "templates" / "student_start_task.html"
     return FileResponse(index_path)
 
@@ -169,8 +176,15 @@ async def student_register_page():
     return FileResponse(student_register_path)
 
 
-@router.get("/student/profile", response_class=FileResponse)
-async def student_profile_page():
+@router.get("/student/profile", response_class=HTMLResponse)
+async def student_profile_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    if not student_session:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
     profile_path = BASE_DIR / "templates" / "student_profile.html"
     return FileResponse(profile_path)
 

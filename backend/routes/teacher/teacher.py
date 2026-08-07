@@ -67,7 +67,10 @@ async def teacher_instructions_page():
 @router.get("/instructions/teacher-content", response_class=HTMLResponse)
 async def teacher_instructions_content(request: Request, db: AsyncSession = Depends(get_db)):
     """Serve the teacher-only instructions fragment for authenticated users."""
-    await get_current_user(request, db)
+    try:
+        await get_current_user(request, db)
+    except HTTPException:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
     fragment_path = BASE_DIR / "templates" / "instructions_teacher_fragment.html"
     response = FileResponse(fragment_path)

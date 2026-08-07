@@ -59,26 +59,12 @@ async function loadProblemsetInfo() {
 	}
 }
 
-async function loadCompletionStatus(taskId, statusElement, itemIndex, numberElement) {
-  try {
-		const encodedTaskId = encodeURIComponent(taskId);
-		const [completionResponse, startedResponse] = await Promise.all([
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/my-completion-status`, {
-        credentials: 'include'
-      }),
-			fetch(`/api/sets/${uniqueLinkCode}/tasks/${encodedTaskId}/has-started`, {
-        credentials: 'include'
-      }),
-    ]);
+function loadCompletionStatus(bulkStatus, statusElement, itemIndex, numberElement) {
+	try {
+		if (!bulkStatus) return;
 
-    if (!completionResponse.ok || !startedResponse.ok) {
-      return;
-    }
-
-		const stats = await completionResponse.json();
-		const startedData = await startedResponse.json();
-		const hasStarted = Boolean(startedData.has_started);
-		const studentCompleted = Number(stats.student_completed || 0);
+		const hasStarted = Boolean(bulkStatus.has_started);
+		const studentCompleted = Number(bulkStatus.student_completed || 0);
 
 		if (studentCompleted > 0) {
 			statusElement.className = 'task-set-meta task-completed';
@@ -133,7 +119,7 @@ function createTaskCard(item, index) {
 	chevron.className = 'fas fa-chevron-right task-set-item-chevron';
 	card.appendChild(chevron);
 
-	loadCompletionStatus(taskNumber, status, index, number);
+	loadCompletionStatus(item._bulkStatus, status, index, number);
 
 	return card;
 }
@@ -249,23 +235,26 @@ if (uniqueLinkCode) {
 			loadProblemsetInfo();
 
 			// Fetch problems for this task_set
-			fetch(`/api/my_sets/${uniqueLinkCode}/tasks`)
-				.then(function (resp) {
-					if (!resp.ok) throw new Error('Network response not ok');
-					return resp.json();
-				})
-				.then(function (json) {
-					render(json.filter(t => !t.is_hidden));
-				})
-				.catch(function (error) {
-					container.className = 'empty-state';
-					container.innerHTML = `
-						<i class="fas fa-exclamation-triangle text-danger"></i>
-						<h4>Error Loading Tasks</h4>
-						<p>Unable to load task set.</p>
-					`;
-					console.error(error);
+			Promise.all([
+				fetch(`/api/my_sets/${uniqueLinkCode}/tasks`).then(r => { if (!r.ok) throw new Error('Network response not ok'); return r.json(); }),
+				fetch(`/api/sets/${uniqueLinkCode}/tasks-status`, { credentials: 'include' }).then(r => r.ok ? r.json() : [])
+			])
+			.then(function ([json, statusesJson]) {
+				const visibleTasks = json.filter(t => !t.is_hidden);
+				visibleTasks.forEach((task, idx) => {
+					task._bulkStatus = statusesJson[idx] || null;
 				});
+				render(visibleTasks);
+			})
+			.catch(function (error) {
+				container.className = 'empty-state';
+				container.innerHTML = `
+					<i class="fas fa-exclamation-triangle text-danger"></i>
+					<h4>Error Loading Tasks</h4>
+					<p>Unable to load task set.</p>
+				`;
+				console.error(error);
+			});
 		})
 		.catch(function (error) {
 			console.error('Enrollment check failed:', error);

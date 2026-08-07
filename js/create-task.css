@@ -191,7 +191,7 @@ body {
 }
 
 .shortcut-note {
-    margin: 0.85rem 0 0;
+	margin: 0 0 1rem 0.3rem;
     font-size: 0.85rem;
     color: var(--hint-color);
 }

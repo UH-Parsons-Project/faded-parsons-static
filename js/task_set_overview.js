@@ -173,16 +173,15 @@ function buildStudentCompletionCsv(tasks, students) {
 
 async function fetchOverviewTaskStats(tasks, taskSet) {
 	if (!overviewTaskStatsPromise) {
-		overviewTaskStatsPromise = Promise.all(
-			tasks.map(task =>
-				fetch(`/api/tasks/${task.id}/statistics?task_set_code=${encodeURIComponent(taskSet.unique_link_code)}`, { credentials: 'include' })
-					.then(response => response.ok ? response.json() : null)
-					.catch(() => null)
-			)
-		).catch(error => {
-			overviewTaskStatsPromise = null;
-			throw error;
-		});
+		overviewTaskStatsPromise = fetch(`/api/tasksets/${encodeURIComponent(taskSet.unique_link_code)}/tasks/statistics`, { credentials: 'include' })
+			.then(response => response.ok ? response.json() : {})
+			.then(bulkStats => {
+				return tasks.map(task => bulkStats[task.id] || null);
+			})
+			.catch(error => {
+				overviewTaskStatsPromise = null;
+				throw error;
+			});
 	}
 
 	return overviewTaskStatsPromise;

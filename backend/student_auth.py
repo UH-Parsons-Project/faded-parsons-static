@@ -13,7 +13,7 @@ from .database import get_db
 from .models import Student, StudentTaskSetEnrollment
 from . import config
 
-STUDENT_SESSION_EXPIRE_HOURS = 8
+STUDENT_SESSION_EXPIRE_HOURS = 168
 
 async def create_student_session(
     task_set_id: int,

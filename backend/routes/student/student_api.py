@@ -369,9 +369,19 @@ async def student_logout(
 
 
 @router.post("/api/student_register")
-async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def api_student_register(request: Request, db: AsyncSession = Depends(get_db)):
+    reg_identifier = f"student_reg:{request.client.host}"
+
+    remaining = check_brute_force(reg_identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     try:
-        payload = request if isinstance(request, dict) else await request.json()
+        payload = await request.json()
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
@@ -394,6 +404,7 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     await db.commit()
     await db.refresh(student)
 
+    clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": student.id}
 
 

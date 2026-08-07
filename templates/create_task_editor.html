@@ -221,10 +221,11 @@
           </div>
           <div class="card-body">
             <div class="row align-items-stretch">
-              <div class="col-md-auto">
+              <div class="col-md">
                 <div class="form-group mb-4">
                   <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
-                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This value is saved with the task and shown in task lists and statistics.</p>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">Select the task's primary learning objective.</p>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This type is used in task lists, search, and statistics.</p>
                   <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="min-width: 200px; max-width: 300px;" />
                   <datalist id="task-type-options">
                     <option value="normal"></option>
@@ -233,7 +234,7 @@
                 </div>
               </div>
               <div class="col-md">
-                <div class="form-group visibility-card mb-4 h-100 d-flex flex-column justify-content-center">
+                <div class="form-group visibility-card mb-4 h-100 d-flex flex-column justify-content-start">
                   <div class="checkbox-custom visibility-toggle">
                     <input type="checkbox" id="task-visibility-public" class="form-check-input">
                     <label for="task-visibility-public" class="form-check-label font-weight-bold">

@@ -304,7 +304,7 @@ function createExerciseCard(item) {
 			fetchTaskDetail(item.id).then(data => {
 				renderPreviewFull(item, data);
 			});
-		}, 120);
+		}, 500);
 	});
 	card.addEventListener('mouseleave', () => {
 		if (hoverTimer) clearTimeout(hoverTimer);

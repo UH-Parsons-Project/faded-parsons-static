@@ -432,6 +432,68 @@ async def get_task_for_student_set(
     )
 
 
+@router.get("/api/sets/{unique_link_code}/tasks-status")
+async def get_all_tasks_status(
+    unique_link_code: str,
+    db: AsyncSession = Depends(get_db),
+    student_session: Student | None = Depends(get_current_student_session_no_update),
+):
+    task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
+
+    stmt_tasks = select(TaskSetItem.task_id).where(
+        (TaskSetItem.task_set_id == task_set.id) &
+        (TaskSetItem.is_hidden == False)
+    ).order_by(TaskSetItem.id.asc())
+    result_tasks = await db.execute(stmt_tasks)
+    visible_task_ids = result_tasks.scalars().all()
+
+    statuses = []
+    
+    if not student_session:
+        for t_id in visible_task_ids:
+            statuses.append({"has_started": False, "student_attempts": 0, "student_completed": 0})
+        return statuses
+
+    if not visible_task_ids:
+        return []
+
+    stmt_enrollments = select(StudentTaskEnrollment.task_id).where(
+        (StudentTaskEnrollment.student_id == student_session.id) &
+        (StudentTaskEnrollment.task_set_id == task_set.id) &
+        (StudentTaskEnrollment.task_id.in_(visible_task_ids))
+    )
+    result_enrollments = await db.execute(stmt_enrollments)
+    started_task_ids = set(result_enrollments.scalars().all())
+
+    stmt_attempts = (
+        select(TaskAttempt.task_id, TaskAttempt.success)
+        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
+        .where(
+            (TaskAttempt.student_id == student_session.id) &
+            (StudentTaskEnrollment.task_set_id == task_set.id) &
+            (TaskAttempt.task_id.in_(visible_task_ids))
+        )
+    )
+    result_attempts = await db.execute(stmt_attempts)
+    attempts = result_attempts.all()
+
+    from collections import defaultdict
+    task_attempts_map = defaultdict(lambda: {"attempts": 0, "completed": 0})
+    for attempt in attempts:
+        task_attempts_map[attempt.task_id]["attempts"] += 1
+        if attempt.success:
+            task_attempts_map[attempt.task_id]["completed"] += 1
+
+    for t_id in visible_task_ids:
+        statuses.append({
+            "has_started": t_id in started_task_ids,
+            "student_attempts": task_attempts_map[t_id]["attempts"],
+            "student_completed": task_attempts_map[t_id]["completed"],
+        })
+
+    return statuses
+
+
 @router.get("/api/sets/{unique_link_code}/tasks/{task_id}/has-started")
 async def check_task_has_started(
     task_id: int,

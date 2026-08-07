@@ -397,6 +397,35 @@ async def get_student_task_statistics(
     )
 
 
+@router.get("/api/tasksets/{task_set_code}/tasks/statistics")
+async def get_taskset_tasks_statistics(
+    task_set_code: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    task_set_result = await db.execute(select(TaskSet).where(TaskSet.unique_link_code == task_set_code))
+    task_set = task_set_result.scalar_one_or_none()
+    if not task_set:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    await require_task_set_view_access(task_set, current_user, db)
+
+    stmt = select(TaskSetItem.task_id).where(
+        (TaskSetItem.task_set_id == task_set.id) &
+        (TaskSetItem.is_hidden == False)
+    )
+    task_ids = (await db.execute(stmt)).scalars().all()
+    
+    results = {}
+    for t_id in task_ids:
+        try:
+            stats = await get_task_statistics(t_id, current_user, task_set_code, db)
+            results[str(t_id)] = stats
+        except Exception:
+            pass
+    return results
+
+
 @router.get("/api/tasks/{task_id}/statistics")
 async def get_task_statistics(
     task_id: int,

@@ -54,42 +54,30 @@ async function resolveNextTaskUrl() {
 		return null;
 	}
 
-	const currentTaskId = Number(globalTaskId);
-	const statuses = await Promise.all(
-		tasks.map(async (task, idx) => {
-			const taskNumber = idx + 1;
-
-			const [completionResp, startedResp] = await Promise.all([
-				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${taskNumber}/my-completion-status`,
-					{ credentials: 'include' }
-				),
-				fetch(
-					`/api/sets/${globalUniqueLinkCode}/tasks/${taskNumber}/has-started`,
-					{ credentials: 'include' }
-				),
-			]);
-
-			if (!completionResp.ok || !startedResp.ok) {
-				return {
-					taskId: task.id,
-					taskNumber: taskNumber,
-					isCompleted: false,
-					hasStarted: false,
-				};
-			}
-
-			const completion = await completionResp.json();
-			const started = await startedResp.json();
-
-			return {
-				taskId: task.id,
-				taskNumber: taskNumber,
-				isCompleted: Number(completion.student_completed || 0) > 0,
-				hasStarted: Boolean(started.has_started),
-			};
-		})
+	const statusesResponse = await fetch(
+		`/api/sets/${globalUniqueLinkCode}/tasks-status`,
+		{ credentials: 'include' }
 	);
+	if (!statusesResponse.ok) {
+		return null;
+	}
+	const bulkStatuses = await statusesResponse.json();
+
+	const currentTaskId = Number(globalTaskId);
+	const statuses = tasks.map((task, idx) => {
+		const taskNumber = idx + 1;
+		const statusObj = bulkStatuses[idx] || {
+			has_started: false,
+			student_completed: 0
+		};
+
+		return {
+			taskId: task.id,
+			taskNumber: taskNumber,
+			isCompleted: Number(statusObj.student_completed || 0) > 0,
+			hasStarted: Boolean(statusObj.has_started),
+		};
+	});
 
 	const unfinished = statuses.filter(
 		(item) => !item.isCompleted && item.taskNumber !== currentTaskId

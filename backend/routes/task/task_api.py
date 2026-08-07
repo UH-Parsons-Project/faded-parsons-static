@@ -38,6 +38,61 @@ from datetime import datetime
 
 # router already declared above
 router = APIRouter()
+ALLOWED_TASK_TYPES = {
+    "algorithms",
+    "arithmetic",
+    "booleans",
+    "classes",
+    "comprehensions",
+    "conditionals",
+    "debugging",
+    "dictionaries",
+    "exceptions",
+    "files",
+    "functions",
+    "imports",
+    "input",
+    "lists",
+    "loops",
+    "other",
+    "recursion",
+    "searching",
+    "sets",
+    "sorting",
+    "strings",
+    "testing",
+    "tuples",
+    "typecasting",
+    "variables",
+}
+
+
+def _normalize_task_type(task_type: str | None) -> str:
+    return (task_type or "").strip().lower()
+
+
+def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
+    normalized = _normalize_task_type(task_type)
+    if not normalized:
+        return "Faded" if has_faded else "normal"
+
+    if normalized in ALLOWED_TASK_TYPES:
+        return normalized
+
+    if normalized == "normal":
+        return "normal"
+
+    if normalized == "faded":
+        return "Faded"
+
+    if normalized not in ALLOWED_TASK_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_TASK_TYPES))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"task_type is required and must be one of: {allowed}",
+        )
+    return normalized
+
 from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from ...utils.task import is_task_editable
@@ -887,7 +942,6 @@ async def create_problem(
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
     source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
     is_public = True if request.is_public is None else request.is_public
-    requested_task_type = (request.task_type or "").strip()
 
     lines = [line for line in source_for_blocks.split("\n") if line.strip()]
     if not lines:
@@ -953,6 +1007,8 @@ async def create_problem(
             }
         )
 
+    requested_task_type = _resolve_task_type(request.task_type, has_faded)
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
@@ -966,7 +1022,7 @@ async def create_problem(
         title=final_title,
         task_instructions=task_instructions_payload,
         description=start_description,
-        task_type=requested_task_type or ("Faded" if has_faded else "normal"),
+        task_type=requested_task_type,
         code_blocks={
             "blocks": blocks,
             "function_header": function_header,
@@ -1043,7 +1099,6 @@ async def update_problem(
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
-    requested_task_type = (request.task_type or "").strip()
 
     if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(
@@ -1119,6 +1174,8 @@ async def update_problem(
             }
         )
 
+    requested_task_type = _resolve_task_type(request.task_type, has_faded)
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
@@ -1130,7 +1187,7 @@ async def update_problem(
     task.title = final_title
     task.task_instructions = task_instructions_payload
     task.description = start_description
-    task.task_type = requested_task_type or task.task_type or ("Faded" if has_faded else "normal")
+    task.task_type = requested_task_type
     task.code_blocks = {"blocks": blocks, "function_header": function_header}
     task.correct_solution = {
         "correct_order": [block["id"] for block in blocks],

@@ -89,6 +89,10 @@
             <span class="sidebar-row-name checklist-label">Tests passed</span>
             <span class="checklist-status badge badge-danger">Missing</span>
           </button>
+          <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="task-type" data-target="task-type">
+            <span class="sidebar-row-name checklist-label">Task type</span>
+            <span class="checklist-status badge badge-danger">Missing</span>
+          </button>
           <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="previewed" data-target="preview-student-view">
             <span class="sidebar-row-name checklist-label">Task previewed</span>
             <span class="checklist-status badge badge-danger">Missing</span>
@@ -221,20 +225,44 @@
             <h3 class="card-title"><strong>Step 5: Preview & Save</strong></h3>
           </div>
           <div class="card-body">
-            <div class="d-flex flex-column" style="gap: 1.5rem;">
-              <div>
-                <div class="form-group mb-0">
+            <div class="row align-items-stretch">
+              <div class="col-md">
+                <div class="form-group mb-4">
                   <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
-                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This value is saved with the task and shown in task lists and statistics.</p>
-                  <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="min-width: 200px; max-width: 300px;" />
-                  <datalist id="task-type-options">
-                    <option value="normal"></option>
-                    <option value="Faded"></option>
-                  </datalist>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">Select the task's primary learning objective.</p>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This type is used in task lists, search, and statistics.</p>
+                  <select id="task-type" class="form-control" required style="min-width: 200px; max-width: 300px;">
+                    <option value="" selected disabled>Select a task type</option>
+                    <option value="algorithms">Algorithms</option>
+                    <option value="arithmetic">Arithmetic</option>
+                    <option value="booleans">Booleans</option>
+                    <option value="classes">Classes</option>
+                    <option value="comprehensions">Comprehensions</option>
+                    <option value="conditionals">Conditionals</option>
+                    <option value="debugging">Debugging</option>
+                    <option value="dictionaries">Dictionaries</option>
+                    <option value="exceptions">Exceptions</option>
+                    <option value="files">Files</option>
+                    <option value="functions">Functions</option>
+                    <option value="imports">Imports</option>
+                    <option value="input">Input</option>
+                    <option value="lists">Lists</option>
+                    <option value="loops">Loops</option>
+                    <option value="other">Other</option>
+                    <option value="recursion">Recursion</option>
+                    <option value="searching">Searching</option>
+                    <option value="sets">Sets</option>
+                    <option value="sorting">Sorting</option>
+                    <option value="strings">Strings</option>
+                    <option value="testing">Testing</option>
+                    <option value="tuples">Tuples</option>
+                    <option value="typecasting">Typecasting</option>
+                    <option value="variables">Variables</option>
+                  </select>
                 </div>
               </div>
-              <div>
-                <div class="form-group visibility-card mb-0 d-flex flex-column justify-content-center">
+              <div class="col-md">
+                <div class="form-group visibility-card mb-4 h-100 d-flex flex-column justify-content-start">
                   <div class="checkbox-custom visibility-toggle">
                     <input type="checkbox" id="task-visibility-public" class="form-check-input">
                     <label for="task-visibility-public" class="form-check-label font-weight-bold">

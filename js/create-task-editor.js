@@ -19,6 +19,33 @@ initBurgerMenu();
   const MODEL_ANSWER_REPR_KEY = 'create_task_builder_model_answer_repr';
   const MODEL_ANSWER_SOURCE_KEY = 'create_task_builder_model_answer_source';
   const MODEL_ANSWER_UPDATED_AT_KEY = 'create_task_builder_model_answer_updated_at';
+  const TASK_TYPE_OPTIONS = [
+    'algorithms',
+    'arithmetic',
+    'booleans',
+    'classes',
+    'comprehensions',
+    'conditionals',
+    'debugging',
+    'dictionaries',
+    'exceptions',
+    'files',
+    'functions',
+    'imports',
+    'input',
+    'lists',
+    'loops',
+    'other',
+    'recursion',
+    'searching',
+    'sets',
+    'sorting',
+    'strings',
+    'testing',
+    'tuples',
+    'typecasting',
+    'variables',
+  ];
 
   let draftPayload = null;
   let parsonsWidget = null;
@@ -49,11 +76,14 @@ initBurgerMenu();
     const descriptionInput = document.getElementById('problem-description');
     const testsInput = document.getElementById('tests-input');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
+    const taskTypeInput = document.getElementById('task-type');
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.querySelectorAll('li').length > 0);
+    const taskTypeValue = normalizeTaskTypeValue(taskTypeInput?.value);
 
     const items = [
       { key: 'title', done: Boolean(taskTitleInput && taskTitleInput.value.trim()) },
+      { key: 'task-type', done: Boolean(taskTypeValue) },
       { key: 'start-description', done: Boolean(startDescriptionInput && startDescriptionInput.value.trim()) },
       { key: 'problem-description', done: Boolean(descriptionInput && descriptionInput.value.trim()) },
       { key: 'solution-blocks', done: hasSolutionBlocks },
@@ -96,6 +126,31 @@ initBurgerMenu();
       .replace(/'/g, '&#039;');
   }
 
+  function formatTaskTypeLabel(taskType) {
+    return taskType
+      ? taskType.charAt(0).toUpperCase() + taskType.slice(1)
+      : '';
+  }
+
+  function normalizeTaskTypeValue(taskType) {
+    const normalized = (taskType || '').trim();
+    return TASK_TYPE_OPTIONS.includes(normalized) ? normalized : '';
+  }
+
+  function populateTaskTypeOptions() {
+    const taskTypeInput = document.getElementById('task-type');
+    if (!taskTypeInput) {
+      return;
+    }
+
+    const currentValue = normalizeTaskTypeValue(taskTypeInput.value);
+    taskTypeInput.innerHTML = [
+      '<option value="" disabled>Select a task type</option>',
+      ...TASK_TYPE_OPTIONS.map((taskType) => `<option value="${taskType}">${formatTaskTypeLabel(taskType)}</option>`),
+    ].join('');
+    taskTypeInput.value = currentValue;
+  }
+
   function openStudentPreview() {
     const modal = document.getElementById('student-preview-modal');
     const previewTaskTitle = document.getElementById('preview-task-title');
@@ -123,7 +178,7 @@ initBurgerMenu();
     previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
-    previewTaskType.textContent = `Task type: ${taskType}`;
+    previewTaskType.textContent = taskType ? `Task type: ${taskType}` : 'Task type not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
 
@@ -223,12 +278,51 @@ initBurgerMenu();
     return (code || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   }
 
+  function getLineInputValues(lineId) {
+    const lineElement = document.getElementById(lineId);
+    if (!lineElement) {
+      return [];
+    }
+
+    return Array.from(lineElement.querySelectorAll('input')).map((input) => input.value || '');
+  }
+
+  function renderLineWithBlankValues(lineCode, blankValues = []) {
+    const normalizedCode = normalizeSourceCode(lineCode || '').trimEnd();
+
+    if (!normalizedCode.includes('!BLANK')) {
+      return normalizedCode;
+    }
+
+    let blankIndex = 0;
+    return normalizedCode.split('!BLANK').reduce((renderedCode, segment, index, segments) => {
+      const nextCode = renderedCode + segment;
+      if (index === segments.length - 1) {
+        return nextCode;
+      }
+
+      const blankValue = blankValues[blankIndex] ?? '';
+      blankIndex += 1;
+      return nextCode + blankValue;
+    }, '').trimEnd();
+  }
+
+  function hasWidgetHtmlArtifacts(text) {
+    return /<input\b|oninput=|style\s*=\s*['"]width:\s*\d+px/i.test(text || '');
+  }
+
   function getCachedParsonsRepr(sourceCode) {
     const cached = sessionStorage.getItem(BLOCKS_KEY);
     const cachedSource = sessionStorage.getItem(BLOCKS_SOURCE_KEY);
     const normalizedSource = normalizeSourceCode(sourceCode || '');
 
     if (typeof cached !== 'string' || typeof cachedSource !== 'string') {
+      return '';
+    }
+
+    if (hasWidgetHtmlArtifacts(cached)) {
+      sessionStorage.removeItem(BLOCKS_KEY);
+      sessionStorage.removeItem(BLOCKS_SOURCE_KEY);
       return '';
     }
 
@@ -239,22 +333,27 @@ initBurgerMenu();
     if (!parsonsWidget) {
       return '';
     }
-    const solutionUl = parsonsWidget.options.sortableId.querySelector('ul');
-    if (!solutionUl) {
+    const lines = Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : [];
+    if (!lines.length) {
       return '';
     }
-    const solutionLines = parsonsWidget.getModifiedCode(solutionUl);
-    const baseRepr = parsonsWidget.reprCode();
-    if (!baseRepr.trim()) {
-      return '';
-    }
-    const reprLines = baseRepr.split('\n');
-    return reprLines.map((line, index) => {
-      if (index < solutionLines.length && solutionLines[index]?.studentGiven) {
-        return line.replace(/(#\d+given)/, '$1 #preplace');
+
+    return lines.map((line) => {
+      const lineText = normalizeSourceCode(line.code || '').trimEnd();
+      if (!lineText) {
+        return '';
       }
-      return line;
-    }).join('\n');
+
+      let reprLine = `${lineText} #${line.indent}given`;
+      const blankValues = getLineInputValues(line.id);
+      if (blankValues.length) {
+        reprLine += blankValues.map((value) => ` #blank${value}`).join('');
+      }
+      if (line.studentGiven) {
+        reprLine += ' #preplace';
+      }
+      return reprLine;
+    }).filter(Boolean).join('\n');
   }
 
   function persistParsonsRepr() {
@@ -270,7 +369,7 @@ initBurgerMenu();
       const raw = sessionStorage.getItem(META_KEY);
 
       if (!raw) {
-        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+        return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: '', isPublic: true, isValid: false };
       }
 
       const parsed = JSON.parse(raw);
@@ -294,19 +393,19 @@ initBurgerMenu();
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
-        taskType: typeof parsed.taskType === 'string' ? parsed.taskType : 'normal',
+        taskType: normalizeTaskTypeValue(parsed.taskType),
         isPublic: typeof parsed.isPublic === 'boolean' ? parsed.isPublic : true,
         isValid: true,
       };
     } catch (error) {
       console.error('Failed to parse builder metadata cache:', error);
-      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: null, isPublic: true, isValid: false };
+      return { taskTitle: '', description: '', startDescription: '', tests: '', customErrorMessages: '', taskType: '', isPublic: true, isValid: false };
     }
   }
 
   function getTaskTypeValue() {
     const taskTypeInput = document.getElementById('task-type');
-    return taskTypeInput && taskTypeInput.value.trim() ? taskTypeInput.value.trim() : 'normal';
+    return normalizeTaskTypeValue(taskTypeInput?.value);
   }
 
   function getVisibilityValue() {
@@ -346,7 +445,7 @@ initBurgerMenu();
       startDescription,
       tests,
       customErrorMessages,
-      taskType: typeof taskType === 'string' ? taskType : (taskTypeInput?.value || 'normal'),
+      taskType: normalizeTaskTypeValue(typeof taskType === 'string' ? taskType : taskTypeInput?.value),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
       taskId: draftPayload?.taskId ?? null,
     }));
@@ -542,11 +641,10 @@ initBurgerMenu();
     );
     let code = '';
     for (const line of lines) {
-      const clone = document.getElementById(line.id).cloneNode(true);
-      clone.querySelectorAll('input').forEach((inp) => inp.replaceWith('!BLANK'));
-      clone.querySelectorAll('.line-number, .block-delete-btn').forEach((el) => el.remove());
-      clone.innerText = clone.innerText.trimRight();
-      code += indentConstant.repeat(line.indent) + clone.innerText + '\n';
+      const lineObject = parsonsWidget.modified_lines.find((item) => item.id === line.id);
+      const blankValues = getLineInputValues(line.id);
+      const lineText = renderLineWithBlankValues(lineObject?.code || '', blankValues);
+      code += indentConstant.repeat(line.indent) + lineText + '\n';
     }
     return code.trim();
   }
@@ -954,7 +1052,13 @@ initBurgerMenu();
     const tests = testsInput.value.trim();
     const solutionCode = modelAnswerCode;
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
-    const taskType = taskTypeInput ? taskTypeInput.value : 'normal';
+    const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
+
+    if (!taskType) {
+      alert('Please select a task type before saving the task.');
+      taskTypeInput?.focus();
+      return;
+    }
 
     saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType);
 
@@ -1158,7 +1262,7 @@ initBurgerMenu();
           return;
         }
 
-        saveModelAnswerToSession(currentSolutionCode, parsonsWidget.reprCode());
+        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr());
         hasOpenedStudentPreview = false;
         updateAddToListState();
       });
@@ -1334,6 +1438,8 @@ initBurgerMenu();
     const visibilityInput = document.getElementById('task-visibility-public');
     const taskTypeInput = document.getElementById('task-type');
 
+    populateTaskTypeOptions();
+
     if (urlTaskId) {
       // Direct edit mode: load task from API, model answer on right, leftover blocks on left
       let taskData;
@@ -1370,7 +1476,7 @@ initBurgerMenu();
       draftPayload = {
         taskCode: solutionCode,
         taskTests: teacherTests,
-        taskType: taskData.task_type || 'normal',
+        taskType: normalizeTaskTypeValue(taskData.task_type),
         savedAt: new Date().toISOString(),
         taskId: urlTaskId,
       };
@@ -1387,7 +1493,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
-      if (taskTypeInput) taskTypeInput.value = taskData.task_type || 'normal';
+      if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(taskData.task_type);
       if (visibilityInput) {
         visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
       }
@@ -1462,7 +1568,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
-      if (taskTypeInput) taskTypeInput.value = apiTaskData.task_type || draft.taskType || 'normal';
+      if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData.task_type || draft.taskType);
       const savedAnswer = apiTaskData.correct_solution?.solution_code || '';
       if (savedAnswer) saveModelAnswerToSession(savedAnswer, '');
     } else {
@@ -1471,7 +1577,7 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
-      if (taskTypeInput) taskTypeInput.value = apiTaskData?.task_type || draft.taskType || 'normal';
+      if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
       modelAnswerCode = savedModelAnswer.code;

@@ -132,21 +132,21 @@
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Step 1: Task Description</h3>
+            <h3 class="card-title"><strong>Step 1: Task Description</strong></h3>
           </div>
           <div class="card-body">
             <label for="task-title" class="mb-1 font-weight-bold">Task name shown in task sets</label>
             <input id="task-title" class="form-control mb-3 font-weight-bold" style="font-size: 1.1rem;" placeholder="add" />
-            
-            <div class="editor-bottom-row" style="gap: 1.5rem;">
+
+            <div class="d-flex flex-column" style="gap: 1.5rem;">
               <div>
-                <label for="start-description" class="mb-1">Start page intro shown above the Start button</label>
-                <p class="field-help">This is a short intro shown on the start view, directly above the Start button.</p>
+                <label for="start-description" class="mb-1">Start page info</label>
+                <p class="field-help">A short description shown before starting the task (e.g. the learning objective)</p>
                 <textarea id="start-description" class="problem-description" style="min-height: 96px;" placeholder="In this exercise you will practice adding values."></textarea>
               </div>
               <div>
-                <label for="problem-description" class="mb-1">Problem statement shown on the exercise page</label>
-                <p class="field-help">This is the main instruction students read on the task page before they start solving.</p>
+                <label for="problem-description" class="mb-1">Problem statement</label>
+                <p class="field-help">These are the main instructions students see on the task page while solving the task</p>
                 <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
               </div>
             </div>
@@ -155,7 +155,7 @@
 
         <div class="builder-layout card">
           <div class="card-header">
-            <h3 class="card-title">Step 2: Model Answer</h3>
+            <h3 class="card-title"><strong>Step 2: Model Answer</strong></h3>
             <div class="d-flex align-items-center" style="gap: 0.75rem;">
               <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
               <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
@@ -183,10 +183,11 @@
         <div class="editor-bottom-row">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Step 3: Check Tests</h3>
+              <h3 class="card-title"><strong>Step 3: Check Tests</strong></h3>
             </div>
             <div class="card-body">
-              <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2"></textarea>
+              <p class="field-help mb-2" style="margin-top: 0;">Write standard Python <code>assert</code> statements, each on a new line.</p>
+              <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2&#10;assert my_function(2) == 4"></textarea>
               <div class="run-toolbar">
                 <span id="run-status" class="run-status"></span>
                 <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
@@ -198,7 +199,7 @@
 
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Step 4: Custom Error Messages (optional)</h3>
+              <h3 class="card-title"><strong>Step 4: Custom Error Messages (optional)</strong></h3>
             </div>
             <div class="card-body">
               <textarea id="custom-error-messages" class="tests-input" style="min-height: 280px;" spellcheck="false" placeholder="[
@@ -217,12 +218,12 @@
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Step 5: Preview & Save</h3>
+            <h3 class="card-title"><strong>Step 5: Preview & Save</strong></h3>
           </div>
           <div class="card-body">
-            <div class="row align-items-stretch">
-              <div class="col-md-auto">
-                <div class="form-group mb-4">
+            <div class="d-flex flex-column" style="gap: 1.5rem;">
+              <div>
+                <div class="form-group mb-0">
                   <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
                   <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This value is saved with the task and shown in task lists and statistics.</p>
                   <input id="task-type" class="form-control" list="task-type-options" placeholder="normal" style="min-width: 200px; max-width: 300px;" />
@@ -232,15 +233,15 @@
                   </datalist>
                 </div>
               </div>
-              <div class="col-md">
-                <div class="form-group visibility-card mb-4 h-100 d-flex flex-column justify-content-center">
+              <div>
+                <div class="form-group visibility-card mb-0 d-flex flex-column justify-content-center">
                   <div class="checkbox-custom visibility-toggle">
                     <input type="checkbox" id="task-visibility-public" class="form-check-input">
                     <label for="task-visibility-public" class="form-check-label font-weight-bold">
                       Make task private
                     </label>
                   </div>
-                  <small class="form-text text-muted visibility-help" style="font-size: 0.85rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
+                  <small class="form-text text-muted visibility-help" style="font-size: 0.85rem; margin-top: 0.5rem;">Unchecked by default. Private tasks are visible only to you and teachers who have access to a task set that includes this task.</small>
                   <div id="visibility-warning-box"></div>
                 </div>
               </div>
@@ -249,7 +250,7 @@
             <hr class="mb-4">
 
             <p class="finalize-instruction mb-3">Finalize your new task by first previewing it, then click <strong>Save new task</strong>. Click <strong>Cancel</strong> to discard your changes and return to the dashboard.</p>
-            
+
             <div class="actions">
               <div class="actions-left" style="display: flex; gap: 0.6rem;">
                 <button id="cancel-task-editor" class="secondary-btn" type="button">Cancel</button>

@@ -41,6 +41,7 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   await page.locator('#task-title').fill(title);
   await page.locator('#problem-description').fill('Private task description');
   await page.locator('#start-description').fill('Start intro');
+  await page.locator('#task-type').selectOption('functions');
   // Wait for the Parsons widget to initialize and populate the solution list
   await page.waitForFunction('!!window.ParsonsWidget', null, { timeout: 15000 });
   await page.waitForSelector('#solution-sortable ul li', { timeout: 30000 });

@@ -88,6 +88,7 @@ test('teacher can add a new task', async ({ page }) => {
   await page.locator('#task-title').fill('format_name_test');
   await page.locator('#problem-description').fill('format_name takes a first name and last name, strips whitespace, and returns them title-cased. It should take first and last as inputs and return the formatted full name.');
   await page.locator('#start-description').fill('In this exercise you will practice string formatting with strip and title methods.');
+  await page.locator('#task-type').selectOption('functions');
 
   // Verify blocks are already in the solution area (loaded from cached repr)
   await page.waitForSelector('#solution-sortable ul li', { timeout: 10000 });

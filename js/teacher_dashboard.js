@@ -58,6 +58,14 @@ function escapeHtml(text) {
 	return div.innerHTML;
 }
 
+function formatTaskTypeLabel(taskType) {
+	if (!taskType) {
+		return '';
+	}
+
+	return taskType.charAt(0).toUpperCase() + taskType.slice(1);
+}
+
 function makeKeyActivatable(el, handler) {
 	el.setAttribute('tabindex', '0');
 	el.setAttribute('role', 'button');
@@ -318,7 +326,7 @@ function createMyTaskCard(task) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	meta.textContent = `${task.task_type} · Created ${formatDate(task.created_at)}`;
+	meta.textContent = `${formatTaskTypeLabel(task.task_type)} · Created ${formatDate(task.created_at)}`;
 	card.appendChild(meta);
 
 	const actions = document.createElement('div');

@@ -172,11 +172,15 @@ html, body {
 }
 .card-title {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: .07em;
   color: var(--text-muted);
   margin: 0;
+}
+.card-title strong {
+  font-weight: 800;
+  color: var(--text);
 }
 .card-body { padding: 1.1rem 1.4rem; }
 

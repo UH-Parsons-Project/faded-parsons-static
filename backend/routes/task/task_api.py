@@ -71,8 +71,20 @@ def _normalize_task_type(task_type: str | None) -> str:
     return (task_type or "").strip().lower()
 
 
-def _require_task_type(task_type: str | None) -> str:
+def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
     normalized = _normalize_task_type(task_type)
+    if not normalized:
+        return "Faded" if has_faded else "normal"
+
+    if normalized in ALLOWED_TASK_TYPES:
+        return normalized
+
+    if normalized == "normal":
+        return "normal"
+
+    if normalized == "faded":
+        return "Faded"
+
     if normalized not in ALLOWED_TASK_TYPES:
         allowed = ", ".join(sorted(ALLOWED_TASK_TYPES))
         raise HTTPException(
@@ -930,7 +942,6 @@ async def create_problem(
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
     source_for_blocks = parsons_repr if parsons_repr.strip() else solution_code
     is_public = True if request.is_public is None else request.is_public
-    requested_task_type = _require_task_type(request.task_type)
 
     lines = [line for line in source_for_blocks.split("\n") if line.strip()]
     if not lines:
@@ -995,6 +1006,8 @@ async def create_problem(
                 "given": preplace_match is not None,
             }
         )
+
+    requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
     task_instructions_payload = json.dumps(
         {
@@ -1086,7 +1099,6 @@ async def update_problem(
     start_description = request.startDescription.strip()
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
-    requested_task_type = _require_task_type(request.task_type)
 
     if not task_title or not solution_code or not description or not start_description or not tests:
         raise HTTPException(
@@ -1161,6 +1173,8 @@ async def update_problem(
                 "given": preplace_match is not None,
             }
         )
+
+    requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
     task_instructions_payload = json.dumps(
         {

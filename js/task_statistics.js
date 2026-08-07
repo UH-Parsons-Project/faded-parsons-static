@@ -328,7 +328,7 @@ function updateDonut(completed, attempted, notStarted) {
 	if (elNotStarted) elNotStarted.textContent = notStarted > 0 ? notStarted : '—';
 }
 
-function renderSidebarSection(listEl, moreEl, names, urlFn) {
+function renderSidebarSection(listEl, names, urlFn) {
 	if (!names.length) {
 		listEl.innerHTML = '';
 		return;
@@ -343,9 +343,6 @@ function renderSidebarSection(listEl, moreEl, names, urlFn) {
 			<span class="sidebar-row-meta">${escapeHtml(n.meta)}</span>
 		</${tag}>`;
 	}).join('');
-	if (moreEl) {
-		moreEl.style.display = 'none';
-	}
 }
 
 function updateSidebar(completed, notYetCompleted, notStarted, total, students) {
@@ -368,13 +365,11 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 
 	renderSidebarSection(
 		document.getElementById('sidebar-completed-list'),
-		document.getElementById('sidebar-completed-more'),
 		completedNames,
 		taskStatsUrl
 	);
 	renderSidebarSection(
 		document.getElementById('sidebar-struggling-list'),
-		document.getElementById('sidebar-struggling-more'),
 		notYetCompletedNames,
 		taskStatsUrl
 	);
@@ -383,7 +378,7 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 	if (notStarted === 0) {
 		notStartedList.innerHTML = '<div class="sidebar-empty">All students have attempted this exercise.</div>';
 	} else {
-		renderSidebarSection(notStartedList, null, notStartedNames, attemptsUrl);
+		renderSidebarSection(notStartedList, notStartedNames, attemptsUrl);
 	}
 }
 

@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import get_current_user
+from ...teacher_auth import get_current_user
 from ...database import get_db
 from ...models import Parsons, TaskSet
 from ...utils.taskset import can_view_task_in_task_set

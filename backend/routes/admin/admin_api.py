@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.utils import cleanup_old_registration_tokens, generate_token, hash_token
 
-from ...auth import CurrentUser
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import (
     ModelAnswer,

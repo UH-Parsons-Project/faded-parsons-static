@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.utils import _clean_mistake_code, _mistake_code_fingerprint, has_user_added_own_code
 
-from ...auth import CurrentUser
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import (
     EditEvent,

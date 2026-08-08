@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import get_current_user
+from ...teacher_auth import get_current_user
 from ...database import get_db
 from ..utils.commons import require_session_or_redirect, set_no_cache_headers
 

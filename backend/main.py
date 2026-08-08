@@ -11,23 +11,17 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from .database import init_db, async_session
-from .models import Parsons, TaskSetViewer, TaskSet, Teacher, ModelAnswer
 from . import seed as seed_module
 from . import config
 from .utils.token_utils import cleanup_old_registration_tokens
-from .utils.taskset import has_task_set_view_access, require_task_set_view_access
 
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
@@ -71,15 +65,6 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-async def _get_model_answer_for_task(task: Parsons, db: AsyncSession) -> str | None:
-    """Return teacher-facing model answer from database for this exercise."""
-    result = await db.execute(
-        select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task.id)
-    )
-    return result.scalar_one_or_none()
-
-# task set access helpers moved to `backend/utils/taskset.py`
 
 # Mount static directories (only if they exist)
 js_dir = BASE_DIR / "js"

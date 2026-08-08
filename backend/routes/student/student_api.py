@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import CurrentUser
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import (
     EditEvent,

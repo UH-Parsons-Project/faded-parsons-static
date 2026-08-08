@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import CurrentUser, OptionalCurrentUser
+from ...teacher_auth import CurrentUser, OptionalCurrentUser
 from ...database import get_db
 from ...models import (
     EditEvent,

@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock
 import pytest
 from sqlalchemy import select
 
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 import backend.main as main_module
 import utils as utils
 import backend.config as config

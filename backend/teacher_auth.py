@@ -4,7 +4,6 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Annotated
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer
 import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,8 +15,6 @@ from .models import Teacher
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-please")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
-
-security = HTTPBearer()
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -33,6 +30,40 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
+def _get_token_from_request(request: Request) -> str | None:
+    """Extract token from cookie or Authorization header."""
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+    return token
+
+
+async def _get_user_from_token(token: str, db: AsyncSession) -> Teacher:
+    """Decode JWT token and fetch user from DB."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except jwt.InvalidTokenError as exc:
+        raise credentials_exception from exc
+
+    result = await db.execute(select(Teacher).where(Teacher.username == username))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        raise credentials_exception
+
+    return user
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -42,40 +73,15 @@ async def get_current_user(
     Checks cookies first (for browser navigation), then Authorization header (for API calls).
     Raises HTTPException if token is invalid or user not found.
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    # Try to get token from cookie first (for browser page navigation)
-    token = request.cookies.get("access_token")
-
-    # Fallback to Authorization header (for API calls)
+    token = _get_token_from_request(request)
     if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-
-    if not token:
-        raise credentials_exception
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except jwt.InvalidTokenError as exc:
-        raise credentials_exception from exc
-
-    # Fetch user from database
-    result = await db.execute(select(Teacher).where(Teacher.username == username))
-    user = result.scalar_one_or_none()
-
-    if user is None or not user.is_active:
-        raise credentials_exception
-
-    return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return await _get_user_from_token(token, db)
 
 
 async def get_current_user_optional(
@@ -83,37 +89,11 @@ async def get_current_user_optional(
     db: AsyncSession = Depends(get_db),
 ) -> Teacher | None:
     """Return the current user if a token is provided, otherwise None."""
-    token = request.cookies.get("access_token")
-
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-
+    token = _get_token_from_request(request)
     if not token:
         return None
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except jwt.InvalidTokenError as exc:
-        raise credentials_exception from exc
-
-    result = await db.execute(select(Teacher).where(Teacher.username == username))
-    user = result.scalar_one_or_none()
-
-    if user is None or not user.is_active:
-        raise credentials_exception
-
-    return user
+        
+    return await _get_user_from_token(token, db)
 
 
 async def authenticate_user(username_or_email: str, password: str, db: AsyncSession) -> Optional[Teacher]:

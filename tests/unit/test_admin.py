@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import select
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 from backend.models import Teacher, Student
 
 def _auth(username: str) -> dict:

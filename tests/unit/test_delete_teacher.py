@@ -2,7 +2,7 @@ import pytest
 import pytest_asyncio
 from datetime import datetime, timezone
 from sqlalchemy import select
-from backend.auth import create_access_token, authenticate_user
+from backend.teacher_auth import create_access_token, authenticate_user
 from backend.models import Teacher, Student, Parsons, TaskSet, TaskSetItem, ModelAnswer
 
 def _auth(username: str) -> dict:

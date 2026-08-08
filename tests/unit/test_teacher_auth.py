@@ -7,7 +7,7 @@ from datetime import timedelta
 import jwt
 from fastapi import HTTPException
 
-from backend.auth import (
+from backend.teacher_auth import (
     create_access_token,
     authenticate_user,
     get_current_user,

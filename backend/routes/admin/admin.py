@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import get_current_user
+from ...teacher_auth import get_current_user
 from ...database import get_db
 from .admin_api import BASE_DIR, router
 

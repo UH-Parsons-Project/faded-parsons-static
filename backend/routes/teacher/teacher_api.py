@@ -13,7 +13,7 @@ from backend.utils import hash_token, cleanup_old_registration_tokens
 from ...database import get_db
 from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ... import config
-from ...pydantic import Token, UserInfo
+from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 
@@ -235,3 +235,30 @@ async def update_teacher_password(
     current_user.set_password(new_password)
     await db.commit()
     return {"status": "success", "message": "Password updated successfully"}
+
+
+@router.get("/api/teachers/lookup", response_model=TeacherLookupResponse)
+async def lookup_teacher(
+    identifier: str,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    identifier = identifier.strip()
+    if not identifier:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="identifier is required")
+
+    result = await db.execute(
+        select(Teacher).where(
+            (Teacher.username == identifier) | (Teacher.email == identifier)
+        )
+    )
+    teacher = result.scalar_one_or_none()
+
+    if not teacher or not teacher.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
+    return TeacherLookupResponse(
+        teacher_id=teacher.id,
+        username=teacher.username,
+        email=teacher.email,
+    )

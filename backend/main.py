@@ -71,6 +71,10 @@ js_dir = BASE_DIR / "js"
 if js_dir.exists():
     app.mount("/js", StaticFiles(directory=js_dir), name="js")
 
+css_dir = BASE_DIR / "css"
+if css_dir.exists():
+    app.mount("/css", StaticFiles(directory=css_dir), name="css")
+
 js_parsons_dir = BASE_DIR / "js-parsons"
 if js_parsons_dir.exists():
     app.mount(

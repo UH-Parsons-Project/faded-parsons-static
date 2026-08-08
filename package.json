@@ -35,8 +35,8 @@
 	},
 	"scripts": {
 		"lint": "npm run lint:lit-analyzer && npm run lint:eslint",
-		"lint:eslint": "eslint 'js/*.js' 'js-parsons/*.js'",
-		"lint:lit-analyzer": "lit-analyzer js/*-element.js",
+		"lint:eslint": "eslint 'js/**/*.js' 'js-parsons/**/*.js'",
+		"lint:lit-analyzer": "lit-analyzer 'js/**/*-element.js'",
 		"test:all": "./scripts/run-all-tests.sh",
 		"format": "prettier \"**/*.{js,json}\" --ignore-path ./.eslintignore --write",
 		"build": "rollup -c",
@@ -47,7 +47,7 @@
 		"prepare": "test -d .git && husky install || true"
 	},
 	"lint-staged": {
-		"js/*-element.js": "lit-analyzer",
+		"js/**/*-element.js": "lit-analyzer",
 		"*.js": "eslint --cache --fix",
 		"*.--write": "prettier \"**/*.{js,json}\" --ignore-path ./.eslintignore --write"
 	}

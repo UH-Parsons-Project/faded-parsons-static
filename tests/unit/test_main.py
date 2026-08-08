@@ -1322,7 +1322,7 @@ class TestAdditionalProblemsetAndTaskSetApis:
     async def test_my_sets_returns_current_teacher_my_sets(
         self, client, test_teacher, task_set, db_session
     ):
-        other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
+        other_teacher = Teacher(username="otherteacher", email="otherteacher@example.com")
         other_teacher.set_password("testpassword123")
         db_session.add(other_teacher)
         await db_session.commit()

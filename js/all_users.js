@@ -49,7 +49,7 @@ function escapeHtml(text) {
 function renderUsers() {
 	renderGroup('teacher', teacherSearchInput.value.trim().toLowerCase(), teachersContainer);
 	renderGroup('student', studentSearchInput.value.trim().toLowerCase(), studentsContainer);
-	
+
 	// Update total count
 	userCountBadge.textContent = `${allUsers.length} user${allUsers.length !== 1 ? 's' : ''} total`;
 	userCountBadge.className = 'badge badge-info p-2';
@@ -94,9 +94,9 @@ function renderGroup(role, query, container) {
 					return;
 				}
 				if (user.role === 'teacher') {
-					window.location.href = `/admin/admins_teacher_view?teacher_id=${user.id}`;
+					window.location.href = `/admin/admins-teacher-view?teacher_id=${user.id}`;
 				} else {
-					window.location.href = `/admin/admins_student_view?student_id=${user.id}`;
+					window.location.href = `/admin/admins-student-view?student_id=${user.id}`;
 				}
 			});
 		}
@@ -119,7 +119,7 @@ function renderGroup(role, query, container) {
 		titleDiv.className = 'task-set-title';
 		titleDiv.textContent = user.username;
 		titleWrap.appendChild(titleDiv);
-		
+
 		headerDiv.appendChild(titleWrap);
 
 		const badgesDiv = document.createElement('div');
@@ -435,4 +435,3 @@ async function makeAdmin(id, username) {
 		alert(typeof err === 'string' ? err : 'Failed to make admin.');
 	});
 }
-

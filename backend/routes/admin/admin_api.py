@@ -1,46 +1,65 @@
 from datetime import datetime, timedelta, timezone
-
-TOKEN_EXPIRY_DAYS = 7
-TOKEN_MIN_LENGTH = 10
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
-from sqlalchemy import select, func, or_, delete, case
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.utils import cleanup_old_registration_tokens, generate_token, hash_token
 
 from ...auth import CurrentUser
 from ...database import get_db
-from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
+from ...models import (
+    ModelAnswer,
+    Parsons,
+    RegistrationToken,
+    Student,
+    StudentTaskEnrollment,
+    StudentTaskSetEnrollment,
+    TaskAttempt,
+    TaskSet,
+    TaskSetItem,
+    Teacher,
+)
 from ...pydantic import (
-    TaskSetResponse,
     CreateRegistrationTokenRequest,
-    RegistrationTokenResponse,
-    RegistrationTokenListItem,
-    UserActivityResponse,
-    UserActivityStats,
     DailyActiveUser,
     MonthlyActiveUser,
+    RegistrationTokenListItem,
+    RegistrationTokenResponse,
+    TaskSetResponse,
+    UserActivityResponse,
+    UserActivityStats,
     UserListItem,
 )
-from backend.utils import generate_token, hash_token, cleanup_old_registration_tokens
-import backend.config as config
 from ..utils.commons import build_taskset_response_list
+
+TOKEN_EXPIRY_DAYS = 7
+TOKEN_MIN_LENGTH = 10
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
 
+def require_admin(current_user: CurrentUser) -> Teacher:
+	if not current_user.is_admin_teacher:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="You do not have permission to access this resource."
+		)
+	return current_user
+
+AdminUser = Annotated[Teacher, Depends(require_admin)]
+
 
 @router.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)
 async def create_registration_token(
 	request: CreateRegistrationTokenRequest,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 ):
 	"""Create a new registration token for teachers. Admin only."""
-	# Check admin access
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	await cleanup_old_registration_tokens(db)
 	await db.commit()
@@ -81,13 +100,10 @@ async def create_registration_token(
 
 @router.get("/api/admin/registration-tokens", response_model=list[RegistrationTokenListItem])
 async def list_registration_tokens(
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 ):
 	"""List all registration tokens. Admin only."""
-	# Check admin access
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	await cleanup_old_registration_tokens(db)
 	await db.commit()
@@ -110,13 +126,10 @@ async def list_registration_tokens(
 @router.delete("/api/admin/registration-tokens/{token_id}")
 async def delete_registration_token(
 	token_id: int,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 ):
-	"""Delete/revoke a registration token. Admin only."""
-	# Check admin access
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+	"""Delete a registration token. Admin only."""
 
 	await cleanup_old_registration_tokens(db)
 	await db.commit()
@@ -139,13 +152,10 @@ async def delete_registration_token(
 
 @router.get("/api/admin/statistics/user-activity", response_model=UserActivityResponse)
 async def get_user_activity_statistics(
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 ):
 	"""Get user activity statistics for students and teachers. Admin only."""
-	# Check admin access via data access flag
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	# Helper function to calculate stats
 	async def calc_stats(table, timestamp_column, user_id_column):
@@ -223,71 +233,10 @@ async def get_user_activity_statistics(
 		TaskAttempt.student_id
 	)
 
-	# Calculate teacher stats using teacher registration (when teachers are created)
-	# Get registered teachers (all teachers)
-	teacher_registered_stmt = select(func.count(Teacher.id))
-	teacher_registered_result = await db.execute(teacher_registered_stmt)
-	teacher_registered_total = teacher_registered_result.scalar() or 0
-
-	# Get daily breakdown of active teachers (by registration date)
-	now = datetime.now(timezone.utc)
-	seven_days_ago = now - timedelta(days=7)
-
-	teacher_day_func = func.date(Teacher.created_at)
-	teacher_daily_stmt = select(
-		teacher_day_func.label('day'),
-		func.count(func.distinct(Teacher.id)).label('count')
-	).where(
-		Teacher.created_at >= seven_days_ago
-	).group_by(
-		teacher_day_func
-	).order_by(
-		teacher_day_func.desc()
-	)
-
-	teacher_daily_result = await db.execute(teacher_daily_stmt)
-	teacher_daily_rows = teacher_daily_result.all()
-	teacher_daily_breakdown = [
-		DailyActiveUser(
-			date=str(row[0]),
-			active_users=row[1]
-		)
-		for row in teacher_daily_rows
-	]
-
-	# Get monthly breakdown of active teachers
-	six_months_ago = now - timedelta(days=180)
-
-	teacher_month_trunc = func.date_trunc('month', Teacher.created_at)
-	teacher_monthly_stmt = select(
-		teacher_month_trunc.label('month'),
-		func.count(func.distinct(Teacher.id)).label('count')
-	).where(
-		Teacher.created_at >= six_months_ago
-	).group_by(
-		teacher_month_trunc
-	).order_by(
-		teacher_month_trunc.desc()
-	)
-
-	teacher_monthly_result = await db.execute(teacher_monthly_stmt)
-	teacher_monthly_rows = teacher_monthly_result.all()
-	teacher_monthly_breakdown = [
-		MonthlyActiveUser(
-			month=row[0].strftime('%Y-%m') if row[0] else '',
-			active_users=row[1]
-		)
-		for row in teacher_monthly_rows
-	]
-
-	# Calculate teacher monthly average
-	teacher_monthly_average = sum(m.active_users for m in teacher_monthly_breakdown) / len(teacher_monthly_breakdown) if teacher_monthly_breakdown else 0
-
-	teacher_stats = UserActivityStats(
-		registered_total=teacher_registered_total,
-		monthly_average=round(teacher_monthly_average, 1),
-		daily_breakdown_last_7_days=teacher_daily_breakdown,
-		monthly_breakdown=teacher_monthly_breakdown,
+	teacher_stats = await calc_stats(
+		Teacher,
+		Teacher.created_at,
+		Teacher.id
 	)
 
 	return UserActivityResponse(
@@ -298,13 +247,8 @@ async def get_user_activity_statistics(
 
 
 @router.get("/api/all-tasksets", response_model=list[TaskSetResponse])
-async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_all_taskset(current_user: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
 	"""List all task sets from all teachers if the user has data access."""
-	if not current_user.is_admin_teacher:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="You do not have permission to access this resource.",
-		)
 
 	stmt = (
 		select(
@@ -326,13 +270,8 @@ async def list_all_taskset(current_user: CurrentUser, db: AsyncSession = Depends
 
 
 @router.get("/api/admin/users", response_model=list[UserListItem])
-async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
 	"""List all teachers and students in the system (requires admin access)."""
-	if not current_user.is_admin_teacher:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="You do not have permission to access this resource.",
-		)
 
 	# Fetch all teachers
 	teachers_stmt = select(Teacher)
@@ -379,13 +318,11 @@ async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(g
 async def delete_user(
 	role: str,
 	user_id: int,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
 ):
 	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	if not x_admin_password or not current_user.verify_password(x_admin_password):
 		raise HTTPException(
@@ -411,7 +348,7 @@ async def delete_user(
 			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
 		if teacher.is_admin_teacher:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete an admin teacher")
-		
+
 		# 1. Get or create deleted_user with fixed ID 999999
 		deleted_user_id = 999999
 		deleted_user_stmt = select(Teacher).where(Teacher.id == deleted_user_id)
@@ -563,13 +500,11 @@ async def delete_user(
 @router.post("/api/admin/users/teacher/{user_id}/make-admin")
 async def promote_teacher_to_admin(
 	user_id: int,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
 	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
 ):
 	"""Promote a teacher to admin. Admin only. Requires admin password confirmation."""
-	if not current_user.is_admin_teacher:
-		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 	if not x_admin_password or not current_user.verify_password(x_admin_password):
 		raise HTTPException(
@@ -600,15 +535,10 @@ async def promote_teacher_to_admin(
 @router.get("/api/admin/students/{student_id}", response_model=dict)
 async def get_student_details(
 	student_id: int,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db)
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)]
 ):
 	"""Get detailed info about a student, including enrolled task sets and task attempts. Admin only."""
-	if not current_user.is_admin_teacher:
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="You do not have permission to access this resource.",
-		)
 
 	# Fetch student
 	student_stmt = select(Student).where(Student.id == student_id)
@@ -714,5 +644,3 @@ async def get_student_details(
 		"task_sets": task_sets_list,
 		"task_attempts": attempts_list,
 	}
-
-

@@ -26,7 +26,7 @@ async def login_access_token(
     request: Request,
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     identifier = form_data.username.strip().lower()
 
@@ -90,7 +90,7 @@ async def logout(response: Response):
 
 
 @router.post("/api/teacher_register")
-async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_db)):
+async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
@@ -178,7 +178,7 @@ async def get_teacher_profile(
 async def update_teacher_email(
     request: Request,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
     new_email = body.get("email", "").strip()
@@ -213,7 +213,7 @@ async def update_teacher_email(
 async def update_teacher_password(
     request: Request,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
     current_password = body.get("current_password", "")

@@ -1206,37 +1206,7 @@ class TestDevAndMaintenanceEndpoints:
         assert r.status_code == 500
         assert "Failed to reset database" in r.json()["detail"]
 
-    async def test_reset_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.post("/api/reset-db")
-        assert r.status_code == 403
 
-    async def test_seed_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.post("/api/seed-db")
-        assert r.status_code == 403
-
-    async def test_reset_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        reset_mock = AsyncMock()
-        monkeypatch.setattr(reset_module, "reset_db", reset_mock)
-
-        r = await client.post("/api/reset-db")
-
-        assert r.status_code == 200
-        assert r.json()["status"] == "success"
-        reset_mock.assert_awaited_once()
-
-    async def test_seed_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        seed_mock = AsyncMock()
-        monkeypatch.setattr(seed_module, "seed_db", seed_mock)
-
-        r = await client.post("/api/seed-db")
-
-        assert r.status_code == 200
-        assert r.json()["status"] == "success"
-        seed_mock.assert_awaited_once()
 
 @pytest.mark.asyncio
 class TestAdditionalMainPagesAndStudentAuth:

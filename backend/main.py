@@ -32,7 +32,6 @@ from .utils.taskset import has_task_set_view_access, require_task_set_view_acces
 from .routes.student.student import router as student_router
 from .routes.student.student_api import router as student_api_router
 from .routes.admin.admin_api import router as admin_router
-from .routes.developer.developer_api import router as developer_router
 from .routes.utils import router as utils_router
 from .routes.teacher.teacher import router as teacher_router
 from .routes.teacher.teacher_api import router as teacher_api_router
@@ -108,7 +107,6 @@ app.include_router(student_router)
 
 app.include_router(admin_router)
 app.include_router(student_api_router)
-app.include_router(developer_router)
 app.include_router(utils_router)
 app.include_router(teacher_api_router)
 app.include_router(teacher_router)

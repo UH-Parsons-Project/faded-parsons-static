@@ -1,27 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from pathlib import Path
+from typing import Annotated
 
-from ...database import get_db
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse, HTMLResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ...auth import get_current_user
+from ...database import get_db
 from ...models import Parsons, TaskSet
 from ...utils.taskset import can_view_task_in_task_set
-from ..utils.commons import set_no_cache_headers, require_session_or_redirect
+from ..utils.commons import require_session_or_redirect, set_no_cache_headers
 
 router = APIRouter()
 
 # Project root (same as BASE_DIR in main.py)
 BASE_DIR = Path(__file__).resolve().parents[3]
 
-def _not_found_page() -> FileResponse:
-    response = FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=404)
+def _render_page(template_name: str, status_code: int = 200) -> FileResponse:
+    response = FileResponse(BASE_DIR / "templates" / template_name, status_code=status_code)
     return set_no_cache_headers(response)
+
+def _not_found_page() -> FileResponse:
+    return _render_page("not_found.html", status_code=404)
 
 
 @router.get("/task-statistics", response_class=HTMLResponse)
-async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_db)):
+async def task_statistics_view(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
         return redirect
@@ -51,28 +56,22 @@ async def task_statistics_view(request: Request, db: AsyncSession = Depends(get_
             if task_set is None or not await can_view_task_in_task_set(task, task_set, current_user, db):
                 return _not_found_page()
 
-    statistics_path = BASE_DIR / "templates" / "task_statistics.html"
-    response = FileResponse(statistics_path)
-    return set_no_cache_headers(response)
+    return _render_page("task_statistics.html")
 
 
 @router.get("/student-attempts", response_class=HTMLResponse)
-async def student_attempts_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def student_attempts_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
         return redirect
 
-    attempts_path = BASE_DIR / "templates" / "student_attempts.html"
-    response = FileResponse(attempts_path)
-    return set_no_cache_headers(response)
+    return _render_page("student_attempts.html")
 
 
 @router.get("/student-task-statistics", response_class=HTMLResponse)
-async def student_task_statistics_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def student_task_statistics_page(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     redirect = await require_session_or_redirect(get_current_user, "/", request, db)
     if redirect:
         return redirect
 
-    stats_path = BASE_DIR / "templates" / "student_task_statistics.html"
-    response = FileResponse(stats_path)
-    return set_no_cache_headers(response)
+    return _render_page("student_task_statistics.html")

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 
-import backend.config as config
 import backend.reset_db as reset_module
 import backend.seed as seed_module
+from backend import config
 
 router = APIRouter()
 
@@ -23,5 +23,5 @@ async def reset_test_db():
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to reset database: {str(e)}",
+            detail=f"Failed to reset database: {e!s}",
         ) from e

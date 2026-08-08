@@ -42,7 +42,6 @@ from ...utils.taskset import has_task_set_view_access, require_task_set_view_acc
 from backend.utils import generate_slug
 from ..utils.commons import (
     build_taskset_response_list,
-    fetch_nonempty_ids,
     get_task_set_or_404,
     run_with_task_ids_or_empty,
 )

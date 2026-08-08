@@ -130,17 +130,6 @@ async def require_session_or_redirect(check_func: Callable[..., Any], redirect_u
     return None
 
 
-async def fetch_nonempty_ids(db: AsyncSession, stmt):
-    """Execute a single-column select statement and return the id list or empty list.
-
-    Callers can use `ids = await fetch_nonempty_ids(db, stmt)` and `if not ids: return []`.
-    """
-    ids = await get_ids_from_stmt(db, stmt)
-    if not ids:
-        return []
-    return ids
-
-
 def validate_registration_basic(username: str, password: str, password_confirm: str, email: str,
                                 username_max: int = 50, email_max: int = 100,
                                 min_username: int = 5, min_password: int = 8):
@@ -192,25 +181,6 @@ async def get_ids_from_stmt(db: AsyncSession, stmt):
     rows = result.all()
     ids = [row[0] for row in rows]
     return ids
-
-
-async def run_dev_action(mode_flag: bool, coro, forbidden_detail: str, success_message: str):
-    """Run a dev-only coroutine with mode check and standardized error handling.
-
-    `coro` should be an awaitable (callable returning coroutine) or coroutine object.
-    """
-    if not mode_flag:
-        raise HTTPException(status_code=403, detail=forbidden_detail)
-
-    try:
-        # Support both callables and coroutine objects
-        if callable(coro):
-            await coro()
-        else:
-            await coro
-        return {"status": "success", "message": success_message}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to run action: {str(e)}") from e
 
 
 async def run_with_task_ids_or_empty(db: AsyncSession, task_ids_stmt, handler):

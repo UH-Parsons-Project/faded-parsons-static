@@ -1,31 +1,50 @@
+import re
 import secrets
+from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select, func, distinct
+from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-import re
 
-from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse
+from ...auth import CurrentUser
 from ...database import get_db
-from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Teacher, TaskSetItem
+from ...models import (
+    EditEvent,
+    MoveEvent,
+    Parsons,
+    Student,
+    StudentTaskEnrollment,
+    StudentTaskSetEnrollment,
+    TaskAttempt,
+    TaskSession,
+    TaskSet,
+    TaskSetItem,
+    Teacher,
+)
+from ...pydantic import (
+    EnterTaskResponse,
+    RecordExitRequest,
+    StartTaskResponse,
+    SubmitTestResultRequest,
+    TaskResponse,
+)
+from ...rate_limit import check_brute_force, clear_failed_attempts, limiter, record_failed_attempt
 from ...student_auth import (
     authenticate_student,
-    set_session_cookie,
     get_current_student_session,
     get_current_student_session_no_update,
+    set_session_cookie,
 )
-from ...auth import CurrentUser
 from ...utils.taskset import require_task_set_view_access
-from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 from ..utils.commons import (
     ensure_unique_user,
     get_task_set_by_code_or_404,
-    verify_task_in_set_or_404,
-    validate_registration_basic,
     resolve_task_id_in_set_or_404,
+    validate_registration_basic,
+    verify_task_in_set_or_404,
 )
-
 
 router = APIRouter()
 
@@ -52,7 +71,7 @@ async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id
 
 @router.get("/api/student/me")
 async def get_student_me(
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
@@ -63,8 +82,8 @@ EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
 @router.get("/api/student/profile")
 async def get_student_profile(
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
@@ -157,8 +176,8 @@ async def get_student_profile(
 @router.post("/api/student/profile/email")
 async def update_student_email(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
@@ -193,8 +212,8 @@ async def update_student_email(
 @router.post("/api/student/profile/password")
 async def update_student_password(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
@@ -223,7 +242,7 @@ async def update_student_password(
 @router.get("/api/sets/{unique_link_code}/info")
 async def get_task_set_info(
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     stmt = select(TaskSet, Teacher).join(Teacher).where(TaskSet.unique_link_code == unique_link_code)
     result = await db.execute(stmt)
@@ -242,8 +261,8 @@ async def get_task_set_info(
 @router.post("/api/sets/{unique_link_code}/join")
 async def join_task_set(
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Student session required")
@@ -272,8 +291,8 @@ async def join_task_set(
 @router.get("/api/sets/{unique_link_code}/is-enrolled")
 async def check_enrollment(
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         return {"enrolled": False}
@@ -297,7 +316,7 @@ async def check_enrollment(
 async def student_login(
     request: Request,
     response: Response,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
     username = body.get("username") if isinstance(body, dict) else None
@@ -358,8 +377,8 @@ async def student_login(
 @router.post("/api/student_logout")
 async def student_logout(
     response: Response,
-    db: AsyncSession = Depends(get_db),
-    student: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if student:
         student.session_token = None
@@ -369,7 +388,7 @@ async def student_logout(
 
 
 @router.post("/api/student_register")
-async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)):
+async def api_student_register(request: dict, db: Annotated[AsyncSession, Depends(get_db)]):
     try:
         payload = request if isinstance(request, dict) else await request.json()
     except Exception:
@@ -401,8 +420,8 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
 async def get_task_for_student_set(
     task_id: int,
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Student session required")
@@ -435,8 +454,8 @@ async def get_task_for_student_set(
 @router.get("/api/sets/{unique_link_code}/tasks-status")
 async def get_all_tasks_status(
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
 
@@ -498,8 +517,8 @@ async def get_all_tasks_status(
 async def check_task_has_started(
     task_id: int,
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         return {"has_started": False}
@@ -521,8 +540,8 @@ async def check_task_has_started(
 async def get_my_completion_status(
     task_id: int,
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         return {"student_attempts": 0, "student_completed": 0}
@@ -547,12 +566,42 @@ async def get_my_completion_status(
     return {"student_attempts": student_attempts, "student_completed": student_completed}
 
 
+async def _get_or_create_enrollment(
+    db: AsyncSession, student_id: int, task_id: int, task_set_id: int
+) -> StudentTaskEnrollment:
+    stmt = select(StudentTaskEnrollment).where(
+        (StudentTaskEnrollment.student_id == student_id) &
+        (StudentTaskEnrollment.task_id == task_id) &
+        (StudentTaskEnrollment.task_set_id == task_set_id)
+    )
+    result = await db.execute(stmt)
+    enrollment = result.scalar_one_or_none()
+
+    if not enrollment:
+        enrollment = StudentTaskEnrollment(
+            student_id=student_id,
+            task_id=task_id,
+            task_set_id=task_set_id
+        )
+        db.add(enrollment)
+        await db.flush()
+    return enrollment
+
+
+async def _create_task_session(db: AsyncSession, enrollment: StudentTaskEnrollment) -> TaskSession:
+    session = TaskSession(student_task_enrollment_id=enrollment.id)
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    return session
+
+
 @router.post("/api/sets/{unique_link_code}/tasks/{task_id}/start", response_model=StartTaskResponse)
 async def start_task(
     task_id: int,
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(
@@ -561,28 +610,8 @@ async def start_task(
         )
 
     task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    stmt = select(StudentTaskEnrollment).where(
-        (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == resolved_task_id) &
-        (StudentTaskEnrollment.task_set_id == task_set.id)
-    )
-    result = await db.execute(stmt)
-    enrollment = result.scalar_one_or_none()
-
-    if not enrollment:
-        enrollment = StudentTaskEnrollment(
-            student_id=student_session.id,
-            task_id=resolved_task_id,
-            task_set_id=task_set.id
-        )
-        db.add(enrollment)
-        await db.flush()
-
-    session = TaskSession(student_task_enrollment_id=enrollment.id)
-    db.add(session)
-    await db.commit()
-    await db.refresh(session)
+    enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
+    session = await _create_task_session(db, enrollment)
 
     return StartTaskResponse(
         started_at=enrollment.started_at.isoformat(),
@@ -596,8 +625,8 @@ async def submit_test_result(
     task_id: int,
     unique_link_code: str,
     result: SubmitTestResultRequest,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(
@@ -606,23 +635,7 @@ async def submit_test_result(
         )
 
     task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    start_stmt = select(StudentTaskEnrollment).where(
-        (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == resolved_task_id) &
-        (StudentTaskEnrollment.task_set_id == task_set.id)
-    )
-    start_result = await db.execute(start_stmt)
-    enrollment = start_result.scalar_one_or_none()
-
-    if not enrollment:
-        enrollment = StudentTaskEnrollment(
-            student_id=student_session.id,
-            task_id=resolved_task_id,
-            task_set_id=task_set.id
-        )
-        db.add(enrollment)
-        await db.flush()
+    enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
 
     open_session_stmt = (
         select(TaskSession)
@@ -687,8 +700,8 @@ async def submit_test_result(
 async def enter_task(
     task_id: int,
     unique_link_code: str,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session)],
 ):
     if not student_session:
         raise HTTPException(
@@ -697,28 +710,8 @@ async def enter_task(
         )
 
     task_set, resolved_task_id = await _resolve_task_context(db, unique_link_code, task_id)
-
-    stmt = select(StudentTaskEnrollment).where(
-        (StudentTaskEnrollment.student_id == student_session.id) &
-        (StudentTaskEnrollment.task_id == resolved_task_id) &
-        (StudentTaskEnrollment.task_set_id == task_set.id)
-    )
-    result = await db.execute(stmt)
-    enrollment = result.scalar_one_or_none()
-
-    if not enrollment:
-        enrollment = StudentTaskEnrollment(
-            student_id=student_session.id,
-            task_id=resolved_task_id,
-            task_set_id=task_set.id
-        )
-        db.add(enrollment)
-        await db.flush()
-
-    session = TaskSession(student_task_enrollment_id=enrollment.id)
-    db.add(session)
-    await db.commit()
-    await db.refresh(session)
+    enrollment = await _get_or_create_enrollment(db, student_session.id, resolved_task_id, task_set.id)
+    session = await _create_task_session(db, enrollment)
 
     return EnterTaskResponse(
         session_id=session.id,
@@ -731,8 +724,8 @@ async def record_task_exit(
     task_id: int,
     unique_link_code: str,
     body: RecordExitRequest,
-    db: AsyncSession = Depends(get_db),
-    student_session: Student | None = Depends(get_current_student_session_no_update),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    student_session: Annotated[Student | None, Depends(get_current_student_session_no_update)],
 ):
     if not student_session:
         raise HTTPException(
@@ -768,7 +761,7 @@ async def get_task_moves(
     task_id: int,
     set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_set = await db.get(TaskSet, set_id)
     if not task_set:

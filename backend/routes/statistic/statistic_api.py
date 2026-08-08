@@ -423,7 +423,7 @@ async def get_taskset_tasks_statistics(
     results = {}
     for t_id in task_ids:
         try:
-            stats = await get_task_statistics(t_id, current_user, task_set_code, db)
+            stats = await get_task_statistics(t_id, current_user, db, task_set_code)
             results[str(t_id)] = stats
         except Exception:
             pass
@@ -434,8 +434,8 @@ async def get_taskset_tasks_statistics(
 async def get_task_statistics(
     task_id: int,
     current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
     task_set_code: str | None = None,
-    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()

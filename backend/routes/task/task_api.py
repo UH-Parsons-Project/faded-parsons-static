@@ -1,42 +1,52 @@
+import json
 from collections import defaultdict
+from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, and_, or_, case
-import json
 
-from ...database import get_db
-from ...models import Parsons
-from ...pydantic import TaskResponse, CreateProblemRequest
 from ...auth import CurrentUser, OptionalCurrentUser
-from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem, TeacherFavoriteTask
+from ...database import get_db
 from ...models import (
+    EditEvent,
+    ModelAnswer,
+    MoveEvent,
+    Parsons,
     Student,
-    StudentTaskSetEnrollment,
     StudentTaskEnrollment,
+    StudentTaskSetEnrollment,
     TaskAttempt,
     TaskSession,
-    MoveEvent,
-    EditEvent,
+    TaskSet,
+    TaskSetItem,
+    TaskSetViewer,
+    Teacher,
+    TeacherFavoriteTask,
 )
-from ...models import ModelAnswer
 from ...pydantic import (
-    TaskResponse,
     CreateProblemRequest,
-    TaskSetResponse,
-    TaskSetTaskResponse,
-    TaskSetResponse,
-    TaskSetViewerResponse,
-    TaskSetViewerRequest,
     CreateTaskSetRequest,
     StudentInTaskSetResponse,
+    TaskResponse,
+    TaskSetResponse,
+    TaskSetTaskResponse,
+    TaskSetViewerRequest,
+    TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
 )
+from ...utils.task import is_task_editable
+from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from backend.utils import generate_slug
-from datetime import datetime
+from ..utils.commons import (
+    build_taskset_response_list,
+    fetch_nonempty_ids,
+    get_task_set_or_404,
+    run_with_task_ids_or_empty,
+)
 
-# router already declared above
 router = APIRouter()
 ALLOWED_TASK_TYPES = {
     "algorithms",
@@ -93,13 +103,9 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
         )
     return normalized
 
-from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
-from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
-from ...utils.task import is_task_editable
-
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
-async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     """List all task sets for the current teacher."""
     stmt = (
         select(TaskSet, Teacher.username)
@@ -121,7 +127,7 @@ async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get
 async def get_task_set(
     task_set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     stmt = (
         select(TaskSet, Teacher.username)
@@ -161,7 +167,7 @@ async def get_task_set(
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
-async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
+async def get_task_set_tasks(code: str, db: Annotated[AsyncSession, Depends(get_db)]):
     """Get all tasks belonging to a task_set by unique link code."""
     task_set_result = await db.execute(
         select(TaskSet).where(TaskSet.unique_link_code == code)
@@ -201,7 +207,7 @@ async def toggle_task_hidden(
     task_set_id: int,
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Toggle the hidden status of a task within a task set."""
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
@@ -224,7 +230,7 @@ async def toggle_task_hidden(
 
 
 @router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
-async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
+async def get_task_set_info(code: str, db: Annotated[AsyncSession, Depends(get_db)]):
     """Get info for a task set by unique link code."""
     stmt = (
         select(TaskSet, Teacher.username)
@@ -259,7 +265,7 @@ async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
 async def lookup_teacher(
     identifier: str,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     identifier = identifier.strip()
     if not identifier:
@@ -286,7 +292,7 @@ async def lookup_teacher(
 async def create_task_set(
     request: CreateTaskSetRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     # Verify all tasks exist and belong to the current user
     if request.task_ids:
@@ -379,7 +385,7 @@ async def update_task_set_expires_at(
     task_set_id: int,
     request: UpdateExpiresAtRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     if task_set.teacher_id != current_user.id:
@@ -401,7 +407,7 @@ async def update_task_set_expires_at(
 async def delete_task_set(
     task_set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
@@ -427,7 +433,7 @@ async def delete_task_set(
 async def list_task_set_viewers(
     task_set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     await require_task_set_view_access(task_set, current_user, db)
@@ -459,7 +465,7 @@ async def add_task_set_viewer(
     task_set_id: int,
     request: TaskSetViewerRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     identifier = request.identifier.strip()
     if not identifier:
@@ -533,7 +539,7 @@ async def remove_task_set_viewer(
     task_set_id: int,
     teacher_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
 
@@ -569,7 +575,7 @@ async def remove_task_set_viewer(
 async def get_task_set_students(
     task_set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """Get all students who have attempted at least one task in this task set."""
     # Verify task set exists and belongs to current user
@@ -655,7 +661,7 @@ async def remove_student_from_task_set(
     task_set_id: int,
     student_username: str,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
 	# Removes students enrollment and attempts from the task set, does NOT delete the student account.
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
@@ -719,7 +725,7 @@ async def remove_student_from_task_set(
 async def get_task(
     task_id: int,
     current_user: OptionalCurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     stmt = select(Parsons).where(Parsons.id == task_id)
     result = await db.execute(stmt)
@@ -763,7 +769,7 @@ async def get_task(
 
 
 @router.get("/api/my_tasks")
-async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_my_tasks(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     tasks_result = await db.execute(
         select(Parsons)
         .where(Parsons.created_by_teacher_id == current_user.id)
@@ -809,7 +815,7 @@ async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(ge
 
 
 @router.get("/api/tasks")
-async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_tasks(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     stmt = (
         select(Parsons, Teacher.username, TeacherFavoriteTask.id)
         .join(Teacher, Teacher.id == Parsons.created_by_teacher_id)
@@ -877,7 +883,7 @@ async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_d
 async def favorite_task(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons.id).where(Parsons.id == task_id, Parsons.is_public))
     if task_result.scalar_one_or_none() is None:
@@ -905,7 +911,7 @@ async def favorite_task(
 async def unfavorite_task(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     delete_stmt = delete(TeacherFavoriteTask).where(
         TeacherFavoriteTask.teacher_id == current_user.id,
@@ -924,7 +930,7 @@ async def unfavorite_task(
 async def create_problem(
     request: CreateProblemRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_title = request.taskTitle.strip()
     solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -1056,7 +1062,7 @@ async def create_problem(
 async def check_task_editable(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1076,7 +1082,7 @@ async def update_problem(
     task_id: int,
     request: CreateProblemRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1221,7 +1227,7 @@ async def update_problem(
 async def delete_problem(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1249,7 +1255,7 @@ STRUGGLING_THRESHOLD = 5
 async def get_heatmap(
     task_set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
     await require_task_set_view_access(task_set, current_user, db)

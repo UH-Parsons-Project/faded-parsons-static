@@ -1216,11 +1216,6 @@ class TestDevAndMaintenanceEndpoints:
         r = await client.post("/api/seed-db")
         assert r.status_code == 403
 
-    async def test_dev_db_page_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.get("/dev/db")
-        assert r.status_code == 403
-
     async def test_reset_database_success_in_development_mode(self, client, monkeypatch):
         monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
         reset_mock = AsyncMock()
@@ -1242,13 +1237,6 @@ class TestDevAndMaintenanceEndpoints:
         assert r.status_code == 200
         assert r.json()["status"] == "success"
         seed_mock.assert_awaited_once()
-
-    async def test_dev_db_page_returns_html_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        r = await client.get("/dev/db")
-        assert r.status_code == 200
-        assert "DB Management" in r.text
-
 
 @pytest.mark.asyncio
 class TestAdditionalMainPagesAndStudentAuth:

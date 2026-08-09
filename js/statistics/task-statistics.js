@@ -1,6 +1,6 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
-import { escapeHtml } from '../utils/ui-utils.js';
+import { escapeHtml, formatTime } from '../utils/ui-utils.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
@@ -50,15 +50,6 @@ const CIRC = 376.99; // circumference of r=60 circle
 
 const privateBadgeSlot = document.getElementById('exercise-private-badge');
 
-function formatTime(seconds) {
-	if (seconds === null || seconds === undefined) return '—';
-	if (!Number.isFinite(seconds)) return '—';
-	if (seconds < 0) return '—';
-	if (seconds === 0) return '0s';
-	const mins = Math.floor(seconds / 60);
-	const secs = Math.round(seconds % 60);
-	return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-}
 
 function formatCount(n) { return String(Math.round(n)); }
 

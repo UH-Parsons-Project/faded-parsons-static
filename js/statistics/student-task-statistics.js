@@ -1,5 +1,5 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
-import { escapeHtml, formatDateTime, showError } from '../utils/ui-utils.js';
+import { escapeHtml, formatDateTime, showError, formatTime } from '../utils/ui-utils.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -15,12 +15,6 @@ if (!studentUsername || !taskId || !setId) {
 }
 document.getElementById('student-name-badge').href = `/student-attempts?student=${encodeURIComponent(studentUsername)}&set_id=${encodeURIComponent(setId)}`;
 
-function formatTime(seconds) {
-	if (!seconds) return '0s';
-	const mins = Math.floor(seconds / 60);
-	const secs = Math.round(seconds % 60);
-	return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-}
 
 
 

@@ -1,3 +1,4 @@
+import { showAlert } from '../utils/ui-utils.js';
 const _params = new URLSearchParams(window.location.search);
 const _code = _params.get('code');
 const _username = _params.get('username');
@@ -9,13 +10,7 @@ if (_code && _username) {
 const form = document.getElementById('register-form');
 const alertPlaceholder = document.getElementById('alert-placeholder');
 
-function showAlert(message, type = 'danger') {
-	alertPlaceholder.innerHTML = `
-		<div class="alert alert-${type}" role="alert">
-			${message}
-		</div>
-	`;
-}
+
 
 form.addEventListener('submit', async (e) => {
 	e.preventDefault();
@@ -30,7 +25,7 @@ form.addEventListener('submit', async (e) => {
 
 	// Client-side confirmation check
 	if (payload.password !== payload.password_confirm) {
-		showAlert('Passwords do not match');
+		showAlert(alertPlaceholder, 'Passwords do not match');
 		return;
 	}
 
@@ -43,11 +38,11 @@ form.addEventListener('submit', async (e) => {
 
 		const data = await res.json();
 		if (!res.ok) {
-			showAlert(data.detail || data.message || 'Registration failed');
+			showAlert(alertPlaceholder, data.detail || data.message || 'Registration failed');
 			return;
 		}
 
-		showAlert('Registration successful.', 'success');
+		showAlert(alertPlaceholder, 'Registration successful.', 'success');
 		form.reset();
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
@@ -56,6 +51,6 @@ form.addEventListener('submit', async (e) => {
 			setTimeout(() => { window.location.href = '/' + username + '/set/' + code; }, 1000);
 		}
 	} catch (err) {
-		showAlert('Network error');
+		showAlert(alertPlaceholder, 'Network error');
 	}
 });

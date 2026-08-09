@@ -136,3 +136,32 @@ export function renderParsonsBoard(initialText, options) {
   
   return parsonsWidget;
 }
+
+export function parseCustomErrorRules(rawRules) {
+  if (!rawRules) {
+    return [];
+  }
+
+  let parsed = rawRules;
+  if (typeof rawRules === 'string') {
+    try {
+      parsed = JSON.parse(rawRules);
+    } catch (e) {
+      console.warn('Failed to parse custom error rules JSON:', e);
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter((rule) => {
+    if (!rule || typeof rule !== 'object') {
+      return false;
+    }
+    const pattern = typeof rule.pattern === 'string' ? rule.pattern.trim() : '';
+    const message = typeof rule.message === 'string' ? rule.message.trim() : '';
+    return Boolean(pattern && message);
+  });
+}

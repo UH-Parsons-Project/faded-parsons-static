@@ -1,5 +1,5 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
-import { formatDateTime, escapeHtml, showError } from '../utils/ui-utils.js';
+import { formatDateTime, escapeHtml, showError, makeKeyActivatable } from '../utils/ui-utils.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
@@ -57,16 +57,6 @@ function bindRemoveStudentButton() {
 }
 
 
-function makeKeyActivatable(el, handler) {
-	el.setAttribute('tabindex', '0');
-	el.setAttribute('role', 'button');
-	el.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			handler(e);
-		}
-	});
-}
 
 function renderHeader(username, completedTasks, attemptedTasks, totalTasks, taskSetName, isOwner) {
 	const CIRC = 376.99;

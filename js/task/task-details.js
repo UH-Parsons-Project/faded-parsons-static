@@ -1,6 +1,7 @@
 import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml } from '../utils/ui-utils.js';
+import { parseCustomErrorRules } from '../utils/parsons-editor-utils.js';
 
 // Initialize Page Protection & Navigation Components
 initProtectedPage('/');
@@ -13,18 +14,6 @@ function formatMultilineText(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
-// Parse custom error rules safely
-function parseCustomErrorRules(rawRules) {
-  if (!rawRules) return [];
-  if (Array.isArray(rawRules)) return rawRules;
-  try {
-    const parsed = typeof rawRules === 'string' ? JSON.parse(rawRules) : rawRules;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.warn('Failed to parse custom error rules:', e);
-    return [];
-  }
-}
 
 // Convert doctest examples into assert statements for visual display
 function convertDoctestsToAsserts(header) {

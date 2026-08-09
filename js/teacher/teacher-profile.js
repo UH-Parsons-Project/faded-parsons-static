@@ -1,5 +1,5 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
-import { formatDate } from '../utils/ui-utils.js';
+import { formatDate, showAlert } from '../utils/ui-utils.js';
 
 // Enforce authentication check, display username/role in navbar, initialize hamburger menu
 initProtectedPage('/');
@@ -19,28 +19,6 @@ const changePasswordForm = document.getElementById('change-password-form');
 const passwordAlertPlaceholder = document.getElementById('password-alert-placeholder');
 
 // Helpers for alerts
-function showEmailAlert(message, type = 'danger') {
-	emailAlertPlaceholder.innerHTML = `
-    <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="border-radius: 8px;">
-      ${message}
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-  `;
-}
-
-function showPasswordAlert(message, type = 'danger') {
-	passwordAlertPlaceholder.innerHTML = `
-    <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="border-radius: 8px;">
-      ${message}
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-  `;
-}
-
 
 
 // Load teacher profile data
@@ -86,15 +64,15 @@ changeEmailForm.addEventListener('submit', async (e) => {
 
 		const data = await res.json();
 		if (!res.ok) {
-			showEmailAlert(data.detail || 'Failed to update email address.');
+			showAlert(emailAlertPlaceholder, data.detail || 'Failed to update email address.');
 			return;
 		}
 
-		showEmailAlert('Email address successfully updated.', 'success');
+		showAlert(emailAlertPlaceholder, 'Email address successfully updated.', 'success');
 		changeEmailForm.reset();
 		if (profileEmailEl) profileEmailEl.textContent = email;
 	} catch (err) {
-		showEmailAlert('Network error updating email.');
+		showAlert(emailAlertPlaceholder, 'Network error updating email.');
 	}
 });
 
@@ -107,12 +85,12 @@ changePasswordForm.addEventListener('submit', async (e) => {
 	const new_password_confirm = document.getElementById('new-password-confirm').value;
 
 	if (new_password !== new_password_confirm) {
-		showPasswordAlert('New passwords do not match.');
+		showAlert(passwordAlertPlaceholder, 'New passwords do not match.');
 		return;
 	}
 
 	if (new_password.length < 8) {
-		showPasswordAlert('New password must be at least 8 characters long.');
+		showAlert(passwordAlertPlaceholder, 'New password must be at least 8 characters long.');
 		return;
 	}
 
@@ -130,14 +108,14 @@ changePasswordForm.addEventListener('submit', async (e) => {
 
 		const data = await res.json();
 		if (!res.ok) {
-			showPasswordAlert(data.detail || 'Failed to update password.');
+			showAlert(passwordAlertPlaceholder, data.detail || 'Failed to update password.');
 			return;
 		}
 
-		showPasswordAlert('Password successfully updated.', 'success');
+		showAlert(passwordAlertPlaceholder, 'Password successfully updated.', 'success');
 		changePasswordForm.reset();
 	} catch (err) {
-		showPasswordAlert('Network error updating password.');
+		showAlert(passwordAlertPlaceholder, 'Network error updating password.');
 	}
 });
 

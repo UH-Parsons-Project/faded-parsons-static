@@ -1,4 +1,5 @@
 import { initStudentLogout, initSignedInAs, initNavbarExercisesButton } from '../core/auth-ui.js';
+import { makeKeyActivatable } from '../utils/ui-utils.js';
 
 initSignedInAs({ preferNickname: true });
 
@@ -14,16 +15,7 @@ const uniqueLinkCode = pathParts[3];
 
 let tasksList = [];
 
-function makeKeyActivatable(el, handler) {
-	el.setAttribute('tabindex', '0');
-	el.setAttribute('role', 'button');
-	el.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			handler(e);
-		}
-	});
-}
+
 
 async function loadProblemsetInfo() {
 	try {

@@ -1,13 +1,8 @@
+import { showAlert } from '../utils/ui-utils.js';
 const form = document.getElementById('register-form');
 const alertPlaceholder = document.getElementById('alert-placeholder');
 
-function showAlert(message, type = 'danger') {
-	alertPlaceholder.innerHTML = `
-		<div class="alert alert-${type}" role="alert">
-			${message}
-		</div>
-	`;
-}
+
 
 form.addEventListener('submit', async (e) => {
 	e.preventDefault();
@@ -23,7 +18,7 @@ form.addEventListener('submit', async (e) => {
 
 	// Client-side confirmation check
 	if (payload.password !== payload.password_confirm) {
-		showAlert('Passwords do not match');
+		showAlert(alertPlaceholder, 'Passwords do not match');
 		return;
 	}
 
@@ -36,14 +31,14 @@ form.addEventListener('submit', async (e) => {
 
 		const data = await res.json();
 		if (!res.ok) {
-			showAlert(data.detail || data.message || 'Registration failed');
+			showAlert(alertPlaceholder, data.detail || data.message || 'Registration failed');
 			return;
 		}
 
-		showAlert('Registration successful.', 'success');
+		showAlert(alertPlaceholder, 'Registration successful.', 'success');
 		form.reset();
 		setTimeout(() => { window.location.href = '/?focus=username'; }, 1000);
 	} catch (err) {
-		showAlert('Network error');
+		showAlert(alertPlaceholder, 'Network error');
 	}
 });

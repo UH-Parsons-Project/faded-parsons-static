@@ -1,6 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
-import { escapeHtml, formatDate, formatDateTime, showError } from '../utils/ui-utils.js';
+import { escapeHtml, formatDate, formatDateTime, showError, makeKeyActivatable } from '../utils/ui-utils.js';
 import { fetchJsonWithError } from '../utils/api-utils.js';
 import { loadHeatmap } from './task-set-heatmap.js';
 
@@ -41,16 +41,7 @@ function buildCsvExportFilename(taskSet, exportType) {
 	return `${safeTitle}_${safeTeacherName}_${exportType}_${formatCsvExportTimestamp()}.csv`;
 }
 
-function makeKeyActivatable(el, handler) {
-	el.setAttribute('tabindex', '0');
-	el.setAttribute('role', 'button');
-	el.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			handler(e);
-		}
-	});
-}
+
 
 let overviewTaskStatsPromise = null;
 

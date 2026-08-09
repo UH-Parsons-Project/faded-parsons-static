@@ -8,6 +8,7 @@ import {
 import '../components/problem-element.js'; // Problem UI web component
 import {FiniteWorker} from '../core/worker-manager.js'; // Worker process for Python code execution
 import {getUsername} from '../core/auth-utils.js';
+import { parseCustomErrorRules } from '../utils/parsons-editor-utils.js';
 
 // Local storage key suffixes for saving user state
 const LS_REPR = '-repr';
@@ -94,34 +95,7 @@ async function resolveNextTaskUrl() {
 	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
 }
 
-function parseCustomErrorRules(rawRules) {
-	if (!rawRules) {
-		return [];
-	}
 
-	let parsed = rawRules;
-	if (typeof rawRules === 'string') {
-		try {
-			parsed = JSON.parse(rawRules);
-		} catch (e) {
-			console.warn('Failed to parse custom error rules JSON:', e);
-			return [];
-		}
-	}
-
-	if (!Array.isArray(parsed)) {
-		return [];
-	}
-
-	return parsed.filter((rule) => {
-		if (!rule || typeof rule !== 'object') {
-			return false;
-		}
-		const pattern = typeof rule.pattern === 'string' ? rule.pattern.trim() : '';
-		const message = typeof rule.message === 'string' ? rule.message.trim() : '';
-		return Boolean(pattern && message);
-	});
-}
 
 // Initializes the problem widget. Called when the page loads.
 export async function initWidget() {

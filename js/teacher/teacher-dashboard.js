@@ -1,6 +1,8 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
-import { escapeHtml, formatDate, showError } from '../utils/ui-utils.js';
+import { formatDate, showError, makeKeyActivatable } from '../utils/ui-utils.js';
+import { createTaskSetItem } from '../utils/ui-components.js';
+import { fetchJsonWithError, authFetch } from '../utils/api-utils.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -25,11 +27,7 @@ let currentUsername = null;
 
 async function loadCurrentUser() {
 	try {
-		const response = await fetch('/api/me', { credentials: 'include' });
-		if (!response.ok) {
-			throw new Error('Failed to fetch user data');
-		}
-		const data = await response.json();
+		const data = await fetchJsonWithError('/api/me', 'Failed to fetch user data');
 		currentUsername = data?.username ?? null;
 		if (data?.username) {
 			userNameEl.textContent = data.username;
@@ -54,94 +52,9 @@ function formatTaskTypeLabel(taskType) {
 	return taskType.charAt(0).toUpperCase() + taskType.slice(1);
 }
 
-function makeKeyActivatable(el, handler) {
-	el.setAttribute('tabindex', '0');
-	el.setAttribute('role', 'button');
-	el.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			handler(e);
-		}
-	});
-}
 
-function createTaskSetItem(taskSet) {
-	const item = document.createElement('div');
-	item.className = 'task-set-item';
-	const navigateToSet = () => { window.location.href = `/task-set-overview?set_id=${taskSet.id}`; };
-	item.onclick = navigateToSet;
-	makeKeyActivatable(item, navigateToSet);
 
-	// Top row: title + join code chip
-	const topRow = document.createElement('div');
-	topRow.className = 'task-set-item-top';
 
-	const titleWrap = document.createElement('div');
-	titleWrap.style.display = 'flex';
-	titleWrap.style.alignItems = 'center';
-	titleWrap.style.gap = '.45rem';
-	titleWrap.style.minWidth = '0';
-
-	const title = document.createElement('div');
-	title.className = 'task-set-title';
-	title.textContent = taskSet.title;
-	titleWrap.appendChild(title);
-
-	if (isPrivateTask(taskSet)) {
-		titleWrap.appendChild(createPrivateBadge());
-	}
-
-	topRow.appendChild(titleWrap);
-
-	if (taskSet.unique_link_code) {
-		const chip = document.createElement('div');
-		chip.className = 'task-set-code-chip';
-		chip.title = 'Click to copy link';
-		chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
-		const copyLink = (e) => {
-			e.stopPropagation();
-			const url = `${window.location.protocol}//${window.location.host}/${encodeURIComponent(taskSet.owner_username)}/set/${encodeURIComponent(taskSet.unique_link_code)}`;
-			navigator.clipboard.writeText(url).then(() => {
-				chip.classList.add('copied');
-				chip.innerHTML = `<i class="fas fa-check"></i>${taskSet.unique_link_code}`;
-				setTimeout(() => {
-					chip.classList.remove('copied');
-					chip.innerHTML = `<i class="far fa-copy"></i>${taskSet.unique_link_code}`;
-				}, 1500);
-			});
-		};
-		chip.onclick = copyLink;
-		makeKeyActivatable(chip, copyLink);
-		topRow.appendChild(chip);
-	}
-
-	item.appendChild(topRow);
-
-	const meta = document.createElement('div');
-	meta.className = 'task-set-meta';
-	const expiryPart = taskSet.expires_at
-		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
-		: '';
-	const sharedPart = (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername)
-		? ` &nbsp;·&nbsp; <i class="fas fa-share-alt"></i> Shared by ${escapeHtml(taskSet.owner_username)}`
-		: '';
-	meta.innerHTML = `<i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}${expiryPart}${sharedPart}`;
-	item.appendChild(meta);
-
-	if (taskSet.teacher_description) {
-		const description = document.createElement('div');
-		description.className = 'task-set-description';
-		let displayText = taskSet.teacher_description;
-		if (displayText.length > 228) {
-			displayText = displayText.substring(0, 228) + '…';
-		}
-		description.textContent = displayText;
-		description.title = taskSet.teacher_description;
-		item.appendChild(description);
-	}
-
-	return item;
-}
 
 function renderTaskSets(taskSets) {
 	const container = document.getElementById('task-sets-container');
@@ -191,7 +104,7 @@ function renderTaskSets(taskSets) {
 		ownedContainer.innerHTML = '<div class="text-muted mb-3">No task sets yet.</div>';
 	} else {
 		ownedLists.forEach(taskSet => {
-			ownedContainer.appendChild(createTaskSetItem(taskSet));
+			ownedContainer.appendChild(createTaskSetItem(taskSet, currentUsername));
 		});
 	}
 	ownedSection.appendChild(ownedContainer);
@@ -205,7 +118,7 @@ function renderTaskSets(taskSets) {
 		sharedContainer.innerHTML = '<div class="text-muted">No shared task sets.</div>';
 	} else {
 		sharedLists.forEach(taskSet => {
-			sharedContainer.appendChild(createTaskSetItem(taskSet));
+			sharedContainer.appendChild(createTaskSetItem(taskSet, currentUsername));
 		});
 	}
 	sharedSection.appendChild(sharedContainer);
@@ -257,15 +170,7 @@ function setupSearch() {
 
 async function loadTaskSets() {
 	try {
-		const response = await fetch('/api/my_sets', { credentials: 'include' });
-		if (!response.ok) {
-			if (response.status === 401) {
-				window.location.href = '/';
-				return;
-			}
-			throw new Error('Failed to load task sets');
-		}
-		const data = await response.json();
+		const data = await fetchJsonWithError('/api/my_sets', 'Failed to load task sets');
 		renderTaskSets(data);
 	} catch (err) {
 		console.error('Error loading task sets:', err);
@@ -328,16 +233,11 @@ function createMyTaskCard(task) {
 			e.stopPropagation();
 			if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
 			try {
-				const res = await fetch(`/api/problems/${task.id}`, { method: 'DELETE', credentials: 'include' });
-				if (res.ok) {
-					card.remove();
-				} else {
-					const data = await res.json().catch(() => ({}));
-					alert(data.detail || 'Failed to delete task.');
-				}
+				await authFetch(`/api/problems/${task.id}`, { method: 'DELETE' });
+				loadMyTasks(); // refresh the list
 			} catch (err) {
 				console.error('Delete failed:', err);
-				alert('Failed to delete task.');
+				alert(err.message || 'Failed to delete task.');
 			}
 		});
 		actions.appendChild(deleteBtn);
@@ -432,10 +332,8 @@ function setupTaskSearch() {
 
 async function loadMyTasks() {
 	try {
-		const response = await fetch('/api/my_tasks', { credentials: 'include' });
-		if (!response.ok) return;
-		const tasks = await response.json();
-		renderMyTasks(tasks);
+		const data = await fetchJsonWithError('/api/my_tasks', 'Failed to load tasks');
+		renderMyTasks(data);
 	} catch (err) {
 		console.error('Error loading tasks:', err);
 	}

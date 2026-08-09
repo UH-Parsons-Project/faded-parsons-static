@@ -81,6 +81,19 @@ function pipeCell(value, width) {
 	return text.padEnd(width, ' ');
 }
 
+function isTaskFaded(task) {
+	if (task?.is_faded === true) {
+		return true;
+	}
+
+	const blocks = task?.code_blocks?.blocks;
+	if (Array.isArray(blocks)) {
+		return blocks.some((block) => block && block.faded === true);
+	}
+
+	return task?.task_type === 'Faded' || task?.task_type === 'faded';
+}
+
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 	const headers = [
 		'Task Name',
@@ -115,7 +128,7 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 		const timeToFirstFail = stats.time_to_first_fail || {};
 		const moves = stats.number_of_moves || {};
 
-		const isFadedTask = task.task_type === 'Faded' || task.task_type === 'faded' || task.is_faded === true;
+		const isFadedTask = isTaskFaded(task);
 
 		return [
 			task.title,

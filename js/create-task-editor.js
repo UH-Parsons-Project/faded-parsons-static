@@ -762,8 +762,8 @@ initBurgerMenu();
 
     const updatedAtLabel = formatUpdatedAtLabel(modelAnswerUpdatedAt);
     status.textContent = updatedAtLabel
-      ? `Last updated at ${updatedAtLabel}.`
-      : 'Last updated at unknown time.';
+      ? `Model answer saved at ${updatedAtLabel}.`
+      : 'Model answer saved at unknown time.';
   }
 
   function updateCounters() {

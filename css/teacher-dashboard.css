@@ -321,40 +321,6 @@ a.btn-success.btn-block:hover {
   text-decoration: none;
 }
 
-.create-new-card {
-  background: var(--card);
-  border: 2px dashed var(--brand-dark);
-  border-radius: var(--radius);
-  padding: 1.25rem 1rem;
-  text-align: center;
-  cursor: pointer;
-  color: var(--brand-text);
-  transition: background .15s, border-color .15s, box-shadow .15s;
-  box-shadow: var(--shadow);
-}
-.create-new-card:hover {
-  background: #eef0fd;
-  border-color: var(--brand-dark);
-  border-style: solid;
-  box-shadow: var(--shadow-md);
-}
-.create-new-card i {
-  font-size: 1.4rem;
-  margin-bottom: .35rem;
-  display: block;
-  color: var(--brand-dark);
-}
-.create-new-card .task-set-title {
-  font-size: .85rem;
-  color: var(--brand-text);
-  margin-bottom: .15rem;
-}
-.create-new-card p {
-  font-size: .82rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
 /* ── Top actions bar ─────────────────────────────────── */
 .top-actions {
   display: flex;
@@ -397,13 +363,6 @@ a.btn-success.btn-block:hover {
 #all-sets-button:hover { background: #253080; border-color: #253080; }
 
 /* ── Your Tasks section ──────────────────────────────── */
-.your-tasks-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .6rem;
-}
-.your-tasks-section-header h4 { margin: 0; }
 
 /* ── Utilities ───────────────────────────────────────── */
 .text-muted { color: var(--text-muted) !important; }

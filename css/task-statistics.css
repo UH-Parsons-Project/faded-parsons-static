@@ -248,39 +248,7 @@ a.sidebar-row { text-decoration: none; color: inherit; display: flex; }
 a.sidebar-row:hover { color: inherit; text-decoration: none; }
 a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .sidebar-row-meta { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
-.sidebar-more {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .45rem .6rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  cursor: pointer;
-  text-align: center;
-  margin-top: .35rem;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .35rem;
-  transition: background .15s, color .15s, border-color .15s;
-}
-.sidebar-more::before {
-  content: '';
-  display: inline-block;
-  width: 14px; height: 14px;
-  background: var(--border);
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: background .15s;
-}
-.sidebar-more:hover {
-  background: var(--border);
-  border-color: var(--gray);
-  color: var(--text);
-}
-.sidebar-more:hover::before { background: var(--gray); }
+
 .sidebar-empty {
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -448,7 +416,7 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 }
 .bp-legend-item { display: flex; align-items: center; gap: .4rem; }
 .bp-legend-item--primary { color: var(--text); font-weight: 700; font-size: 0.75rem; }
-.bp-legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+
 .bp-legend-wiki {
   margin-left: auto;
   font-size: 0.7rem;
@@ -474,44 +442,7 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .bp-avg-g:hover .bp-tip-bg,
 .bp-avg-g:hover .bp-tip-text { visibility: visible; }
 
-.tc-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  gap: .6rem;
-  align-items: end;
-}
-.tc-cell {
-  background: var(--bg);
-  border-radius: 8px;
-  padding: .55rem .9rem;
-  text-align: center;
-  border: 1px solid var(--border);
-}
-.tc-cell-lbl {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--text-muted);
-  margin-bottom: .3rem;
-}
-.tc-cell-val {
-  font-size: 1.1rem;
-  font-weight: 800;
-  line-height: 1;
-  color: var(--text);
-}
-.tc-cell.is-avg {
-  background: white;
-  border-color: currentColor;
-  padding: 1.1rem 1rem;
-}
-.tc-cell.is-avg .tc-cell-val {
-  font-size: 1.85rem;
-}
-.tc-cell.is-avg .tc-cell-lbl {
-  font-size: 0.7rem;
-}
+ 
 
 .time-divider {
   height: 1px;
@@ -561,7 +492,7 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
   flex-direction: column;
   gap: .85rem;
 }
-.avg-tries-header { display: flex; align-items: center; justify-content: space-between; }
+
 .avg-tries-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
 .avg-tries-cells {
   display: grid;
@@ -737,43 +668,6 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 .collapse-chevron.collapsed { transform: rotate(-90deg); }
 
 /* ── Error rules ─────────────────────────────────────── */
-.error-rule {
-  padding: .75rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.error-rule:last-child { border-bottom: none; padding-bottom: 0; }
-.error-rule:first-child { padding-top: 0; }
-.error-rule-header {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  margin-bottom: .4rem;
-  flex-wrap: wrap;
-}
-.error-match-chip {
-  font-size: .68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  background: #fef3c7;
-  color: #92400e;
-  padding: .1rem .45rem;
-  border-radius: 2rem;
-}
-.error-pattern {
-  font-family: var(--mono);
-  font-size: .78rem;
-  background: #f1f5f9;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: .1rem .4rem;
-  color: var(--text);
-}
-.error-message {
-  font-size: .82rem;
-  color: var(--text);
-  line-height: 1.5;
-}
 
 /* ── Model answer code ───────────────────────────────── */
 .model-code {
@@ -791,16 +685,6 @@ a.sidebar-row:hover .sidebar-row-name { color: var(--brand-dark); }
 }
 
 /* ── Accent overrides ────────────────────────────────── */
-body.accent-teal {
-  --brand: #99f6e4;
-  --brand-dark: #0d9488;
-  --brand-text: #134e4a;
-}
-body.accent-slate {
-  --brand: #cbd5e1;
-  --brand-dark: #475569;
-  --brand-text: #1e293b;
-}
 
 /* ── Custom Error Messages ───────────────────────────────── */
 .ce-count-chip {

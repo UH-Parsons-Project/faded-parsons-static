@@ -81,14 +81,7 @@ body {
   align-items: flex-start;
   gap: 2rem;
 }
-.header-left { flex: 1; min-width: 0; }
-.taskset-actions-row {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  flex-wrap: wrap;
-  margin-bottom: .55rem;
-}
+
 .taskset-action-btn {
   display: inline-flex;
   align-items: center;
@@ -533,11 +526,7 @@ h3.mb-3 {
 }
 .viewer-add-form button:hover { background: #253080; }
 .viewer-add-form button:disabled { opacity: .6; cursor: not-allowed; }
-.viewer-add-hint {
-  font-size: .75rem;
-  color: var(--text-muted);
-  margin-bottom: .65rem;
-}
+
 .viewer-item {
   position: relative;
   background: var(--card);
@@ -663,17 +652,6 @@ h3.mb-3 {
 .hm-sort-btn.active { background: var(--brand); border-color: var(--brand-dark); color: var(--brand-text); }
 
 /* Alerts */
-.hm-alerts { display: flex; flex-direction: column; gap: .45rem; }
-.hm-alert {
-  display: flex; align-items: flex-start; gap: .6rem;
-  padding: .6rem 1rem; border-radius: var(--radius);
-  font-size: .83rem; line-height: 1.55;
-}
-.hm-alert i { margin-top: .15rem; flex-shrink: 0; font-size: .85rem; }
-.hm-alert-red   { background: var(--red-light);   color: #7f1d1d; border: 1px solid #fca5a5; }
-.hm-alert-amber { background: var(--amber-light); color: #78350f; border: 1px solid #fcd34d; }
-.hm-alert-red   i { color: var(--red);   }
-.hm-alert-amber i { color: var(--amber); }
 
 /* Card + scroll wrapper */
 .hm-card {
@@ -789,22 +767,6 @@ h3.mb-3 {
 .hm-prog-count     { font-size: .72rem; font-weight: 700; font-family: var(--mono); }
 
 /* Summary rows */
-.hm-summary-row td  { background: #f8fafc; border-top: 2px solid var(--border); }
-.hm-summary-label-td {
-  position: sticky; left: 0; z-index: 1; background: #f8fafc !important;
-  padding: .6rem 1rem; font-size: .7rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .07em; color: var(--text-muted); border-right: 2px solid var(--border);
-}
-.hm-summary-cell    { padding: .4rem .3rem; text-align: center; border-right: 1px solid var(--border); }
-.hm-summary-empty   { border-left: 2px solid var(--border); background: #f8fafc; }
-
-.hm-struggling-row td  { background: #fff8f8; }
-.hm-struggling-label-td {
-  position: sticky; left: 0; z-index: 1; background: #fff8f8 !important;
-  padding: .45rem 1rem; font-size: .7rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .07em; color: #f87171; border-right: 2px solid var(--border); border-bottom: 1px solid var(--border);
-}
-.hm-struggling-cell { padding: .35rem .3rem; text-align: center; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 
 /* Tooltip */
 .hm-tooltip {

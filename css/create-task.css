@@ -258,23 +258,9 @@ body {
 
 .guide-steps,
 .guide-example,
-.guide-tips {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius);
-    padding: 1.2rem;
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow);
-}
 
 .guide-steps h3,
 .guide-example h3,
-.guide-tips h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #1a2a44;
-    font-size: 1.1rem;
-}
 
 .steps-list {
     margin: 0;
@@ -400,22 +386,6 @@ body {
 .example-note i {
     color: #f59e0b;
     flex-shrink: 0;
-}
-
-.guide-tips ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    list-style: disc;
-}
-
-.guide-tips li {
-    margin-bottom: 0.8rem;
-    line-height: 1.6;
-    color: #475569;
-}
-
-.guide-tips strong {
-    color: #1a2a44;
 }
 
 @media (max-width: 700px) {

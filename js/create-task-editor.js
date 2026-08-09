@@ -1579,7 +1579,8 @@ initBurgerMenu();
         if (persistedToServer) {
           const status = document.getElementById('model-answer-status');
           if (status) {
-            status.textContent = 'Model answer saved to the task.';
+            const updatedAtLabel = formatUpdatedAtLabel(modelAnswerUpdatedAt) || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            status.textContent = `Model answer saved at ${updatedAtLabel}.`;
           }
         }
         hasOpenedStudentPreview = false;

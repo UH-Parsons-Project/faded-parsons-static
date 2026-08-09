@@ -276,7 +276,7 @@ class TestUpdateTask:
         r = await client.put(
             f"/api/problems/{task.id}/model-answer",
             headers=_auth(test_teacher.username),
-            json={"modelAnswerCode": "def ma_update(x):\n    return x + 5"},
+            json=_problem_payload(modelAnswerCode="def ma_update(x):\n    return x + 5"),
         )
         assert r.status_code == 200
         await db_session.refresh(ma)
@@ -291,10 +291,11 @@ class TestUpdateTask:
             solutionCode="def no_ma(x):\n    return x + 9",
             tests="assert no_ma(0) == 9",
         )
+        # Create model answer explicitly via the dedicated endpoint
         r = await client.put(
-            f"/api/problems/{task.id}",
+            f"/api/problems/{task.id}/model-answer",
             headers=_auth(test_teacher.username),
-            json=payload,
+            json=_problem_payload(modelAnswerCode="def no_ma(x):\n    return x + 9"),
         )
         assert r.status_code == 200
         result = await db_session.execute(
@@ -306,7 +307,7 @@ class TestUpdateTask:
         r = await client.put(
             f"/api/problems/{task.id}/model-answer",
             headers=_auth(test_teacher.username),
-            json={"modelAnswerCode": "def ma_update(x):\n    return #blank1"},
+            json=_problem_payload(modelAnswerCode="def ma_update(x):\n    return #blank1"),
         )
         assert r.status_code == 200
 

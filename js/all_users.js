@@ -383,8 +383,9 @@ async function deleteUser(role, id, username) {
 	fetch(`/api/admin/users/${role}/${id}`, {
 		method: 'DELETE',
 		headers: {
-			'X-Admin-Password': password
+			'Content-Type': 'application/json'
 		},
+		body: JSON.stringify({ admin_password: password }),
 		credentials: 'include',
 	})
 	.then(r => {
@@ -416,8 +417,9 @@ async function makeAdmin(id, username) {
 	fetch(`/api/admin/users/teacher/${id}/make-admin`, {
 		method: 'POST',
 		headers: {
-			'X-Admin-Password': password
+			'Content-Type': 'application/json'
 		},
+		body: JSON.stringify({ admin_password: password }),
 		credentials: 'include',
 	})
 	.then(r => {

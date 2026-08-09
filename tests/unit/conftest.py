@@ -16,6 +16,7 @@ from httpx import AsyncClient, ASGITransport
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["AUTO_INIT_DB"] = "false"
 os.environ["TEST_MODE"] = "true"
+os.environ["SECRET_KEY"] = "test-secret-key-for-unit-tests-only-never-use-in-prod"
 
 # Handle different SQLAlchemy versions
 try:

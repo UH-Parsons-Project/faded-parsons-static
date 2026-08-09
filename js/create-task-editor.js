@@ -54,6 +54,7 @@ initBurgerMenu();
   let modelAnswerCode = '';
   let modelAnswerRepr = '';
   let modelAnswerUpdatedAt = '';
+  let persistedModelAnswerSource = '';
   let hasOpenedStudentPreview = false;
   let testsPassed = false;
 
@@ -181,7 +182,8 @@ initBurgerMenu();
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
     previewTaskType.textContent = taskType ? `Task type: ${taskType}` : 'Task type not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
-    previewModelAnswer.textContent = sanitizeBlankInputMarkup(modelAnswerCode || '') || 'No model answer set yet.';
+    const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
+    previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
 
     previewSource.innerHTML = '';
     previewSolution.innerHTML = '';
@@ -197,14 +199,25 @@ initBurgerMenu();
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
     const previewRepr = buildCustomRepr() || modelAnswerRepr;
-    previewParsonsWidget.init(previewRepr);
+    previewParsonsWidget.init(normalizeBlankMarkup(previewRepr));
 
     const previewSolutionIds = previewParsonsWidget.studentGiven.map((line) => line.id);
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
+    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds);
+    const previewBlankValuesByLineId = previewSolutionIds.reduce((acc, id, index) => {
+      acc[id] = previewValuesToRestore[index] || [];
+      return acc;
+    }, {});
+    applyBlankValuesToWidgetLines(previewParsonsWidget, previewBlankValuesByLineId);
     previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
+
+    if (previewValuesToRestore.some((values) => values.length)) {
+      saveBlankValuesToSession(previewValuesToRestore);
+      restoreBlankValuesToDomByLineId(previewBlankValuesByLineId, previewSolution.querySelector('ul'));
+    }
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -279,38 +292,85 @@ initBurgerMenu();
     return (code || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   }
 
-  function sanitizeBlankInputMarkup(text) {
-    const normalizedText = normalizeSourceCode(text || '');
-    if (!normalizedText.includes('<input')) {
+  function normalizeBlankMarkup(text) {
+    let normalizedText = normalizeSourceCode(text || '').trimEnd();
+    if (!normalizedText.includes('<input') && !normalizedText.includes('oninput=') && !normalizedText.includes('text-box')) {
       return normalizedText;
     }
 
-    const container = document.createElement('div');
-    container.innerHTML = normalizedText;
-    container.querySelectorAll('input.text-box').forEach((input) => {
-      input.replaceWith(input.value || '');
+    normalizedText = normalizedText
+      .replace(/<input\b[^>]*>/gi, '!BLANK')
+      .replace(/<\/input>/gi, '')
+      .replace(/\s+/g, ' ');
+
+    return normalizedText;
+  }
+
+  function sanitizeBlankInputMarkup(text) {
+    const normalizedText = normalizeBlankMarkup(text || '');
+    if (!normalizedText.includes('<input') && !normalizedText.includes('#blank') && !normalizedText.includes('!BLANK')) {
+      return normalizedText;
+    }
+
+    let sanitizedText = normalizedText;
+    if (normalizedText.includes('<input')) {
+      const container = document.createElement('div');
+      container.innerHTML = normalizedText;
+      container.querySelectorAll('input.text-box').forEach((input) => {
+        input.replaceWith(input.value || '');
+      });
+      sanitizedText = container.textContent.replace(/\u00a0/g, ' ');
+    }
+
+    sanitizedText = sanitizedText.replace(/ ?#blank[^#]*#?/gi, (marker) => {
+      // Remove optional leading space, the '#blank' prefix and any trailing '#'
+      const inner = marker.replace(/^\s?#blank/i, '').replace(/#$/,'').trim();
+      return inner || '';
     });
 
-    return container.textContent.replace(/\u00a0/g, ' ').trim();
+    return sanitizedText.trim();
   }
 
   function extractBlankValuesFromLine(blockCode, lineText) {
-    const normalizedBlockCode = normalizeSourceCode(blockCode || '').trimEnd();
-    const normalizedLineText = normalizeSourceCode(lineText || '').trimEnd();
+    const normalizedBlockCode = normalizeBlankMarkup(blockCode || '').trimEnd();
+    const normalizedLineText = normalizeBlankMarkup(lineText || '').trimEnd();
 
-    if (!normalizedBlockCode.includes('___') || !normalizedLineText) {
+    if ((!normalizedBlockCode.includes('___') && !normalizedBlockCode.includes('!BLANK')) || !normalizedLineText) {
       return [];
     }
 
-    const segments = normalizedBlockCode.split('___');
+    const blockCodeWithoutIndent = normalizedBlockCode.replace(/^\s+/, '');
+    const lineTextWithoutIndent = normalizedLineText.replace(/^\s+/, '');
+
+    if (!blockCodeWithoutIndent || !lineTextWithoutIndent) {
+      return [];
+    }
+
+    const segments = blockCodeWithoutIndent.split(/!BLANK|___/);
     if (segments.length <= 1) {
       return [];
     }
 
     const escapedSegments = segments.map((segment) => segment.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
     const regex = new RegExp(`^${escapedSegments.join('(.*?)')}$`);
-    const match = normalizedLineText.match(regex);
+    const match = lineTextWithoutIndent.match(regex);
     return match ? match.slice(1) : [];
+  }
+
+  function getBlankValuesForBlockCode(blockCode, sourceLines = []) {
+    const normalizedBlockCode = normalizeSourceCode(blockCode || '').trimEnd();
+    if ((!normalizedBlockCode.includes('___') && !normalizedBlockCode.includes('!BLANK')) || !sourceLines.length) {
+      return [];
+    }
+
+    for (const sourceLine of sourceLines) {
+      const values = extractBlankValuesFromLine(normalizedBlockCode, sourceLine);
+      if (values.length) {
+        return values;
+      }
+    }
+
+    return [];
   }
 
   function getLineInputValues(lineId) {
@@ -325,12 +385,12 @@ initBurgerMenu();
   function renderLineWithBlankValues(lineCode, blankValues = []) {
     const normalizedCode = normalizeSourceCode(lineCode || '').trimEnd();
 
-    if (!normalizedCode.includes('!BLANK')) {
+    if (!normalizedCode.includes('!BLANK') && !normalizedCode.includes('___')) {
       return normalizedCode;
     }
 
     let blankIndex = 0;
-    return normalizedCode.split('!BLANK').reduce((renderedCode, segment, index, segments) => {
+    return normalizedCode.split(/!BLANK|___/).reduce((renderedCode, segment, index, segments) => {
       const nextCode = renderedCode + segment;
       if (index === segments.length - 1) {
         return nextCode;
@@ -340,6 +400,40 @@ initBurgerMenu();
       blankIndex += 1;
       return nextCode + blankValue;
     }, '').trimEnd();
+  }
+
+  function applyBlankValuesToWidgetLines(widget, blankValuesByLineId = {}) {
+    if (!widget || !Array.isArray(widget.modified_lines)) {
+      return;
+    }
+
+    widget.modified_lines.forEach((line) => {
+      const values = blankValuesByLineId[line.id] || [];
+      if (!values.length || !line || typeof line.code !== 'string') {
+        return;
+      }
+
+      const normalizedCode = normalizeBlankMarkup(line.code || '').trimEnd();
+      if (!normalizedCode.includes('!BLANK') && !normalizedCode.includes('___')) {
+        return;
+      }
+
+      let appliedIndex = 0;
+      let renderedCode = normalizedCode.replace(/___/g, '!BLANK');
+      renderedCode = renderedCode.split(/!BLANK/).reduce((result, segment, index, segments) => {
+        const nextCode = result + segment;
+        if (index === segments.length - 1) {
+          return nextCode;
+        }
+
+        const blankValue = values[appliedIndex] ?? '';
+        appliedIndex += 1;
+        // Append a trailing '#' so markers are unambiguous when multiple blanks exist
+        return `${nextCode}!BLANK${blankValue === '' ? '' : `#blank${blankValue}#`}`;
+      }, '');
+
+      line.code = renderedCode.trimEnd();
+    });
   }
 
   function hasWidgetHtmlArtifacts(text) {
@@ -394,8 +488,8 @@ initBurgerMenu();
     });
   }
 
-  function restoreBlankValuesToDom(blankValues = []) {
-    const solutionList = document.querySelector('#solution-sortable ul');
+  function restoreBlankValuesToDom(blankValues = [], targetList = null) {
+    const solutionList = targetList || document.querySelector('#solution-sortable ul');
     if (!solutionList) {
       return;
     }
@@ -410,6 +504,39 @@ initBurgerMenu();
         input.style.width = `${(value.length + 3) * 8}px`;
       });
     });
+  }
+
+  function restoreBlankValuesToDomByLineId(blankValuesByLineId = {}, targetList = null) {
+    const solutionList = targetList || document.querySelector('#solution-sortable ul');
+    if (!solutionList) {
+      return;
+    }
+
+    Array.from(solutionList.children).forEach((child) => {
+      const values = blankValuesByLineId[child.id] || [];
+      const inputs = Array.from(child.querySelectorAll('input.text-box'));
+      inputs.forEach((input, inputIndex) => {
+        const value = values[inputIndex] ?? '';
+        input.value = value;
+        input.style.width = `${(value.length + 3) * 8}px`;
+      });
+    });
+  }
+
+  function getBlankValuesToRestore(preferredSourceCode = '', visibleLineIds = []) {
+    const comparedBlankValues = getBlankValuesByComparingModelAnswer(preferredSourceCode, visibleLineIds);
+    if (comparedBlankValues.some((values) => values.length)) {
+      return comparedBlankValues;
+    }
+
+    const restoredBlankValues = getBlankValuesFromSession();
+    const fallbackBlankValues = restoredBlankValues.length
+      ? restoredBlankValues
+      : getBlankValuesFromStoredSources(preferredSourceCode, visibleLineIds);
+
+    return fallbackBlankValues.some((values) => values.length)
+      ? fallbackBlankValues
+      : restoredBlankValues;
   }
 
   function persistBlankValues() {
@@ -552,15 +679,52 @@ initBurgerMenu();
     };
   }
 
-  function saveModelAnswerToSession(code, repr) {
+  async function persistModelAnswerToServer(code) {
+    const taskId = draftPayload?.taskId || null;
+    if (!taskId) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/api/problems/${taskId}/model-answer`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ modelAnswerCode: code }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to persist model answer to server', response.status);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error persisting model answer to server:', error);
+      return false;
+    }
+  }
+
+  function setModelAnswerState(code, repr, updatedAt = '') {
     modelAnswerCode = sanitizeBlankInputMarkup(code || '');
     modelAnswerRepr = sanitizeBlankInputMarkup(repr || '');
-    modelAnswerUpdatedAt = new Date().toISOString();
+    modelAnswerUpdatedAt = updatedAt || '';
     sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
     sessionStorage.setItem(MODEL_ANSWER_REPR_KEY, modelAnswerRepr);
     sessionStorage.setItem(MODEL_ANSWER_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
-    sessionStorage.setItem(MODEL_ANSWER_UPDATED_AT_KEY, modelAnswerUpdatedAt);
+
+    if (modelAnswerUpdatedAt) {
+      sessionStorage.setItem(MODEL_ANSWER_UPDATED_AT_KEY, modelAnswerUpdatedAt);
+    } else {
+      sessionStorage.removeItem(MODEL_ANSWER_UPDATED_AT_KEY);
+    }
+
     updateModelAnswerStatus();
+  }
+
+  function saveModelAnswerToSession(code, repr) {
+    setModelAnswerState(code, repr, new Date().toISOString());
   }
 
   function formatUpdatedAtLabel(isoString) {
@@ -597,8 +761,8 @@ initBurgerMenu();
 
     const updatedAtLabel = formatUpdatedAtLabel(modelAnswerUpdatedAt);
     status.textContent = updatedAtLabel
-      ? `Model answer saved at ${updatedAtLabel}.`
-      : 'Model answer saved.';
+      ? `Last updated at ${updatedAtLabel}.`
+      : 'Last updated at unknown time.';
   }
 
   function updateCounters() {
@@ -620,15 +784,13 @@ initBurgerMenu();
 
   function buildReprFromBlocks(taskData) {
     const blocks = taskData.code_blocks?.blocks || [];
-    const INDENT = '    ';
-    const solutionCode = normalizeSourceCode(taskData.correct_solution?.solution_code || '');
-    const solutionLines = solutionCode.split('\n').map((line) => line.trimEnd());
+    const sourceCode = normalizeBlankMarkup(taskData.model_answer || taskData.correct_solution?.solution_code || '');
+    const solutionLines = sourceCode.split('\n').map((line) => line.trimEnd());
 
     const persistedBlankValues = [];
-    const reprLines = blocks.map((block, index) => {
+    const reprLines = blocks.map((block) => {
       const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
-      const blockSolutionLine = solutionLines[index] || '';
-      const blankValues = extractBlankValuesFromLine(block.code, blockSolutionLine);
+      const blankValues = getBlankValuesForBlockCode(block.code, solutionLines);
       if (blankValues.length) {
         persistedBlankValues.push(blankValues);
       }
@@ -647,7 +809,81 @@ initBurgerMenu();
     return reprLines.join('\n');
   }
 
-  function renderParsonsBoard(initialText) {
+  function getBlankValuesFromSourceCode(sourceCode, visibleLineIds = []) {
+    if (!parsonsWidget || !sourceCode) {
+      return [];
+    }
+
+    const solutionLines = normalizeSourceCode(sourceCode).split('\n').map((line) => line.trimEnd());
+    const visibleLines = Array.isArray(visibleLineIds) && visibleLineIds.length
+      ? visibleLineIds
+        .map((lineId) => parsonsWidget.modified_lines.find((line) => line.id === lineId))
+        .filter(Boolean)
+      : (Array.isArray(parsonsWidget.given) ? parsonsWidget.given : (Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : []));
+
+    return visibleLines.map((line) => {
+      const lineCode = normalizeSourceCode(line.code || '').trimEnd();
+      if (!lineCode.includes('___') && !lineCode.includes('!BLANK')) {
+        return [];
+      }
+      return getBlankValuesForBlockCode(lineCode, solutionLines);
+    });
+  }
+
+  function getBlankValuesByComparingModelAnswer(preferredSourceCode = '', visibleLineIds = []) {
+    if (!parsonsWidget) {
+      return [];
+    }
+
+    const candidateSourceCode = normalizeSourceCode(preferredSourceCode || modelAnswerCode || draftPayload?.taskCode || '').trim();
+    if (!candidateSourceCode) {
+      return [];
+    }
+
+    const sourceLines = candidateSourceCode.split('\n').map((line) => normalizeSourceCode(line).trimEnd());
+    const visibleLines = Array.isArray(visibleLineIds) && visibleLineIds.length
+      ? visibleLineIds
+        .map((lineId) => parsonsWidget.modified_lines.find((line) => line.id === lineId))
+        .filter(Boolean)
+      : (Array.isArray(parsonsWidget.given) ? parsonsWidget.given : (Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : []));
+
+    return visibleLines.map((line) => {
+      const lineCode = normalizeSourceCode(line.code || '').trimEnd();
+      if (!lineCode.includes('___') && !lineCode.includes('!BLANK')) {
+        return [];
+      }
+
+      for (const sourceLine of sourceLines) {
+        const values = extractBlankValuesFromLine(lineCode, sourceLine);
+        if (values.length) {
+          return values;
+        }
+      }
+
+      return [];
+    });
+  }
+
+  function getBlankValuesFromStoredSources(preferredSourceCode = '', visibleLineIds = []) {
+    const candidateSources = [
+      preferredSourceCode,
+      modelAnswerCode,
+      draftPayload?.taskCode || '',
+      localStorage.getItem('create_task_draft_code') || '',
+      sessionStorage.getItem(MODEL_ANSWER_KEY) || '',
+    ].filter(Boolean);
+
+    for (const source of candidateSources) {
+      const values = getBlankValuesFromSourceCode(source, visibleLineIds);
+      if (values.some((entry) => entry.length)) {
+        return values;
+      }
+    }
+
+    return [];
+  }
+
+  function renderParsonsBoard(initialText, preferredSourceCode = '') {
     const sourceSortable = document.getElementById('source-sortable');
     const solutionSortable = document.getElementById('solution-sortable');
     const ParsonsWidgetCtor = window.ParsonsWidget;
@@ -674,7 +910,7 @@ initBurgerMenu();
       },
     });
 
-    parsonsWidget.init(initialText);
+    parsonsWidget.init(normalizeBlankMarkup(initialText));
 
     const solutionIds = parsonsWidget.given.map((line) => line.id);
     const solutionSet = new Set(solutionIds);
@@ -682,9 +918,20 @@ initBurgerMenu();
       .filter((line) => !solutionSet.has(line.id))
       .map((line) => line.id);
 
+    const valuesToRestore = getBlankValuesToRestore(preferredSourceCode, solutionIds);
+    const blankValuesByLineId = solutionIds.reduce((acc, id, index) => {
+      acc[id] = valuesToRestore[index] || [];
+      return acc;
+    }, {});
+    applyBlankValuesToWidgetLines(parsonsWidget, blankValuesByLineId);
     parsonsWidget.createHTMLFromLists(solutionIds, sourceIds);
     parsonsWidget.setLineNumbers();
-    restoreBlankValuesToDom(getBlankValuesFromSession());
+
+    if (valuesToRestore.some((values) => values.length)) {
+      saveBlankValuesToSession(valuesToRestore);
+      restoreBlankValuesToDomByLineId(blankValuesByLineId, solutionSortable.querySelector('ul'));
+    }
+
     injectDeleteButtons(sourceSortable);
     injectDeleteButtons(solutionSortable);
     injectGivenToggles(solutionSortable);
@@ -692,18 +939,12 @@ initBurgerMenu();
   }
 
   function getSolutionCodeWithBlanks() {
-    const indentConstant = '    ';
-    const lines = parsonsWidget.getModifiedCode(
-      parsonsWidget.options.sortableId.querySelector('ul')
-    );
-    let code = '';
-    for (const line of lines) {
-      const lineObject = parsonsWidget.modified_lines.find((item) => item.id === line.id);
-      const blankValues = getLineInputValues(line.id);
-      const lineText = renderLineWithBlankValues(lineObject?.code || '', blankValues);
-      code += indentConstant.repeat(line.indent) + lineText + '\n';
+    if (!parsonsWidget) {
+      return '';
     }
-    return sanitizeBlankInputMarkup(code.trim());
+
+    const currentSolutionCode = parsonsWidget.solutionCode().trim();
+    return sanitizeBlankInputMarkup(currentSolutionCode);
   }
 
   function injectDeleteButtons(container) {
@@ -1142,7 +1383,6 @@ initBurgerMenu();
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
-      modelAnswerCode: solutionCode,
       parsonsRepr: buildCustomRepr(),
       task_type: taskType,
       is_public: isPublic,
@@ -1322,7 +1562,7 @@ initBurgerMenu();
     }
 
     if (setModelAnswerBtn) {
-      setModelAnswerBtn.addEventListener('click', () => {
+      setModelAnswerBtn.addEventListener('click', async () => {
         if (!parsonsWidget) {
           return;
         }
@@ -1334,6 +1574,13 @@ initBurgerMenu();
         }
 
         saveModelAnswerToSession(currentSolutionCode, buildCustomRepr());
+        const persistedToServer = await persistModelAnswerToServer(currentSolutionCode);
+        if (persistedToServer) {
+          const status = document.getElementById('model-answer-status');
+          if (status) {
+            status.textContent = 'Model answer saved to the task.';
+          }
+        }
         hasOpenedStudentPreview = false;
         updateAddToListState();
       });
@@ -1514,10 +1761,12 @@ initBurgerMenu();
     if (urlTaskId) {
       // Direct edit mode: load task from API, model answer on right, leftover blocks on left
       let taskData;
+      let fetchedModelAnswer = '';
       try {
-        const [editableResp, taskResp] = await Promise.all([
-          fetch(`/api/problems/${urlTaskId}/editable`),
-          fetch(`/api/tasks/${urlTaskId}`),
+        const [editableResp, taskResp, modelAnswerResp] = await Promise.all([
+          fetch(`/api/problems/${urlTaskId}/editable`, { credentials: 'same-origin' }),
+          fetch(`/api/tasks/${urlTaskId}`, { credentials: 'same-origin' }),
+          fetch(`/api/problems/${urlTaskId}/model-answer`, { credentials: 'same-origin' }),
         ]);
 
         if (!taskResp.ok) {
@@ -1526,6 +1775,11 @@ initBurgerMenu();
           return;
         }
         taskData = await taskResp.json();
+
+        if (modelAnswerResp.ok) {
+          const modelAnswerPayload = await modelAnswerResp.json();
+          fetchedModelAnswer = modelAnswerPayload?.model_answer || '';
+        }
 
         if (editableResp.ok) {
           const { editable } = await editableResp.json();
@@ -1570,12 +1824,13 @@ initBurgerMenu();
       }
 
       const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
-      if (savedModelAnswer.code) {
+      persistedModelAnswerSource = fetchedModelAnswer || taskData.model_answer || taskData.correct_solution?.solution_code || '';
+      if (persistedModelAnswerSource) {
+        setModelAnswerState(persistedModelAnswerSource, '', '');
+      } else if (savedModelAnswer.code) {
         modelAnswerCode = savedModelAnswer.code;
         modelAnswerRepr = savedModelAnswer.repr;
         modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
-      } else {
-        saveModelAnswerToSession(solutionCode, '');
       }
 
       if (visibilityInput) {
@@ -1591,7 +1846,7 @@ initBurgerMenu();
       const backBtn = document.getElementById('back-to-code');
       if (backBtn) backBtn.style.display = 'none';
 
-      renderParsonsBoard(initialText);
+      renderParsonsBoard(initialText, persistedModelAnswerSource);
       setupBlankInputPersistence();
       setupGuideToggle();
       setupPreviewModal();
@@ -1619,14 +1874,18 @@ initBurgerMenu();
     let initialText = cachedRepr || normalizeSourceCode(draft.taskCode);
     let fetchedFromApi = false;
     let apiTaskData = null;
+    persistedModelAnswerSource = '';
 
-    if (editTaskId && !cachedRepr) {
+    if (editTaskId) {
       try {
         const response = await fetch(`/api/tasks/${editTaskId}`);
         if (response.ok) {
           apiTaskData = await response.json();
-          initialText = buildReprFromBlocks(apiTaskData);
           fetchedFromApi = true;
+          persistedModelAnswerSource = apiTaskData?.model_answer || apiTaskData?.correct_solution?.solution_code || '';
+          if (!cachedRepr) {
+            initialText = buildReprFromBlocks(apiTaskData);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch task for editing:', e);
@@ -1641,8 +1900,10 @@ initBurgerMenu();
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData.task_type || draft.taskType);
-      const savedAnswer = apiTaskData.correct_solution?.solution_code || '';
-      if (savedAnswer) saveModelAnswerToSession(savedAnswer, '');
+      const savedAnswer = apiTaskData.model_answer || apiTaskData.correct_solution?.solution_code || '';
+      if (savedAnswer) {
+        setModelAnswerState(savedAnswer, '', '');
+      }
     } else {
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || '';
@@ -1652,9 +1913,18 @@ initBurgerMenu();
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);
 
       const savedModelAnswer = loadModelAnswerFromSession(draft.taskCode);
-      modelAnswerCode = savedModelAnswer.code;
-      modelAnswerRepr = savedModelAnswer.repr;
-      modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
+      persistedModelAnswerSource = apiTaskData?.model_answer || apiTaskData?.correct_solution?.solution_code || '';
+      if (persistedModelAnswerSource) {
+        setModelAnswerState(persistedModelAnswerSource, '', '');
+      } else if (savedModelAnswer.code) {
+        modelAnswerCode = savedModelAnswer.code;
+        modelAnswerRepr = savedModelAnswer.repr;
+        modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
+      } else {
+        modelAnswerCode = savedModelAnswer.code;
+        modelAnswerRepr = savedModelAnswer.repr;
+        modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
+      }
     }
 
     if (visibilityInput) {
@@ -1668,7 +1938,7 @@ initBurgerMenu();
       const addToListBtn = document.getElementById('add-to-problem-list');
       if (addToListBtn) addToListBtn.textContent = 'Update Task';
     }
-    renderParsonsBoard(initialText);
+    renderParsonsBoard(initialText, persistedModelAnswerSource);
     setupBlankInputPersistence();
     setupGuideToggle();
     setupPreviewModal();

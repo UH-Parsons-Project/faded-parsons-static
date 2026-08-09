@@ -181,7 +181,7 @@ initBurgerMenu();
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
     previewTaskType.textContent = taskType ? `Task type: ${taskType}` : 'Task type not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
-    previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
+    previewModelAnswer.textContent = sanitizeBlankInputMarkup(modelAnswerCode || '') || 'No model answer set yet.';
 
     previewSource.innerHTML = '';
     previewSolution.innerHTML = '';
@@ -277,6 +277,21 @@ initBurgerMenu();
 
   function normalizeSourceCode(code) {
     return (code || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  }
+
+  function sanitizeBlankInputMarkup(text) {
+    const normalizedText = normalizeSourceCode(text || '');
+    if (!normalizedText.includes('<input')) {
+      return normalizedText;
+    }
+
+    const container = document.createElement('div');
+    container.innerHTML = normalizedText;
+    container.querySelectorAll('input.text-box').forEach((input) => {
+      input.replaceWith(input.value || '');
+    });
+
+    return container.textContent.replace(/\u00a0/g, ' ').trim();
   }
 
   function extractBlankValuesFromLine(blockCode, lineText) {
@@ -531,15 +546,15 @@ initBurgerMenu();
     }
 
     return {
-      code: rawModelAnswer,
-      repr: sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || '',
+      code: sanitizeBlankInputMarkup(rawModelAnswer),
+      repr: sanitizeBlankInputMarkup(sessionStorage.getItem(MODEL_ANSWER_REPR_KEY) || ''),
       updatedAt: rawUpdatedAt || '',
     };
   }
 
   function saveModelAnswerToSession(code, repr) {
-    modelAnswerCode = code || '';
-    modelAnswerRepr = repr || '';
+    modelAnswerCode = sanitizeBlankInputMarkup(code || '');
+    modelAnswerRepr = sanitizeBlankInputMarkup(repr || '');
     modelAnswerUpdatedAt = new Date().toISOString();
     sessionStorage.setItem(MODEL_ANSWER_KEY, modelAnswerCode);
     sessionStorage.setItem(MODEL_ANSWER_REPR_KEY, modelAnswerRepr);
@@ -688,7 +703,7 @@ initBurgerMenu();
       const lineText = renderLineWithBlankValues(lineObject?.code || '', blankValues);
       code += indentConstant.repeat(line.indent) + lineText + '\n';
     }
-    return code.trim();
+    return sanitizeBlankInputMarkup(code.trim());
   }
 
   function injectDeleteButtons(container) {
@@ -1092,7 +1107,7 @@ initBurgerMenu();
     const startDescription = startDescriptionInput.value.trim();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
-    const solutionCode = modelAnswerCode;
+    const solutionCode = sanitizeBlankInputMarkup(modelAnswerCode);
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
     const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
 
@@ -1312,7 +1327,7 @@ initBurgerMenu();
           return;
         }
 
-        const currentSolutionCode = parsonsWidget.solutionCode().trim();
+        const currentSolutionCode = sanitizeBlankInputMarkup(parsonsWidget.solutionCode().trim());
         if (!currentSolutionCode) {
           alert('Move at least one block to the right column before setting the model answer.');
           return;

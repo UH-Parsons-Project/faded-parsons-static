@@ -20,6 +20,26 @@ function formatMultilineText(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
+function sanitizeModelAnswerText(text) {
+  if (!text) return '';
+
+  const normalized = String(text)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+
+  if (!normalized.includes('<input')) {
+    return normalized;
+  }
+
+  const container = document.createElement('div');
+  container.innerHTML = normalized;
+  container.querySelectorAll('input.text-box').forEach((input) => {
+    input.replaceWith(input.value || '');
+  });
+
+  return container.textContent.replace(/\u00a0/g, ' ');
+}
+
 // Parse custom error rules safely
 function parseCustomErrorRules(rawRules) {
   if (!rawRules) return [];
@@ -171,7 +191,8 @@ async function loadTaskDetails() {
     // 5. Model Answer (Display as raw text block with .model-code class, exactly like statistics)
     const modelCodeEl = document.getElementById('details-model-code');
     const modelCode = task.model_answer || task.correct_solution?.solution_code || '';
-    modelCodeEl.textContent = modelCode.trim() || 'No model answer configured.';
+    const sanitizedModelCode = sanitizeModelAnswerText(modelCode).trim();
+    modelCodeEl.textContent = sanitizedModelCode || 'No model answer configured.';
 
     // 6. Test Cases Code (Fetch correctly as assert statement block)
     const testsCodeEl = document.getElementById('details-tests-code');
@@ -242,8 +263,8 @@ async function loadTaskDetails() {
         const indentLevel = block.indent || 0;
         blockEl.style.paddingLeft = `${Math.max(1.25, indentLevel * 2 + 1.25)}rem`;
 
-        // Format !BLANK/___ into visual badges
-        const formattedCode = escapeHtml(block.code || '')
+        const sanitizedBlockCode = sanitizeModelAnswerText(block.code || '');
+        const formattedCode = escapeHtml(sanitizedBlockCode)
           .replace(/(!BLANK|___)/g, '<span class="faded-blank">___</span>');
 
         // Build Badge HTML

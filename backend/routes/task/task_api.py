@@ -1,4 +1,5 @@
 from collections import defaultdict
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,6 +97,21 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
 from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from ...utils.task import is_task_editable
+
+
+def _sanitize_model_answer_code(code: str | None) -> str:
+    if not code:
+        return ''
+
+    normalized = code.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        return ''
+
+    sanitized = re.sub(r"<input[^>]*class=['\"]text-box['\"][^>]*>", "", normalized, flags=re.IGNORECASE)
+    sanitized = sanitized.replace("</input>", "")
+    sanitized = re.sub(r"<input[^>]*>", "", sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r"\s+", " ", sanitized)
+    return sanitized.strip()
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
@@ -1039,7 +1055,7 @@ async def create_problem(
     db.add(task)
     await db.flush()
 
-    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    model_answer_code = _sanitize_model_answer_code(request.modelAnswerCode)
     model_answer = ModelAnswer(
         parsons_id=task.id,
         created_by_teacher_id=current_user.id,
@@ -1197,7 +1213,7 @@ async def update_problem(
     }
     task.is_public = True if request.is_public is None else request.is_public
 
-    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    model_answer_code = _sanitize_model_answer_code(request.modelAnswerCode)
     model_answer_result = await db.execute(select(ModelAnswer).where(ModelAnswer.parsons_id == task_id))
     model_answer = model_answer_result.scalar_one_or_none()
 

@@ -88,7 +88,12 @@ function isTaskFaded(task) {
 
 	const blocks = task?.code_blocks?.blocks;
 	if (Array.isArray(blocks)) {
-		return blocks.some((block) => block && block.faded === true);
+		// If any block is explicitly faded, or if there are movable (non-preplaced)
+		// blocks (i.e. blocks without `given: true`), consider the task faded.
+		const hasFadedBlock = blocks.some((block) => block && block.faded === true);
+		if (hasFadedBlock) return true;
+		const hasMovable = blocks.some((block) => block && !block.given);
+		if (hasMovable) return true;
 	}
 
 	return task?.task_type === 'Faded' || task?.task_type === 'faded';

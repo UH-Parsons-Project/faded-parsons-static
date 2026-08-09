@@ -189,7 +189,14 @@ async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
         block_list = blocks.get("blocks") if isinstance(blocks, dict) else None
         is_faded = False
         if isinstance(block_list, list):
+            # A task is considered faded if any block is explicitly marked faded
             is_faded = any(bool(block.get("faded")) for block in block_list if isinstance(block, dict))
+            # Additionally, treat tasks that contain movable (non-preplaced) blocks as faded
+            # (students can drag these blocks in the UI). A block with "given": true is
+            # preplaced for students; blocks without that flag (or false) are movable.
+            if not is_faded:
+                is_draggable = any(not bool(block.get("given")) for block in block_list if isinstance(block, dict))
+                is_faded = bool(is_draggable)
 
         tasks_payload.append(
             TaskSetTaskResponse(

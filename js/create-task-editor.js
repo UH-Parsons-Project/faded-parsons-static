@@ -298,10 +298,11 @@ initBurgerMenu();
       return normalizedText;
     }
 
+    // Replace input tags with the plain placeholder, but preserve surrounding
+    // whitespace and newlines so multiline representations remain intact.
     normalizedText = normalizedText
       .replace(/<input\b[^>]*>/gi, '!BLANK')
-      .replace(/<\/input>/gi, '')
-      .replace(/\s+/g, ' ');
+      .replace(/<\/input>/gi, '');
 
     return normalizedText;
   }

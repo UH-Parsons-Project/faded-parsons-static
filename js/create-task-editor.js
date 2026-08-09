@@ -13,6 +13,7 @@ initBurgerMenu();
   const DRAFT_KEY = 'create_task_draft_payload';
   const BLOCKS_KEY = 'create_task_builder_blocks';
   const BLOCKS_SOURCE_KEY = 'create_task_builder_blocks_source';
+  const BLANK_VALUES_KEY = 'create_task_builder_blank_values';
   const META_KEY = 'create_task_builder_meta';
   const META_SOURCE_KEY = 'create_task_builder_meta_source';
   const MODEL_ANSWER_KEY = 'create_task_builder_model_answer';
@@ -278,6 +279,25 @@ initBurgerMenu();
     return (code || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   }
 
+  function extractBlankValuesFromLine(blockCode, lineText) {
+    const normalizedBlockCode = normalizeSourceCode(blockCode || '').trimEnd();
+    const normalizedLineText = normalizeSourceCode(lineText || '').trimEnd();
+
+    if (!normalizedBlockCode.includes('___') || !normalizedLineText) {
+      return [];
+    }
+
+    const segments = normalizedBlockCode.split('___');
+    if (segments.length <= 1) {
+      return [];
+    }
+
+    const escapedSegments = segments.map((segment) => segment.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
+    const regex = new RegExp(`^${escapedSegments.join('(.*?)')}$`);
+    const match = normalizedLineText.match(regex);
+    return match ? match.slice(1) : [];
+  }
+
   function getLineInputValues(lineId) {
     const lineElement = document.getElementById(lineId);
     if (!lineElement) {
@@ -329,6 +349,58 @@ initBurgerMenu();
     return cachedSource === normalizedSource ? cached : '';
   }
 
+  function getBlankValuesFromSession() {
+    try {
+      const rawValues = sessionStorage.getItem(BLANK_VALUES_KEY);
+      if (!rawValues) {
+        return [];
+      }
+      const parsedValues = JSON.parse(rawValues);
+      return Array.isArray(parsedValues) ? parsedValues : [];
+    } catch (error) {
+      console.error('Failed to parse blank values:', error);
+      return [];
+    }
+  }
+
+  function saveBlankValuesToSession(blankValues) {
+    sessionStorage.setItem(BLANK_VALUES_KEY, JSON.stringify(blankValues));
+  }
+
+  function captureBlankValuesFromDom() {
+    const solutionList = document.querySelector('#solution-sortable ul');
+    if (!solutionList) {
+      return [];
+    }
+
+    return Array.from(solutionList.children).map((child) => {
+      const values = Array.from(child.querySelectorAll('input.text-box')).map((input) => input.value || '');
+      return values.length ? values : [];
+    });
+  }
+
+  function restoreBlankValuesToDom(blankValues = []) {
+    const solutionList = document.querySelector('#solution-sortable ul');
+    if (!solutionList) {
+      return;
+    }
+
+    const solutionChildren = Array.from(solutionList.children);
+    solutionChildren.forEach((child, index) => {
+      const values = blankValues[index] || [];
+      const inputs = Array.from(child.querySelectorAll('input.text-box'));
+      inputs.forEach((input, inputIndex) => {
+        const value = values[inputIndex] ?? '';
+        input.value = value;
+        input.style.width = `${(value.length + 3) * 8}px`;
+      });
+    });
+  }
+
+  function persistBlankValues() {
+    saveBlankValuesToSession(captureBlankValuesFromDom());
+  }
+
   function buildCustomRepr() {
     if (!parsonsWidget) {
       return '';
@@ -345,10 +417,6 @@ initBurgerMenu();
       }
 
       let reprLine = `${lineText} #${line.indent}given`;
-      const blankValues = getLineInputValues(line.id);
-      if (blankValues.length) {
-        reprLine += blankValues.map((value) => ` #blank${value}`).join('');
-      }
       if (line.studentGiven) {
         reprLine += ' #preplace';
       }
@@ -537,58 +605,31 @@ initBurgerMenu();
 
   function buildReprFromBlocks(taskData) {
     const blocks = taskData.code_blocks?.blocks || [];
-    const solutionCode = (taskData.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
-    const modelAnswer = (taskData.model_answer || '').replace(/\r\n/g, '\n');
     const INDENT = '    ';
+    const solutionCode = normalizeSourceCode(taskData.correct_solution?.solution_code || '');
+    const solutionLines = solutionCode.split('\n').map((line) => line.trimEnd());
 
-    const solLinesList = solutionCode.split('\n').map(l => l.trimRight());
-    const ansLinesList = modelAnswer.split('\n').map(l => l.trimRight());
-
-    // Create a list of solution line objects for sequential matching
-    const solLines = solLinesList.map((solLine, idx) => ({
-      solLine,
-      ansLine: ansLinesList[idx] || '',
-      matched: false,
-    }));
-
-    return blocks.map((block) => {
+    const persistedBlankValues = [];
+    const reprLines = blocks.map((block, index) => {
       const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
-      const indented = INDENT.repeat(block.indent) + block.code;
-
-      // Find the first unmatched solution line that matches this block's indented code
-      const matchItem = solLines.find(item => {
-        if (item.matched) return false;
-        return item.solLine.replace(/!BLANK/g, '___') === indented;
-      });
-
-      if (matchItem) {
-        matchItem.matched = true;
-        let blanksSuffix = '';
-        const solLine = matchItem.solLine;
-        const ansLine = matchItem.ansLine;
-
-        if (solLine.includes('!BLANK') && ansLine) {
-          // Extract values using regex matching
-          const segments = solLine.trim().split('!BLANK');
-          const escapedSegments = segments.map(seg => seg.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
-          const regexStr = '^' + escapedSegments.join('(.*?)') + '$';
-          const regex = new RegExp(regexStr);
-          const match = ansLine.trim().match(regex);
-          if (match) {
-            const values = match.slice(1);
-            blanksSuffix = values.map(val => ' #blank' + val).join('');
-          }
-        }
-
-        let line = `${codeWithBlanks}${blanksSuffix} #${block.indent}given`;
-        if (block.given) {
-          line += ' #preplace';
-        }
-        return line;
+      const blockSolutionLine = solutionLines[index] || '';
+      const blankValues = extractBlankValuesFromLine(block.code, blockSolutionLine);
+      if (blankValues.length) {
+        persistedBlankValues.push(blankValues);
       }
 
-      return codeWithBlanks;
-    }).join('\n');
+      let line = `${codeWithBlanks} #${block.indent}given`;
+      if (block.given) {
+        line += ' #preplace';
+      }
+      return line;
+    });
+
+    if (persistedBlankValues.length) {
+      saveBlankValuesToSession(persistedBlankValues);
+    }
+
+    return reprLines.join('\n');
   }
 
   function renderParsonsBoard(initialText) {
@@ -628,6 +669,7 @@ initBurgerMenu();
 
     parsonsWidget.createHTMLFromLists(solutionIds, sourceIds);
     parsonsWidget.setLineNumbers();
+    restoreBlankValuesToDom(getBlankValuesFromSession());
     injectDeleteButtons(sourceSortable);
     injectDeleteButtons(solutionSortable);
     injectGivenToggles(solutionSortable);
@@ -1163,6 +1205,20 @@ initBurgerMenu();
     }
   }
 
+  function setupBlankInputPersistence() {
+    if (document.body.dataset.blankInputBound === 'true') {
+      return;
+    }
+
+    document.addEventListener('input', (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.classList.contains('text-box')) {
+        persistBlankValues();
+      }
+    });
+
+    document.body.dataset.blankInputBound = 'true';
+  }
+
   function setupButtons() {
     const backBtn = document.getElementById('back-to-code');
     const clearBtn = document.getElementById('clear-blocks');
@@ -1521,6 +1577,7 @@ initBurgerMenu();
       if (backBtn) backBtn.style.display = 'none';
 
       renderParsonsBoard(initialText);
+      setupBlankInputPersistence();
       setupGuideToggle();
       setupPreviewModal();
       setupChecklistNavigation();
@@ -1597,6 +1654,7 @@ initBurgerMenu();
       if (addToListBtn) addToListBtn.textContent = 'Update Task';
     }
     renderParsonsBoard(initialText);
+    setupBlankInputPersistence();
     setupGuideToggle();
     setupPreviewModal();
     setupChecklistNavigation();

@@ -31,7 +31,9 @@ function sanitizeModelAnswerText(text) {
     return normalized;
   }
 
-  const container = document.createElement('div');
+  const container = document.createElement('pre');
+  container.style.whiteSpace = 'pre';
+  container.style.margin = '0';
   container.innerHTML = normalized;
   container.querySelectorAll('input.text-box').forEach((input) => {
     input.replaceWith(input.value || '');
@@ -191,8 +193,8 @@ async function loadTaskDetails() {
     // 5. Model Answer (Display as raw text block with .model-code class, exactly like statistics)
     const modelCodeEl = document.getElementById('details-model-code');
     const modelCode = task.model_answer || task.correct_solution?.solution_code || '';
-    const sanitizedModelCode = sanitizeModelAnswerText(modelCode).trim();
-    modelCodeEl.textContent = sanitizedModelCode || 'No model answer configured.';
+    const sanitizedModelCode = sanitizeModelAnswerText(modelCode);
+    modelCodeEl.textContent = sanitizedModelCode.trim() || 'No model answer configured.';
 
     // 6. Test Cases Code (Fetch correctly as assert statement block)
     const testsCodeEl = document.getElementById('details-tests-code');

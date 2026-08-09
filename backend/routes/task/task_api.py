@@ -110,7 +110,9 @@ def _sanitize_model_answer_code(code: str | None) -> str:
     sanitized = re.sub(r"<input[^>]*class=['\"]text-box['\"][^>]*>", "", normalized, flags=re.IGNORECASE)
     sanitized = sanitized.replace("</input>", "")
     sanitized = re.sub(r"<input[^>]*>", "", sanitized, flags=re.IGNORECASE)
-    sanitized = re.sub(r"\s+", " ", sanitized)
+
+    # Preserve line breaks and indentation for code-like model answers.
+    # Only trim the outer whitespace; do not collapse internal whitespace.
     return sanitized.strip()
 
 

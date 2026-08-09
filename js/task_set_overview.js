@@ -84,7 +84,7 @@ function pipeCell(value, width) {
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 	const headers = [
 		'Task Name',
-		'Task Type',
+		'Task tag',
 		'Faded task',
 		'Tries Count',
 		'Tries % of Enrolled',

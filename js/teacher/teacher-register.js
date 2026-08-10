@@ -1,0 +1,44 @@
+import { showAlert } from '../utils/ui-utils.js';
+const form = document.getElementById('register-form');
+const alertPlaceholder = document.getElementById('alert-placeholder');
+
+
+
+form.addEventListener('submit', async (e) => {
+	e.preventDefault();
+	alertPlaceholder.innerHTML = '';
+
+	const payload = {
+		username: document.getElementById('username').value,
+		email: document.getElementById('email').value,
+		password: document.getElementById('password').value,
+		password_confirm: document.getElementById('password_confirm').value,
+		registration_token: document.getElementById('registration_token').value,
+	};
+
+	// Client-side confirmation check
+	if (payload.password !== payload.password_confirm) {
+		showAlert(alertPlaceholder, 'Passwords do not match');
+		return;
+	}
+
+	try {
+		const res = await fetch('/api/teacher_register', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload),
+		});
+
+		const data = await res.json();
+		if (!res.ok) {
+			showAlert(alertPlaceholder, data.detail || data.message || 'Registration failed');
+			return;
+		}
+
+		showAlert(alertPlaceholder, 'Registration successful.', 'success');
+		form.reset();
+		setTimeout(() => { window.location.href = '/?focus=username'; }, 1000);
+	} catch (err) {
+		showAlert(alertPlaceholder, 'Network error');
+	}
+});

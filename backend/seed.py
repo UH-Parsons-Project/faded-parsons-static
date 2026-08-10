@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from .database import async_session
-from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken, Student, StudentTaskSetEnrollment, TaskAttempt, StudentTaskEnrollment
+from .models import Parsons, TaskSet, TaskSetItem, Teacher, RegistrationToken
 from .migrate_tasks import migrate_tasks
 from backend.utils import hash_token
 

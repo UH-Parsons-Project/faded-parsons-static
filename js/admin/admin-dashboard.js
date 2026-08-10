@@ -1,0 +1,467 @@
+import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
+import { formatDate } from '../utils/ui-utils.js';
+
+initProtectedPage('/');
+initSignedInAs();
+initBurgerMenu();
+
+const userNameEl = document.getElementById('user-name');
+const storedUsername = localStorage.getItem('username');
+if (storedUsername) {
+	userNameEl.textContent = storedUsername;
+} else {
+	fetch('/api/me', { credentials: 'include' })
+	.then(r => r.ok ? r.json() : Promise.reject())
+	.then(data => {
+		if (data?.username) {
+			userNameEl.textContent = data.username;
+			localStorage.setItem('username', data.username);
+		}
+	})
+	.catch(() => { userNameEl.textContent = ''; });
+}
+
+
+// ==================== Statistics ====================
+
+function createChart(canvasId, dailyData, barColor = '#007bff') {
+	const canvas = document.getElementById(canvasId);
+	if (!canvas) return;
+
+	const ctx = canvas.getContext('2d');
+	const width = canvas.width;
+	const height = canvas.height;
+
+	if (dailyData.length === 0) {
+		ctx.fillStyle = '#ccc';
+		ctx.font = '14px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText('No data available', width / 2, height / 2);
+		return;
+	}
+
+	const maxValue = Math.max(...dailyData.map(d => d.active_users), 1);
+	const paddingLeft = 50;
+	const paddingRight = 20;
+	const paddingBottom = 50;
+	const paddingTop = 20;
+	const chartWidth = width - paddingLeft - paddingRight;
+	const chartHeight = height - paddingBottom - paddingTop;
+
+	const slotWidth = chartWidth / dailyData.length;
+	const barWidth = Math.min(slotWidth * 0.7, 50);
+
+	// Clear canvas
+	ctx.fillStyle = '#fff';
+	ctx.fillRect(0, 0, width, height);
+
+	// Draw grid lines
+	ctx.strokeStyle = '#f0f0f0';
+	ctx.lineWidth = 1;
+	const gridLines = 5;
+	for (let i = 0; i <= gridLines; i++) {
+		const y = paddingTop + (i / gridLines) * chartHeight;
+		ctx.beginPath();
+		ctx.moveTo(paddingLeft, y);
+		ctx.lineTo(width - paddingRight, y);
+		ctx.stroke();
+	}
+
+	// Draw axes
+	ctx.strokeStyle = '#333';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.moveTo(paddingLeft, paddingTop);
+	ctx.lineTo(paddingLeft, height - paddingBottom);
+	ctx.lineTo(width - paddingRight, height - paddingBottom);
+	ctx.stroke();
+
+	// Draw bars
+	dailyData.forEach((d, i) => {
+		const barHeight = (d.active_users / maxValue) * chartHeight;
+		const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+		const y = height - paddingBottom - barHeight;
+
+		// Draw bar
+		ctx.fillStyle = barColor;
+		ctx.fillRect(x, y, barWidth, barHeight);
+
+		// Draw border
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(x, y, barWidth, barHeight);
+
+		// Draw value on bar
+		ctx.fillStyle = '#333';
+		ctx.font = 'bold 12px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText(d.active_users.toString(), x + barWidth / 2, y - 5);
+	});
+
+	// Draw date labels
+	ctx.fillStyle = '#666';
+	ctx.font = '11px sans-serif';
+	ctx.textAlign = 'center';
+
+	dailyData.forEach((d, i) => {
+		const x = paddingLeft + i * slotWidth + slotWidth / 2;
+		const dateObj = new Date(d.date);
+		const label = dateObj.getDate();
+		ctx.fillText(label.toString(), x, height - paddingBottom + 20);
+	});
+
+	// Draw y-axis labels
+	ctx.fillStyle = '#888';
+	ctx.font = '10px sans-serif';
+	ctx.textAlign = 'right';
+	for (let i = 0; i <= gridLines; i++) {
+		const value = Math.round((i / gridLines) * maxValue);
+		const y = height - paddingBottom - (i / gridLines) * chartHeight;
+		ctx.fillText(value.toString(), paddingLeft - 10, y + 4);
+	}
+}
+
+function createMonthlyChart(canvasId, monthlyData, barColor = '#007bff') {
+	const canvas = document.getElementById(canvasId);
+	if (!canvas) return;
+
+	const ctx = canvas.getContext('2d');
+	const width = canvas.width;
+	const height = canvas.height;
+
+	// Show only last 6 months
+	const data = monthlyData.slice(0, 6).reverse();
+
+	if (data.length === 0) {
+		ctx.fillStyle = '#ccc';
+		ctx.font = '14px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText('No data available', width / 2, height / 2);
+		return;
+	}
+
+	const maxValue = Math.max(...data.map(d => d.active_users), 1);
+	const paddingLeft = 50;
+	const paddingRight = 20;
+	const paddingBottom = 50;
+	const paddingTop = 20;
+	const chartWidth = width - paddingLeft - paddingRight;
+	const chartHeight = height - paddingBottom - paddingTop;
+
+	const slotWidth = chartWidth / data.length;
+	const barWidth = Math.min(slotWidth * 0.7, 50);
+
+	// Clear canvas
+	ctx.fillStyle = '#fff';
+	ctx.fillRect(0, 0, width, height);
+
+	// Draw grid lines
+	ctx.strokeStyle = '#f0f0f0';
+	ctx.lineWidth = 1;
+	const gridLines = 5;
+	for (let i = 0; i <= gridLines; i++) {
+		const y = paddingTop + (i / gridLines) * chartHeight;
+		ctx.beginPath();
+		ctx.moveTo(paddingLeft, y);
+		ctx.lineTo(width - paddingRight, y);
+		ctx.stroke();
+	}
+
+	// Draw axes
+	ctx.strokeStyle = '#333';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.moveTo(paddingLeft, paddingTop);
+	ctx.lineTo(paddingLeft, height - paddingBottom);
+	ctx.lineTo(width - paddingRight, height - paddingBottom);
+	ctx.stroke();
+
+	// Draw bars
+	data.forEach((d, i) => {
+		const barHeight = (d.active_users / maxValue) * chartHeight;
+		const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+		const y = height - paddingBottom - barHeight;
+
+		// Draw bar
+		ctx.fillStyle = barColor;
+		ctx.fillRect(x, y, barWidth, barHeight);
+
+		// Draw border
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(x, y, barWidth, barHeight);
+
+		// Draw value on bar
+		ctx.fillStyle = '#333';
+		ctx.font = 'bold 12px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText(d.active_users.toString(), x + barWidth / 2, y - 5);
+	});
+
+	// Draw month labels
+	ctx.fillStyle = '#666';
+	ctx.font = '10px sans-serif';
+	ctx.textAlign = 'center';
+
+	data.forEach((d, i) => {
+		const x = paddingLeft + i * slotWidth + slotWidth / 2;
+		const monthLabel = d.month.substring(5); // Get MM from YYYY-MM
+		ctx.fillText(monthLabel, x, height - paddingBottom + 20);
+	});
+
+	// Draw y-axis labels
+	ctx.fillStyle = '#888';
+	ctx.font = '10px sans-serif';
+	ctx.textAlign = 'right';
+	for (let i = 0; i <= gridLines; i++) {
+		const value = Math.round((i / gridLines) * maxValue);
+		const y = height - paddingBottom - (i / gridLines) * chartHeight;
+		ctx.fillText(value.toString(), paddingLeft - 10, y + 4);
+	}
+}
+
+function loadStatistics() {
+	fetch('/api/admin/statistics/user-activity', { credentials: 'include' })
+		.then(r => {
+			if (!r.ok) throw new Error('Failed to load statistics');
+			return r.json();
+		})
+		.then(data => {
+			// Students stats
+			const studentDailyTotal = data.students.daily_breakdown_last_7_days.reduce((sum, d) => sum + d.active_users, 0);
+			document.getElementById('stat-active-7d-students').textContent = studentDailyTotal;
+			const studentMonthlyTotal = data.students.monthly_breakdown.reduce((sum, m) => sum + m.active_users, 0);
+			document.getElementById('stat-avg-monthly-students').textContent = studentMonthlyTotal;
+			document.getElementById('stat-registered-students').textContent = data.students.registered_total;
+
+			// Teachers stats
+			const teacherDailyTotal = data.teachers.daily_breakdown_last_7_days.reduce((sum, d) => sum + d.active_users, 0);
+			document.getElementById('stat-active-7d-teachers').textContent = teacherDailyTotal;
+			const teacherMonthlyTotal = data.teachers.monthly_breakdown.reduce((sum, m) => sum + m.active_users, 0);
+			document.getElementById('stat-avg-monthly-teachers').textContent = teacherMonthlyTotal;
+			document.getElementById('stat-registered-teachers').textContent = data.teachers.registered_total;
+
+			// Create daily charts (reverse data so oldest is on the left)
+			const studentDailyReversed = [...data.students.daily_breakdown_last_7_days].reverse();
+			const teacherDailyReversed = [...data.teachers.daily_breakdown_last_7_days].reverse();
+			createChart('student-activity-chart', studentDailyReversed, '#28a745');
+			createChart('teacher-activity-chart', teacherDailyReversed, '#ffc107');
+
+			// Create monthly charts if canvases exist
+			const monthlyStudentChart = document.getElementById('student-monthly-chart');
+			const monthlyTeacherChart = document.getElementById('teacher-monthly-chart');
+			if (monthlyStudentChart) {
+				createMonthlyChart('student-monthly-chart', data.students.monthly_breakdown, '#28a745');
+			}
+			if (monthlyTeacherChart) {
+				createMonthlyChart('teacher-monthly-chart', data.teachers.monthly_breakdown, '#ffc107');
+			}
+		})
+		.catch(err => {
+			console.error('Error loading statistics:', err);
+			document.querySelectorAll('[id^="stat-"]').forEach(el => {
+				el.textContent = '—';
+			});
+		});
+
+	// Total task sets
+	fetch('/api/all-tasksets', { credentials: 'include' })
+		.then(r => r.ok ? r.json() : Promise.reject())
+		.then(data => {
+			if (Array.isArray(data)) {
+				document.getElementById('stat-total-lists').textContent = data.length;
+			}
+		})
+		.catch(() => {
+			document.getElementById('stat-total-lists').textContent = '—';
+		});
+
+	// Total Users
+	fetch('/api/admin/users', { credentials: 'include' })
+		.then(r => r.ok ? r.json() : Promise.reject())
+		.then(data => {
+			if (Array.isArray(data)) {
+				document.getElementById('stat-total-users').textContent = data.length;
+			}
+		})
+		.catch(() => {
+			document.getElementById('stat-total-users').textContent = '—';
+		});
+}
+
+// ==================== Token Management ====================
+
+function initTokenManagement() {
+	const generateBtn = document.getElementById('generate-token-btn');
+	const addTokenBtn = document.getElementById('add-token-btn');
+	const copyBtn = document.getElementById('copy-token-btn');
+
+	if (generateBtn) {
+		generateBtn.addEventListener('click', generateToken);
+	}
+	if (addTokenBtn) {
+		addTokenBtn.addEventListener('click', addToken);
+	}
+	if (copyBtn) {
+		copyBtn.addEventListener('click', copyTokenToClipboard);
+	}
+
+	loadTokensList();
+}
+
+function generateToken() {
+	const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let token = '';
+	for (let i = 0; i < 15; i++) {
+		token += characters.charAt(Math.floor(Math.random() * characters.length));
+	}
+	const tokenInput = document.getElementById('token-input');
+	tokenInput.value = token;
+	tokenInput.focus();
+}
+
+function addToken() {
+	const tokenInput = document.getElementById('token-input');
+	const token = tokenInput.value.trim();
+
+	if (!token) {
+		alert('Please enter or generate a token');
+		return;
+	}
+
+	if (token.length < 10) {
+		alert('Token must be at least 10 characters long');
+		return;
+	}
+
+	const btn = document.getElementById('add-token-btn');
+	const originalText = btn.innerHTML;
+	btn.disabled = true;
+	btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+	fetch('/api/admin/registration-tokens', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		credentials: 'include',
+		body: JSON.stringify({ token })
+	})
+	.then(r => {
+		if (!r.ok) {
+			if (r.status === 400) {
+				return r.json().then(data => { throw new Error(data.detail || 'Invalid token'); });
+			}
+			throw new Error('Failed to add token');
+		}
+		return r.json();
+	})
+	.then(data => {
+		const tokenDisplay = document.getElementById('token-display');
+		const tokenValue = document.getElementById('token-value');
+		const tokenExpires = document.getElementById('token-expires');
+		if (tokenDisplay && tokenValue) {
+			tokenValue.textContent = data.token || token;
+			if (tokenExpires) tokenExpires.textContent = data.expires_at ? formatDate(data.expires_at) : '';
+			tokenDisplay.style.display = 'block';
+		}
+		tokenInput.value = '';
+		loadTokensList();
+		btn.disabled = false;
+		btn.innerHTML = originalText;
+	})
+	.catch(err => {
+		console.error('Error adding token:', err);
+		alert('Failed to add token: ' + err.message);
+		btn.disabled = false;
+		btn.innerHTML = originalText;
+	});
+}
+
+function loadTokensList() {
+	const listContainer = document.getElementById('tokens-list');
+	if (!listContainer) return;
+
+	listContainer.innerHTML = '<div class="text-muted small"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+	fetch('/api/admin/registration-tokens', { credentials: 'include' })
+	.then(r => {
+		if (!r.ok) throw new Error('Failed to load tokens');
+		return r.json();
+	})
+	.then(tokens => {
+		if (!Array.isArray(tokens) || tokens.length === 0) {
+			listContainer.innerHTML = '<p class="text-muted small mb-0">No tokens created yet</p>';
+			return;
+		}
+		let html = '';
+		tokens.forEach(token => {
+			const createdDate = formatDate(token.created_at);
+			const expiresDate = token.expires_at ? formatDate(token.expires_at) : 'N/A';
+			html += `
+				<div class="token-item p-2 border-bottom d-flex justify-content-between align-items-center">
+					<div style="flex: 1; min-width: 0;">
+						<small class="text-dark"><strong>ID: ${token.id}</strong></small><br>
+						<small class="text-muted">Created: ${createdDate}</small><br>
+						<small class="text-muted"><i class="fas fa-clock"></i> Expires: ${expiresDate}</small>
+					</div>
+					<button class="btn btn-sm btn-outline-danger ml-2" onclick="deleteToken(${token.id})" aria-label="Delete token ${token.id}">
+						<i class="fas fa-trash" aria-hidden="true"></i>
+					</button>
+				</div>
+			`;
+		});
+		listContainer.innerHTML = html;
+	})
+	.catch(err => {
+		console.error('Error loading tokens:', err);
+		listContainer.innerHTML = '<p class="text-danger small mb-0">Failed to load tokens</p>';
+	});
+}
+
+window.deleteToken = function(tokenId) {
+	if (!confirm('Are you sure you want to delete this token? Teachers won\'t be able to register with it anymore.')) {
+		return;
+	}
+	fetch(`/api/admin/registration-tokens/${tokenId}`, {
+		method: 'DELETE',
+		credentials: 'include'
+	})
+	.then(r => {
+		if (!r.ok) throw new Error('Failed to delete token');
+		loadTokensList();
+	})
+	.catch(err => {
+		console.error('Error deleting token:', err);
+		alert('Failed to delete token: ' + err.message);
+	});
+};
+
+function copyTokenToClipboard() {
+	const tokenValue = document.getElementById('token-value');
+	if (!tokenValue) return;
+	navigator.clipboard.writeText(tokenValue.textContent).then(() => {
+		const btn = document.getElementById('copy-token-btn');
+		const originalText = btn.innerHTML;
+		btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+		setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+	}).catch(err => {
+		console.error('Failed to copy:', err);
+		alert('Failed to copy token');
+	});
+}
+
+// ==================== Access Check ====================
+
+fetch('/api/admin/registration-tokens', { credentials: 'include' })
+	.then(r => {
+		if (r.status === 403 || r.status === 401) {
+			window.location.href = '/';
+			return;
+		}
+		if (r.ok) {
+			initTokenManagement();
+			loadStatistics();
+		}
+	})
+	.catch(() => {
+		window.location.href = '/';
+	});

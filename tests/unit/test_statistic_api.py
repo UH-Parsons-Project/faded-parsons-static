@@ -16,7 +16,7 @@ from backend.models import (
 )
 from backend.pydantic import StudentTaskAttemptResponse, StudentTaskStatisticsResponse
 from backend.database import get_db
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 from backend.main import app
 
 

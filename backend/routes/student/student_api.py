@@ -448,7 +448,7 @@ async def get_task_for_student_set(
         if attempt and getattr(attempt, 'submitted_order', None):
             submitted_order = attempt.submitted_order
 
-    return TaskResponse(
+    return StudentTaskResponse(
         id=task.id,
         title=task.title,
         task_instructions=task.task_instructions,

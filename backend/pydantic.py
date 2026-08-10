@@ -44,6 +44,7 @@ class StudentTaskResponse(BaseModel):
     code_blocks: dict
     is_public: bool
     created_at: str
+    submitted_order: dict | None = None
 
 
 

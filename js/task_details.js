@@ -151,12 +151,15 @@ async function loadTaskDetails() {
     document.getElementById('action-run-task').href = `/task?id=${task.id}`;
     document.getElementById('action-stats-task').href = `/task-statistics?id=${task.id}`;
 
-    // Check if task is editable and configure button
+    // Check if task is editable (teacher) and configure button. Store flag to
+    // decide whether to show teacher-only model answer content later.
+    let isEditable = false;
     try {
       const editableResp = await fetch(`/api/problems/${task.id}/editable`);
       if (editableResp.ok) {
         const editableData = await editableResp.json();
-        if (editableData.editable) {
+        isEditable = !!editableData.editable;
+        if (isEditable) {
           const editBtn = document.getElementById('action-edit-task');
           editBtn.href = `/create-task-editor?task_id=${task.id}`;
           editBtn.style.display = 'inline-flex';
@@ -190,9 +193,12 @@ async function loadTaskDetails() {
     const blocks = task.code_blocks?.blocks || [];
     const correctOrder = task.correct_solution?.correct_order || [];
 
-    // 5. Model Answer (Display as raw text block with .model-code class, exactly like statistics)
+    // 5. Model Answer (teacher-only view). For students, always show the
+    // canonical `correct_solution.solution_code` so blanks remain empty.
     const modelCodeEl = document.getElementById('details-model-code');
-    const modelCode = task.model_answer || task.correct_solution?.solution_code || '';
+    const modelCode = isEditable
+      ? (task.model_answer || task.correct_solution?.solution_code || '')
+      : (task.correct_solution?.solution_code || '');
     const sanitizedModelCode = sanitizeModelAnswerText(modelCode);
     modelCodeEl.textContent = sanitizedModelCode.trim() || 'No model answer configured.';
 

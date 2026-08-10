@@ -659,7 +659,9 @@ async function openTaskPreview(taskListItem) {
     }
     
     const tests = task.correct_solution?.teacher_tests || '';
-    const modelAnswerCode = task.model_answer || '';
+    // For student preview, always show the canonical solution_code (with blanks),
+    // not the teacher's persisted model_answer which may contain filled values.
+    const modelAnswerCode = task.correct_solution?.solution_code || '';
     
     previewTaskTitle.innerHTML = escapeHtml(task.title || '').replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
@@ -684,7 +686,6 @@ async function openTaskPreview(taskListItem) {
       
       const blocks = task.code_blocks?.blocks || [];
       const solutionCode = (task.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
-      const modelAnswer = (task.model_answer || '').replace(/\r\n/g, '\n');
       const INDENT = '    ';
   
       const solLinesList = solutionCode.split('\n').map(l => l.trimRight());
@@ -693,7 +694,6 @@ async function openTaskPreview(taskListItem) {
       // Create a list of solution line objects for sequential matching
       const solLines = solLinesList.map((solLine, idx) => ({
         solLine,
-        ansLine: ansLinesList[idx] || '',
         matched: false,
       }));
   

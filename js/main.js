@@ -282,9 +282,32 @@ function reconstructCodeLines(blocks) {
 	for (const block of blocks) {
 		// Add proper indentation
 		const indent = '    '.repeat(block.indent);
-		let code = indent + block.code;
 
-		// Convert ___ to !BLANK for Parsons widget to recognize editable fields
+		// Start from raw block code; sanitize any teacher-only artifacts
+		// so student view preserves empty blanks.
+		let raw = String(block.code || '');
+
+		// Remove any filled-blank markers inserted by the editor (e.g. #blankVALUE#)
+		raw = raw.replace(/#blank[^#]*#/g, '');
+
+		// Remove any preplace markers that may have been used for previewing
+		raw = raw.replace(/\s*#preplace\b/g, '');
+
+		// If the block contains input HTML, replace inputs with a blank marker
+		if (/\<input\b/i.test(raw)) {
+			const container = document.createElement('div');
+			container.innerHTML = raw;
+			container.querySelectorAll('input').forEach((input) => {
+				const repl = document.createTextNode('!BLANK');
+				input.replaceWith(repl);
+			});
+			raw = container.textContent || '';
+		}
+
+		// Compose final code with indentation
+		let code = indent + raw;
+
+		// Convert legacy ___ placeholders to !BLANK for Parsons widget
 		code = code.replace(/___/g, '!BLANK');
 
 		// Add #Ngiven marker if this block is pre-filled (given)

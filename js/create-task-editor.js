@@ -206,7 +206,7 @@ initBurgerMenu();
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
-    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds);
+    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds, previewParsonsWidget);
     const previewBlankValuesByLineId = previewSolutionIds.reduce((acc, id, index) => {
       acc[id] = previewValuesToRestore[index] || [];
       return acc;
@@ -524,8 +524,8 @@ initBurgerMenu();
     });
   }
 
-  function getBlankValuesToRestore(preferredSourceCode = '', visibleLineIds = []) {
-    const comparedBlankValues = getBlankValuesByComparingModelAnswer(preferredSourceCode, visibleLineIds);
+  function getBlankValuesToRestore(preferredSourceCode = '', visibleLineIds = [], widget = null) {
+    const comparedBlankValues = getBlankValuesByComparingModelAnswer(preferredSourceCode, visibleLineIds, widget);
     if (comparedBlankValues.some((values) => values.length)) {
       return comparedBlankValues;
     }
@@ -533,7 +533,7 @@ initBurgerMenu();
     const restoredBlankValues = getBlankValuesFromSession();
     const fallbackBlankValues = restoredBlankValues.length
       ? restoredBlankValues
-      : getBlankValuesFromStoredSources(preferredSourceCode, visibleLineIds);
+      : getBlankValuesFromStoredSources(preferredSourceCode, visibleLineIds, widget);
 
     return fallbackBlankValues.some((values) => values.length)
       ? fallbackBlankValues
@@ -810,17 +810,18 @@ initBurgerMenu();
     return reprLines.join('\n');
   }
 
-  function getBlankValuesFromSourceCode(sourceCode, visibleLineIds = []) {
-    if (!parsonsWidget || !sourceCode) {
+  function getBlankValuesFromSourceCode(sourceCode, visibleLineIds = [], widget = null) {
+    const w = widget || parsonsWidget;
+    if (!w || !sourceCode) {
       return [];
     }
 
     const solutionLines = normalizeSourceCode(sourceCode).split('\n').map((line) => line.trimEnd());
     const visibleLines = Array.isArray(visibleLineIds) && visibleLineIds.length
       ? visibleLineIds
-        .map((lineId) => parsonsWidget.modified_lines.find((line) => line.id === lineId))
+        .map((lineId) => w.modified_lines.find((line) => line.id === lineId))
         .filter(Boolean)
-      : (Array.isArray(parsonsWidget.given) ? parsonsWidget.given : (Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : []));
+      : (Array.isArray(w.given) ? w.given : (Array.isArray(w.modified_lines) ? w.modified_lines : []));
 
     return visibleLines.map((line) => {
       const lineCode = normalizeSourceCode(line.code || '').trimEnd();
@@ -831,8 +832,9 @@ initBurgerMenu();
     });
   }
 
-  function getBlankValuesByComparingModelAnswer(preferredSourceCode = '', visibleLineIds = []) {
-    if (!parsonsWidget) {
+  function getBlankValuesByComparingModelAnswer(preferredSourceCode = '', visibleLineIds = [], widget = null) {
+    const w = widget || parsonsWidget;
+    if (!w) {
       return [];
     }
 
@@ -844,9 +846,9 @@ initBurgerMenu();
     const sourceLines = candidateSourceCode.split('\n').map((line) => normalizeSourceCode(line).trimEnd());
     const visibleLines = Array.isArray(visibleLineIds) && visibleLineIds.length
       ? visibleLineIds
-        .map((lineId) => parsonsWidget.modified_lines.find((line) => line.id === lineId))
+        .map((lineId) => w.modified_lines.find((line) => line.id === lineId))
         .filter(Boolean)
-      : (Array.isArray(parsonsWidget.given) ? parsonsWidget.given : (Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : []));
+      : (Array.isArray(w.given) ? w.given : (Array.isArray(w.modified_lines) ? w.modified_lines : []));
 
     return visibleLines.map((line) => {
       const lineCode = normalizeSourceCode(line.code || '').trimEnd();
@@ -865,7 +867,7 @@ initBurgerMenu();
     });
   }
 
-  function getBlankValuesFromStoredSources(preferredSourceCode = '', visibleLineIds = []) {
+  function getBlankValuesFromStoredSources(preferredSourceCode = '', visibleLineIds = [], widget = null) {
     const candidateSources = [
       preferredSourceCode,
       modelAnswerCode,
@@ -875,7 +877,7 @@ initBurgerMenu();
     ].filter(Boolean);
 
     for (const source of candidateSources) {
-      const values = getBlankValuesFromSourceCode(source, visibleLineIds);
+      const values = getBlankValuesFromSourceCode(source, visibleLineIds, widget);
       if (values.some((entry) => entry.length)) {
         return values;
       }

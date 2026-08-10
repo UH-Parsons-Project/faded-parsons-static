@@ -135,9 +135,11 @@ async def test_admin_can_soft_delete_teacher(client, db_session, admin_teacher, 
     target_teacher_username = target_teacher.username
 
     # Call delete endpoint
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         f"/api/admin/users/teacher/{target_teacher_id}",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 200
     assert r.json() == {"status": "success", "message": "Teacher deleted"}
@@ -264,9 +266,11 @@ async def test_teacher_deletion_resolves_conflicts(client, db_session, admin_tea
     target_teacher_username = target_teacher.username
 
     # Call delete endpoint
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         f"/api/admin/users/teacher/{target_teacher_id}",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 200
 
@@ -309,23 +313,26 @@ async def test_teacher_deletion_fails_with_missing_password(client, admin_teache
         f"/api/admin/users/teacher/{target_teacher.id}",
         headers=_auth(admin_teacher.username)
     )
-    assert r.status_code == 400
-    assert r.json()["detail"] == "Incorrect admin password"
+    assert r.status_code == 422
 
 @pytest.mark.asyncio
 async def test_teacher_deletion_fails_with_incorrect_password(client, admin_teacher, target_teacher):
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         f"/api/admin/users/teacher/{target_teacher.id}",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "wrongpassword"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "wrongpassword"}
     )
     assert r.status_code == 400
     assert r.json()["detail"] == "Incorrect admin password"
 
 @pytest.mark.asyncio
 async def test_cannot_delete_deleted_user(client, admin_teacher):
-    r = await client.delete(
+    r = await client.request(
+        "DELETE",
         "/api/admin/users/teacher/999999",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 400
     assert r.json()["detail"] == "Cannot delete the dummy deleted_user"

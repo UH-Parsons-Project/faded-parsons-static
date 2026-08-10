@@ -410,3 +410,15 @@ body {
         font-size: 1rem;
     }
 }
+
+/* Cancel button override */
+#cancel-task {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+}
+
+#cancel-task:hover {
+    background: var(--red);
+    color: #fff;
+}

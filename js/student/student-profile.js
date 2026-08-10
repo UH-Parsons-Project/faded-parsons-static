@@ -1,5 +1,6 @@
-import {initStudentLogout} from '../core/auth-ui.js';
-import { formatDate, showAlert } from '../utils/ui-utils.js';
+import {initStudentLogout, initBurgerMenu } from '/js/auth-ui.js';
+import { formatDate, showAlert } from '/js/utils/ui-utils.js';
+initBurgerMenu();
 
 // Init student logout
 initStudentLogout();

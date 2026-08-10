@@ -750,13 +750,13 @@ label[for="test-results"] {
 
 /* "Cancel" */
 #cancel-task-editor {
-  color: #6c757d;
-  border-color: #6c757d;
+  color: #dc3545;
+  border-color: #dc3545;
 }
 #cancel-task-editor:hover,
 #cancel-task-editor:focus {
-  background-color: #6c757d;
-  border-color: #6c757d;
+  background-color: #dc3545;
+  border-color: #dc3545;
   color: #fff;
 }
 

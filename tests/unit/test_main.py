@@ -147,6 +147,10 @@ class TestStaticPages:
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
 
+    async def test_student_start_task_unauthenticated_redirects(self, client):
+        r = await client.get("/student-start-task", follow_redirects=False)
+        assert r.status_code == 303
+        assert "/" in r.headers["location"]
     async def test_global_statistics_unauthenticated_redirects(self, client):
         r = await client.get("/global-statistics", follow_redirects=False)
         assert r.status_code == 303

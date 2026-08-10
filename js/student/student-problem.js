@@ -1,4 +1,5 @@
-import { initNavbarExercisesButton, initSignedInAs } from "../core/auth-ui.js";
+import { initNavbarExercisesButton, initSignedInAs , initBurgerMenu } from "/js/auth-ui.js";
+initBurgerMenu();
 import { initWidget } from "/dist/bundle.js";
 import { initStudentLogout } from '../core/auth-ui.js';
 import { initInactivityTimer } from '../core/inactivity-timer.js';

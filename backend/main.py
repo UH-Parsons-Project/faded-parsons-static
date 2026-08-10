@@ -53,6 +53,8 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Faded Parsons Problems", lifespan=lifespan)
 app.state.limiter = limiter
+if config.TEST_MODE:
+    limiter.enabled = False
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 

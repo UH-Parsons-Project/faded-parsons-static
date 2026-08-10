@@ -48,7 +48,8 @@ async def test_admin_can_promote_teacher(client, db_session, admin_teacher, targ
     # Promote the target teacher
     r = await client.post(
         f"/api/admin/users/teacher/{target_teacher_id}/make-admin",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 200
     assert r.json() == {"status": "success", "message": "Teacher promoted to admin"}
@@ -66,7 +67,8 @@ async def test_promote_fails_with_incorrect_password(client, db_session, admin_t
     target_teacher_id = target_teacher.id
     r = await client.post(
         f"/api/admin/users/teacher/{target_teacher_id}/make-admin",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "wrongpassword"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "wrongpassword"}
     )
     assert r.status_code == 400
     assert r.json()["detail"] == "Incorrect admin password"
@@ -85,8 +87,7 @@ async def test_promote_fails_with_missing_password(client, db_session, admin_tea
         f"/api/admin/users/teacher/{target_teacher.id}/make-admin",
         headers=_auth(admin_teacher.username)
     )
-    assert r.status_code == 400
-    assert r.json()["detail"] == "Incorrect admin password"
+    assert r.status_code == 422
 
 @pytest.mark.asyncio
 async def test_promote_fails_when_already_admin(client, db_session, admin_teacher, target_teacher):
@@ -96,7 +97,8 @@ async def test_promote_fails_when_already_admin(client, db_session, admin_teache
 
     r = await client.post(
         f"/api/admin/users/teacher/{target_teacher.id}/make-admin",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 400
     assert r.json()["detail"] == "Teacher is already an admin"
@@ -106,7 +108,8 @@ async def test_non_admin_cannot_promote(client, db_session, target_teacher):
     # Try to promote oneself without admin rights
     r = await client.post(
         f"/api/admin/users/teacher/{target_teacher.id}/make-admin",
-        headers={**_auth(target_teacher.username), "X-Admin-Password": "password123"}
+        headers=_auth(target_teacher.username),
+        json={"admin_password": "password123"}
     )
     assert r.status_code == 403
 
@@ -114,7 +117,8 @@ async def test_non_admin_cannot_promote(client, db_session, target_teacher):
 async def test_promote_nonexistent_teacher(client, admin_teacher):
     r = await client.post(
         "/api/admin/users/teacher/99999/make-admin",
-        headers={**_auth(admin_teacher.username), "X-Admin-Password": "adminpassword123"}
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
     )
     assert r.status_code == 404
     assert r.json()["detail"] == "Teacher not found"

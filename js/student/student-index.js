@@ -1,4 +1,5 @@
-import { initLoginPage } from '../core/auth-ui.js';
+import { initLoginPage , initBurgerMenu } from '/js/auth-ui.js';
+initBurgerMenu();
 initLoginPage();
 
 // Pass the task_set code and username to the register page so it can redirect back

@@ -1,5 +1,6 @@
-import { initSignedInAs } from '../core/auth-ui.js';
-import { initStudentLogout } from '../core/auth-ui.js';
+import { initSignedInAs , initBurgerMenu } from '/js/auth-ui.js';
+initBurgerMenu();
+import { initStudentLogout } from '/js/auth-ui.js';
 initSignedInAs({ preferNickname: true });
 initStudentLogout();
 
@@ -52,7 +53,7 @@ async function checkAndRedirectIfStarted() {
 		console.error('Error checking task start status:', error);
 		// Fall through to show the start page if the check fails
 	}
-	
+
 	// If we reach here, it means the task hasn't been started. Show the page content.
 	showPageContent();
 }

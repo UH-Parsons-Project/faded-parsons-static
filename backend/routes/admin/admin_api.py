@@ -1,38 +1,26 @@
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import case, delete, func, select
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from pydantic import BaseModel
+from sqlalchemy import select, func, or_, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.utils import cleanup_old_registration_tokens, generate_token, hash_token
-
-from ...teacher_auth import CurrentUser
+from ...auth import CurrentUser
 from ...database import get_db
-from ...models import (
-    ModelAnswer,
-    Parsons,
-    RegistrationToken,
-    Student,
-    StudentTaskEnrollment,
-    StudentTaskSetEnrollment,
-    TaskAttempt,
-    TaskSet,
-    TaskSetItem,
-    Teacher,
-)
+from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
-    CreateRegistrationTokenRequest,
-    DailyActiveUser,
-    MonthlyActiveUser,
-    RegistrationTokenListItem,
-    RegistrationTokenResponse,
     TaskSetResponse,
+    CreateRegistrationTokenRequest,
+    RegistrationTokenResponse,
+    RegistrationTokenListItem,
     UserActivityResponse,
     UserActivityStats,
+    DailyActiveUser,
+    MonthlyActiveUser,
     UserListItem,
 )
+from backend.utils import generate_token, hash_token, cleanup_old_registration_tokens
+import backend.config as config
 from ..utils.commons import build_taskset_response_list
 
 TOKEN_EXPIRY_DAYS = 7
@@ -51,6 +39,11 @@ def require_admin(current_user: CurrentUser) -> Teacher:
 	return current_user
 
 AdminUser = Annotated[Teacher, Depends(require_admin)]
+
+
+class AdminPasswordRequest(BaseModel):
+    """Body model for operations that require admin password confirmation."""
+    admin_password: str
 
 
 @router.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)
@@ -318,13 +311,19 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 async def delete_user(
 	role: str,
 	user_id: int,
+<<<<<<< HEAD
 	current_user: AdminUser,
 	db: Annotated[AsyncSession, Depends(get_db)],
 	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
+=======
+	body: AdminPasswordRequest,
+	current_user: CurrentUser,
+	db: AsyncSession = Depends(get_db),
+>>>>>>> origin/main
 ):
 	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
 
-	if not x_admin_password or not current_user.verify_password(x_admin_password):
+	if not body.admin_password or not current_user.verify_password(body.admin_password):
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
 			detail="Incorrect admin password",
@@ -500,13 +499,19 @@ async def delete_user(
 @router.post("/api/admin/users/teacher/{user_id}/make-admin")
 async def promote_teacher_to_admin(
 	user_id: int,
+<<<<<<< HEAD
 	current_user: AdminUser,
 	db: Annotated[AsyncSession, Depends(get_db)],
 	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
+=======
+	body: AdminPasswordRequest,
+	current_user: CurrentUser,
+	db: AsyncSession = Depends(get_db),
+>>>>>>> origin/main
 ):
 	"""Promote a teacher to admin. Admin only. Requires admin password confirmation."""
 
-	if not x_admin_password or not current_user.verify_password(x_admin_password):
+	if not body.admin_password or not current_user.verify_password(body.admin_password):
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
 			detail="Incorrect admin password",

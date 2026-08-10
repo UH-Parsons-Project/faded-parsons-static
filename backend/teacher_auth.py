@@ -11,8 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .database import get_db
 from .models import Teacher
 
-# Security configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-please")
+# Security configuration — must be set in the environment; fail fast if missing.
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(64))\""
+    )
+SECRET_KEY: str = _secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
 

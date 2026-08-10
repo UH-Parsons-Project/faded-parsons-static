@@ -422,7 +422,7 @@ function setupExpiryEdit(taskSet, isOwner) {
 			<input type="datetime-local" id="expiry-input" value="${currentValue}" style="font-size:.85rem;padding:2px 6px;">
 			<button id="save-expiry-btn" type="button" class="btn btn-sm btn-primary ml-1">Save</button>
 			${taskSet.expires_at ? `<button id="clear-expiry-btn" type="button" class="btn btn-sm btn-outline-secondary ml-1">Remove</button>` : ''}
-			<button id="cancel-expiry-btn" type="button" class="btn btn-sm btn-outline-secondary ml-1">Cancel</button>
+			<button id="cancel-expiry-btn" type="button" class="btn btn-sm btn-outline-danger ml-1">Cancel</button>
 		`;
 		document.getElementById('cancel-expiry-btn').addEventListener('click', renderDisplay);
 		document.getElementById('save-expiry-btn').addEventListener('click', () => {

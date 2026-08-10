@@ -1,5 +1,6 @@
-import { initStudentLogout, initSignedInAs, initNavbarExercisesButton } from '../core/auth-ui.js';
-import { makeKeyActivatable } from '../utils/ui-utils.js';
+import { initStudentLogout, initSignedInAs, initNavbarExercisesButton , initBurgerMenu } from '/js/auth-ui.js';
+import { makeKeyActivatable } from '/js/utils/ui-utils.js';
+initBurgerMenu();
 
 initSignedInAs({ preferNickname: true });
 

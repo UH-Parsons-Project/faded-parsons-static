@@ -389,11 +389,8 @@ async def student_logout(
 
 
 @router.post("/api/student_register")
-<<<<<<< HEAD
-async def api_student_register(request: dict, db: Annotated[AsyncSession, Depends(get_db)]):
-=======
 @limiter.limit("10/minute")
-async def api_student_register(request: Request, db: AsyncSession = Depends(get_db)):
+async def api_student_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     reg_identifier = f"student_reg:{request.client.host}"
 
     remaining = check_brute_force(reg_identifier)
@@ -402,8 +399,6 @@ async def api_student_register(request: Request, db: AsyncSession = Depends(get_
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
         )
-
->>>>>>> origin/main
     try:
         payload = await request.json()
     except Exception:

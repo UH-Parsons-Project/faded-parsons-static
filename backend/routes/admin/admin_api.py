@@ -1,11 +1,13 @@
 from pathlib import Path
+from typing import Annotated
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 from sqlalchemy import select, func, or_, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth import CurrentUser
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import RegistrationToken, TaskSet, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
@@ -311,15 +313,9 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 async def delete_user(
 	role: str,
 	user_id: int,
-<<<<<<< HEAD
+	body: AdminPasswordRequest,
 	current_user: AdminUser,
 	db: Annotated[AsyncSession, Depends(get_db)],
-	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
-=======
-	body: AdminPasswordRequest,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
->>>>>>> origin/main
 ):
 	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
 
@@ -499,15 +495,9 @@ async def delete_user(
 @router.post("/api/admin/users/teacher/{user_id}/make-admin")
 async def promote_teacher_to_admin(
 	user_id: int,
-<<<<<<< HEAD
+	body: AdminPasswordRequest,
 	current_user: AdminUser,
 	db: Annotated[AsyncSession, Depends(get_db)],
-	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
-=======
-	body: AdminPasswordRequest,
-	current_user: CurrentUser,
-	db: AsyncSession = Depends(get_db),
->>>>>>> origin/main
 ):
 	"""Promote a teacher to admin. Admin only. Requires admin password confirmation."""
 

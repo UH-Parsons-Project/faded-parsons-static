@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import APIRouter, Depends, status, Request
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,8 +51,6 @@ def _is_expired(task_set) -> bool:
     return datetime.now(timezone.utc) > expires
 
 
-<<<<<<< HEAD
-=======
 @router.get("/student-start-task", response_class=HTMLResponse)
 async def student_start_view(
     request: Request,
@@ -64,9 +62,6 @@ async def student_start_view(
 
     index_path = BASE_DIR / "templates" / "student_start_task.html"
     return FileResponse(index_path)
-
-
->>>>>>> origin/main
 @router.get("/{username}/set/{unique_link_code}", response_class=FileResponse)
 async def task_set_page(
     username: str,

@@ -308,8 +308,11 @@ export function initLoginPage() {
 	// console.log('Register button found:', registerBtn); // Debug log
 	if (registerBtn) {
 		registerBtn.addEventListener('click', function () {
-			// console.log('Register button clicked'); // Debug log
-			window.location.href = '/teacher-register';
+			const isStudentPage = /^\/[^/]+\/set\//.test(window.location.pathname);
+			if (!isStudentPage) {
+				// console.log('Register button clicked'); // Debug log
+				window.location.href = '/teacher-register';
+			}
 		});
 	}
 

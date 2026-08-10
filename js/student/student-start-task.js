@@ -1,6 +1,6 @@
-import { initSignedInAs , initBurgerMenu } from '/js/auth-ui.js';
+import { initSignedInAs , initBurgerMenu } from '/js/core/auth-ui.js';
 initBurgerMenu();
-import { initStudentLogout } from '/js/auth-ui.js';
+import { initStudentLogout } from '/js/core/auth-ui.js';
 initSignedInAs({ preferNickname: true });
 initStudentLogout();
 

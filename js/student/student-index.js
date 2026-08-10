@@ -1,4 +1,4 @@
-import { initLoginPage , initBurgerMenu } from '/js/auth-ui.js';
+import { initLoginPage , initBurgerMenu } from '/js/core/auth-ui.js';
 initBurgerMenu();
 initLoginPage();
 

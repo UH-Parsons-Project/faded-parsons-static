@@ -1,4 +1,4 @@
-import {initStudentLogout, initBurgerMenu } from '/js/auth-ui.js';
+import {initStudentLogout, initBurgerMenu } from '/js/core/auth-ui.js';
 import { formatDate, showAlert } from '/js/utils/ui-utils.js';
 initBurgerMenu();
 

@@ -1,4 +1,4 @@
-import { initStudentLogout, initSignedInAs, initNavbarExercisesButton , initBurgerMenu } from '/js/auth-ui.js';
+import { initStudentLogout, initSignedInAs, initNavbarExercisesButton , initBurgerMenu } from '/js/core/auth-ui.js';
 import { makeKeyActivatable } from '/js/utils/ui-utils.js';
 initBurgerMenu();
 

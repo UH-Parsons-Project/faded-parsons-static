@@ -188,7 +188,7 @@ test('teacher can share a task set with another teacher', async ({ page }) => {
   );
 
   // Logout teacher 1
-  await page.locator('#logout-btn').click();
+  await logoutTeacher(page);
 
   // Allow URL with cache-busting query parameter: /?timestamp
   await expect(page).toHaveURL(/\/(\?.*)?$/);

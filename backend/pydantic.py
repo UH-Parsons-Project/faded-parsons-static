@@ -29,6 +29,22 @@ class TaskResponse(BaseModel):
     model_answer: str | None = None
 
 
+class StudentTaskResponse(BaseModel):
+    """Task response for student-facing endpoints.
+
+    Deliberately omits ``correct_solution`` and ``model_answer`` so students
+    cannot trivially read the answer from the network tab.
+    """
+    id: int
+    title: str
+    task_instructions: str
+    description: str | None
+    task_type: str
+    code_blocks: dict
+    is_public: bool
+    created_at: str
+
+
 
 class TaskSetResponse(BaseModel):
     id: int

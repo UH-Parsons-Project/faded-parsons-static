@@ -1187,12 +1187,12 @@ a.btn-cancel:visited {
   gap: .5rem;
   width: 100%;
   background: var(--card, #ffffff);
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--red, #dc2626);
   border-radius: var(--radius, 10px);
   padding: .75rem 1rem;
   font-size: .95rem;
   font-weight: 600;
-  color: var(--text-muted, #5f6b7a);
+  color: var(--red, #dc2626);
   cursor: pointer;
   text-decoration: none;
   transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
@@ -1202,9 +1202,9 @@ a.btn-cancel:visited {
 .btn-cancel:hover,
 a.btn-cancel:hover,
 a.btn-cancel:focus {
-  background: var(--bg, #f8f9fa);
-  border-color: var(--gray, #94a3b8);
-  color: var(--text, #1e293b);
+  background: var(--red, #dc2626);
+  border-color: var(--red, #dc2626);
+  color: #fff;
   text-decoration: none;
 }
 
@@ -2143,3 +2143,26 @@ a.btn-cancel:focus {
   border-radius: 5px;
   padding: 0.5rem;
 }
+
+/* ── Navbar Burger Menu ──────────────────────────────── */
+.navbar-burger-menu { position: relative; display: inline-block; }
+.navbar-burger-toggle {
+  background: none; border: none; font-size: 1.5rem; color: #333;
+  cursor: pointer; padding: .25rem .5rem; display: flex; align-items: center;
+}
+.navbar-burger-toggle:hover { color: #0056b3; }
+.navbar-burger-dropdown {
+  display: none; position: absolute; right: 0; top: 100%;
+  background: white; border: 1px solid #dee2e6; border-radius: .25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15); min-width: 200px; z-index: 1001; margin-top: .5rem;
+}
+.navbar-burger-dropdown.show { display: block; }
+a.navbar-burger-item,
+a.navbar-burger-item:link,
+a.navbar-burger-item:visited {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .75rem 1rem; color: #333; text-decoration: none;
+  transition: background-color .2s, color .2s;
+}
+a.navbar-burger-item:hover,
+a.navbar-burger-item:focus { background-color: #f8f9fa; color: #0056b3; text-decoration: underline; }

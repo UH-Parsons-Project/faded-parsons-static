@@ -311,7 +311,7 @@ function showPasswordPrompt(options = {}) {
 		btnContainer.style.gap = '10px';
 
 		const cancelBtn = document.createElement('button');
-		cancelBtn.className = 'btn btn-outline-secondary';
+		cancelBtn.className = 'btn btn-outline-danger';
 		cancelBtn.textContent = 'Cancel';
 		cancelBtn.type = 'button';
 		btnContainer.appendChild(cancelBtn);
@@ -320,7 +320,7 @@ function showPasswordPrompt(options = {}) {
 		if (warningColor === '#28a745' || warningColor === 'green') {
 			confirmBtn.className = 'btn btn-success';
 		} else {
-			confirmBtn.className = 'btn btn-danger';
+			confirmBtn.className = 'btn btn-secondary';
 		}
 		confirmBtn.textContent = 'Confirm';
 		confirmBtn.type = 'button';
@@ -383,8 +383,9 @@ async function deleteUser(role, id, username) {
 	fetch(`/api/admin/users/${role}/${id}`, {
 		method: 'DELETE',
 		headers: {
-			'X-Admin-Password': password
+			'Content-Type': 'application/json'
 		},
+		body: JSON.stringify({ admin_password: password }),
 		credentials: 'include',
 	})
 	.then(r => {
@@ -416,8 +417,9 @@ async function makeAdmin(id, username) {
 	fetch(`/api/admin/users/teacher/${id}/make-admin`, {
 		method: 'POST',
 		headers: {
-			'X-Admin-Password': password
+			'Content-Type': 'application/json'
 		},
+		body: JSON.stringify({ admin_password: password }),
 		credentials: 'include',
 	})
 	.then(r => {

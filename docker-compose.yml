@@ -39,6 +39,7 @@ services:
       # Allow manual DB reset and seeding via /api/reset-db and /api/seed-db endpoints
       DEVELOPMENT_MODE: "true"
       TEST_MODE: "true"
+      SECRET_KEY: "${SECRET_KEY:-test-secret-key-for-local-dev-only}"
     depends_on:
       db:
         condition: service_healthy
@@ -76,6 +77,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db-test:5432/faded_parsons_test
       AUTO_INIT_DB: "true"
       TEST_MODE: "true"
+      SECRET_KEY: "test-secret-key-for-tests-only"
     depends_on:
       db-test:
         condition: service_healthy

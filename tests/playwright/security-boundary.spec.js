@@ -118,6 +118,6 @@ test('teacher role (non-admin) can access teacher pages but is redirected when a
     await page.goto(path);
     // Non-admin teacher role redirects back to "/"
     await page.waitForURL(/\/(\?.*)?$/, { timeout: 5000 });
-    await expect(page.locator('#logout-btn')).toBeVisible();
+    await expect(page.locator('#navbar-burger-toggle')).toBeVisible();
   }
 });

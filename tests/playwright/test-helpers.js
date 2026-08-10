@@ -180,6 +180,7 @@ export async function loginStudent(page, username, password = 'password123', uni
  * @param {any} page - Playwright page object
  */
 export async function logoutTeacher(page) {
+  await page.locator('#navbar-burger-toggle').click();
   await page.locator('#logout-btn').click();
   await page.waitForSelector('#login-form', { timeout: 10000 });
 }

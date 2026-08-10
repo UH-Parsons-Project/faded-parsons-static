@@ -23,11 +23,20 @@
 				<div class="text-dark mr-3">
 					<i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
 				</div>
-				<a href="/student/profile" class="btn btn-outline-dark btn-sm mr-2" id="profile-link" title="View Profile">
-					<i class="fas fa-cog"></i> Profile
-				</a>
-				<button class="btn btn-outline-dark btn-sm" id="logout-btn">Logout</button>
-			</div>
+				<div class="navbar-burger-menu" style="margin-left: 1rem;">
+          <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
+            <a href="/student/profile" class="navbar-burger-item" id="profile-link">
+              <i class="fas fa-cog"></i> Profile
+            </a>
+            <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+          </div>
+        </div>
+</div>
 		</nav>
 		<div class="task_set-layout">
 			<!-- Left sidebar -->

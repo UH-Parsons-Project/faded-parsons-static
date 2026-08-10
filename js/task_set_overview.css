@@ -902,10 +902,10 @@ h3.mb-3 {
 .hm-modal-btn-cancel {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .45rem 1rem; border-radius: 8px; font-size: .85rem; font-weight: 600;
-  background: none; color: var(--text-muted); border: 1px solid var(--border);
+  background: none; color: var(--red, #dc2626); border: 1px solid var(--red, #dc2626);
   cursor: pointer; transition: background .15s, border-color .15s;
 }
-.hm-modal-btn-cancel:hover { background: #f1f5f9; border-color: #94a3b8; }
+.hm-modal-btn-cancel:hover { background: var(--red, #dc2626); color: #fff; border-color: var(--red, #dc2626); }
 /* ── Navbar: collapse username to icon on small screens ─ */
 @media (max-width: 600px) {
   #user-name { display: none; }

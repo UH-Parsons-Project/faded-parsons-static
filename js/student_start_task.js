@@ -1,4 +1,5 @@
-import { initSignedInAs } from '/js/auth-ui.js';
+import { initSignedInAs , initBurgerMenu } from '/js/auth-ui.js';
+initBurgerMenu();
 import { initStudentLogout } from '/js/auth-ui.js';
 initSignedInAs({ preferNickname: true });
 initStudentLogout();

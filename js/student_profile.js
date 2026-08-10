@@ -1,4 +1,5 @@
-import {initStudentLogout} from '/js/auth-ui.js';
+import {initStudentLogout, initBurgerMenu } from '/js/auth-ui.js';
+initBurgerMenu();
 
 // Init student logout
 initStudentLogout();

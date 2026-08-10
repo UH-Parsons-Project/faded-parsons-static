@@ -4,7 +4,8 @@ TOKEN_EXPIRY_DAYS = 7
 TOKEN_MIN_LENGTH = 10
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from pydantic import BaseModel
 from sqlalchemy import select, func, or_, delete, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,11 @@ from ..utils.commons import build_taskset_response_list
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
+
+
+class AdminPasswordRequest(BaseModel):
+    """Body model for operations that require admin password confirmation."""
+    admin_password: str
 
 
 @router.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)
@@ -379,15 +385,15 @@ async def list_all_users(current_user: CurrentUser, db: AsyncSession = Depends(g
 async def delete_user(
 	role: str,
 	user_id: int,
+	body: AdminPasswordRequest,
 	current_user: CurrentUser,
 	db: AsyncSession = Depends(get_db),
-	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
 ):
 	"""Delete a teacher or student. Admin only. Cannot delete self or other admins."""
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-	if not x_admin_password or not current_user.verify_password(x_admin_password):
+	if not body.admin_password or not current_user.verify_password(body.admin_password):
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
 			detail="Incorrect admin password",
@@ -563,15 +569,15 @@ async def delete_user(
 @router.post("/api/admin/users/teacher/{user_id}/make-admin")
 async def promote_teacher_to_admin(
 	user_id: int,
+	body: AdminPasswordRequest,
 	current_user: CurrentUser,
 	db: AsyncSession = Depends(get_db),
-	x_admin_password: str | None = Header(None, alias="X-Admin-Password"),
 ):
 	"""Promote a teacher to admin. Admin only. Requires admin password confirmation."""
 	if not current_user.is_admin_teacher:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-	if not x_admin_password or not current_user.verify_password(x_admin_password):
+	if not body.admin_password or not current_user.verify_password(body.admin_password):
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
 			detail="Incorrect admin password",

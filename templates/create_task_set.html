@@ -37,7 +37,6 @@
 	    <span id="user-name"></span>
 	    <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
 	</a>
-      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">Logout</button>
       <div class="navbar-burger-menu" style="margin-left: 1rem;">
         <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
           <i class="fas fa-bars"></i>
@@ -54,6 +53,9 @@
           </a>
           <a href="/teacher/profile" class="navbar-burger-item">
             <i class="fas fa-cog"></i> Profile Settings
+          </a>
+          <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
+            <i class="fas fa-sign-out-alt"></i> Logout
           </a>
         </div>
       </div>
@@ -104,91 +106,7 @@
 
     <form id="create-task-set-form" class="task-set-form">
       <div class="parallel-layout" style="gap: 3rem;">
-        <!-- Left Column: Tasks -->
-        <div class="parallel-col" style="flex: 2;">
-          <!-- Task Selection -->
-          <div class="form-section">
-            <h5><i class="fas fa-list"></i> Select Tasks</h5>
-
-            <div class="task-filter-menu">
-              <button
-                class="btn btn-outline-secondary task-filter-toggle"
-                type="button"
-                data-toggle="collapse"
-                data-target="#task-filter-panel"
-                aria-expanded="false"
-                aria-controls="task-filter-panel"
-              >
-                <i class="fas fa-bars"></i> Search & Filter
-              </button>
-
-              <div class="collapse mt-2" id="task-filter-panel">
-                <div class="filter-panel-content">
-                  <div class="form-group mb-3">
-                    <input type="text" class="form-control" id="task-search"
-                           placeholder="Search tasks...">
-                    <small class="form-text text-muted mt-1">
-                      Select fields below to search in specific areas
-                    </small>
-                  </div>
-
-                  <div class="filter-scopes">
-                    <label class="filter-scope-label">Search in:</label>
-                    <div class="scope-checkboxes">
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-title" value="title">
-                        <label class="custom-control-label" for="scope-title">Title</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-teacher" value="teacher">
-                        <label class="custom-control-label" for="scope-teacher">Teacher</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-type" value="type">
-                        <label class="custom-control-label" for="scope-type">Type</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-my-exercises" value="my-exercises">
-                        <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-favorites" value="favorites">
-                        <label class="custom-control-label" for="scope-favorites">Favorites</label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="tasks-loading" class="loading-spinner" style="display: none;">
-              <div class="spinner-border text-primary" role="status">
-                <span class="sr-only">Loading...</span>
-              </div>
-              <p>Loading available tasks...</p>
-            </div>
-
-            <div class="task-selector" id="task-selector">
-              <!-- Tasks will be loaded here -->
-            </div>
-          </div>
-
-          <!-- Selected Tasks with Ordering -->
-          <div class="form-section">
-            <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
-            <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
-            <div class="selected-tasks-list" id="selected-tasks-list">
-              <div class="empty-selected">No tasks selected yet</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Info & Submit -->
+        <!-- Left Column: Info & Submit -->
         <div class="parallel-col" style="flex: 1; position: sticky; top: 100px; align-self: flex-start;">
           <!-- Basic Information -->
           <div class="form-section">
@@ -266,6 +184,90 @@
             <button type="submit" class="btn-submit">
               <i class="fas fa-save"></i> Create Task Set
             </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Tasks -->
+        <div class="parallel-col" style="flex: 2;">
+          <!-- Selected Tasks with Ordering -->
+          <div class="form-section">
+            <h5><i class="fas fa-check-circle"></i> Selected Tasks (<span id="selected-count">0</span>)</h5>
+            <small class="form-text text-muted d-block mb-2">Drag to reorder tasks. Click "Preview" to try the task.</small>
+            <div class="selected-tasks-list" id="selected-tasks-list">
+              <div class="empty-selected">No tasks selected yet</div>
+            </div>
+          </div>
+
+          <!-- Task Selection -->
+          <div class="form-section mt-4">
+            <h5><i class="fas fa-list"></i> Select Tasks</h5>
+
+            <div class="task-filter-menu">
+              <button
+                class="btn btn-outline-secondary task-filter-toggle"
+                type="button"
+                data-toggle="collapse"
+                data-target="#task-filter-panel"
+                aria-expanded="false"
+                aria-controls="task-filter-panel"
+              >
+                <i class="fas fa-bars"></i> Search & Filter
+              </button>
+
+              <div class="collapse mt-2" id="task-filter-panel">
+                <div class="filter-panel-content">
+                  <div class="form-group mb-3">
+                    <input type="text" class="form-control" id="task-search"
+                           placeholder="Search tasks...">
+                    <small class="form-text text-muted mt-1">
+                      Select fields below to search in specific areas
+                    </small>
+                  </div>
+
+                  <div class="filter-scopes">
+                    <label class="filter-scope-label">Search in:</label>
+                    <div class="scope-checkboxes">
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-title" value="title">
+                        <label class="custom-control-label" for="scope-title">Title</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-teacher" value="teacher">
+                        <label class="custom-control-label" for="scope-teacher">Teacher</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-type" value="type">
+                        <label class="custom-control-label" for="scope-type">Type</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-my-exercises" value="my-exercises">
+                        <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
+                      </div>
+                      <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input filter-scope"
+                               id="scope-favorites" value="favorites">
+                        <label class="custom-control-label" for="scope-favorites">Favorites</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="tasks-loading" class="loading-spinner" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <p>Loading available tasks...</p>
+            </div>
+
+            <div class="task-selector" id="task-selector">
+              <!-- Tasks will be loaded here -->
+            </div>
           </div>
         </div>
       </div>

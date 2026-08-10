@@ -6,7 +6,7 @@ from sqlalchemy import select, func, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 import re
 
-from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse
+from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse, StudentTaskResponse
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskAttempt, TaskSet, MoveEvent, StudentTaskEnrollment, TaskSession, EditEvent, Parsons, Teacher, TaskSetItem
 from ...student_auth import (
@@ -369,9 +369,19 @@ async def student_logout(
 
 
 @router.post("/api/student_register")
-async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def api_student_register(request: Request, db: AsyncSession = Depends(get_db)):
+    reg_identifier = f"student_reg:{request.client.host}"
+
+    remaining = check_brute_force(reg_identifier)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Try again in {int(remaining // 60) + 1} minute(s).",
+        )
+
     try:
-        payload = request if isinstance(request, dict) else await request.json()
+        payload = await request.json()
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
@@ -394,10 +404,11 @@ async def api_student_register(request: dict, db: AsyncSession = Depends(get_db)
     await db.commit()
     await db.refresh(student)
 
+    clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": student.id}
 
 
-@router.get("/api/sets/{unique_link_code}/tasks/{task_id}", response_model=TaskResponse)
+@router.get("/api/sets/{unique_link_code}/tasks/{task_id}", response_model=StudentTaskResponse)
 async def get_task_for_student_set(
     task_id: int,
     unique_link_code: str,
@@ -444,7 +455,6 @@ async def get_task_for_student_set(
         description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
-        correct_solution=task.correct_solution,
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,

@@ -233,15 +233,19 @@ export async function initWidget() {
 		if (savedMoves.length > 0) probEl.recordedMoves = savedMoves;
 		if (savedEdits.length > 0) probEl.recordedEdits = savedEdits;
 
-		// Restore saved arrangement (JSON with stable block IDs) if available.
-		// Set as a property so firstUpdated() can apply it after a fresh init,
-		// keeping sortable-codelineN IDs consistent with the replay's initial_blocks.
-		const savedArrangementJson = get(lsKey(LS_REPR));
-		if (savedArrangementJson) {
-			try {
-				probEl.savedArrangement = JSON.parse(savedArrangementJson);
-			} catch (e) {
-				// Ignore malformed or old-format data
+		// Restore saved arrangement: prefer server-side saved arrangement
+		// (task.submitted_order) when present (student's successful attempt),
+		// otherwise fall back to local session cache.
+		if (task && task.submitted_order) {
+			probEl.savedArrangement = task.submitted_order;
+		} else {
+			const savedArrangementJson = get(lsKey(LS_REPR));
+			if (savedArrangementJson) {
+				try {
+					probEl.savedArrangement = JSON.parse(savedArrangementJson);
+				} catch (e) {
+					// Ignore malformed or old-format data
+				}
 			}
 		}
 
@@ -401,14 +405,15 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 	set(lsKey(LS_EDITS), '[]');
 
 	try {
-		const resultData = {
+				const resultData = {
 			task_id: parseInt(globalTaskId),
 			success: testResults.status === 'pass',
 			submitted_code: submittedCode,
 			test_output: testResults.details || '',
 			repr_code: reprCode,
-			moves: moves || [], // Include recorded moves with the submission
-		edits: edits || [] // Include recorded blank edits with the submission
+					arrangement: probEl.getCurrentArrangement(),
+					moves: moves || [], // Include recorded moves with the submission
+				edits: edits || [] // Include recorded blank edits with the submission
 		};
 
 		const response = await fetch(`/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}/submit-result`, {

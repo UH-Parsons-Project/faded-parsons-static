@@ -109,7 +109,11 @@ function renderTaskInstructions(taskInstructions) {
 function renderModelAnswer(modelAnswer) {
 	const content = document.getElementById('model-answer-content');
 	if (modelAnswer && modelAnswer.trim()) {
-		content.innerHTML = `<pre class="model-code">${escapeHtml(modelAnswer)}</pre>`;
+		content.innerHTML = '';
+		const pre = document.createElement('pre');
+		pre.className = 'model-code';
+		pre.textContent = modelAnswer;
+		content.appendChild(pre);
 	}
 }
 
@@ -129,8 +133,16 @@ function createAttemptItem(attempt) {
 				<span class="attempt-badge ${attempt.success ? 'success' : 'failure'}">${attempt.success ? 'Success' : 'Failed'}</span>
 			</div>
 		</div>
-		${attempt.code ? `<div class="attempt-code-wrap"><pre class="attempt-code">${escapeHtml(attempt.code)}</pre></div>` : ''}
 	`;
+	if (attempt.code) {
+		const wrap = document.createElement('div');
+		wrap.className = 'attempt-code-wrap';
+		const pre = document.createElement('pre');
+		pre.className = 'attempt-code';
+		pre.textContent = attempt.code;
+		wrap.appendChild(pre);
+		item.appendChild(wrap);
+	}
 
 	return item;
 }
@@ -280,17 +292,29 @@ function countBlanks(code) {
 	return (code.match(/___/g) || []).length;
 }
 
-function renderBlockCode(code, blanks) {
+function renderBlockElement(code, blanks) {
+	const frag = document.createDocumentFragment();
 	let i = 0;
-	return escapeHtml(code).replace(/___/g, () => {
-		const val = (blanks && blanks[i] !== undefined) ? escapeHtml(blanks[i]) : '';
-		i++;
-		return `<span class="replay-blank">${val || '&nbsp;&nbsp;'}</span>`;
-	}).replace(/!BLANK/g, () => {
-		const val = (blanks && blanks[i] !== undefined) ? escapeHtml(blanks[i]) : '';
-		i++;
-		return `<span class="replay-blank">${val || '&nbsp;&nbsp;'}</span>`;
-	});
+	// Split on tokens ___ or !BLANK and keep delimiters
+	const parts = code.split(/(___|!BLANK)/g);
+	for (const part of parts) {
+		if (part === '___' || part === '!BLANK') {
+			const span = document.createElement('span');
+			span.className = 'replay-blank';
+			const val = (blanks && blanks[i] !== undefined) ? String(blanks[i]) : '';
+			if (val) {
+				span.textContent = val;
+			} else {
+				span.innerHTML = '&nbsp;&nbsp;';
+			}
+			i++;
+			frag.appendChild(span);
+		} else {
+			// plain text part
+			frag.appendChild(document.createTextNode(part));
+		}
+	}
+	return frag;
 }
 
 function buildInitialState(initialBlocks) {
@@ -368,7 +392,11 @@ function renderReplayBoard(state, highlightBlockId) {
 		const el = document.getElementById(containerId);
 		el.innerHTML = '';
 		if (blocks.length === 0) {
-			el.innerHTML = '<em class="text-muted" style="font-size:0.8rem;">empty</em>';
+			const em = document.createElement('em');
+			em.className = 'text-muted';
+			em.style.fontSize = '0.8rem';
+			em.textContent = 'empty';
+			el.appendChild(em);
 			return;
 		}
 		for (const block of blocks) {
@@ -378,7 +406,8 @@ function renderReplayBoard(state, highlightBlockId) {
 				+ (block.given ? ' given' : '')
 				+ (block.debug ? ' debug' : '');
 			div.style.marginLeft = noIndent ? '0' : (block.indent * 20) + 'px';
-			div.innerHTML = renderBlockCode(block.code, block.blanks);
+			const frag = renderBlockElement(block.code, block.blanks);
+			div.appendChild(frag);
 			el.appendChild(div);
 		}
 	};

@@ -709,7 +709,7 @@ function createTaskItem(task, taskSet, isOwner) {
 	actionsWrap.style.alignItems = 'center';
 	actionsWrap.style.gap = '.4rem';
 
-	if (isOwner) {
+	if (isOwner && isEditMode) {
 		const toggleBtn = document.createElement('button');
 		toggleBtn.className = 'task-toggle-btn' + (task.is_hidden ? ' is-inactive' : '');
 		toggleBtn.type = 'button';
@@ -719,7 +719,6 @@ function createTaskItem(task, taskSet, isOwner) {
 		toggleBtn.title = task.is_hidden ? 'Make active for students' : 'Deactivate for students';
 		toggleBtn.addEventListener('click', async (e) => {
 			e.stopPropagation();
-			if (!task.is_hidden && !confirm(`Deactivate "${task.title}"? Students will no longer see this task.`)) return;
 			toggleBtn.disabled = true;
 			try {
 				const res = await fetch(`/api/my_sets/${taskSet.id}/tasks/${task.id}/hidden`, {
@@ -918,9 +917,21 @@ function setupEditTasksButton(taskSet) {
 	if (!editBtn || !addBtn) return;
 
 	editBtn.style.display = '';
+	let editSessionInitialHidden = new Map();
 
 	editBtn.addEventListener('click', async () => {
 		if (isEditMode) {
+			const newlyDeactivated = currentTasks.filter(
+				(t) => t.is_hidden && !editSessionInitialHidden.get(t.id)
+			);
+
+			if (newlyDeactivated.length > 0) {
+				const titles = newlyDeactivated.map((t) => `"${t.title}"`).join(', ');
+				if (!confirm(`Deactivating ${titles}? Students will no longer see deactivated tasks.`)) {
+					return;
+				}
+			}
+
 			editBtn.disabled = true;
 			editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 			try {
@@ -945,9 +956,9 @@ function setupEditTasksButton(taskSet) {
 			editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Tasks';
 			addBtn.style.display = 'none';
 			renderTasks(currentTasks, taskSet);
-			loadTaskStats(currentTasks, taskSet, currentStudents.length);
 		} else {
 			isEditMode = true;
+			editSessionInitialHidden = new Map(currentTasks.map((t) => [t.id, Boolean(t.is_hidden)]));
 			editBtn.className = 'btn btn-sm btn-success';
 			editBtn.innerHTML = '<i class="fas fa-check"></i> Done Editing';
 			addBtn.style.display = '';

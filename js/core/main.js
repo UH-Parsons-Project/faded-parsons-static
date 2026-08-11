@@ -207,15 +207,19 @@ export async function initWidget() {
 		if (savedMoves.length > 0) probEl.recordedMoves = savedMoves;
 		if (savedEdits.length > 0) probEl.recordedEdits = savedEdits;
 
-		// Restore saved arrangement (JSON with stable block IDs) if available.
-		// Set as a property so firstUpdated() can apply it after a fresh init,
-		// keeping sortable-codelineN IDs consistent with the replay's initial_blocks.
-		const savedArrangementJson = get(lsKey(LS_REPR));
-		if (savedArrangementJson) {
-			try {
-				probEl.savedArrangement = JSON.parse(savedArrangementJson);
-			} catch (e) {
-				// Ignore malformed or old-format data
+		// Restore saved arrangement: prefer server-side saved arrangement
+		// (task.submitted_order) when present (student's successful attempt),
+		// otherwise fall back to local session cache.
+		if (task && task.submitted_order) {
+			probEl.savedArrangement = task.submitted_order;
+		} else {
+			const savedArrangementJson = get(lsKey(LS_REPR));
+			if (savedArrangementJson) {
+				try {
+					probEl.savedArrangement = JSON.parse(savedArrangementJson);
+				} catch (e) {
+					// Ignore malformed or old-format data
+				}
 			}
 		}
 
@@ -256,9 +260,32 @@ function reconstructCodeLines(blocks) {
 	for (const block of blocks) {
 		// Add proper indentation
 		const indent = '    '.repeat(block.indent);
-		let code = indent + block.code;
 
-		// Convert ___ to !BLANK for Parsons widget to recognize editable fields
+		// Start from raw block code; sanitize any teacher-only artifacts
+		// so student view preserves empty blanks.
+		let raw = String(block.code || '');
+
+		// Remove any filled-blank markers inserted by the editor (e.g. #blankVALUE#)
+		raw = raw.replace(/#blank[^#]*#/g, '');
+
+		// Remove any preplace markers that may have been used for previewing
+		raw = raw.replace(/\s*#preplace\b/g, '');
+
+		// If the block contains input HTML, replace inputs with a blank marker
+		if (/\<input\b/i.test(raw)) {
+			const container = document.createElement('div');
+			container.innerHTML = raw;
+			container.querySelectorAll('input').forEach((input) => {
+				const repl = document.createTextNode('!BLANK');
+				input.replaceWith(repl);
+			});
+			raw = container.textContent || '';
+		}
+
+		// Compose final code with indentation
+		let code = indent + raw;
+
+		// Convert legacy ___ placeholders to !BLANK for Parsons widget
 		code = code.replace(/___/g, '!BLANK');
 
 		// Add #Ngiven marker if this block is pre-filled (given)
@@ -352,14 +379,15 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 	set(lsKey(LS_EDITS), '[]');
 
 	try {
-		const resultData = {
+				const resultData = {
 			task_id: parseInt(globalTaskId),
 			success: testResults.status === 'pass',
 			submitted_code: submittedCode,
 			test_output: testResults.details || '',
 			repr_code: reprCode,
-			moves: moves || [], // Include recorded moves with the submission
-		edits: edits || [] // Include recorded blank edits with the submission
+					arrangement: probEl.getCurrentArrangement(),
+					moves: moves || [], // Include recorded moves with the submission
+				edits: edits || [] // Include recorded blank edits with the submission
 		};
 
 		const response = await fetch(`/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}/submit-result`, {

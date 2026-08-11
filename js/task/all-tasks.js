@@ -239,8 +239,10 @@ function renderPreviewFull(item, taskData) {
 		}
 	}
 
-	// 3. Model answer
-	const rawModelCode = (taskData.model_answer || taskData.correct_solution?.solution_code || '').trim();
+	// 3. Model answer — for public/student previews prefer the canonical
+	// solution_code so blanks are preserved rather than showing teacher-filled
+	// model answers.
+	const rawModelCode = (taskData.correct_solution?.solution_code || '').trim();
 	let modelHtml = '';
 	if (rawModelCode) {
 		modelHtml = `<pre class="preview-model-code">${escapeHtml(rawModelCode)}</pre>`;

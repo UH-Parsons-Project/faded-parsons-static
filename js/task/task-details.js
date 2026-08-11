@@ -14,6 +14,28 @@ function formatMultilineText(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
+function sanitizeModelAnswerText(text) {
+  if (!text) return '';
+
+  const normalized = String(text)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+
+  if (!normalized.includes('<input')) {
+    return normalized;
+  }
+
+  const container = document.createElement('pre');
+  container.style.whiteSpace = 'pre';
+  container.style.margin = '0';
+  container.innerHTML = normalized;
+  container.querySelectorAll('input.text-box').forEach((input) => {
+    input.replaceWith(input.value || '');
+  });
+
+  return container.textContent.replace(/\u00a0/g, ' ');
+}
+
 
 // Convert doctest examples into assert statements for visual display
 function convertDoctestsToAsserts(header) {

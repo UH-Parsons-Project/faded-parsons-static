@@ -27,6 +27,7 @@ class TaskResponse(BaseModel):
     is_public: bool
     created_at: str
     model_answer: str | None = None
+    submitted_order: dict | None = None
 
 
 class StudentTaskResponse(BaseModel):
@@ -43,6 +44,7 @@ class StudentTaskResponse(BaseModel):
     code_blocks: dict
     is_public: bool
     created_at: str
+    submitted_order: dict | None = None
 
 
 
@@ -173,6 +175,7 @@ class SubmitTestResultRequest(BaseModel):
     submitted_code: str
     test_output: str
     repr_code: str
+    arrangement: dict | None = None
 
     moves: list[MoveData] = []  # Block moves recorded during the attempt
     edits: list[EditEventData] = []  # Blank field edits recorded during the attempt

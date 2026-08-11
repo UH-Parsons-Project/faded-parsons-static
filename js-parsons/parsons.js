@@ -7,7 +7,7 @@
 	var trimRegexp = /^\s*(.*?)\s*$/;
 	var givenIndentRegexp = /#(\d+)given\s*/;
 	var preplaceRegexp = /#preplace\s*/;
-	var blankRegexp = /#blank([^#]*)/;
+	var blankRegexp = /#blank([^#]*)#?/;
 	var userStrings = {
 		trash_label: 'Drag from here',
 		solution_label: 'Construct your solution here, including indents',
@@ -241,7 +241,7 @@
 				.cloneNode(true);
 			yamlConfigClone.querySelectorAll('input').forEach(function (inp) {
 				inp.replaceWith('!BLANK');
-				blankText += ' #blank' + inp.value;
+				blankText += ' #blank' + inp.value + '#';
 			});
 			yamlConfigClone.innerText = yamlConfigClone.innerText.trimRight();
 			let line = yamlConfigClone.innerText;
@@ -250,14 +250,17 @@
 		}
 		for (let i = 0; i < this.modified_lines.length; i++) {
 			if (!lines_in_soln.includes(this.modified_lines[i].id)) {
+				let blankText = '';
 				let yamlConfigClone = document
 					.getElementById(this.modified_lines[i].id)
 					.cloneNode(true);
 				yamlConfigClone.querySelectorAll('input').forEach(function (inp) {
 					inp.replaceWith('!BLANK');
+					blankText += ' #blank' + inp.value + '#';
 				});
 				yamlConfigClone.innerText = yamlConfigClone.innerText.trimRight();
 				let line = yamlConfigClone.innerText;
+				line = line + blankText;
 				reprCodeNonSoln += line + '\n';
 			}
 		}
@@ -437,15 +440,15 @@
 				codeline.code = codeline.code.replace(blankRegexp, '');
 			}
 			codeline.code = codeline.code.replace(/!BLANK/, function () {
+				var rpt = replaceText || '';
+				var width = (rpt.length + 3) * 8;
+				// Build a well-formed input element using double quotes for attributes.
 				return (
-					"<input type='text' class='text-box' value=\"" +
-					replaceText +
-					'" ' +
-					"style = 'width: " +
-					(replaceText.length + 3) * 8 +
-					"px'" +
-					// 'input' (not 'keypress') so the box also shrinks on delete/paste/cut.
-					"oninput=\"this.style.width = ((this.value.length + 3) * 8) + 'px';\"'/>"
+					'<input type="text" class="text-box" value="' +
+					rpt +
+					'" style="width: ' +
+					width +
+					'px" oninput="this.style.width = ((this.value.length + 3) * 8) + \'px\';"/>'
 				);
 			});
 		}

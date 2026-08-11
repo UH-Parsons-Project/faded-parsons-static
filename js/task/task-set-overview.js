@@ -68,10 +68,29 @@ function pipeCell(value, width) {
 	return text.padEnd(width, ' ');
 }
 
+function isTaskFaded(task) {
+	if (task?.is_faded === true) {
+		return true;
+	}
+
+	const blocks = task?.code_blocks?.blocks;
+	if (Array.isArray(blocks)) {
+		// If any block is explicitly faded, or if there are movable (non-preplaced)
+		// blocks (i.e. blocks without `given: true`), consider the task faded.
+		const hasFadedBlock = blocks.some((block) => block && block.faded === true);
+		if (hasFadedBlock) return true;
+		const hasMovable = blocks.some((block) => block && !block.given);
+		if (hasMovable) return true;
+	}
+
+	return task?.task_type === 'Faded' || task?.task_type === 'faded';
+}
+
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 	const headers = [
 		'Task Name',
-		'Task Type',
+		'Task tag',
+		'Faded task',
 		'Tries Count',
 		'Tries % of Enrolled',
 		'Completions Count',
@@ -101,9 +120,12 @@ function buildTaskSetCsv(tasks, taskStats, totalStudents) {
 		const timeToFirstFail = stats.time_to_first_fail || {};
 		const moves = stats.number_of_moves || {};
 
+		const isFadedTask = isTaskFaded(task);
+
 		return [
 			task.title,
 			task.task_type,
+			isFadedTask ? 'yes' : 'no',
 			formatCsvNumber(stats.students_attempted ?? 0),
 			formatCsvPercent(stats.students_attempted ?? 0, totalStudents),
 			formatCsvNumber(stats.students_completed ?? 0),
@@ -178,7 +200,7 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 	const button = document.getElementById('download-task-set-csv-btn');
 	if (button) {
 		button.disabled = true;
-		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing CSV';
+		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing Time data';
 	}
 
 	try {
@@ -188,7 +210,7 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = buildCsvExportFilename(taskSet, 'ALL_DATA');
+		link.download = buildCsvExportFilename(taskSet, 'TIME_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
@@ -199,7 +221,7 @@ async function downloadTaskSetCsv(taskSet, tasks, students) {
 	} finally {
 		if (button) {
 			button.disabled = false;
-			button.innerHTML = '<i class="fas fa-download"></i> Download CSV';
+			button.innerHTML = '<i class="fas fa-download"></i>Time data';
 		}
 	}
 }
@@ -208,7 +230,7 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 	const button = document.getElementById('download-task-set-teacher-csv-btn');
 	if (button) {
 		button.disabled = true;
-		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing CSV';
+		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing Student data';
 	}
 
 	try {
@@ -217,7 +239,7 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = buildCsvExportFilename(taskSet, 'EXERCISE_DATA');
+		link.download = buildCsvExportFilename(taskSet, 'STUDENT_DATA');
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
@@ -228,7 +250,7 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 	} finally {
 		if (button) {
 			button.disabled = false;
-			button.innerHTML = '<i class="fas fa-download"></i> Download Teacher CSV';
+			button.innerHTML = '<i class="fas fa-download"></i>Student data';
 		}
 	}
 }
@@ -552,10 +574,10 @@ function renderListHeader(taskSet, tasks, students) {
 				<div class="header-viewers-title" style="margin-bottom:.4rem; font-size:.7rem;">Data & Actions</div>
 				<div class="csv-buttons-group" style="display:flex;gap:.4rem;flex-wrap:wrap;">
 					<button id="download-task-set-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
-						<i class="fas fa-download"></i> CSV
+						<i class="fas fa-download"></i> Time data
 					</button>
 					<button id="download-task-set-teacher-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
-						<i class="fas fa-download"></i> Teacher CSV
+						<i class="fas fa-download"></i> Student data
 					</button>
 				</div>
 				<div style="margin-top:.4rem; display:flex;">

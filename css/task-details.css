@@ -84,7 +84,7 @@ pre.code-display {
   font-family: var(--mono);
   font-size: 0.82rem;
   line-height: 1.7;
-  white-space: pre;
+  white-space: pre-wrap;
   overflow-x: auto;
   color: #14532d;
   margin: 0;

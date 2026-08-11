@@ -189,17 +189,29 @@ async def get_task_set_tasks(code: str, db: Annotated[AsyncSession, Depends(get_
     result = await db.execute(stmt)
     rows = result.all()
 
-    return [
-        TaskSetTaskResponse(
-            id=task.id,
-            title=task.title,
-            task_type=task.task_type,
-            created_at=task.created_at.isoformat(),
-            is_hidden=is_hidden,
-            is_public=task.is_public,
+    tasks_payload = []
+    for task, is_hidden in rows:
+        blocks = task.code_blocks or {}
+        block_list = blocks.get("blocks") if isinstance(blocks, dict) else None
+        is_faded = False
+        if isinstance(block_list, list):
+            is_faded = any(bool(block.get("faded")) for block in block_list if isinstance(block, dict))
+            if not is_faded:
+                is_faded = any(not bool(block.get("given")) for block in block_list if isinstance(block, dict))
+
+        tasks_payload.append(
+            TaskSetTaskResponse(
+                id=task.id,
+                title=task.title,
+                task_type=task.task_type,
+                created_at=task.created_at.isoformat(),
+                is_hidden=is_hidden,
+                is_public=task.is_public,
+                is_faded=is_faded,
+            )
         )
-        for task, is_hidden in rows
-    ]
+
+    return tasks_payload
 
 
 @router.patch("/api/my_sets/{task_set_id}/tasks/{task_id}/hidden")

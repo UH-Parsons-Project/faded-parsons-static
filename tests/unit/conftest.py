@@ -26,6 +26,48 @@ except ImportError:
     async_sessionmaker = sessionmaker
 
 from backend.database import Base, get_db
+import types
+import sys
+
+# Provide a lightweight fake `slowapi` package for test runs where the
+# optional dependency may not be installed. This ensures importing
+# `backend.main` (which imports `slowapi`) does not fail in CI/local
+# test environments that lack the package.
+if 'slowapi' not in sys.modules:
+    slowapi_mod = types.ModuleType('slowapi')
+    # Minimal handler placeholder used by the application import.
+    from fastapi.responses import JSONResponse
+
+    def _fake_rate_limit_handler(request, exc):
+        return JSONResponse({"detail": "rate limit exceeded"}, status_code=429)
+
+    slowapi_mod._rate_limit_exceeded_handler = _fake_rate_limit_handler
+    slowapi_mod.errors = types.SimpleNamespace(RateLimitExceeded=Exception)
+    class _NoOpSlowAPIMiddleware:
+        def __init__(self, app=None, *a, **k):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            await self.app(scope, receive, send)
+
+    slowapi_mod.middleware = types.SimpleNamespace(SlowAPIMiddleware=_NoOpSlowAPIMiddleware)
+    # Minimal Limiter and util.get_remote_address used by backend.rate_limit
+    class _FakeLimiter:
+        def __init__(self, *a, **k):
+            pass
+
+        def limit(self, *a, **k):
+            def _decorator(func):
+                return func
+            return _decorator
+
+    slowapi_mod.Limiter = _FakeLimiter
+    slowapi_mod.util = types.SimpleNamespace(get_remote_address=lambda request: '127.0.0.1')
+    sys.modules['slowapi'] = slowapi_mod
+    sys.modules['slowapi.errors'] = slowapi_mod.errors
+    sys.modules['slowapi.middleware'] = slowapi_mod.middleware
+    sys.modules['slowapi.util'] = slowapi_mod.util
+
 from backend.main import app
 app.state.limiter.enabled = False
 import secrets

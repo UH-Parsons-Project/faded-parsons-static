@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 from datetime import datetime
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -101,6 +102,31 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
             detail=f"task_type is required and must be one of: {allowed}",
         )
     return normalized
+
+
+def _sanitize_model_answer_code(code: str | None) -> str:
+    if not code:
+        return ""
+
+    normalized = code.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        return ""
+
+    sanitized = re.sub(r"<input[^>]*class=['\"]text-box['\"][^>]*>", "", normalized, flags=re.IGNORECASE)
+    sanitized = sanitized.replace("</input>", "")
+    sanitized = re.sub(r"<input[^>]*>", "", sanitized, flags=re.IGNORECASE)
+
+    def _replace_blank_markers(match: re.Match[str]) -> str:
+        marker = match.group(0)
+        if marker.lower().startswith("#blank"):
+            suffix = marker[6:].strip()
+            if suffix:
+                return suffix
+            return ""
+        return marker
+
+    sanitized = re.sub(r"#blank\w*", _replace_blank_markers, sanitized)
+    return sanitized.strip()
 
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
@@ -459,6 +485,60 @@ async def check_task_editable(
     return {"task_id": task_id, "editable": editable}
 
 
+@router.get("/api/problems/{task_id}/model-answer")
+async def get_model_answer(
+    task_id: int,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to edit this task")
+
+    model_answer_result = await db.execute(select(ModelAnswer.answer_code).where(ModelAnswer.parsons_id == task_id))
+    model_answer_code = model_answer_result.scalar_one_or_none()
+    return {"task_id": task_id, "model_answer": _sanitize_model_answer_code(model_answer_code) or ""}
+
+
+@router.put("/api/problems/{task_id}/model-answer")
+async def update_model_answer(
+    task_id: int,
+    request: CreateProblemRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
+    task = task_result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task {task_id} not found")
+
+    if task.created_by_teacher_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to edit this task")
+
+    model_answer_code = _sanitize_model_answer_code(request.modelAnswerCode)
+    model_answer_result = await db.execute(select(ModelAnswer).where(ModelAnswer.parsons_id == task_id))
+    model_answer = model_answer_result.scalar_one_or_none()
+
+    if model_answer:
+        model_answer.answer_code = model_answer_code or ""
+    else:
+        model_answer = ModelAnswer(
+            parsons_id=task_id,
+            created_by_teacher_id=current_user.id,
+            answer_code=model_answer_code or "",
+        )
+        db.add(model_answer)
+
+    await db.commit()
+    return {"id": task.id, "message": "Model answer updated"}
+
+
 @router.put("/api/problems/{task_id}")
 async def update_problem(
     task_id: int,
@@ -512,8 +592,6 @@ async def update_problem(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The first non-empty solution line must start with def or class",
         )
-
-    import re
 
     header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
     function_name = header_match.group(2) if header_match else "custom_task"
@@ -585,20 +663,6 @@ async def update_problem(
     }
     task.is_public = True if request.is_public is None else request.is_public
 
-    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
-    model_answer_result = await db.execute(select(ModelAnswer).where(ModelAnswer.parsons_id == task_id))
-    model_answer = model_answer_result.scalar_one_or_none()
-
-    if model_answer:
-        model_answer.answer_code = model_answer_code or solution_code
-    else:
-        model_answer = ModelAnswer(
-            parsons_id=task_id,
-            created_by_teacher_id=current_user.id,
-            answer_code=model_answer_code or solution_code,
-        )
-        db.add(model_answer)
-
     await db.commit()
     await db.refresh(task)
 
@@ -628,5 +692,3 @@ async def delete_problem(
 
     await db.execute(delete(Parsons).where(Parsons.id == task_id))
     await db.commit()
-
-

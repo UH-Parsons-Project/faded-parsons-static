@@ -140,6 +140,22 @@ class TestDeleteTask:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
+class TestModelAnswerRetrieval:
+    async def test_returns_stored_model_answer(self, client, task, test_teacher, db_session):
+        ma = ModelAnswer(
+            parsons_id=task.id,
+            created_by_teacher_id=test_teacher.id,
+            answer_code="stored answer",
+        )
+        db_session.add(ma)
+        await db_session.commit()
+
+        r = await client.get(f"/api/problems/{task.id}/model-answer", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        assert r.json()["model_answer"] == "stored answer"
+
+
+@pytest.mark.asyncio
 class TestUpdateTask:
     async def test_success(self, client, task, test_teacher):
         payload = _problem_payload(
@@ -224,7 +240,7 @@ class TestUpdateTask:
         )
         assert r.status_code == 400
 
-    async def test_updates_existing_model_answer(self, client, task, test_teacher, db_session):
+    async def test_put_does_not_update_model_answer_by_default(self, client, task, test_teacher, db_session):
         ma = ModelAnswer(
             parsons_id=task.id,
             created_by_teacher_id=test_teacher.id,
@@ -246,6 +262,24 @@ class TestUpdateTask:
         )
         assert r.status_code == 200
         await db_session.refresh(ma)
+        assert ma.answer_code == "old code"
+
+    async def test_model_answer_endpoint_updates_existing_model_answer(self, client, task, test_teacher, db_session):
+        ma = ModelAnswer(
+            parsons_id=task.id,
+            created_by_teacher_id=test_teacher.id,
+            answer_code="old code",
+        )
+        db_session.add(ma)
+        await db_session.commit()
+
+        r = await client.put(
+            f"/api/problems/{task.id}/model-answer",
+            headers=_auth(test_teacher.username),
+            json=_problem_payload(modelAnswerCode="def ma_update(x):\n    return x + 5"),
+        )
+        assert r.status_code == 200
+        await db_session.refresh(ma)
         assert ma.answer_code == "def ma_update(x):\n    return x + 5"
 
     async def test_creates_model_answer_when_missing(self, client, task, test_teacher, db_session):
@@ -257,16 +291,31 @@ class TestUpdateTask:
             solutionCode="def no_ma(x):\n    return x + 9",
             tests="assert no_ma(0) == 9",
         )
+        # Create model answer explicitly via the dedicated endpoint
         r = await client.put(
-            f"/api/problems/{task.id}",
+            f"/api/problems/{task.id}/model-answer",
             headers=_auth(test_teacher.username),
-            json=payload,
+            json=_problem_payload(modelAnswerCode="def no_ma(x):\n    return x + 9"),
         )
         assert r.status_code == 200
         result = await db_session.execute(
             select(ModelAnswer).where(ModelAnswer.parsons_id == task.id)
         )
         assert result.scalar_one_or_none() is not None
+
+    async def test_model_answer_endpoint_strips_blank_markers_and_keeps_numeric_value(self, client, task, test_teacher, db_session):
+        r = await client.put(
+            f"/api/problems/{task.id}/model-answer",
+            headers=_auth(test_teacher.username),
+            json=_problem_payload(modelAnswerCode="def ma_update(x):\n    return #blank1"),
+        )
+        assert r.status_code == 200
+
+        result = await db_session.execute(
+            select(ModelAnswer).where(ModelAnswer.parsons_id == task.id)
+        )
+        saved_model_answer = result.scalar_one()
+        assert saved_model_answer.answer_code == "def ma_update(x):\n    return 1"
 
     async def test_updates_is_public(self, client, task, test_teacher, db_session):
         # Starts public (task fixture defaults to public)

@@ -442,12 +442,30 @@ async def get_task_for_student_set(
     stmt = select(Parsons).where(Parsons.id == resolved_task_id)
     result = await db.execute(stmt)
     task = result.scalar_one_or_none()
-
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task with id {resolved_task_id} not found",
         )
+
+    # If the student has a successful attempt, include their latest
+    # submitted_order so the frontend can restore the solved arrangement.
+    submitted_order = None
+    if student_session:
+        attempt_stmt = (
+            select(TaskAttempt)
+            .where(
+                (TaskAttempt.student_id == student_session.id) &
+                (TaskAttempt.task_id == resolved_task_id) &
+                (TaskAttempt.success.is_(True))
+            )
+            .order_by(TaskAttempt.completed_at.desc())
+            .limit(1)
+        )
+        attempt_result = await db.execute(attempt_stmt)
+        attempt = attempt_result.scalar_one_or_none()
+        if attempt and getattr(attempt, 'submitted_order', None):
+            submitted_order = attempt.submitted_order
 
     return StudentTaskResponse(
         id=task.id,
@@ -458,6 +476,7 @@ async def get_task_for_student_set(
         code_blocks=task.code_blocks,
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
+        submitted_order=submitted_order,
     )
 
 
@@ -670,6 +689,16 @@ async def submit_test_result(
     await db.flush()
     await db.refresh(new_attempt)
 
+    # Persist final arrangement for successful attempts so students can later
+    # review their solved arrangement.
+    if result.success and result.arrangement:
+        try:
+            new_attempt.submitted_order = result.arrangement
+            await db.flush()
+        except Exception:
+            # Don't fail the whole request if submitted_order can't be stored
+            pass
+
     if result.moves:
         for move_data in result.moves:
             move_kwargs = {
@@ -827,12 +856,20 @@ async def get_task_moves(
     if task and task.code_blocks and "blocks" in task.code_blocks:
         draggable_index = 0
         for block in task.code_blocks["blocks"]:
+            # Sanitize stored block code: avoid leaking raw <input> HTML into replay.
+            raw_code = block.get("code", "") or ""
+            # Replace any <input ...>...</input> or self-closing <input .../> with the !BLANK token
+            sanitized_code = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", raw_code, flags=re.IGNORECASE)
+            sanitized_code = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_code, flags=re.IGNORECASE)
+            # Remove any other HTML tags that might remain
+            sanitized_code = re.sub(r"<[^>]+>", "", sanitized_code)
+
             if not block.get("given", False):
                 block_id = f"sortable-codeline{draggable_index}"
-                block_code_map[block_id] = block["code"]
+                block_code_map[block_id] = sanitized_code
                 initial_blocks.append({
                     "block_id": block_id,
-                    "code": block["code"],
+                    "code": sanitized_code,
                     "given": False,
                     "indent": block.get("indent", 0),
                 })
@@ -852,11 +889,16 @@ async def get_task_moves(
         # Given blocks come last in the widget's modified_lines
         for block in task.code_blocks["blocks"]:
             if block.get("given", False):
+                raw_code = block.get("code", "") or ""
+                sanitized_code = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", raw_code, flags=re.IGNORECASE)
+                sanitized_code = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_code, flags=re.IGNORECASE)
+                sanitized_code = re.sub(r"<[^>]+>", "", sanitized_code)
+
                 block_id = f"sortable-codeline{draggable_index}"
-                block_code_map[block_id] = block["code"]
+                block_code_map[block_id] = sanitized_code
                 initial_blocks.append({
                     "block_id": block_id,
-                    "code": block["code"],
+                    "code": sanitized_code,
                     "given": True,
                     "indent": block.get("indent", 0),
                 })

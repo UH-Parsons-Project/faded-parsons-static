@@ -1,43 +1,52 @@
+import json
 from collections import defaultdict
+from datetime import datetime
 import re
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func, and_, or_, case
-import json
 
+from ...teacher_auth import CurrentUser, OptionalCurrentUser
 from ...database import get_db
-from ...models import Parsons
-from ...pydantic import TaskResponse, CreateProblemRequest
-from ...auth import CurrentUser, OptionalCurrentUser
-from ...models import Parsons, TaskSet, Teacher, TaskSetViewer, TaskSetItem, TeacherFavoriteTask
 from ...models import (
+    EditEvent,
+    ModelAnswer,
+    MoveEvent,
+    Parsons,
     Student,
-    StudentTaskSetEnrollment,
     StudentTaskEnrollment,
+    StudentTaskSetEnrollment,
     TaskAttempt,
     TaskSession,
-    MoveEvent,
-    EditEvent,
+    TaskSet,
+    TaskSetItem,
+    TaskSetViewer,
+    Teacher,
+    TeacherFavoriteTask,
 )
-from ...models import ModelAnswer
 from ...pydantic import (
-    TaskResponse,
     CreateProblemRequest,
-    TaskSetResponse,
-    TaskSetTaskResponse,
-    TaskSetResponse,
-    TaskSetViewerResponse,
-    TaskSetViewerRequest,
     CreateTaskSetRequest,
     StudentInTaskSetResponse,
+    TaskResponse,
+    TaskSetResponse,
+    TaskSetTaskResponse,
+    TaskSetViewerRequest,
+    TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
 )
+from ...utils.task import is_task_editable
+from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from backend.utils import generate_slug
-from datetime import datetime
+from ..utils.commons import (
+    build_taskset_response_list,
+    get_task_set_or_404,
+    run_with_task_ids_or_empty,
+)
 
-# router already declared above
 router = APIRouter()
 ALLOWED_TASK_TYPES = {
     "algorithms",
@@ -94,18 +103,14 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
         )
     return normalized
 
-from ..utils.commons import build_taskset_response_list, get_task_set_or_404, fetch_nonempty_ids, run_with_task_ids_or_empty
-from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
-from ...utils.task import is_task_editable
-
 
 def _sanitize_model_answer_code(code: str | None) -> str:
     if not code:
-        return ''
+        return ""
 
     normalized = code.replace("\r\n", "\n").replace("\r", "\n").strip()
     if not normalized:
-        return ''
+        return ""
 
     sanitized = re.sub(r"<input[^>]*class=['\"]text-box['\"][^>]*>", "", normalized, flags=re.IGNORECASE)
     sanitized = sanitized.replace("</input>", "")
@@ -117,638 +122,18 @@ def _sanitize_model_answer_code(code: str | None) -> str:
             suffix = marker[6:].strip()
             if suffix:
                 return suffix
-            return ''
+            return ""
         return marker
 
     sanitized = re.sub(r"#blank\w*", _replace_blank_markers, sanitized)
-
-    # Preserve line breaks and indentation for code-like model answers.
-    # Only trim the outer whitespace; do not collapse internal whitespace.
     return sanitized.strip()
 
-
-@router.get("/api/my_sets", response_model=list[TaskSetResponse])
-async def list_my_sets(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
-    """List all task sets for the current teacher."""
-    stmt = (
-        select(TaskSet, Teacher.username)
-        .join(Teacher, Teacher.id == TaskSet.teacher_id)
-        .outerjoin(TaskSetViewer, TaskSetViewer.task_set_id == TaskSet.id)
-        .where(
-            (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
-        )
-        .order_by(TaskSet.created_at.desc())
-        .distinct()
-    )
-    result = await db.execute(stmt)
-    my_sets = result.all()
-
-    return build_taskset_response_list(my_sets)
-
-
-@router.get("/api/my_sets/{task_set_id}", response_model=TaskSetResponse)
-async def get_task_set(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    stmt = (
-        select(TaskSet, Teacher.username)
-        .join(Teacher, Teacher.id == TaskSet.teacher_id)
-        .where(TaskSet.id == task_set_id)
-    )
-    result = await db.execute(stmt)
-    row = result.first()
-
-    if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problemset with id {task_set_id} not found",
-        )
-
-    task_set, owner_username = row
-
-    await require_task_set_view_access(task_set, current_user, db)
-
-    enrolled_count = (await db.execute(
-        select(func.count(StudentTaskSetEnrollment.id))
-        .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
-    )).scalar() or 0
-
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=owner_username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
-        deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
-    )
-
-
-@router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
-async def get_task_set_tasks(code: str, db: AsyncSession = Depends(get_db)):
-    """Get all tasks belonging to a task_set by unique link code."""
-    task_set_result = await db.execute(
-        select(TaskSet).where(TaskSet.unique_link_code == code)
-    )
-    task_set = task_set_result.scalar_one_or_none()
-
-    if not task_set:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set '{code}' not found",
-        )
-
-    stmt = (
-        select(Parsons, TaskSetItem.is_hidden)
-        .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
-        .where(TaskSetItem.task_set_id == task_set.id)
-        .order_by(TaskSetItem.id.asc())
-    )
-    result = await db.execute(stmt)
-    rows = result.all()
-
-    return [
-        TaskSetTaskResponse(
-            id=task.id,
-            title=task.title,
-            task_type=task.task_type,
-            created_at=task.created_at.isoformat(),
-            is_hidden=is_hidden,
-            is_public=task.is_public,
-        )
-        for task, is_hidden in rows
-    ]
-
-
-@router.patch("/api/my_sets/{task_set_id}/tasks/{task_id}/hidden")
-async def toggle_task_hidden(
-    task_set_id: int,
-    task_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-):
-    """Toggle the hidden status of a task within a task set."""
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
-
-    item_result = await db.execute(
-        select(TaskSetItem).where(
-            TaskSetItem.task_set_id == task_set_id,
-            TaskSetItem.task_id == task_id,
-        )
-    )
-    item = item_result.scalar_one_or_none()
-    if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found in this task set")
-
-    item.is_hidden = not item.is_hidden
-    await db.commit()
-    return {"task_id": task_id, "is_hidden": item.is_hidden}
-
-
-@router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)
-async def get_task_set_info(code: str, db: AsyncSession = Depends(get_db)):
-    """Get info for a task set by unique link code."""
-    stmt = (
-        select(TaskSet, Teacher.username)
-        .join(Teacher, Teacher.id == TaskSet.teacher_id)
-        .where(TaskSet.unique_link_code == code)
-    )
-    result = await db.execute(stmt)
-    row = result.first()
-
-    if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Problem set '{code}' not found",
-        )
-
-    task_set, owner_username = row
-
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=owner_username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
-    )
-
-
-@router.get("/api/teachers/lookup", response_model=TeacherLookupResponse)
-async def lookup_teacher(
-    identifier: str,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    identifier = identifier.strip()
-    if not identifier:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="identifier is required")
-
-    result = await db.execute(
-        select(Teacher).where(
-            (Teacher.username == identifier) | (Teacher.email == identifier)
-        )
-    )
-    teacher = result.scalar_one_or_none()
-
-    if not teacher or not teacher.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
-
-    return TeacherLookupResponse(
-        teacher_id=teacher.id,
-        username=teacher.username,
-        email=teacher.email,
-    )
-
-
-@router.post("/api/create_task_set", response_model=TaskSetResponse)
-async def create_task_set(
-    request: CreateTaskSetRequest,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    # Verify all tasks exist and belong to the current user
-    if request.task_ids:
-        task_ids_tuple = tuple(request.task_ids)
-        stmt = select(Parsons).where(Parsons.id.in_(task_ids_tuple))
-        result = await db.execute(stmt)
-        tasks = result.scalars().all()
-
-        if len(tasks) != len(request.task_ids):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="One or more tasks not found"
-            )
-
-    # Check if title is unique for this teacher
-    stmt = select(TaskSet).where(
-        TaskSet.title == request.title,
-        TaskSet.teacher_id == current_user.id
-    )
-    result = await db.execute(stmt)
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"You already have a task set with the title '{request.title}'. Please use a different title."
-        )
-
-    # Parse expiration date if provided
-    expires_at = None
-    if request.expires_at:
-        try:
-            expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
-        except (ValueError, AttributeError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid expiration date format"
-            )
-
-    base_slug = generate_slug(request.title)
-    unique_link_code = base_slug
-    suffix = 1
-    while True:
-        stmt = select(TaskSet).where(
-            TaskSet.teacher_id == current_user.id,
-            TaskSet.unique_link_code == unique_link_code,
-        )
-        result = await db.execute(stmt)
-        if not result.scalar_one_or_none():
-            break
-        unique_link_code = f"{base_slug}{suffix}"
-        suffix += 1
-
-    # Create the task set
-    task_set = TaskSet(
-        teacher_id=current_user.id,
-        title=request.title,
-        student_description=request.student_description,
-        teacher_description=request.teacher_description,
-        unique_link_code=unique_link_code,
-        expires_at=expires_at
-    )
-
-    db.add(task_set)
-    await db.flush()
-
-    for task_id in request.task_ids:
-        task_set_item = TaskSetItem(
-            task_set_id=task_set.id,
-            task_id=task_id
-        )
-        db.add(task_set_item)
-
-    await db.commit()
-    await db.refresh(task_set)
-
-    return TaskSetResponse(
-        id=task_set.id,
-        title=task_set.title,
-        unique_link_code=task_set.unique_link_code,
-        teacher_id=task_set.teacher_id,
-        owner_username=current_user.username,
-        student_description=task_set.student_description,
-        teacher_description=task_set.teacher_description,
-        created_at=task_set.created_at.isoformat(),
-        expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
-    )
-
-
-@router.patch("/api/my_sets/{task_set_id}/expires_at")
-async def update_task_set_expires_at(
-    task_set_id: int,
-    request: UpdateExpiresAtRequest,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
-
-    if request.expires_at:
-        try:
-            task_set.expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
-        except ValueError:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
-    else:
-        task_set.expires_at = None
-
-    await db.commit()
-    return {"expires_at": task_set.expires_at.isoformat() if task_set.expires_at else None}
-
-
-@router.delete("/api/my_sets/{task_set_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_task_set(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to delete this task set")
-
-    enrolled_stmt = (
-        select(func.count(StudentTaskSetEnrollment.id))
-        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
-    )
-    enrolled_count = (await db.execute(enrolled_stmt)).scalar() or 0
-    if enrolled_count > 0:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This task set cannot be deleted because students have already joined it.",
-        )
-
-    await db.execute(delete(TaskSet).where(TaskSet.id == task_set_id))
-    await db.commit()
-
-
-@router.get("/api/my_sets/{task_set_id}/viewers", response_model=list[TaskSetViewerResponse])
-async def list_task_set_viewers(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    await require_task_set_view_access(task_set, current_user, db)
-
-    stmt = (
-        select(TaskSetViewer, Teacher)
-        .join(Teacher, Teacher.id == TaskSetViewer.teacher_id)
-        .where(TaskSetViewer.task_set_id == task_set_id)
-        .order_by(Teacher.username.asc())
-    )
-    result = await db.execute(stmt)
-    viewers = result.all()
-
-    return [
-        TaskSetViewerResponse(
-            id=viewer.id,
-            task_set_id=viewer.task_set_id,
-            teacher_id=teacher.id,
-            username=teacher.username,
-            email=teacher.email,
-            created_at=viewer.created_at.isoformat(),
-        )
-        for viewer, teacher in viewers
-    ]
-
-
-@router.post("/api/my_sets/{task_set_id}/viewers", response_model=TaskSetViewerResponse)
-async def add_task_set_viewer(
-    task_set_id: int,
-    request: TaskSetViewerRequest,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    identifier = request.identifier.strip()
-    if not identifier:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="username or email is required"
-        )
-
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to modify this task set"
-        )
-
-    teacher_result = await db.execute(
-        select(Teacher).where(
-            (Teacher.username == identifier) | (Teacher.email == identifier)
-        )
-    )
-    teacher = teacher_result.scalar_one_or_none()
-
-    if not teacher or not teacher.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Teacher not found"
-        )
-
-    if teacher.id == task_set.teacher_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task list owner already has access"
-        )
-
-    existing_result = await db.execute(
-        select(TaskSetViewer).where(
-            TaskSetViewer.task_set_id == task_set_id,
-            TaskSetViewer.teacher_id == teacher.id
-        )
-    )
-    existing = existing_result.scalar_one_or_none()
-
-    if existing:
-        return TaskSetViewerResponse(
-            id=existing.id,
-            task_set_id=existing.task_set_id,
-            teacher_id=teacher.id,
-            username=teacher.username,
-            email=teacher.email,
-            created_at=existing.created_at.isoformat(),
-        )
-
-    viewer = TaskSetViewer(task_set_id=task_set_id, teacher_id=teacher.id)
-    db.add(viewer)
-    await db.commit()
-    await db.refresh(viewer)
-
-    return TaskSetViewerResponse(
-        id=viewer.id,
-        task_set_id=viewer.task_set_id,
-        teacher_id=teacher.id,
-        username=teacher.username,
-        email=teacher.email,
-        created_at=viewer.created_at.isoformat(),
-    )
-
-
-@router.delete("/api/my_sets/{task_set_id}/viewers/{teacher_id}")
-async def remove_task_set_viewer(
-    task_set_id: int,
-    teacher_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to modify this task set"
-        )
-
-    if teacher_id == task_set.teacher_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot remove access from the task set owner"
-        )
-
-    delete_stmt = delete(TaskSetViewer).where(
-        TaskSetViewer.task_set_id == task_set_id,
-        TaskSetViewer.teacher_id == teacher_id
-    )
-    delete_result = await db.execute(delete_stmt)
-
-    if delete_result.rowcount == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Viewer not found"
-        )
-
-    await db.commit()
-    return {"status": "success"}
-
-
-@router.get("/api/my_sets/{task_set_id}/students", response_model=list[StudentInTaskSetResponse])
-async def get_task_set_students(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get all students who have attempted at least one task in this task set."""
-    # Verify task set exists and belongs to current user
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    await require_task_set_view_access(task_set, current_user, db)
-
-    task_ids_stmt = (
-        select(TaskSetItem.task_id)
-        .where(TaskSetItem.task_set_id == task_set_id)
-        .order_by(TaskSetItem.id.asc())
-    )
-
-    async def _handler(task_ids):
-        task_completion_columns = [
-            func.max(
-                case(
-                    (and_(StudentTaskEnrollment.task_id == task_id, TaskAttempt.success.is_(True)), 1),
-                    else_=0,
-                )
-            ).label(f'task_{task_id}_completed')
-            for task_id in task_ids
-        ]
-
-        task_attempt_count_columns = [
-            func.count(
-                case(
-                    (StudentTaskEnrollment.task_id == task_id, TaskAttempt.id),
-                    else_=None,
-                )
-            ).label(f'task_{task_id}_attempts')
-            for task_id in task_ids
-        ]
-
-        stmt = (
-            select(
-                Student.username,
-                Student.email,
-                StudentTaskSetEnrollment.enrolled_at.label('started_at'),
-                func.max(TaskAttempt.completed_at).label('last_activity_at'),
-                func.count(TaskAttempt.id).label('total_attempts'),
-                func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted'),
-                *task_completion_columns,
-                *task_attempt_count_columns,
-            )
-            .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
-            .outerjoin(StudentTaskEnrollment, and_(
-                StudentTaskEnrollment.student_id == Student.id,
-                StudentTaskEnrollment.task_set_id == task_set_id,
-                StudentTaskEnrollment.task_id.in_(task_ids),
-            ))
-            .outerjoin(TaskAttempt, and_(
-                TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id,
-                TaskAttempt.student_id == Student.id,
-            ))
-            .where(Student.username.isnot(None))
-            .group_by(Student.id, Student.username, Student.email, StudentTaskSetEnrollment.enrolled_at)
-            .order_by(func.max(TaskAttempt.completed_at).desc())
-        )
-
-        result = await db.execute(stmt)
-        students = result.mappings().all()
-
-        return [
-            StudentInTaskSetResponse(
-                username=student['username'],
-                email=student['email'],
-                started_at=student['started_at'].isoformat(),
-                last_activity_at=student['last_activity_at'].isoformat() if student['last_activity_at'] else student['started_at'].isoformat(),
-                total_attempts=student['total_attempts'],
-                tasks_attempted=student['tasks_attempted'],
-                completed_tasks=sum(int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids),
-                task_completion_flags=[int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids],
-                task_attempts=[int(student[f'task_{task_id}_attempts'] or 0) for task_id in task_ids],
-            )
-            for student in students
-        ]
-
-    return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
-
-
-@router.delete("/api/my_sets/{task_set_id}/students/{student_username}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_student_from_task_set(
-    task_set_id: int,
-    student_username: str,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-):
-	# Removes students enrollment and attempts from the task set, does NOT delete the student account.
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-
-    if task_set.teacher_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to modify this task set",
-        )
-
-    student_result = await db.execute(select(Student).where(Student.username == student_username))
-    student = student_result.scalar_one_or_none()
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student not found",
-        )
-
-    enrollment_result = await db.execute(
-        select(StudentTaskSetEnrollment.id).where(
-            StudentTaskSetEnrollment.student_id == student.id,
-            StudentTaskSetEnrollment.task_set_id == task_set_id,
-        )
-    )
-    task_set_enrollment_id = enrollment_result.scalar_one_or_none()
-    if task_set_enrollment_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student is not enrolled in this task set",
-        )
-
-    enrollment_ids_subquery = select(StudentTaskEnrollment.id).where(
-        StudentTaskEnrollment.student_id == student.id,
-        StudentTaskEnrollment.task_set_id == task_set_id,
-    )
-    attempt_ids_subquery = select(TaskAttempt.id).where(
-        TaskAttempt.student_task_enrollment_id.in_(enrollment_ids_subquery)
-    )
-
-    await db.execute(delete(MoveEvent).where(MoveEvent.attempt_id.in_(attempt_ids_subquery)))
-    await db.execute(delete(EditEvent).where(EditEvent.attempt_id.in_(attempt_ids_subquery)))
-    await db.execute(delete(TaskAttempt).where(TaskAttempt.id.in_(attempt_ids_subquery)))
-    await db.execute(
-        delete(TaskSession).where(
-            TaskSession.student_task_enrollment_id.in_(enrollment_ids_subquery)
-        )
-    )
-    await db.execute(
-        delete(StudentTaskEnrollment).where(
-            StudentTaskEnrollment.id.in_(enrollment_ids_subquery)
-        )
-    )
-    await db.execute(
-        delete(StudentTaskSetEnrollment).where(
-            StudentTaskSetEnrollment.id == task_set_enrollment_id
-        )
-    )
-    await db.commit()
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
 async def get_task(
     task_id: int,
     current_user: OptionalCurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     stmt = select(Parsons).where(Parsons.id == task_id)
     result = await db.execute(stmt)
@@ -792,7 +177,7 @@ async def get_task(
 
 
 @router.get("/api/my_tasks")
-async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_my_tasks(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     tasks_result = await db.execute(
         select(Parsons)
         .where(Parsons.created_by_teacher_id == current_user.id)
@@ -838,7 +223,7 @@ async def list_my_tasks(current_user: CurrentUser, db: AsyncSession = Depends(ge
 
 
 @router.get("/api/tasks")
-async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_db)):
+async def list_tasks(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     stmt = (
         select(Parsons, Teacher.username, TeacherFavoriteTask.id)
         .join(Teacher, Teacher.id == Parsons.created_by_teacher_id)
@@ -906,7 +291,7 @@ async def list_tasks(current_user: CurrentUser, db: AsyncSession = Depends(get_d
 async def favorite_task(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons.id).where(Parsons.id == task_id, Parsons.is_public))
     if task_result.scalar_one_or_none() is None:
@@ -934,7 +319,7 @@ async def favorite_task(
 async def unfavorite_task(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     delete_stmt = delete(TeacherFavoriteTask).where(
         TeacherFavoriteTask.teacher_id == current_user.id,
@@ -953,7 +338,7 @@ async def unfavorite_task(
 async def create_problem(
     request: CreateProblemRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_title = request.taskTitle.strip()
     solution_code = request.solutionCode.replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -1068,6 +453,13 @@ async def create_problem(
     db.add(task)
     await db.flush()
 
+    model_answer_code = (request.modelAnswerCode or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    model_answer = ModelAnswer(
+        parsons_id=task.id,
+        created_by_teacher_id=current_user.id,
+        answer_code=model_answer_code or solution_code,
+    )
+    db.add(model_answer)
     await db.commit()
     await db.refresh(task)
 
@@ -1078,7 +470,7 @@ async def create_problem(
 async def check_task_editable(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1097,7 +489,7 @@ async def check_task_editable(
 async def get_model_answer(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1118,7 +510,7 @@ async def update_model_answer(
     task_id: int,
     request: CreateProblemRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1134,12 +526,12 @@ async def update_model_answer(
     model_answer = model_answer_result.scalar_one_or_none()
 
     if model_answer:
-        model_answer.answer_code = model_answer_code or ''
+        model_answer.answer_code = model_answer_code or ""
     else:
         model_answer = ModelAnswer(
             parsons_id=task_id,
             created_by_teacher_id=current_user.id,
-            answer_code=model_answer_code or '',
+            answer_code=model_answer_code or "",
         )
         db.add(model_answer)
 
@@ -1152,7 +544,7 @@ async def update_problem(
     task_id: int,
     request: CreateProblemRequest,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1200,8 +592,6 @@ async def update_problem(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The first non-empty solution line must start with def or class",
         )
-
-    import re
 
     header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
     function_name = header_match.group(2) if header_match else "custom_task"
@@ -1283,7 +673,7 @@ async def update_problem(
 async def delete_problem(
     task_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -1302,78 +692,3 @@ async def delete_problem(
 
     await db.execute(delete(Parsons).where(Parsons.id == task_id))
     await db.commit()
-
-
-STRUGGLING_THRESHOLD = 5
-
-
-@router.get("/api/my_sets/{task_set_id}/heatmap")
-async def get_heatmap(
-    task_set_id: int,
-    current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
-):
-    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
-    await require_task_set_view_access(task_set, current_user, db)
-
-    tasks_result = await db.execute(
-        select(Parsons, TaskSetItem.is_hidden)
-        .join(TaskSetItem, TaskSetItem.task_id == Parsons.id)
-        .where(TaskSetItem.task_set_id == task_set_id, TaskSetItem.is_hidden == False)
-        .order_by(TaskSetItem.id.asc())
-    )
-    tasks = tasks_result.all()
-
-    students_result = await db.execute(
-        select(Student.id, Student.username)
-        .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
-        .where(StudentTaskSetEnrollment.task_set_id == task_set_id)
-        .order_by(Student.username.asc())
-    )
-    students = students_result.all()
-
-    attempts_result = await db.execute(
-        select(TaskAttempt)
-        .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
-        .where(StudentTaskEnrollment.task_set_id == task_set_id)
-    )
-    attempts = attempts_result.scalars().all()
-
-    attempt_map: dict = defaultdict(list)
-    for a in attempts:
-        attempt_map[(a.student_id, a.task_id)].append(a)
-
-    student_rows = []
-    for student in students:
-        cells = []
-        for task, _ in tasks:
-            student_attempts = attempt_map[(student.id, task.id)]
-            total = len(student_attempts)
-            completed = any(a.success for a in student_attempts)
-            last = max(
-                (a.completed_at for a in student_attempts if a.completed_at),
-                default=None,
-            )
-
-            if completed:
-                cell_status = "completed"
-            elif total >= STRUGGLING_THRESHOLD:
-                cell_status = "struggling"
-            elif total > 0:
-                cell_status = "in_progress"
-            else:
-                cell_status = "not_started"
-
-            cells.append({
-                "task_id": task.id,
-                "status": cell_status,
-                "attempts": total,
-                "last_active_at": last.isoformat() if last else None,
-            })
-
-        student_rows.append({"username": student.username, "cells": cells})
-
-    return {
-        "tasks": [{"id": t.id, "title": t.title, "is_hidden": is_hidden} for t, is_hidden in tasks],
-        "students": student_rows,
-    }

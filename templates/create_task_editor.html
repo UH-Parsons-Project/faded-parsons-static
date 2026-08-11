@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/js-parsons/parsons.css">
-  <link rel="stylesheet" href="/js/main.css">
-  <link rel="stylesheet" href="/js/create-task-editor.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/create-task-editor.css">
 </head>
 <body>
   <nav class="navbar">
@@ -92,7 +92,7 @@
             <span class="checklist-status badge badge-danger">Missing</span>
           </button>
           <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="task-type" data-target="task-type">
-            <span class="sidebar-row-name checklist-label">Task type</span>
+            <span class="sidebar-row-name checklist-label">Task tag</span>
             <span class="checklist-status badge badge-danger">Missing</span>
           </button>
           <button type="button" class="sidebar-row checklist-item checklist-item-btn" data-check="previewed" data-target="preview-student-view">
@@ -230,11 +230,11 @@
             <div class="row align-items-stretch">
               <div class="col-md">
                 <div class="form-group mb-4">
-                  <label for="task-type" class="mb-2 font-weight-bold">Task type</label>
+                  <label for="task-type" class="mb-2 font-weight-bold">Task tag</label>
                   <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">Select the task's primary learning objective.</p>
-                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This type is used in task lists, search, and statistics.</p>
+                  <p class="field-help" style="margin-top: 0; margin-bottom: 0.5rem;">This tag is used in task lists, search, and statistics.</p>
                   <select id="task-type" class="form-control" required style="min-width: 200px; max-width: 300px;">
-                    <option value="" selected disabled>Select a task type</option>
+                    <option value="" selected disabled>Select a task tag</option>
                     <option value="algorithms">Algorithms</option>
                     <option value="arithmetic">Arithmetic</option>
                     <option value="booleans">Booleans</option>
@@ -337,7 +337,7 @@
             <div class="col-sm-12">
               <div class="card">
                 <div class="card-header">
-                  <h3 class="mb-0">Task Type</h3>
+                  <h3 class="mb-0">Task Tag</h3>
                 </div>
                 <div class="card-body" id="preview-task-type"></div>
               </div>
@@ -397,7 +397,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
   <script src="/js/jquery.ui.touch-punch.js"></script>
   <script src="/js-parsons/parsons.js"></script>
-  <script type="module" src="/js/create-task-editor.js"></script>
+  <script type="module" src="/js/task/create-task-editor.js"></script>
 <footer style="background:#f5f7fa;margin-top:2rem;padding:1rem 0;text-align:center;border-top:1px solid #e1e4e8;">
   <div style="max-width:1000px;margin:0 auto;">
     <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>

@@ -72,8 +72,8 @@ test('student role is redirected to home page when attempting to access teacher 
     '/admin-dashboard',
     '/all-users',
     '/all-tasksets',
-    '/admin/admins_teacher_view',
-    '/admin/admins_student_view',
+    '/admin/admins-teacher-view',
+    '/admin/admins-student-view',
   ];
 
   for (const path of protectedAdminPages) {
@@ -110,8 +110,8 @@ test('teacher role (non-admin) can access teacher pages but is redirected when a
     '/admin-dashboard',
     '/all-users',
     '/all-tasksets',
-    '/admin/admins_teacher_view',
-    '/admin/admins_student_view',
+    '/admin/admins-teacher-view',
+    '/admin/admins-student-view',
   ];
 
   for (const path of protectedAdminPages) {

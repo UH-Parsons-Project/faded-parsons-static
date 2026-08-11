@@ -1,31 +1,65 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, Integer, func
+from datetime import datetime, timezone
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import Integer, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.utils import _clean_mistake_code, _mistake_code_fingerprint, has_user_added_own_code
+
+from ...teacher_auth import CurrentUser
 from ...database import get_db
 from ...models import (
     EditEvent,
+    ModelAnswer,
     MoveEvent,
     Parsons,
     Student,
+    StudentTaskEnrollment,
     StudentTaskSetEnrollment,
     TaskAttempt,
+    TaskSession,
     TaskSet,
     TaskSetItem,
-    StudentTaskEnrollment,
-    TaskSession,
-    ModelAnswer,
 )
 from ...pydantic import (
     StudentTaskAttemptResponse,
     StudentTaskStatisticsResponse,
 )
-from ...auth import CurrentUser
-from backend.utils import has_user_added_own_code, _clean_mistake_code, _mistake_code_fingerprint
-from datetime import datetime, timezone
 from ...utils.taskset import can_view_task_in_task_set, has_task_set_view_access, require_task_set_view_access
 from ..utils.commons import get_task_set_or_404, run_with_task_ids_or_empty
+
+def _active_time_to(sessions: list[TaskSession], target_dt: datetime | None) -> float | None:
+    if not target_dt or not sessions:
+        return None
+    target_dt_naive = target_dt.replace(tzinfo=None)
+    total = 0.0
+    for s in sessions:
+        s_entered = s.entered_at.replace(tzinfo=None)
+        if s_entered >= target_dt_naive:
+            break
+        s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else target_dt_naive
+        end = min(s_exited, target_dt_naive)
+        total += (end - s_entered).total_seconds()
+    return total if total > 0 else None
+
+
+def _filter_empty_attempts(attempts_data: list, task: Parsons) -> tuple[list, int]:
+    filtered = []
+    empty_count = 0
+    for attempt, enrollment in attempts_data:
+        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
+            filtered.append((attempt, enrollment))
+            continue
+        code = attempt.submitted_inputs.get("code", "")
+        if not code:
+            filtered.append((attempt, enrollment))
+        elif has_user_added_own_code(code, task.code_blocks):
+            filtered.append((attempt, enrollment))
+        else:
+            empty_count += 1
+    return filtered, empty_count
 
 router = APIRouter()
 
@@ -87,7 +121,7 @@ async def get_student_attempts(
     student_username: str,
     set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
@@ -136,7 +170,7 @@ async def get_student_task_statistics(
     task_id: int,
     set_id: int,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
     await require_task_set_view_access(task_set, current_user, db)
@@ -183,26 +217,7 @@ async def get_student_task_statistics(
     thinking_time = None
     thinking_time_on_page = None
 
-    attempts_data = list(attempts_with_enrollments)
-
-    empty_attempts_count = 0
-    filtered_attempts_data = []
-    for attempt, enrollment in attempts_data:
-        if not (
-            attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)
-        ):
-            filtered_attempts_data.append((attempt, enrollment))
-            continue
-
-        code = attempt.submitted_inputs.get("code", "")
-        if not code:
-            filtered_attempts_data.append((attempt, enrollment))
-        elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts_data.append((attempt, enrollment))
-        else:
-            empty_attempts_count += 1
-
-    attempts_data = filtered_attempts_data
+    attempts_data, empty_attempts_count = _filter_empty_attempts(list(attempts_with_enrollments), task)
 
     # Count only block move events (not blank edits)
     move_count_stmt = (
@@ -315,18 +330,7 @@ async def get_student_task_statistics(
 
     def active_time_to(target_dt):
         """Sum session durations up to target_dt (active page time only)."""
-        if not target_dt or not task_sessions:
-            return None
-        target_dt_naive = target_dt.replace(tzinfo=None)
-        total = 0.0
-        for s in task_sessions:
-            s_entered = s.entered_at.replace(tzinfo=None)
-            if s_entered >= target_dt_naive:
-                break
-            s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else target_dt_naive
-            end = min(s_exited, target_dt_naive)
-            total += (end - s_entered).total_seconds()
-        return total if total > 0 else None
+        return _active_time_to(task_sessions, target_dt)
 
     time_to_first_success = None
     time_to_first_success_on_page = None
@@ -401,7 +405,7 @@ async def get_student_task_statistics(
 async def get_taskset_tasks_statistics(
     task_set_code: str,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set_result = await db.execute(select(TaskSet).where(TaskSet.unique_link_code == task_set_code))
     task_set = task_set_result.scalar_one_or_none()
@@ -419,7 +423,7 @@ async def get_taskset_tasks_statistics(
     results = {}
     for t_id in task_ids:
         try:
-            stats = await get_task_statistics(t_id, current_user, task_set_code, db)
+            stats = await get_task_statistics(t_id, current_user, db, task_set_code)
             results[str(t_id)] = stats
         except Exception:
             pass
@@ -430,8 +434,8 @@ async def get_taskset_tasks_statistics(
 async def get_task_statistics(
     task_id: int,
     current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
     task_set_code: str | None = None,
-    db: AsyncSession = Depends(get_db)
 ):
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
@@ -487,19 +491,7 @@ async def get_task_statistics(
     attempts_result = await db.execute(attempts_query)
     attempts_data = attempts_result.all()
 
-    filtered_attempts_data = []
-    for attempt, enrollment in attempts_data:
-        if not (attempt.submitted_inputs and isinstance(attempt.submitted_inputs, dict)):
-            filtered_attempts_data.append((attempt, enrollment))
-            continue
-
-        code = attempt.submitted_inputs.get("code", "")
-        if not code:
-            filtered_attempts_data.append((attempt, enrollment))
-        elif has_user_added_own_code(code, task.code_blocks):
-            filtered_attempts_data.append((attempt, enrollment))
-
-    attempts_data = filtered_attempts_data
+    attempts_data, _ = _filter_empty_attempts(attempts_data, task)
 
     if not attempts_data:
         early_not_started = 0
@@ -562,19 +554,7 @@ async def get_task_statistics(
 
     def active_time_to(enrollment_id, target_dt):
         """Sum session durations up to target_dt for a given enrollment."""
-        if not target_dt:
-            return None
-        target_dt_naive = target_dt.replace(tzinfo=None)
-        slist = sessions_by_enrollment.get(enrollment_id, [])
-        total = 0.0
-        for s in slist:
-            s_entered = s.entered_at.replace(tzinfo=None)
-            if s_entered >= target_dt_naive:
-                break
-            s_exited = s.exited_at.replace(tzinfo=None) if s.exited_at else target_dt_naive
-            end = min(s_exited, target_dt_naive)
-            total += (end - s_entered).total_seconds()
-        return total if total > 0 else None
+        return _active_time_to(sessions_by_enrollment.get(enrollment_id, []), target_dt)
 
     student_attempts: dict = {}
     for attempt, enrollment in attempts_data:

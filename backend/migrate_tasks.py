@@ -265,6 +265,13 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             else:
                 solution_code = model_answer_code
 
+        def _strip_comment(text: str) -> str:
+            if " #" in text:
+                return text.split(" #", 1)[0].rstrip()
+            if "#" in text:
+                return text.split("#", 1)[0].rstrip()
+            return text.rstrip()
+
         # Generate teacher tests assertions from examples
         examples = parsed_instructions.get("examples", "")
         teacher_tests = ""
@@ -275,18 +282,10 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
             while i < len(lines):
                 line = lines[i].strip()
                 if line.startswith(">>>"):
-                    code_expr = line[3:].strip()
-                    if " #" in code_expr:
-                        code_expr = code_expr.split(" #", 1)[0].rstrip()
-                    elif "#" in code_expr:
-                        code_expr = code_expr.split("#", 1)[0].rstrip()
+                    code_expr = _strip_comment(line[3:].strip())
 
                     if i + 1 < len(lines):
-                        next_line = lines[i+1].strip()
-                        if " #" in next_line:
-                            next_line = next_line.split(" #", 1)[0].rstrip()
-                        elif "#" in next_line:
-                            next_line = next_line.split("#", 1)[0].rstrip()
+                        next_line = _strip_comment(lines[i+1].strip())
 
                         if not next_line.startswith(">>>") and next_line:
                             assertions.append(f"assert {code_expr} == {next_line}")

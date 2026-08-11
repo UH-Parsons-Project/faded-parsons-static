@@ -1,7 +1,7 @@
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 from backend.models import Teacher
 
 def _auth(username: str) -> dict:

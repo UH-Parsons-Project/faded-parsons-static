@@ -1,7 +1,7 @@
 import io
+import re
 import token
 import tokenize
-import re
 
 def _clean_mistake_code(code: str) -> str:
     normalized_lines = []

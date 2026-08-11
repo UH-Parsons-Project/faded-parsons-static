@@ -62,6 +62,7 @@ export async function registerTeacher(
  */
 export async function loginTeacher(page, username, password) {
   await page.goto('/');
+  await page.waitForTimeout(200);
   await page.locator('#username').fill(username);
   await page.locator('#password').fill(password);
   await page.locator('#login-btn').click();
@@ -162,6 +163,7 @@ export async function createTestStudent(page, username, email, password = 'passw
 }
 
 export async function loginStudent(page, username, password = 'password123', uniqueLinkCode = null) {
+  await page.waitForTimeout(200);
   await page.locator('#login-form #username').fill(username);
   await page.locator('#login-form #password').fill(password);
 

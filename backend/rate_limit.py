@@ -4,8 +4,8 @@ import time
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-""" Website wide limiter, prevets ddos attacks and other bots. When spamming
-it ignores all requests above 200 per minute. """
+# Website wide limiter, prevents DDOS attacks and other bots. When spamming
+# it ignores all requests above 200 per minute.
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 

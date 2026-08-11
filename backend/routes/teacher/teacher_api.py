@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...models import Teacher, RegistrationToken
 from backend.utils import hash_token, cleanup_old_registration_tokens
 from ...database import get_db
-from ...auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
+from ...teacher_auth import authenticate_user, ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, CurrentUser
 from ... import config
-from ...pydantic import Token, UserInfo
+from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
 
@@ -26,7 +26,7 @@ async def login_access_token(
     request: Request,
     response: Response,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     identifier = form_data.username.strip().lower()
 
@@ -90,7 +90,7 @@ async def logout(response: Response):
 
 
 @router.post("/api/teacher_register")
-async def api_teacher_register(request: Request, db: AsyncSession = Depends(get_db)):
+async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
@@ -178,7 +178,7 @@ async def get_teacher_profile(
 async def update_teacher_email(
     request: Request,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
     new_email = body.get("email", "").strip()
@@ -213,7 +213,7 @@ async def update_teacher_email(
 async def update_teacher_password(
     request: Request,
     current_user: CurrentUser,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
     current_password = body.get("current_password", "")
@@ -235,3 +235,30 @@ async def update_teacher_password(
     current_user.set_password(new_password)
     await db.commit()
     return {"status": "success", "message": "Password updated successfully"}
+
+
+@router.get("/api/teachers/lookup", response_model=TeacherLookupResponse)
+async def lookup_teacher(
+    identifier: str,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    identifier = identifier.strip()
+    if not identifier:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="identifier is required")
+
+    result = await db.execute(
+        select(Teacher).where(
+            (Teacher.username == identifier) | (Teacher.email == identifier)
+        )
+    )
+    teacher = result.scalar_one_or_none()
+
+    if not teacher or not teacher.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+
+    return TeacherLookupResponse(
+        teacher_id=teacher.id,
+        username=teacher.username,
+        email=teacher.email,
+    )

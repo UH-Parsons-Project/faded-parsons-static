@@ -12,7 +12,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import delete, select
 
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 from backend.models import (
     EditEvent,
     ModelAnswer,

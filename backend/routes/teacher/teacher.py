@@ -1,17 +1,24 @@
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...teacher_auth import get_current_user
 from ...database import get_db
-from ...auth import get_current_user
-
+from ..utils.commons import require_session_or_redirect, set_no_cache_headers
 
 # Resolve project base directory (project root)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 router = APIRouter()
+
+async def _render_teacher_page(request: Request, db: AsyncSession, template_name: str) -> FileResponse:
+    redirect = await require_session_or_redirect(get_current_user, "/", request, db)
+    if redirect:
+        return redirect
+    return set_no_cache_headers(FileResponse(BASE_DIR / "templates" / template_name))
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -22,31 +29,17 @@ async def index():
 
 
 @router.get("/teacher-dashboard", response_class=HTMLResponse)
-async def teacher_selector(request: Request, db: AsyncSession = Depends(get_db)):
-    try:
-        await get_current_user(request, db)
-    except HTTPException:
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-    teacher_dashboard_path = BASE_DIR / "templates" / "teacher_dashboard.html"
-    response = FileResponse(teacher_dashboard_path)
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    return response
+async def teacher_selector(
+    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    return await _render_teacher_page(request, db, "teacher_dashboard.html")
 
 
 @router.get("/teacher/profile", response_class=HTMLResponse)
-async def teacher_profile_page(request: Request, db: AsyncSession = Depends(get_db)):
-    try:
-        await get_current_user(request, db)
-    except HTTPException:
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-    profile_path = BASE_DIR / "templates" / "teacher_profile.html"
-    response = FileResponse(profile_path)
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    return response
+async def teacher_profile_page(
+    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    return await _render_teacher_page(request, db, "teacher_profile.html")
 
 
 
@@ -65,18 +58,11 @@ async def teacher_instructions_page():
 
 
 @router.get("/instructions/teacher-content", response_class=HTMLResponse)
-async def teacher_instructions_content(request: Request, db: AsyncSession = Depends(get_db)):
+async def teacher_instructions_content(
+    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
+):
     """Serve the teacher-only instructions fragment for authenticated users."""
-    try:
-        await get_current_user(request, db)
-    except HTTPException:
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-    fragment_path = BASE_DIR / "templates" / "instructions_teacher_fragment.html"
-    response = FileResponse(fragment_path)
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    return response
+    return await _render_teacher_page(request, db, "instructions_teacher_fragment.html")
 
 @router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy_page():

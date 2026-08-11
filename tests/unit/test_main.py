@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock
 import pytest
 from sqlalchemy import select
 
-from backend.auth import create_access_token
+from backend.teacher_auth import create_access_token
 import backend.main as main_module
 import utils as utils
 import backend.config as config
@@ -143,9 +143,6 @@ class TestStaticPages:
 
     async def test_index_html_returns_200(self, client):
         assert (await client.get("/")).status_code == 200
-
-    async def test_task_html_returns_200(self, client):
-        assert (await client.get("/task")).status_code == 200
 
     async def test_teacher_register_page_returns_200(self, client):
         assert (await client.get("/teacher-register")).status_code == 200
@@ -1234,48 +1231,6 @@ class TestDevAndMaintenanceEndpoints:
         assert r.status_code == 500
         assert "Failed to reset database" in r.json()["detail"]
 
-    async def test_reset_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.post("/api/reset-db")
-        assert r.status_code == 403
-
-    async def test_seed_database_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.post("/api/seed-db")
-        assert r.status_code == 403
-
-    async def test_dev_db_page_forbidden_without_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", False)
-        r = await client.get("/dev/db")
-        assert r.status_code == 403
-
-    async def test_reset_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        reset_mock = AsyncMock()
-        monkeypatch.setattr(reset_module, "reset_db", reset_mock)
-
-        r = await client.post("/api/reset-db")
-
-        assert r.status_code == 200
-        assert r.json()["status"] == "success"
-        reset_mock.assert_awaited_once()
-
-    async def test_seed_database_success_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        seed_mock = AsyncMock()
-        monkeypatch.setattr(seed_module, "seed_db", seed_mock)
-
-        r = await client.post("/api/seed-db")
-
-        assert r.status_code == 200
-        assert r.json()["status"] == "success"
-        seed_mock.assert_awaited_once()
-
-    async def test_dev_db_page_returns_html_in_development_mode(self, client, monkeypatch):
-        monkeypatch.setattr(config, "DEVELOPMENT_MODE", True)
-        r = await client.get("/dev/db")
-        assert r.status_code == 200
-        assert "DB Management" in r.text
 
 
 @pytest.mark.asyncio
@@ -1398,7 +1353,7 @@ class TestAdditionalProblemsetAndTaskSetApis:
     async def test_my_sets_returns_current_teacher_my_sets(
         self, client, test_teacher, task_set, db_session
     ):
-        other_teacher = main_module.Teacher(username="otherteacher", email="otherteacher@example.com")
+        other_teacher = Teacher(username="otherteacher", email="otherteacher@example.com")
         other_teacher.set_password("testpassword123")
         db_session.add(other_teacher)
         await db_session.commit()

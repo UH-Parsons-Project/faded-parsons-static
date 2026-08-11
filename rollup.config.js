@@ -7,7 +7,7 @@ import copy from 'rollup-plugin-copy';
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
-	input: 'js/main.js',
+	input: 'js/core/main.js',
 	output: {
 		file: 'dist/bundle.js',
 		format: 'es',
@@ -17,7 +17,7 @@ export default {
 		resolve(),
 		production && terser(), // minify, but only in production
 		copy({
-			targets: [{src: 'js/worker.js', dest: 'dist/'}],
+			targets: [{src: 'js/core/worker.js', dest: 'dist/'}],
 		}),
 	],
 };

@@ -198,6 +198,10 @@ class CreateTaskSetRequest(BaseModel):
     task_ids: list[int]
 
 
+class UpdateTaskSetTasksRequest(BaseModel):
+    task_ids: list[int]
+
+
 class UpdateExpiresAtRequest(BaseModel):
     expires_at: str | None = None
 

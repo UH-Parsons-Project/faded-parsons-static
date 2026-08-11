@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
   <link rel="stylesheet" href="/css/task-set-overview.css">
 </head>
 
@@ -79,10 +80,16 @@
         <div id="stats-container" style="flex:1; min-width:320px;"></div>
       </div>
 
-<div class="statistics-layout" id="statistics-layout">
+      <div class="statistics-layout" id="statistics-layout">
 
         <div class="tasks-column">
-          <h3 class="mb-3">Tasks</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: .65rem;">
+            <h3 class="mb-3" style="margin-bottom:0 !important;">Tasks</h3>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <button id="add-task-btn" class="btn btn-sm btn-outline-info" style="display:none;"><i class="fas fa-plus"></i> Add Task</button>
+              <button id="edit-tasks-btn" class="btn btn-sm btn-outline-secondary" style="display:none;"><i class="fas fa-edit"></i> Edit Tasks</button>
+            </div>
+          </div>
           <div id="tasks-list"></div>
         </div>
 
@@ -119,6 +126,157 @@
     </div>
   </div>
 
+  <div class="modal fade" id="add-task-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Tasks to Set</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div class="task-filter-menu mb-3">
+            <button class="btn btn-outline-secondary task-filter-toggle btn-sm" type="button" data-toggle="collapse" data-target="#task-filter-panel" aria-expanded="false" aria-controls="task-filter-panel">
+              <i class="fas fa-bars"></i> Search & Filter
+            </button>
+            <div class="collapse mt-2" id="task-filter-panel">
+              <div class="filter-panel-content" style="background:#f8f9fa; padding:1rem; border-radius:6px; border:1px solid #dee2e6;">
+                <div class="form-group mb-2">
+                  <input type="text" class="form-control form-control-sm" id="task-search" placeholder="Search tasks...">
+                </div>
+                <div class="filter-scopes" style="font-size: 0.85rem;">
+                  <label class="filter-scope-label mb-1"><strong>Search in:</strong></label>
+                  <div class="scope-checkboxes d-flex flex-wrap" style="gap: 1rem;">
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
+                      <label class="custom-control-label" for="scope-title">Title</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-teacher" value="teacher">
+                      <label class="custom-control-label" for="scope-teacher">Teacher</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-type" value="type">
+                      <label class="custom-control-label" for="scope-type">Type</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-my-exercises" value="my-exercises">
+                      <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                      <input type="checkbox" class="custom-control-input filter-scope" id="scope-favorites" value="favorites">
+                      <label class="custom-control-label" for="scope-favorites">Favorites</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="tasks-loading" class="loading-spinner text-center" style="display: none; padding: 2rem;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Loading tasks...</p>
+          </div>
+
+          <div class="task-selector" id="task-selector" style="display:flex; flex-direction:column; gap:0.5rem;">
+            <!-- Available tasks will be loaded here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-add-task-btn" disabled>Add to Set</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+    <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+      <div class="student-preview-header">
+        <h4 id="student-preview-title" class="mb-0">Preview</h4>
+        <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+      </div>
+      <div class="student-preview-body">
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Task Name</h3>
+              </div>
+              <div class="card-body" id="preview-task-title"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Start Page Intro</h3>
+              </div>
+              <div class="card-body" id="preview-start-intro"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="mb-0">Problem Statement</h3>
+              </div>
+              <div class="card-body" id="preview-problem-text"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-body">
+                <div id="preview-source-sortable" class="sortable-code starter"></div>
+                <div id="preview-solution-sortable" class="sortable-code solution"></div>
+                <div style="clear: both;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Written Tests</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-written-tests">
+                No tests written yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-sm-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="mb-0">Model Answer</h4>
+              </div>
+              <div class="card-body preview-code-block" id="preview-model-answer">
+                No model answer set yet.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
   <script type="module" src="/js/task/task-set-overview.js"></script>
 
 <footer style="background:#f5f7fa;margin-top:2rem;padding:1rem 0;text-align:center;border-top:1px solid #e1e4e8;">

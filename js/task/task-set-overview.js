@@ -1,4 +1,5 @@
-import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
+/* global $ */
+import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatDate, formatDateTime, showError, makeKeyActivatable } from '../utils/ui-utils.js';
 import { fetchJsonWithError } from '../utils/api-utils.js';
@@ -14,6 +15,13 @@ const setId = params.get('set_id');
 let currentTaskSet = null;
 let currentTasks = [];
 let currentStudents = [];
+
+// Edit mode and add task modal state
+let isEditMode = false;
+let allAvailableTasks = [];
+let selectedAvailableTaskIds = [];
+let activeTaskFilters = { query: '', activeScope: null };
+let draggedTaskElement = null;
 
 if (!setId) {
 	window.location.href = '/teacher-dashboard';
@@ -42,8 +50,6 @@ function buildCsvExportFilename(taskSet, exportType) {
 }
 
 
-
-let overviewTaskStatsPromise = null;
 
 function formatCsvNumber(value) {
 	if (value === null || value === undefined || Number.isNaN(value)) return '';
@@ -150,20 +156,20 @@ function buildStudentCompletionCsv(tasks, students) {
 		.join('\n');
 }
 
-async function fetchOverviewTaskStats(tasks, taskSet) {
-	if (!overviewTaskStatsPromise) {
-		overviewTaskStatsPromise = fetch(`/api/tasksets/${encodeURIComponent(taskSet.unique_link_code)}/tasks/statistics`, { credentials: 'include' })
-			.then(response => response.ok ? response.json() : {})
-			.then(bulkStats => {
-				return tasks.map(task => bulkStats[task.id] || null);
-			})
-			.catch(error => {
-				overviewTaskStatsPromise = null;
-				throw error;
+let overviewBulkStatsPromise = null;
+
+async function fetchOverviewTaskStats(tasks, taskSet, forceRefresh = false) {
+	if (!overviewBulkStatsPromise || forceRefresh) {
+		overviewBulkStatsPromise = fetch(`/api/tasksets/${encodeURIComponent(taskSet.unique_link_code)}/tasks/statistics`, { credentials: 'include' })
+			.then(response => (response.ok ? response.json() : {}))
+			.catch(() => {
+				overviewBulkStatsPromise = null;
+				return {};
 			});
 	}
 
-	return overviewTaskStatsPromise;
+	const bulkStats = await overviewBulkStatsPromise;
+	return tasks.map(task => bulkStats[task.id] || { students_completed: 0, students_attempted: 0 });
 }
 
 async function downloadTaskSetCsv(taskSet, tasks, students) {
@@ -658,21 +664,36 @@ function renderListHeader(taskSet, tasks, students) {
 
 function createTaskItem(task, taskSet, isOwner) {
 	const item = document.createElement('div');
-	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
-	const navigateToStats = () => {
-		window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
-	};
-	item.onclick = navigateToStats;
-	makeKeyActivatable(item, navigateToStats);
+	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '') + (isEditMode ? ' edit-mode' : '');
+	item.dataset.taskId = task.id;
+
+	if (isEditMode) {
+		item.draggable = true;
+	} else {
+		const navigateToStats = () => {
+			window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
+		};
+		item.onclick = navigateToStats;
+		makeKeyActivatable(item, navigateToStats);
+	}
 
 	const headerRow = document.createElement('div');
 	headerRow.className = 'task-item-header';
+
+	if (isEditMode) {
+		const dragHandle = document.createElement('span');
+		dragHandle.className = 'drag-handle';
+		dragHandle.title = 'Drag to reorder';
+		dragHandle.innerHTML = '<i class="fas fa-bars"></i>';
+		headerRow.appendChild(dragHandle);
+	}
 
 	const titleWrap = document.createElement('div');
 	titleWrap.style.display = 'flex';
 	titleWrap.style.alignItems = 'center';
 	titleWrap.style.gap = '.45rem';
 	titleWrap.style.minWidth = '0';
+	titleWrap.style.flex = '1';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -682,6 +703,11 @@ function createTaskItem(task, taskSet, isOwner) {
 		titleWrap.appendChild(createPrivateBadge());
 	}
 	headerRow.appendChild(titleWrap);
+
+	const actionsWrap = document.createElement('div');
+	actionsWrap.style.display = 'flex';
+	actionsWrap.style.alignItems = 'center';
+	actionsWrap.style.gap = '.4rem';
 
 	if (isOwner) {
 		const toggleBtn = document.createElement('button');
@@ -703,39 +729,16 @@ function createTaskItem(task, taskSet, isOwner) {
 				if (res.ok) {
 					const data = await res.json();
 					task.is_hidden = data.is_hidden;
-					item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
+					item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '') + (isEditMode ? ' edit-mode' : '');
 					if (task.is_hidden) {
 						toggleBtn.className = 'task-toggle-btn is-inactive';
 						toggleBtn.innerHTML = '<i class="fas fa-toggle-off"></i> Activate';
 						toggleBtn.title = 'Make active for students';
-						// Move to inactive section
-						const inactiveList = document.getElementById('tasks-list-inactive');
-						const inactiveSection = document.getElementById('tasks-inactive-section');
-						if (inactiveList) inactiveList.appendChild(item);
-						if (inactiveSection) inactiveSection.style.display = '';
-						// Show empty-state in active list if now empty
-						const activeList = document.getElementById('tasks-list-active');
-						if (activeList && activeList.querySelectorAll('.task-set-item').length === 0) {
-							activeList.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
-						}
 					} else {
 						toggleBtn.className = 'task-toggle-btn';
 						toggleBtn.innerHTML = '<i class="fas fa-toggle-on"></i> Deactivate';
 						toggleBtn.title = 'Deactivate for students';
-						// Move to active section
-						const activeList = document.getElementById('tasks-list-active');
-						if (activeList) {
-							activeList.querySelectorAll('.empty-state').forEach(el => el.remove());
-							activeList.appendChild(item);
-						}
-						// Hide inactive section if now empty
-						const inactiveList = document.getElementById('tasks-list-inactive');
-						if (inactiveList && inactiveList.querySelectorAll('.task-set-item').length === 0) {
-							const inactiveSection = document.getElementById('tasks-inactive-section');
-							if (inactiveSection) inactiveSection.style.display = 'none';
-						}
 					}
-					// Refresh stats
 					renderListHeader(currentTaskSet, currentTasks, currentStudents);
 					renderStudents(currentStudents, currentTasks);
 				}
@@ -744,8 +747,10 @@ function createTaskItem(task, taskSet, isOwner) {
 			}
 			toggleBtn.disabled = false;
 		});
-		headerRow.appendChild(toggleBtn);
+		actionsWrap.appendChild(toggleBtn);
 	}
+
+	headerRow.appendChild(actionsWrap);
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
@@ -758,6 +763,53 @@ function createTaskItem(task, taskSet, isOwner) {
 	item.appendChild(headerRow);
 	item.appendChild(meta);
 	item.appendChild(statsRow);
+
+	if (isEditMode) {
+		item.addEventListener('dragstart', (e) => {
+			draggedTaskElement = item;
+			item.classList.add('dragging');
+			e.dataTransfer.effectAllowed = 'move';
+		});
+
+		item.addEventListener('dragend', () => {
+			item.classList.remove('dragging');
+			draggedTaskElement = null;
+			document.querySelectorAll('.task-set-item').forEach((el) => el.classList.remove('drag-over'));
+		});
+
+		item.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			if (draggedTaskElement && draggedTaskElement !== item) {
+				item.classList.add('drag-over');
+			}
+		});
+
+		item.addEventListener('dragleave', () => {
+			item.classList.remove('drag-over');
+		});
+
+		item.addEventListener('drop', (e) => {
+			e.preventDefault();
+			item.classList.remove('drag-over');
+			if (draggedTaskElement && draggedTaskElement !== item) {
+				const draggedId = parseInt(draggedTaskElement.dataset.taskId, 10);
+				const targetTaskId = parseInt(item.dataset.taskId, 10);
+				const draggedIndex = currentTasks.findIndex((t) => t.id === draggedId);
+
+				if (draggedIndex !== -1) {
+					const [draggedTask] = currentTasks.splice(draggedIndex, 1);
+					const newTargetIndex = currentTasks.findIndex((t) => t.id === targetTaskId);
+
+					if (newTargetIndex !== -1) {
+						currentTasks.splice(newTargetIndex, 0, draggedTask);
+					} else {
+						currentTasks.push(draggedTask);
+					}
+					renderTasks(currentTasks, taskSet);
+				}
+			}
+		});
+	}
 
 	return item;
 }
@@ -809,8 +861,23 @@ function renderTasks(tasks, taskSet) {
 		return;
 	}
 
-	const activeTasks = tasks.filter(t => !t.is_hidden);
-	const inactiveTasks = tasks.filter(t => t.is_hidden);
+	if (isEditMode) {
+		const editNotice = document.createElement('p');
+		editNotice.className = 'text-muted style-sm mb-2';
+		editNotice.style.fontSize = '0.8rem';
+		editNotice.innerHTML = '<i class="fas fa-info-circle"></i> Drag tasks to reorder them. Click <strong>Done Editing</strong> when finished.';
+		tasksList.appendChild(editNotice);
+
+		const editContainer = document.createElement('div');
+		editContainer.id = 'tasks-list-edit';
+		tasks.forEach((task) => editContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+		tasksList.appendChild(editContainer);
+		loadTaskStats(tasks, taskSet, currentStudents.length);
+		return;
+	}
+
+	const activeTasks = tasks.filter((t) => !t.is_hidden);
+	const inactiveTasks = tasks.filter((t) => t.is_hidden);
 
 	// Active tasks section
 	const activeContainer = document.createElement('div');
@@ -818,7 +885,7 @@ function renderTasks(tasks, taskSet) {
 	if (activeTasks.length === 0) {
 		activeContainer.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
 	} else {
-		activeTasks.forEach(task => activeContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+		activeTasks.forEach((task) => activeContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
 	}
 	tasksList.appendChild(activeContainer);
 
@@ -834,10 +901,429 @@ function renderTasks(tasks, taskSet) {
 
 	const inactiveContainer = document.createElement('div');
 	inactiveContainer.id = 'tasks-list-inactive';
-	inactiveTasks.forEach(task => inactiveContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+	inactiveTasks.forEach((task) => inactiveContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
 	inactiveSection.appendChild(inactiveContainer);
 
 	tasksList.appendChild(inactiveSection);
+	loadTaskStats(tasks, taskSet, currentStudents.length);
+}
+
+function setupEditTasksButton(taskSet) {
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim();
+	const isOwner = Boolean(currentUsername && taskSet.owner_username === currentUsername);
+	if (!isOwner) return;
+
+	const editBtn = document.getElementById('edit-tasks-btn');
+	const addBtn = document.getElementById('add-task-btn');
+	if (!editBtn || !addBtn) return;
+
+	editBtn.style.display = '';
+
+	editBtn.addEventListener('click', async () => {
+		if (isEditMode) {
+			editBtn.disabled = true;
+			editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+			try {
+				const taskIds = currentTasks.map((t) => t.id);
+				const res = await fetch(`/api/my_sets/${taskSet.id}/tasks`, {
+					method: 'PUT',
+					credentials: 'include',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ task_ids: taskIds }),
+				});
+				if (!res.ok) {
+					const data = await res.json();
+					alert('Failed to save tasks: ' + (data.detail || 'Unknown error'));
+				}
+			} catch (err) {
+				console.error('Failed to save tasks:', err);
+				alert('Failed to save tasks: ' + err.message);
+			}
+			isEditMode = false;
+			editBtn.disabled = false;
+			editBtn.className = 'btn btn-sm btn-outline-secondary';
+			editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Tasks';
+			addBtn.style.display = 'none';
+			renderTasks(currentTasks, taskSet);
+			loadTaskStats(currentTasks, taskSet, currentStudents.length);
+		} else {
+			isEditMode = true;
+			editBtn.className = 'btn btn-sm btn-success';
+			editBtn.innerHTML = '<i class="fas fa-check"></i> Done Editing';
+			addBtn.style.display = '';
+			renderTasks(currentTasks, taskSet);
+		}
+	});
+
+	addBtn.addEventListener('click', async () => {
+		selectedAvailableTaskIds = [];
+		const confirmBtn = document.getElementById('confirm-add-task-btn');
+		if (confirmBtn) confirmBtn.disabled = true;
+		document.getElementById('tasks-loading').style.display = 'block';
+		document.getElementById('task-selector').innerHTML = '';
+		$('#add-task-modal').modal('show');
+		try {
+			const allTasks = await fetchJsonWithError('/api/tasks', 'Failed to load tasks');
+			const existingIds = new Set(currentTasks.map((t) => t.id));
+			allAvailableTasks = allTasks.filter((t) => !existingIds.has(t.id));
+			document.getElementById('tasks-loading').style.display = 'none';
+			applyAvailableTaskFilters();
+		} catch (err) {
+			console.error(err);
+			document.getElementById('tasks-loading').style.display = 'none';
+			alert('Failed to load available tasks');
+		}
+	});
+
+	setupAvailableTaskFilters();
+	setupConfirmAddTasksBtn(taskSet);
+}
+
+function setupAvailableTaskFilters() {
+	const searchInput = document.getElementById('task-search');
+	const filterScopes = document.querySelectorAll('.filter-scope');
+
+	if (searchInput) {
+		searchInput.addEventListener('input', (e) => {
+			activeTaskFilters.query = e.target.value.toLowerCase().trim();
+			applyAvailableTaskFilters();
+		});
+	}
+
+	filterScopes.forEach((cb) => {
+		cb.addEventListener('change', (e) => {
+			if (e.target.checked) {
+				filterScopes.forEach((other) => {
+					if (other !== e.target) other.checked = false;
+				});
+				activeTaskFilters.activeScope = e.target.value;
+			} else {
+				activeTaskFilters.activeScope = null;
+			}
+			applyAvailableTaskFilters();
+		});
+	});
+}
+
+function applyAvailableTaskFilters() {
+	const container = document.getElementById('task-selector');
+	if (!container) return;
+
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim() || '';
+
+	let filtered = allAvailableTasks.filter((t) => {
+		if (activeTaskFilters.activeScope === 'my-exercises') {
+			if (t.owner_username !== currentUsername) return false;
+		} else if (activeTaskFilters.activeScope === 'favorites') {
+			if (!t.is_favorite) return false;
+		}
+
+		if (!activeTaskFilters.query) return true;
+
+		const q = activeTaskFilters.query;
+		const scope = activeTaskFilters.activeScope;
+
+		if (scope === 'title') return (t.title || '').toLowerCase().includes(q);
+		if (scope === 'teacher') return (t.owner_username || '').toLowerCase().includes(q);
+		if (scope === 'type') return (t.task_type || '').toLowerCase().includes(q);
+
+		return (
+			(t.title || '').toLowerCase().includes(q) ||
+			(t.owner_username || '').toLowerCase().includes(q) ||
+			(t.task_type || '').toLowerCase().includes(q)
+		);
+	});
+
+	container.innerHTML = '';
+	if (filtered.length === 0) {
+		container.innerHTML = '<p class="text-muted text-center p-3">No available tasks found.</p>';
+		return;
+	}
+
+	filtered.forEach((task) => {
+		const taskEl = document.createElement('div');
+		taskEl.className = 'task-item';
+		if (selectedAvailableTaskIds.includes(task.id)) {
+			taskEl.classList.add('selected');
+		}
+
+		const header = document.createElement('div');
+		header.className = 'task-item-header';
+
+		const title = document.createElement('div');
+		title.className = 'task-item-title';
+		title.textContent = task.title;
+
+		const titleWrap = document.createElement('div');
+		titleWrap.style.display = 'flex';
+		titleWrap.style.alignItems = 'center';
+		titleWrap.style.gap = '.45rem';
+		titleWrap.style.minWidth = '0';
+		titleWrap.appendChild(title);
+		header.appendChild(titleWrap);
+
+		const controlsWrap = document.createElement('div');
+		controlsWrap.style.display = 'flex';
+		controlsWrap.style.alignItems = 'center';
+		controlsWrap.style.gap = '.2rem';
+		controlsWrap.style.flexShrink = '0';
+		const favoriteBtn = document.createElement('button');
+		favoriteBtn.type = 'button';
+		favoriteBtn.className = 'task-favorite-button' + (task.is_favorite ? ' is-favorite' : '');
+		favoriteBtn.innerHTML = task.is_favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+		favoriteBtn.title = task.is_favorite ? 'Remove from favorites' : 'Add to favorites';
+		favoriteBtn.setAttribute('aria-label', favoriteBtn.title);
+		favoriteBtn.addEventListener('click', async (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			try {
+				await toggleFavorite(task);
+			} catch (error) {
+				console.error('Failed to update favorite:', error);
+				alert('Could not update favorite right now.');
+			}
+		});
+		controlsWrap.appendChild(favoriteBtn);
+
+		if (isPrivateTask(task)) {
+			controlsWrap.appendChild(createPrivateBadge());
+		}
+		header.appendChild(controlsWrap);
+
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.setAttribute('aria-label', `Select task: ${task.title}`);
+		checkbox.checked = selectedAvailableTaskIds.includes(task.id);
+
+		const updateSelectionState = (isChecked) => {
+			if (isChecked) {
+				if (!selectedAvailableTaskIds.includes(task.id)) selectedAvailableTaskIds.push(task.id);
+				taskEl.classList.add('selected');
+			} else {
+				selectedAvailableTaskIds = selectedAvailableTaskIds.filter((id) => id !== task.id);
+				taskEl.classList.remove('selected');
+			}
+			const confirmBtn = document.getElementById('confirm-add-task-btn');
+			if (confirmBtn) confirmBtn.disabled = selectedAvailableTaskIds.length === 0;
+		};
+
+		checkbox.addEventListener('change', (e) => {
+			updateSelectionState(e.target.checked);
+		});
+
+		const content = document.createElement('div');
+		content.className = 'task-item-content';
+
+		const type = document.createElement('div');
+		type.className = 'task-item-type';
+		type.textContent = `Type: ${task.task_type || ''}`;
+
+		const createdBy = document.createElement('div');
+		createdBy.className = 'task-item-meta';
+		createdBy.textContent = `Created by: ${task.owner_username || task.creator_username || 'Unknown teacher'}`;
+
+		content.appendChild(header);
+		content.appendChild(type);
+		content.appendChild(createdBy);
+
+		const actions = document.createElement('div');
+		actions.className = 'task-item-actions';
+
+		const previewBtn = document.createElement('button');
+		previewBtn.type = 'button';
+		previewBtn.className = 'preview-btn';
+		previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
+		previewBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			openTaskPreview(task);
+		});
+
+		actions.appendChild(previewBtn);
+
+		taskEl.appendChild(checkbox);
+		taskEl.appendChild(content);
+		taskEl.appendChild(actions);
+
+		taskEl.addEventListener('click', (e) => {
+			if (e.target !== checkbox && !e.target.closest('.task-item-actions') && !e.target.closest('.task-favorite-button')) {
+				checkbox.checked = !checkbox.checked;
+				updateSelectionState(checkbox.checked);
+			}
+		});
+
+		container.appendChild(taskEl);
+	});
+}
+
+async function toggleFavorite(task) {
+	const shouldFavorite = !task.is_favorite;
+	const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/favorite`, {
+		method: shouldFavorite ? 'POST' : 'DELETE',
+		credentials: 'include',
+	});
+
+	if (!response.ok) {
+		throw new Error('Failed to update favorite');
+	}
+
+	const result = await response.json();
+	task.is_favorite = Boolean(result.is_favorite);
+	applyAvailableTaskFilters();
+}
+
+let previewParsonsWidget = null;
+
+async function openTaskPreview(taskListItem) {
+	try {
+		const response = await fetch(`/api/tasks/${taskListItem.id}`, { credentials: 'include' });
+		if (!response.ok) {
+			throw new Error('Failed to load task details');
+		}
+		const task = await response.json();
+
+		const modal = document.getElementById('student-preview-modal');
+		const previewTaskTitle = document.getElementById('preview-task-title');
+		const previewStartIntro = document.getElementById('preview-start-intro');
+		const previewText = document.getElementById('preview-problem-text');
+		const previewSource = document.getElementById('preview-source-sortable');
+		const previewSolution = document.getElementById('preview-solution-sortable');
+		const previewWrittenTests = document.getElementById('preview-written-tests');
+		const previewModelAnswer = document.getElementById('preview-model-answer');
+
+		if (!modal) {
+			console.error('Preview modal not found.');
+			return;
+		}
+
+		const startIntro = task.description || '';
+		let problemStatement = '';
+		try {
+			const instr = JSON.parse(task.task_instructions || '{}');
+			const baseText = instr.task_instructions || '';
+			problemStatement = escapeHtml(baseText).replace(/\n/g, '<br>');
+			if (instr.function_name) {
+				problemStatement = `<strong>${escapeHtml(instr.function_name)}</strong><br>` + problemStatement;
+			}
+			if (instr.examples) {
+				problemStatement += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(instr.examples)}</code></pre>`;
+			}
+		} catch (e) {
+			problemStatement = escapeHtml(task.task_instructions || '').replace(/\n/g, '<br>');
+		}
+
+		const tests = task.correct_solution?.teacher_tests || '';
+		const modelAnswerCode = task.model_answer || '';
+
+		previewTaskTitle.innerHTML = escapeHtml(task.title || '').replace(/\n/g, '<br>');
+		previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
+		previewText.innerHTML = problemStatement;
+		previewWrittenTests.textContent = tests.trim() || 'No tests written yet.';
+		previewModelAnswer.textContent = modelAnswerCode.trim() || 'No model answer set yet.';
+
+		previewSource.innerHTML = '';
+		previewSolution.innerHTML = '';
+
+		if (window.ParsonsWidget) {
+			previewParsonsWidget = new window.ParsonsWidget({
+				sortableId: previewSolution,
+				trashId: previewSource,
+				max_wrong_lines: 10,
+				feedback_cb: false,
+				can_indent: true,
+				lang: 'en',
+			});
+
+			previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
+
+			const blocks = task.code_blocks?.blocks || [];
+			const solutionCode = (task.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
+			const modelAnswer = (task.model_answer || '').replace(/\r\n/g, '\n');
+			const INDENT = '    ';
+
+			const solLinesList = solutionCode.split('\n').map((l) => l.trimRight());
+			const ansLinesList = modelAnswer.split('\n').map((l) => l.trimRight());
+
+			const solLines = solLinesList.map((solLine, idx) => ({
+				solLine,
+				ansLine: ansLinesList[idx] || '',
+				matched: false,
+			}));
+
+			const previewRepr = blocks.map((block) => {
+				const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
+				const indented = INDENT.repeat(block.indent) + block.code;
+
+				const matchItem = solLines.find((item) => {
+					if (item.matched) return false;
+					return item.solLine.replace(/!BLANK/g, '___') === indented;
+				});
+
+				if (matchItem) {
+					matchItem.matched = true;
+				}
+
+				return codeWithBlanks;
+			}).join('\n');
+
+			previewParsonsWidget.init(previewRepr);
+
+			const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
+			const previewSolutionSet = new Set(previewSolutionIds);
+			const previewSourceIds = previewParsonsWidget.modified_lines
+				.filter((line) => !previewSolutionSet.has(line.id))
+				.map((line) => line.id);
+
+			previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
+		}
+
+		modal.classList.add('open');
+		modal.setAttribute('aria-hidden', 'false');
+		document.body.style.overflow = 'hidden';
+	} catch (error) {
+		console.error('Error previewing task:', error);
+		alert('Could not load task preview.');
+	}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+	const closeBtn = document.getElementById('close-student-preview');
+	const modal = document.getElementById('student-preview-modal');
+
+	function closeModal() {
+		if (modal) {
+			modal.classList.remove('open');
+			modal.setAttribute('aria-hidden', 'true');
+			document.body.style.overflow = '';
+		}
+	}
+
+	if (closeBtn) {
+		closeBtn.addEventListener('click', closeModal);
+	}
+
+	if (modal) {
+		modal.addEventListener('click', (event) => {
+			if (event.target === modal) {
+				closeModal();
+			}
+		});
+	}
+});
+
+function setupConfirmAddTasksBtn(taskSet) {
+	const confirmBtn = document.getElementById('confirm-add-task-btn');
+	if (!confirmBtn) return;
+
+	confirmBtn.addEventListener('click', () => {
+		if (selectedAvailableTaskIds.length === 0) return;
+
+		const addedTasks = allAvailableTasks.filter((t) => selectedAvailableTaskIds.includes(t.id));
+		currentTasks.push(...addedTasks);
+
+		$('#add-task-modal').modal('hide');
+		renderTasks(currentTasks, taskSet);
+	});
 }
 
 function createStudentItem(student, tasks) {
@@ -926,13 +1412,14 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 		fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students'),
 	]))
 	.then(([taskSet, tasks, students]) => {
-		overviewTaskStatsPromise = null;
+		overviewBulkStatsPromise = null;
 		currentTaskSet = taskSet;
 		currentTasks = tasks;
 		currentStudents = students;
 		renderListHeader(taskSet, tasks, students);
 		renderTasks(tasks, taskSet);
 		renderStudents(students, tasks);
+		setupEditTasksButton(taskSet);
 		loadViewers();
 		document.getElementById('content-container').style.display = 'block';
 		loadTaskStats(tasks, taskSet, students.length);

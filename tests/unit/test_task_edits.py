@@ -570,3 +570,68 @@ class TestRemoveStudentFromTaskSet:
             headers=_auth(other_teacher.username),
         )
         assert response.status_code == 403
+
+
+class TestUpdateAndReorderTaskSetTasks:
+    async def test_update_task_set_tasks_success(self, client, task_set, test_teacher, task, db_session):
+        prob2 = Parsons(
+            title="Second Problem",
+            task_instructions="Instructions",
+            task_type="algorithms",
+            code_blocks={"blocks": []},
+            correct_solution={"blocks": []},
+            created_by_teacher_id=test_teacher.id,
+        )
+        db_session.add(prob2)
+        await db_session.commit()
+        await db_session.refresh(prob2)
+
+        # Reorder/update tasks: [prob2.id, task.id]
+        response = await client.put(
+            f"/api/my_sets/{task_set.id}/tasks",
+            headers=_auth(test_teacher.username),
+            json={"task_ids": [prob2.id, task.id]},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+
+        # Verify new order via GET tasks
+        get_res = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
+        assert get_res.status_code == 200
+        tasks = get_res.json()
+        assert len(tasks) == 2
+        assert tasks[0]["id"] == prob2.id
+        assert tasks[1]["id"] == task.id
+
+    async def test_update_task_set_tasks_unauthorized(self, client, task_set, other_teacher, task):
+        response = await client.put(
+            f"/api/my_sets/{task_set.id}/tasks",
+            headers=_auth(other_teacher.username),
+            json={"task_ids": [task.id]},
+        )
+        assert response.status_code == 403
+
+    async def test_add_tasks_to_task_set_success(self, client, task_set, test_teacher, db_session):
+        prob2 = Parsons(
+            title="Another Problem",
+            task_instructions="Instructions",
+            task_type="algorithms",
+            code_blocks={"blocks": []},
+            correct_solution={"blocks": []},
+            created_by_teacher_id=test_teacher.id,
+        )
+        db_session.add(prob2)
+        await db_session.commit()
+        await db_session.refresh(prob2)
+
+        response = await client.post(
+            f"/api/my_sets/{task_set.id}/tasks",
+            headers=_auth(test_teacher.username),
+            json={"task_ids": [prob2.id]},
+        )
+        assert response.status_code == 201
+        assert response.json()["status"] == "success"
+        assert response.json()["added_count"] == 1
+
+
+

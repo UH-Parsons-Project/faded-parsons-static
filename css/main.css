@@ -254,27 +254,6 @@ code {
   margin-right: 50px;
 }
 
-.screenshot_column {
-  display: block;
-  width: auto;
-  height: auto;
-  border: 3px solid black;
-  padding: 5px;
-  float: left;
-}
-
-.screenshot_row {
-  margin-bottom: 1.25rem;
-  margin-left: 50px;
-  margin-right: 50px;
-}
-
-.screenshot_row::after {
-  content: "";
-  display: table;
-  clear: both;
-}
-
 .instructions {
   margin-left: 50px;
   margin-right: 50px;

@@ -40,6 +40,11 @@ spec:
                 secretKeyRef:
                   name: teachertoken
                   key: TEACHER_REGISTRATION_TOKEN
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: SECRET_KEY
             - name: ALLOWED_ORIGINS
               value: "https://faded-parsons-production-timed-parsons.ext.ocp-prod-0.k8s.it.helsinki.fi,https://parsonscodelab.web.helsinki.fi"
             - name: COOKIE_SECURE

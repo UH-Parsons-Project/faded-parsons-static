@@ -602,11 +602,11 @@ function renderListHeader(taskSet, tasks, students) {
 		</div>
 	`;
 
-	const rightColHTML = `
+	const rightColHTML = isOwner ? `
 		<div style="display:flex; flex-direction:column; gap:1.5rem; min-width:0; width:100%; height:100%;">
 			${viewersHTML}
 		</div>
-	`;
+	` : '';
 
 	container.innerHTML = `
 		<div class="header-inner" style="display:grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 350px); gap:2rem; width:100%; align-items:stretch; margin-bottom:1.5rem;">
@@ -622,6 +622,9 @@ function renderListHeader(taskSet, tasks, students) {
 
 	setupViewerSharing();
 	setupExpiryEdit(taskSet, isOwner);
+	if (isOwner) {
+		loadViewers();
+	}
 	document.getElementById('download-task-set-csv-btn')?.addEventListener('click', () => {
 		downloadTaskSetCsv(taskSet, tasks, students);
 	});

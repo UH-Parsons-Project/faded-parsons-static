@@ -139,7 +139,7 @@ initBurgerMenu();
 
     const currentValue = normalizeTaskTypeValue(taskTypeInput.value);
     taskTypeInput.innerHTML = [
-      '<option value="" disabled>Select a task type</option>',
+      '<option value="" disabled>Select a task tag</option>',
       ...TASK_TYPE_OPTIONS.map((taskType) => `<option value="${taskType}">${formatTaskTypeLabel(taskType)}</option>`),
     ].join('');
     taskTypeInput.value = currentValue;
@@ -172,7 +172,7 @@ initBurgerMenu();
     previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
     previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
-    previewTaskType.textContent = taskType ? `Task type: ${taskType}` : 'Task type not selected yet.';
+    previewTaskType.textContent = taskType ? `Task tag: ${taskType}` : 'Task tag not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     previewModelAnswer.textContent = modelAnswerCode || 'No model answer set yet.';
 
@@ -946,7 +946,7 @@ initBurgerMenu();
     const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
 
     if (!taskType) {
-      alert('Please select a task type before saving the task.');
+      alert('Please select a task tag before saving the task.');
       taskTypeInput?.focus();
       return;
     }

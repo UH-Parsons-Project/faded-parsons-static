@@ -192,26 +192,16 @@ initBurgerMenu();
 
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
-    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues) || modelAnswerRepr;
-    previewParsonsWidget.init(normalizeBlankMarkup(previewRepr));
+    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
+    previewParsonsWidget.init(cleanPreviewRepr);
 
-    const previewSolutionIds = previewParsonsWidget.studentGiven.map((line) => line.id);
+    const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
-    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds, previewParsonsWidget);
-    const previewBlankValuesByLineId = previewSolutionIds.reduce((acc, id, index) => {
-      acc[id] = previewValuesToRestore[index] || [];
-      return acc;
-    }, {});
-    applyBlankValuesToWidgetLines(previewParsonsWidget, previewBlankValuesByLineId);
     previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
-
-    if (previewValuesToRestore.some((values) => values.length)) {
-      saveBlankValuesToSession(previewValuesToRestore);
-      restoreBlankValuesToDomByLineId(previewBlankValuesByLineId, previewSolution.querySelector('ul'));
-    }
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -377,26 +367,6 @@ initBurgerMenu();
     return Array.from(lineElement.querySelectorAll('input')).map((input) => input.value || '');
   }
 
-  function renderLineWithBlankValues(lineCode, blankValues = []) {
-    const normalizedCode = normalizeSourceCode(lineCode || '').trimEnd();
-
-    if (!normalizedCode.includes('!BLANK') && !normalizedCode.includes('___')) {
-      return normalizedCode;
-    }
-
-    let blankIndex = 0;
-    return normalizedCode.split(/!BLANK|___/).reduce((renderedCode, segment, index, segments) => {
-      const nextCode = renderedCode + segment;
-      if (index === segments.length - 1) {
-        return nextCode;
-      }
-
-      const blankValue = blankValues[blankIndex] ?? '';
-      blankIndex += 1;
-      return nextCode + blankValue;
-    }, '').trimEnd();
-  }
-
   function applyBlankValuesToWidgetLines(widget, blankValuesByLineId = {}) {
     if (!widget || !Array.isArray(widget.modified_lines)) {
       return;
@@ -480,24 +450,6 @@ initBurgerMenu();
     return Array.from(solutionList.children).map((child) => {
       const values = Array.from(child.querySelectorAll('input.text-box')).map((input) => input.value || '');
       return values.length ? values : [];
-    });
-  }
-
-  function restoreBlankValuesToDom(blankValues = [], targetList = null) {
-    const solutionList = targetList || document.querySelector('#solution-sortable ul');
-    if (!solutionList) {
-      return;
-    }
-
-    const solutionChildren = Array.from(solutionList.children);
-    solutionChildren.forEach((child, index) => {
-      const values = blankValues[index] || [];
-      const inputs = Array.from(child.querySelectorAll('input.text-box'));
-      inputs.forEach((input, inputIndex) => {
-        const value = values[inputIndex] ?? '';
-        input.value = value;
-        input.style.width = `${(value.length + 3) * 8}px`;
-      });
     });
   }
 
@@ -1329,7 +1281,7 @@ initBurgerMenu();
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
-      parsonsRepr: buildCustomRepr(),
+      parsonsRepr: buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues),
       task_type: taskType,
       is_public: isPublic,
     };
@@ -1521,7 +1473,7 @@ initBurgerMenu();
           return;
         }
 
-        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr());
+        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues));
         const persistedToServer = await persistModelAnswerToServer(currentSolutionCode);
         if (persistedToServer) {
           const status = document.getElementById('model-answer-status');

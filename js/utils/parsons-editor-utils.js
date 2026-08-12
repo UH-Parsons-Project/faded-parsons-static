@@ -54,7 +54,7 @@ export function buildReprFromBlocks(taskData) {
   }).join('\n');
 }
 
-export function buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues) {
+export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, getLineInputValues = null) {
   if (!parsonsWidget) {
     return '';
   }
@@ -70,7 +70,7 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInput
     }
 
     let reprLine = `${lineText} #${line.indent}given`;
-    const blankValues = getLineInputValues(line.id);
+    const blankValues = typeof getLineInputValues === 'function' ? getLineInputValues(line.id) : [];
     if (blankValues.length) {
       reprLine += blankValues.map((value) => ` #blank${value}`).join('');
     }

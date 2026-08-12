@@ -1492,3 +1492,33 @@ class TestCreateProblemApi:
         assert created_task.task_type == "normal"
         blocks = created_task.code_blocks["blocks"]
         assert all(block["faded"] is False for block in blocks)
+
+        import json
+        instructions_data = json.loads(created_task.task_instructions)
+        assert instructions_data["examples"] == ""
+
+    async def test_create_problem_with_examples(self, client, test_teacher, db_session):
+        payload = {
+            "taskTitle": "Add In Range Task",
+            "description": "Return sum of range.",
+            "startDescription": "Practice loops.",
+            "examples": ">>> add_in_range(3, 5)\n12",
+            "tests": "assert add_in_range(3, 5) == 12",
+            "solutionCode": "def add_in_range(start, stop):\n    return sum(range(start, stop + 1))",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        import json
+        instructions_data = json.loads(created_task.task_instructions)
+        assert instructions_data["examples"] == ">>> add_in_range(3, 5)\n12"

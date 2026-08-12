@@ -189,6 +189,7 @@ class CreateProblemRequest(BaseModel):
     startDescription: str
     tests: str
     solutionCode: str
+    examples: str | None = ""
     task_type: str | None = None
     modelAnswerCode: str | None = None
     parsonsRepr: str | None = None

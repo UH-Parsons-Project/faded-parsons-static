@@ -7,8 +7,9 @@ import {
 } from '../core/doctest-grader.js';
 import '../components/problem-element.js'; // Problem UI web component
 import {FiniteWorker} from '../core/worker-manager.js'; // Worker process for Python code execution
-import {getUsername} from '../core/auth-utils.js';
+import { getUsername } from '../core/auth-utils.js';
 import { parseCustomErrorRules } from '../utils/parsons-editor-utils.js';
+import { escapeHtml } from '../utils/ui-utils.js';
 
 // Local storage key suffixes for saving user state
 const LS_REPR = '-repr';
@@ -160,13 +161,13 @@ export async function initWidget() {
 		// Build HTML problem statement from structured parts
 		let problemStatementHTML = '';
 		if (parsedInstructions.function_name) {
-			problemStatementHTML += `<strong>${parsedInstructions.function_name}</strong>`;
+			problemStatementHTML += `<strong>${escapeHtml(parsedInstructions.function_name)}</strong><br>`;
 		}
 		if (parsedInstructions.task_instructions) {
-			problemStatementHTML += ` ${parsedInstructions.task_instructions}`;
+			problemStatementHTML += escapeHtml(parsedInstructions.task_instructions).replace(/\n/g, '<br>');
 		}
 		if (parsedInstructions.examples) {
-			problemStatementHTML += `<br><pre><code>${parsedInstructions.examples}</code></pre>`;
+			problemStatementHTML += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
 		}
 
 		const codeBlocksData = task.code_blocks;
@@ -272,7 +273,7 @@ function reconstructCodeLines(blocks) {
 		raw = raw.replace(/\s*#preplace\b/g, '');
 
 		// If the block contains input HTML, replace inputs with a blank marker
-		if (/\<input\b/i.test(raw)) {
+		if (/<input\b/i.test(raw)) {
 			const container = document.createElement('div');
 			container.innerHTML = raw;
 			container.querySelectorAll('input').forEach((input) => {

@@ -81,7 +81,7 @@ function renderTaskInstructions(taskInstructions) {
 	let html = '';
 	if (parsedInstructions.function_name) html += `<strong>${escapeHtml(parsedInstructions.function_name)}</strong>`;
 	if (parsedInstructions.task_instructions) html += ` ${escapeHtml(parsedInstructions.task_instructions)}`;
-	if (parsedInstructions.examples) html += `<br><pre><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
+	if (parsedInstructions.examples) html += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(parsedInstructions.examples)}</code></pre>`;
 
 	content.innerHTML = html;
 	box.style.display = 'block';

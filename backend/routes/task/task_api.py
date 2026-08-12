@@ -427,11 +427,13 @@ async def create_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 
@@ -649,11 +651,13 @@ async def update_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 

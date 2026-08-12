@@ -405,7 +405,10 @@ async def create_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -624,7 +627,10 @@ async def update_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True

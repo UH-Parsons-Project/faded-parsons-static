@@ -14,28 +14,6 @@ function formatMultilineText(text) {
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
-function sanitizeModelAnswerText(text) {
-  if (!text) return '';
-
-  const normalized = String(text)
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n');
-
-  if (!normalized.includes('<input')) {
-    return normalized;
-  }
-
-  const container = document.createElement('pre');
-  container.style.whiteSpace = 'pre';
-  container.style.margin = '0';
-  container.innerHTML = normalized;
-  container.querySelectorAll('input.text-box').forEach((input) => {
-    input.replaceWith(input.value || '');
-  });
-
-  return container.textContent.replace(/\u00a0/g, ' ');
-}
-
 
 // Convert doctest examples into assert statements for visual display
 function convertDoctestsToAsserts(header) {
@@ -247,7 +225,11 @@ async function loadTaskDetails() {
         blockEl.style.paddingLeft = `${Math.max(1.25, indentLevel * 2 + 1.25)}rem`;
 
         // Format !BLANK/___ into visual badges
-        const formattedCode = escapeHtml(block.code || '')
+        const cleanCode = String(block.code || '')
+          .replace(/<input\b[^>]*>(?:<\/input>)?/gi, '!BLANK')
+          .replace(/<input\b[^>]*\/>/gi, '!BLANK')
+          .replace(/<[^>]+>/g, '');
+        const formattedCode = escapeHtml(cleanCode)
           .replace(/(!BLANK|___)/g, '<span class="faded-blank">___</span>');
 
         // Build Badge HTML

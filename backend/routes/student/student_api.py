@@ -467,6 +467,13 @@ async def get_task_for_student_set(
         if attempt and getattr(attempt, 'submitted_order', None):
             submitted_order = attempt.submitted_order
 
+    student_correct_solution = {}
+    if isinstance(task.correct_solution, dict):
+        if "teacher_tests" in task.correct_solution:
+            student_correct_solution["teacher_tests"] = task.correct_solution["teacher_tests"]
+        if "custom_error_messages" in task.correct_solution:
+            student_correct_solution["custom_error_messages"] = task.correct_solution["custom_error_messages"]
+
     return StudentTaskResponse(
         id=task.id,
         title=task.title,
@@ -474,6 +481,7 @@ async def get_task_for_student_set(
         description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
+        correct_solution=student_correct_solution,
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,

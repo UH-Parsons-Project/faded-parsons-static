@@ -194,6 +194,11 @@ class CreateProblemRequest(BaseModel):
     is_public: bool | None = True
 
 
+class UpdateModelAnswerRequest(BaseModel):
+    modelAnswerCode: str | None = None
+
+
+
 class CreateTaskSetRequest(BaseModel):
     title: str
     student_description: str | None = None

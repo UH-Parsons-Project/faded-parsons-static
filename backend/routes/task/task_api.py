@@ -37,6 +37,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
+    UpdateModelAnswerRequest,
 )
 from ...utils.task import is_task_editable
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
@@ -511,7 +512,7 @@ async def get_model_answer(
 @router.put("/api/problems/{task_id}/model-answer")
 async def update_model_answer(
     task_id: int,
-    request: CreateProblemRequest,
+    request: UpdateModelAnswerRequest,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):

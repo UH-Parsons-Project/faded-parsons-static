@@ -1274,6 +1274,7 @@ initBurgerMenu();
     }
 
     const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
     const problemData = {
       taskTitle,
       description,
@@ -1281,6 +1282,7 @@ initBurgerMenu();
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
+      modelAnswerCode: finalModelAnswerCode,
       parsonsRepr: buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues),
       task_type: taskType,
       is_public: isPublic,
@@ -1299,6 +1301,9 @@ initBurgerMenu();
     })
       .then(async (response) => {
         if (response.ok) {
+          if (editTaskId && finalModelAnswerCode) {
+            await persistModelAnswerToServer(finalModelAnswerCode);
+          }
           alert(editTaskId ? 'Task updated successfully!' : 'Problem successfully added to the problem list!');
           window.location.href = '/teacher-dashboard';
         } else {

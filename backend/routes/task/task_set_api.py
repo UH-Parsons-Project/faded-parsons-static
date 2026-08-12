@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -167,8 +167,9 @@ async def get_task_set(
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
-async def get_task_set_tasks(code: str, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncSession, Depends(get_db)]):
     """Get all tasks belonging to a task_set by unique link code."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     task_set_result = await db.execute(
         select(TaskSet).where(TaskSet.unique_link_code == code)
     )

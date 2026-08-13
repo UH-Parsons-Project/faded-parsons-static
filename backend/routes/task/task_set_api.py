@@ -107,14 +107,21 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
 async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     """List all task sets for the current teacher."""
     stmt = (
-        select(TaskSet, Teacher.username)
+        select(
+            TaskSet,
+            Teacher.username,
+            func.count(func.distinct(StudentTaskSetEnrollment.student_id)).label("student_count"),
+            func.count(func.distinct(TaskSetItem.id)).label("task_count"),
+        )
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
         .outerjoin(TaskSetViewer, TaskSetViewer.task_set_id == TaskSet.id)
+        .outerjoin(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
+        .outerjoin(TaskSetItem, TaskSetItem.task_set_id == TaskSet.id)
         .where(
             (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
         )
+        .group_by(TaskSet.id, Teacher.username)
         .order_by(TaskSet.created_at.desc())
-        .distinct()
     )
     result = await db.execute(stmt)
     my_sets = result.all()

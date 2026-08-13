@@ -52,6 +52,14 @@ async def task_details_page(
     return await _render_teacher_page(request, db, "task_details.html")
 
 
+@router.get("/task", response_class=HTMLResponse)
+async def task_preview_page(
+    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    return await _render_teacher_page(request, db, "student_problem.html")
+
+
+
 
 @router.get("/task-set-overview", response_class=HTMLResponse)
 async def task_set_overview(

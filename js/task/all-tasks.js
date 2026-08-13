@@ -583,6 +583,8 @@ function loadCurrentTeacher() {
 			}
 			applyTaskFilters();
 		})
+
+
 		.catch(() => {
 			// Keep cached identity when /api/me is unavailable.
 		});

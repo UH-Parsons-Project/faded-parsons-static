@@ -18,6 +18,46 @@ body {
   gap: 0.5rem;
 }
 
+.task-details-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.task-details-badge.type-faded {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.15);
+}
+
+.task-details-badge.type-normal {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.15);
+}
+
+.task-details-badge.pub {
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.task-details-badge.priv {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #7f1d1d;
+}
+
 .card {
   border: 1px solid var(--border);
   border-radius: 12px;

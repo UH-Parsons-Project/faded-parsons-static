@@ -23,6 +23,8 @@ export class ProblemElement extends LitElement {
 		description: {type: String},
 		codeLines: {type: String},
 		codeHeader: {type: String},
+		evalType: {type: String},
+		requireIndentation: {type: Boolean, default: true},
 		isLoading: {type: Boolean},
 		enableRun: {type: Boolean, default: false},
 		runStatus: {type: String},
@@ -153,7 +155,7 @@ export class ProblemElement extends LitElement {
 													class="btn btn-primary"
 													?disabled=${!this.enableRun}
 												>
-													Run Tests
+													${this.evalType === 'order_only' ? 'Check Order' : (this.evalType === 'stdout' ? 'Check Output' : 'Run Tests')}
 												</button>
 											`
 									}
@@ -324,6 +326,7 @@ export class ProblemElement extends LitElement {
 			sortableId: this.solutionRef.value,
 			trashId: this.starterRef.value,
 			containment: this.taskCardRef.value.querySelector('.card-body'),
+			can_indent: !!this.requireIndentation,
 			onSortableUpdate: () => {
 				if (!pendingMove) {
 					return;
@@ -481,6 +484,11 @@ export class ProblemElement extends LitElement {
 					moves: this.recordedMoves,
 					// Include recorded blank edits to send with attempt
 					edits: this.recordedEdits,
+					// The IDs of blocks currently in the solution area in order
+					studentOrder: Array.from(this.solutionRef.value.querySelectorAll('li')).map(li => {
+						const lineObj = this.parsonsWidget.getLineById(li.id);
+						return lineObj ? `block_${lineObj.orig + 1}` : li.id;
+					}),
 				},
 			})
 		);

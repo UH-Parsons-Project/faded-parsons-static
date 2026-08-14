@@ -105,6 +105,7 @@ export function renderParsonsBoard(initialText, options) {
     containment: sourceSortable.closest('.card-body'),
     trash_label: 'Drag from here',
     solution_label: 'Solution &mdash; drag blocks here, double click to pin',
+    can_indent: options.can_indent !== undefined ? options.can_indent : true,
     onSortableUpdate: () => {
       if (onSortableUpdate) {
         onSortableUpdate();

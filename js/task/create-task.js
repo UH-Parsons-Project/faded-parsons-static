@@ -258,7 +258,7 @@
         const val = evalTypeInput.value;
         if (val === 'order_only') {
           taskTestsPanel.style.display = 'none';
-          taskCodeInput.placeholder = 'def format_name(first, last):\n    return f"{first.strip().title()} {last.strip().title()}"';
+          taskCodeInput.placeholder = 'Step 1\nStep 2\nStep 3';
         } else if (val === 'stdout') {
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Expected Output';

@@ -160,7 +160,7 @@ function renderGroup(role, query, container) {
 			actionsContainer.appendChild(makeAdminBtn);
 		}
 
-		if (!user.is_current_user && user.id !== 999999) {
+		if (!user.is_admin_teacher && !user.is_current_user && user.id !== 999999) {
 			const deleteBtn = document.createElement('button');
 			deleteBtn.className = 'btn btn-sm btn-outline-danger';
 			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
@@ -169,6 +169,17 @@ function renderGroup(role, query, container) {
 				deleteUser(user.role, user.id, user.username);
 			});
 			actionsContainer.appendChild(deleteBtn);
+		}
+
+		if (user.id !== 999999 && (!user.is_admin_teacher || user.is_current_user)) {
+			const resetPwdBtn = document.createElement('button');
+			resetPwdBtn.className = 'btn btn-sm btn-outline-info';
+			resetPwdBtn.innerHTML = '<i class="fas fa-key"></i> Reset Password';
+			resetPwdBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				resetUserPassword(user.role, user.id, user.username);
+			});
+			actionsContainer.appendChild(resetPwdBtn);
 		}
 
 		if (actionsContainer.children.length > 0) {
@@ -233,88 +244,36 @@ function showPasswordPrompt(options = {}) {
 		instructionText = 'To confirm, enter your admin password:'
 	} = options;
 
+	let confirmBtnClass = 'btn-primary';
+	if (warningColor === '#dc3545' || warningColor === 'red') {
+		confirmBtnClass = 'btn-danger';
+	} else if (warningColor === '#28a745' || warningColor === 'green') {
+		confirmBtnClass = 'btn-success';
+	} else if (warningColor === '#0284c7' || warningColor === 'blue') {
+		confirmBtnClass = 'btn-info';
+	}
+
 	return new Promise((resolve) => {
 		const overlay = document.createElement('div');
-		overlay.style.position = 'fixed';
-		overlay.style.top = '0';
-		overlay.style.left = '0';
-		overlay.style.width = '100vw';
-		overlay.style.height = '100vh';
-		overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-		overlay.style.display = 'flex';
-		overlay.style.alignItems = 'center';
-		overlay.style.justifyContent = 'center';
-		overlay.style.zIndex = '9999';
+		overlay.className = 'admin-modal-overlay';
+		overlay.innerHTML = `
+			<div class="admin-modal">
+				<h5>${escapeHtml(titleText)}</h5>
+				${warningText ? `<div class="admin-modal-warning" style="color: ${warningColor}">${escapeHtml(warningText)}</div>` : ''}
+				<p>${escapeHtml(instructionText)}</p>
+				<input type="password" class="form-control mb-3" placeholder="Enter password" autocomplete="off" />
+				<div class="admin-modal-actions">
+					<button type="button" class="btn btn-outline-secondary cancel-btn">Cancel</button>
+					<button type="button" class="btn ${confirmBtnClass} confirm-btn">Confirm</button>
+				</div>
+			</div>
+		`;
 
-		const modal = document.createElement('div');
-		modal.style.backgroundColor = '#fff';
-		modal.style.padding = '20px';
-		modal.style.borderRadius = '8px';
-		modal.style.width = '400px';
-		modal.style.maxWidth = '90%';
-		modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
-		modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+		const input = overlay.querySelector('input');
+		const confirmBtn = overlay.querySelector('.confirm-btn');
+		const cancelBtn = overlay.querySelector('.cancel-btn');
 
-		const title = document.createElement('h5');
-		title.style.margin = '0 0 15px 0';
-		title.style.fontSize = '1.25rem';
-		title.style.fontWeight = '600';
-		title.textContent = titleText;
-		modal.appendChild(title);
-
-		if (warningText) {
-			const warningEl = document.createElement('div');
-			warningEl.style.margin = '0 0 12px 0';
-			warningEl.style.fontSize = '1.05rem';
-			warningEl.style.fontWeight = '600';
-			warningEl.style.color = warningColor;
-			warningEl.textContent = warningText;
-			modal.appendChild(warningEl);
-		}
-
-		const text = document.createElement('p');
-		text.style.margin = '0 0 15px 0';
-		text.style.fontSize = '0.9rem';
-		text.style.color = '#5f6b7a';
-		text.textContent = instructionText;
-		modal.appendChild(text);
-
-		const input = document.createElement('input');
-		input.type = 'password';
-		input.placeholder = 'Enter password';
-		input.style.width = '100%';
-		input.style.padding = '8px 12px';
-		input.style.marginBottom = '20px';
-		input.style.border = '1px solid #ccc';
-		input.style.borderRadius = '4px';
-		input.style.fontSize = '1rem';
-		modal.appendChild(input);
-
-		const btnContainer = document.createElement('div');
-		btnContainer.style.display = 'flex';
-		btnContainer.style.justifyContent = 'flex-end';
-		btnContainer.style.gap = '10px';
-
-		const cancelBtn = document.createElement('button');
-		cancelBtn.className = 'btn btn-outline-danger';
-		cancelBtn.textContent = 'Cancel';
-		cancelBtn.type = 'button';
-		btnContainer.appendChild(cancelBtn);
-
-		const confirmBtn = document.createElement('button');
-		if (warningColor === '#28a745' || warningColor === 'green') {
-			confirmBtn.className = 'btn btn-success';
-		} else {
-			confirmBtn.className = 'btn btn-secondary';
-		}
-		confirmBtn.textContent = 'Confirm';
-		confirmBtn.type = 'button';
-		btnContainer.appendChild(confirmBtn);
-
-		modal.appendChild(btnContainer);
-		overlay.appendChild(modal);
 		document.body.appendChild(overlay);
-
 		input.focus();
 
 		function cleanUp() {
@@ -422,3 +381,83 @@ async function makeAdmin(id, username) {
 		alert(typeof err === 'string' ? err : 'Failed to make admin.');
 	});
 }
+
+function showResetResultModal(username, role, newPassword) {
+	const overlay = document.createElement('div');
+	overlay.className = 'admin-modal-overlay';
+	overlay.innerHTML = `
+		<div class="admin-modal">
+			<h5 class="text-success"><i class="fas fa-check-circle"></i> Password Reset Successful</h5>
+			<p>Password for <strong>${escapeHtml(username)}</strong> (${escapeHtml(role)}) has been reset. Please copy this new temporary password and email it to the user:</p>
+			<div class="admin-password-box">
+				<input type="text" class="admin-password-input" readonly value="${escapeHtml(newPassword)}" />
+				<button type="button" class="btn btn-outline-primary copy-btn"><i class="fas fa-copy"></i> Copy</button>
+			</div>
+			<div class="admin-modal-actions">
+				<button type="button" class="btn btn-primary close-btn">Close</button>
+			</div>
+		</div>
+	`;
+
+	const passInput = overlay.querySelector('.admin-password-input');
+	const copyBtn = overlay.querySelector('.copy-btn');
+	const closeBtn = overlay.querySelector('.close-btn');
+
+	copyBtn.addEventListener('click', async () => {
+		try {
+			await navigator.clipboard.writeText(newPassword);
+		} catch {
+			passInput.select();
+			document.execCommand('copy');
+		}
+		copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+		copyBtn.className = 'btn btn-success copy-btn';
+		setTimeout(() => {
+			copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+			copyBtn.className = 'btn btn-outline-primary copy-btn';
+		}, 2000);
+	});
+
+	closeBtn.addEventListener('click', () => {
+		document.body.removeChild(overlay);
+	});
+
+	document.body.appendChild(overlay);
+}
+
+async function resetUserPassword(role, id, username) {
+	const password = await showPasswordPrompt({
+		titleText: 'Confirm Password Reset',
+		warningText: `WARNING: Are you sure you want to reset the password for ${role} "${username}"? Their current password will be immediately invalidated and replaced with a temporary token.`,
+		warningColor: '#0284c7',
+		instructionText: 'To confirm, enter your admin password:'
+	});
+	if (password === null) return;
+	if (!password) {
+		alert('Password cannot be empty.');
+		return;
+	}
+
+	fetch(`/api/admin/users/${role}/${id}/reset-password`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ admin_password: password }),
+		credentials: 'include',
+	})
+	.then(r => {
+		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Password reset failed'));
+		return r.json();
+	})
+	.then(data => {
+		if (data && data.new_password) {
+			showResetResultModal(username, role, data.new_password);
+		}
+	})
+	.catch(err => {
+		alert(typeof err === 'string' ? err : 'Failed to reset password.');
+	});
+}
+
+

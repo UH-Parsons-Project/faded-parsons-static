@@ -336,3 +336,26 @@ async def test_cannot_delete_deleted_user(client, admin_teacher):
     )
     assert r.status_code == 400
     assert r.json()["detail"] == "Cannot delete the dummy deleted_user"
+
+@pytest.mark.asyncio
+async def test_cannot_delete_admin_teacher(client, db_session, admin_teacher):
+    other_admin = Teacher(
+        username="otheradmin_del",
+        email="otheradmin_del@example.com",
+        is_active=True,
+        is_admin_teacher=True,
+    )
+    other_admin.set_password("otheradminpass")
+    db_session.add(other_admin)
+    await db_session.commit()
+    await db_session.refresh(other_admin)
+
+    r = await client.request(
+        "DELETE",
+        f"/api/admin/users/teacher/{other_admin.id}",
+        headers=_auth(admin_teacher.username),
+        json={"admin_password": "adminpassword123"}
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "Cannot delete an admin teacher"
+

@@ -1,9 +1,13 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { formatDate, escapeHtml } from '../utils/ui-utils.js';
+import { deleteUser, resetUserPassword, setupCopyButton } from './admin-user-actions.js';
 
 initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
+
+setupCopyButton('copy-username-btn', () => document.getElementById('overview-username')?.textContent?.trim());
+setupCopyButton('copy-email-btn', () => document.getElementById('overview-email')?.textContent?.trim());
 
 const urlParams = new URLSearchParams(window.location.search);
 const studentId = parseInt(urlParams.get('student_id'), 10);
@@ -237,6 +241,33 @@ async function loadData() {
 		// Render lists
 		renderTaskSets();
 		renderTasks();
+
+		// Populate Actions Row
+		const actionsRow = document.getElementById('user-actions-row');
+		const actionsContainer = document.getElementById('user-actions-container');
+		if (actionsRow && actionsContainer) {
+			actionsContainer.innerHTML = '';
+
+			const resetPwdBtn = document.createElement('button');
+			resetPwdBtn.className = 'btn btn-sm btn-outline-info';
+			resetPwdBtn.innerHTML = '<i class="fas fa-key"></i> Reset Password';
+			resetPwdBtn.addEventListener('click', () => {
+				resetUserPassword('student', student.id, student.username);
+			});
+			actionsContainer.appendChild(resetPwdBtn);
+
+			const deleteBtn = document.createElement('button');
+			deleteBtn.className = 'btn btn-sm btn-outline-danger';
+			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Account';
+			deleteBtn.addEventListener('click', () => {
+				deleteUser('student', student.id, student.username, () => {
+					window.location.href = '/all-users';
+				});
+			});
+			actionsContainer.appendChild(deleteBtn);
+
+			actionsRow.style.display = 'flex';
+		}
 
 	} catch (err) {
 		console.error(err);

@@ -1,5 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { escapeHtml, formatDate } from '../utils/ui-utils.js';
+import { deleteUser, makeAdmin, resetUserPassword } from '../admin/admin-user-actions.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -28,8 +29,6 @@ const teachersContainer = document.getElementById('teachers-container');
 const studentsContainer = document.getElementById('students-container');
 
 let allUsers = [];
-
-
 
 function renderUsers() {
 	renderGroup('teacher', teacherSearchInput.value.trim().toLowerCase(), teachersContainer);
@@ -155,7 +154,10 @@ function renderGroup(role, query, container) {
 			makeAdminBtn.innerHTML = '<i class="fas fa-user-shield"></i> Make Admin';
 			makeAdminBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
-				makeAdmin(user.id, user.username);
+				makeAdmin(user.id, user.username, () => {
+					user.is_admin_teacher = true;
+					renderUsers();
+				});
 			});
 			actionsContainer.appendChild(makeAdminBtn);
 		}
@@ -166,7 +168,10 @@ function renderGroup(role, query, container) {
 			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
 			deleteBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
-				deleteUser(user.role, user.id, user.username);
+				deleteUser(user.role, user.id, user.username, () => {
+					allUsers = allUsers.filter(u => !(u.id === user.id && u.role === user.role));
+					renderUsers();
+				});
 			});
 			actionsContainer.appendChild(deleteBtn);
 		}
@@ -234,230 +239,5 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 		window.location.href = '/';
 	});
 
-
-
-function showPasswordPrompt(options = {}) {
-	const {
-		titleText = 'Confirm Action',
-		warningText = '',
-		warningColor = '#333',
-		instructionText = 'To confirm, enter your admin password:'
-	} = options;
-
-	let confirmBtnClass = 'btn-primary';
-	if (warningColor === '#dc3545' || warningColor === 'red') {
-		confirmBtnClass = 'btn-danger';
-	} else if (warningColor === '#28a745' || warningColor === 'green') {
-		confirmBtnClass = 'btn-success';
-	} else if (warningColor === '#0284c7' || warningColor === 'blue') {
-		confirmBtnClass = 'btn-info';
-	}
-
-	return new Promise((resolve) => {
-		const overlay = document.createElement('div');
-		overlay.className = 'admin-modal-overlay';
-		overlay.innerHTML = `
-			<div class="admin-modal">
-				<h5>${escapeHtml(titleText)}</h5>
-				${warningText ? `<div class="admin-modal-warning" style="color: ${warningColor}">${escapeHtml(warningText)}</div>` : ''}
-				<p>${escapeHtml(instructionText)}</p>
-				<input type="password" class="form-control mb-3" placeholder="Enter password" autocomplete="off" />
-				<div class="admin-modal-actions">
-					<button type="button" class="btn btn-outline-secondary cancel-btn">Cancel</button>
-					<button type="button" class="btn ${confirmBtnClass} confirm-btn">Confirm</button>
-				</div>
-			</div>
-		`;
-
-		const input = overlay.querySelector('input');
-		const confirmBtn = overlay.querySelector('.confirm-btn');
-		const cancelBtn = overlay.querySelector('.cancel-btn');
-
-		document.body.appendChild(overlay);
-		input.focus();
-
-		function cleanUp() {
-			document.body.removeChild(overlay);
-		}
-
-		confirmBtn.addEventListener('click', () => {
-			const val = input.value;
-			cleanUp();
-			resolve(val);
-		});
-
-		cancelBtn.addEventListener('click', () => {
-			cleanUp();
-			resolve(null);
-		});
-
-		input.addEventListener('keydown', (e) => {
-			if (e.key === 'Enter') {
-				const val = input.value;
-				cleanUp();
-				resolve(val);
-			} else if (e.key === 'Escape') {
-				cleanUp();
-				resolve(null);
-			}
-		});
-
-		overlay.addEventListener('click', (e) => {
-			if (e.target === overlay) {
-				cleanUp();
-				resolve(null);
-			}
-		});
-	});
-}
-
-async function deleteUser(role, id, username) {
-	const password = await showPasswordPrompt({
-		titleText: 'Confirm Deletion',
-		warningText: `Are you sure you want to delete the ${role} "${username}"?`,
-		warningColor: '#dc3545', // Red
-		instructionText: 'To confirm, enter your admin password:'
-	});
-	if (password === null) return;
-	if (!password) {
-		alert('Password cannot be empty.');
-		return;
-	}
-
-	fetch(`/api/admin/users/${role}/${id}`, {
-		method: 'DELETE',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ admin_password: password }),
-		credentials: 'include',
-	})
-	.then(r => {
-		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Delete failed'));
-		return r.json();
-	})
-	.then(() => {
-		allUsers = allUsers.filter(u => !(u.id === id && u.role === role));
-		renderUsers();
-	})
-	.catch(err => {
-		alert(typeof err === 'string' ? err : 'Failed to delete user.');
-	});
-}
-
-async function makeAdmin(id, username) {
-	const password = await showPasswordPrompt({
-		titleText: 'Confirm Make Admin',
-		warningText: `Are you sure you want to make "${username}" an admin?`,
-		warningColor: '#28a745', // Green
-		instructionText: 'To confirm, enter your admin password:'
-	});
-	if (password === null) return;
-	if (!password) {
-		alert('Password cannot be empty.');
-		return;
-	}
-
-	fetch(`/api/admin/users/teacher/${id}/make-admin`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ admin_password: password }),
-		credentials: 'include',
-	})
-	.then(r => {
-		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Failed to make admin'));
-		return r.json();
-	})
-	.then(() => {
-		const user = allUsers.find(u => u.id === id && u.role === 'teacher');
-		if (user) {
-			user.is_admin_teacher = true;
-		}
-		renderUsers();
-	})
-	.catch(err => {
-		alert(typeof err === 'string' ? err : 'Failed to make admin.');
-	});
-}
-
-function showResetResultModal(username, role, newPassword) {
-	const overlay = document.createElement('div');
-	overlay.className = 'admin-modal-overlay';
-	overlay.innerHTML = `
-		<div class="admin-modal">
-			<h5 class="text-success"><i class="fas fa-check-circle"></i> Password Reset Successful</h5>
-			<p>Password for <strong>${escapeHtml(username)}</strong> (${escapeHtml(role)}) has been reset. Please copy this new temporary password and email it to the user:</p>
-			<div class="admin-password-box">
-				<input type="text" class="admin-password-input" readonly value="${escapeHtml(newPassword)}" />
-				<button type="button" class="btn btn-outline-primary copy-btn"><i class="fas fa-copy"></i> Copy</button>
-			</div>
-			<div class="admin-modal-actions">
-				<button type="button" class="btn btn-primary close-btn">Close</button>
-			</div>
-		</div>
-	`;
-
-	const passInput = overlay.querySelector('.admin-password-input');
-	const copyBtn = overlay.querySelector('.copy-btn');
-	const closeBtn = overlay.querySelector('.close-btn');
-
-	copyBtn.addEventListener('click', async () => {
-		try {
-			await navigator.clipboard.writeText(newPassword);
-		} catch {
-			passInput.select();
-			document.execCommand('copy');
-		}
-		copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-		copyBtn.className = 'btn btn-success copy-btn';
-		setTimeout(() => {
-			copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-			copyBtn.className = 'btn btn-outline-primary copy-btn';
-		}, 2000);
-	});
-
-	closeBtn.addEventListener('click', () => {
-		document.body.removeChild(overlay);
-	});
-
-	document.body.appendChild(overlay);
-}
-
-async function resetUserPassword(role, id, username) {
-	const password = await showPasswordPrompt({
-		titleText: 'Confirm Password Reset',
-		warningText: `WARNING: Are you sure you want to reset the password for ${role} "${username}"? Their current password will be immediately invalidated and replaced with a temporary token.`,
-		warningColor: '#0284c7',
-		instructionText: 'To confirm, enter your admin password:'
-	});
-	if (password === null) return;
-	if (!password) {
-		alert('Password cannot be empty.');
-		return;
-	}
-
-	fetch(`/api/admin/users/${role}/${id}/reset-password`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ admin_password: password }),
-		credentials: 'include',
-	})
-	.then(r => {
-		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Password reset failed'));
-		return r.json();
-	})
-	.then(data => {
-		if (data && data.new_password) {
-			showResetResultModal(username, role, data.new_password);
-		}
-	})
-	.catch(err => {
-		alert(typeof err === 'string' ? err : 'Failed to reset password.');
-	});
-}
 
 

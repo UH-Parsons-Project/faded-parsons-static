@@ -59,19 +59,28 @@
 			<div class="page-subtitle">Browse tasks, view details, and favorite exercises to build task sets</div>
 		</div>
 		<div class="dashboard-main">
+			<div class="top-actions mb-3">
+				<a href="/teacher-dashboard" id="teacher-dashboard-btn" class="nav-link-btn"><i class="fas fa-chalkboard-teacher"></i> My Dashboard</a>
+				<a href="/instructions" id="instructions-btn" class="nav-link-btn"><i class="fas fa-info-circle"></i> Instructions</a>
+			</div>
 			<div class="gs-layout">
 				<div class="gs-list-col">
-					<div id="task-count-badge" style="display: none;"></div>
+
 					<div class="task-filter-menu mb-4">
-					<button
-						class="btn btn-outline-secondary task-filter-toggle"
-						type="button"
-						id="task-filter-toggle"
-						aria-expanded="false"
-						aria-controls="task-filter-panel"
-					>
-						<i class="fas fa-bars"></i> Search & Filter
-					</button>
+					<div class="d-flex align-items-center gap-3 flex-wrap">
+						<button
+							class="btn btn-outline-secondary task-filter-toggle"
+							type="button"
+							id="task-filter-toggle"
+							aria-expanded="false"
+							aria-controls="task-filter-panel"
+						>
+							<i class="fas fa-bars"></i> Search & Filter
+						</button>
+						<div id="task-count-badge" style="display: none; margin-bottom: 0; margin-left: 0.25rem;"></div>
+					</div>
+
+
 
 					<div class="collapse mt-2" id="task-filter-panel">
 						<div class="filter-panel-content">

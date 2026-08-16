@@ -2,10 +2,14 @@ import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui
 import {createPrivateBadge, isPrivateTask} from '../components/privacy-badge.js';
 import { formatDate, escapeHtml, makeKeyActivatable } from '../utils/ui-utils.js';
 import { createTaskSetItem } from '../utils/ui-components.js';
+import { deleteUser, makeAdmin, resetUserPassword, setupCopyButton } from './admin-user-actions.js';
 
 initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
+
+setupCopyButton('copy-username-btn', () => document.getElementById('overview-username')?.textContent?.trim());
+setupCopyButton('copy-email-btn', () => document.getElementById('overview-email')?.textContent?.trim());
 
 const urlParams = new URLSearchParams(window.location.search);
 const teacherId = parseInt(urlParams.get('teacher_id'), 10);
@@ -170,6 +174,54 @@ async function loadData() {
 		// 5. Render lists
 		renderTaskSets();
 		renderTasks();
+
+		// 6. Populate Actions Row
+		const actionsRow = document.getElementById('user-actions-row');
+		const actionsContainer = document.getElementById('user-actions-container');
+		if (actionsRow && actionsContainer) {
+			actionsContainer.innerHTML = '';
+
+			if (!teacher.is_admin_teacher && !teacher.is_current_user && teacher.id !== 999999) {
+				const makeAdminBtn = document.createElement('button');
+				makeAdminBtn.className = 'btn btn-sm btn-outline-success';
+				makeAdminBtn.innerHTML = '<i class="fas fa-user-shield"></i> Make Admin';
+				makeAdminBtn.addEventListener('click', () => {
+					makeAdmin(teacher.id, teacher.username, () => {
+						teacher.is_admin_teacher = true;
+						loadData();
+					});
+				});
+				actionsContainer.appendChild(makeAdminBtn);
+			}
+
+			if (teacher.id !== 999999 && (!teacher.is_admin_teacher || teacher.is_current_user)) {
+				const resetPwdBtn = document.createElement('button');
+				resetPwdBtn.className = 'btn btn-sm btn-outline-info';
+				resetPwdBtn.innerHTML = '<i class="fas fa-key"></i> Reset Password';
+				resetPwdBtn.addEventListener('click', () => {
+					resetUserPassword('teacher', teacher.id, teacher.username);
+				});
+				actionsContainer.appendChild(resetPwdBtn);
+			}
+
+			if (!teacher.is_admin_teacher && !teacher.is_current_user && teacher.id !== 999999) {
+				const deleteBtn = document.createElement('button');
+				deleteBtn.className = 'btn btn-sm btn-outline-danger';
+				deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete Account';
+				deleteBtn.addEventListener('click', () => {
+					deleteUser('teacher', teacher.id, teacher.username, () => {
+						window.location.href = '/all-users';
+					});
+				});
+				actionsContainer.appendChild(deleteBtn);
+			}
+
+			if (actionsContainer.children.length > 0) {
+				actionsRow.style.display = 'flex';
+			} else {
+				actionsRow.style.display = 'none';
+			}
+		}
 
 	} catch (err) {
 		console.error(err);

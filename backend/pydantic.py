@@ -47,6 +47,10 @@ class StudentTaskResponse(BaseModel):
     is_public: bool
     created_at: str
     submitted_order: dict | None = None
+    eval_type: str = "unit_test"
+    expected_output: str | None = None
+    correct_order: list | None = None
+    require_indentation: bool = True
 
 
 
@@ -195,6 +199,9 @@ class CreateProblemRequest(BaseModel):
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
     is_public: bool | None = True
+    eval_type: str = "unit_test"
+    expected_output: str = ""
+    require_indentation: bool = True
 
 
 class UpdateModelAnswerRequest(BaseModel):
@@ -207,6 +214,10 @@ class CreateTaskSetRequest(BaseModel):
     student_description: str | None = None
     teacher_description: str | None = None
     expires_at: str | None = None
+    task_ids: list[int]
+
+
+class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
 
 

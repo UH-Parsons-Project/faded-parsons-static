@@ -155,7 +155,9 @@ class TestGetStudentAttempts:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 0
+        assert len(data) == 1
+        assert data[0]["attempts"] == 0
+        assert data[0]["success_count"] == 0
 
     async def test_get_student_attempts_unauthorized(self, client, task_set, student_session):
         """Test that endpoint requires authentication."""
@@ -521,7 +523,9 @@ class TestStatisticAPIIntegration:
             headers=_auth(test_teacher.username)
         )
         assert response.status_code == 200
-        assert response.json() == []
+        attempts_data = response.json()
+        assert len(attempts_data) == 1
+        assert attempts_data[0]["attempts"] == 0
 
         # Add an attempt
         task_enrollment = StudentTaskEnrollment(

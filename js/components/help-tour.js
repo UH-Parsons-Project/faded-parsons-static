@@ -46,6 +46,7 @@ function shouldShowHelpTour(pathname) {
 
 	const teacherPaths = [
 		'/teacher-dashboard',
+		'/task-details',
 		'/task-set-overview',
 		'/task-statistics',
 		'/student-attempts',
@@ -56,6 +57,7 @@ function shouldShowHelpTour(pathname) {
 		'/create-task-set',
 		'/teacher/profile',
 	];
+
 	if (teacherPaths.some((p) => pathname.startsWith(p))) return true;
 
 	// Student Task Set
@@ -783,11 +785,82 @@ function getTourStepsForPath(pathname) {
 		return steps;
 	}
 
+	// Task Details Tour
+	if (pathname.startsWith('/task-details')) {
+		const steps = [
+			{
+				element: '.page-header',
+				popover: {
+					title: 'Task Details Overview',
+					description:
+						'Welcome to Task Details! Here you can review all instructions, code blocks, model answer, test assertions, and error rules for this task.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '.dashboard-main > .d-flex.justify-content-end',
+				popover: {
+					title: 'Task Actions',
+					description:
+						'Use these quick actions to edit the task (if editable), solve the exercise as a student, or view its global statistics.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '#details-problem-statement',
+				popover: {
+					title: 'Problem Statement & Examples',
+					description:
+						'View the full problem description, function header, and example usage provided to students.',
+					side: 'right',
+				},
+			},
+			{
+				element: '#details-blocks-container',
+				popover: {
+					title: 'Configured Code Blocks',
+					description:
+						'Inspect all code blocks configured for this task, marked with clear visual badges for Solution Blocks, Distractors, or Pinned blocks.',
+					side: 'right',
+				},
+			},
+			{
+				element: '#details-model-code',
+				popover: {
+					title: 'Model Answer',
+					description:
+						'Shows the reference python solution code expected for this task.',
+					side: 'left',
+				},
+			},
+			{
+				element: '#details-tests-code',
+				popover: {
+					title: 'Written Tests',
+					description:
+						'Displays the automated Python assertions/tests used to grade student code submissions.',
+					side: 'left',
+				},
+			},
+			{
+				element: '#details-err-container',
+				popover: {
+					title: 'Custom Error Messages',
+					description:
+						'Lists custom error feedback and hint rules configured for specific student mistakes.',
+					side: 'left',
+				},
+			},
+		];
+
+		return steps;
+	}
+
 	// Global Statistics Tour
 	if (pathname.startsWith('/global-statistics')) {
 		const steps = [
 			{
-				element: 'h2.mb-4',
+				element: '.page-header',
 				popover: {
 					title: 'All Tasks & Global Statistics',
 					description:
@@ -839,20 +912,33 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Exercises List',
 					description:
-						'This is where all available exercises are listed. You can click on a card to see its statistics.',
+						'This is where all available exercises are listed. Clicking an exercise card opens its full details view, and hovering over a card previews it.',
 					side: 'top',
 				},
 			},
 		];
+
+		const previewCol = document.querySelector('.gs-preview-col');
+		if (previewCol) {
+			steps.push({
+				element: '.gs-preview-col',
+				popover: {
+					title: 'Quick Task Preview Panel',
+					description:
+						'Hovering over any task card updates this panel with a live preview of the problem statement, code blocks, model answer, and quick action links.',
+					side: 'left',
+				},
+			});
+		}
 
 		const firstTask = document.querySelector('#problems-list .task-set-item');
 		if (firstTask) {
 			steps.push({
 				element: firstTask,
 				popover: {
-					title: 'Exercise Actions',
+					title: 'Exercise Card Actions',
 					description:
-						'Click <b>Global Statistics</b> to view the detailed anonymous analytics for this task, <b>Preview</b> to view the exercise as a student, or star/favorite the task for easy retrieval.',
+						'Each exercise card lets you view <b>Global Statistics</b>, open <b>Solve Task</b> to test solving as a student, or star/favorite the task for building task sets.',
 					side: 'top',
 				},
 			});
@@ -860,6 +946,7 @@ function getTourStepsForPath(pathname) {
 
 		return steps;
 	}
+
 
 	// Create Task Editor (Step 2: Blocks and Details) Tour
 	if (pathname.startsWith('/create-task-editor')) {

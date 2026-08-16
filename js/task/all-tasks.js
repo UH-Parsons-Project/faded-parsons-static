@@ -1,5 +1,5 @@
 import {initNavbarExercisesButton, initSignedInAs, initProtectedPage, initBurgerMenu} from '../core/auth-ui.js';
-import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
+import { isPrivateTask } from '../components/privacy-badge.js';
 import { formatDate, escapeHtml } from '../utils/ui-utils.js';
 
 initSignedInAs();
@@ -67,13 +67,13 @@ function renderPreviewSkeleton(item) {
 			<div class="preview-section">
 				<div class="preview-header-row">
 					<div style="min-width:0; flex:1;">
-						<div class="preview-badges">
-							<span class="preview-badge ${typeClass}"><i class="fas fa-tag"></i> ${escapeHtml(typeText)}</span>
-							${visibilityBadge}
-						</div>
 						<div class="preview-title">
 							${escapeHtml(item.title)}
 							${item.created_at ? `<span class="task-card-date"><i class="far fa-calendar-alt"></i> ${formatDate(item.created_at)}</span>` : ''}
+						</div>
+						<div class="preview-badges">
+							<span class="preview-badge ${typeClass}"><i class="fas fa-tag"></i> ${escapeHtml(typeText)}</span>
+							${visibilityBadge}
 						</div>
 						<div class="preview-meta">
 							${item.creator_username ? '<i class="fas fa-user"></i> Teacher ' + escapeHtml(item.creator_username) : ''}
@@ -299,12 +299,11 @@ function createExerciseCard(item) {
 	const header = document.createElement('div');
 	header.className = 'task-set-item-top';
 
+	const headerContent = document.createElement('div');
+	headerContent.className = 'task-card-header-content';
+
 	const titleWrap = document.createElement('div');
-	titleWrap.style.display = 'flex';
-	titleWrap.style.alignItems = 'center';
-	titleWrap.style.gap = '.45rem';
-	titleWrap.style.minWidth = '0';
-	titleWrap.style.flexWrap = 'wrap';
+	titleWrap.className = 'task-card-title-row';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -318,17 +317,27 @@ function createExerciseCard(item) {
 		titleWrap.appendChild(dateSpan);
 	}
 
+	headerContent.appendChild(titleWrap);
+
+	const badges = document.createElement('div');
+	badges.className = 'preview-badges task-list-badges';
+
 	const typeBadge = document.createElement('span');
 	const typeClass = item.task_type === 'Faded' ? 'type-faded' : 'type-normal';
 	typeBadge.className = `task-type-badge ${typeClass}`;
 	typeBadge.innerHTML = `<i class="fas fa-tag"></i> ${escapeHtml(item.task_type || 'normal')}`;
-	titleWrap.appendChild(typeBadge);
+	badges.appendChild(typeBadge);
 
-	if (isPrivateTask(item)) {
-		titleWrap.appendChild(createPrivateBadge());
-	}
+	const visibilityBadge = document.createElement('span');
+	const privateTask = isPrivateTask(item);
+	visibilityBadge.className = `preview-badge ${privateTask ? 'priv' : 'pub'}`;
+	visibilityBadge.innerHTML = privateTask
+		? '<i class="fas fa-lock"></i> Private'
+		: '<i class="fas fa-globe"></i> Public';
+	badges.appendChild(visibilityBadge);
 
-	header.appendChild(titleWrap);
+	headerContent.appendChild(badges);
+	header.appendChild(headerContent);
 
 	const favoriteBtn = document.createElement('button');
 	favoriteBtn.type = 'button';
@@ -583,6 +592,8 @@ function loadCurrentTeacher() {
 			}
 			applyTaskFilters();
 		})
+
+
 		.catch(() => {
 			// Keep cached identity when /api/me is unavailable.
 		});

@@ -136,6 +136,23 @@
   margin-bottom: .45rem;
 }
 
+.task-card-header-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.task-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.task-list-badges {
+  margin-top: .35rem;
+}
+
 .preview-badge {
   display: inline-flex;
   align-items: center;

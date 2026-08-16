@@ -1,5 +1,5 @@
 import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
-import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
+import { isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml } from '../utils/ui-utils.js';
 import { parseCustomErrorRules } from '../utils/parsons-editor-utils.js';
 
@@ -13,29 +13,6 @@ function formatMultilineText(text) {
   if (!text) return '<em class="text-muted">None</em>';
   return escapeHtml(text).replace(/\n/g, '<br>');
 }
-
-function sanitizeModelAnswerText(text) {
-  if (!text) return '';
-
-  const normalized = String(text)
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n');
-
-  if (!normalized.includes('<input')) {
-    return normalized;
-  }
-
-  const container = document.createElement('pre');
-  container.style.whiteSpace = 'pre';
-  container.style.margin = '0';
-  container.innerHTML = normalized;
-  container.querySelectorAll('input.text-box').forEach((input) => {
-    input.replaceWith(input.value || '');
-  });
-
-  return container.textContent.replace(/\u00a0/g, ' ');
-}
-
 
 // Convert doctest examples into assert statements for visual display
 function convertDoctestsToAsserts(header) {
@@ -112,20 +89,19 @@ async function loadTaskDetails() {
 
     // Clear and populate badges
     badgeContainer.innerHTML = '';
-    
-    // Privacy Badge
-    if (isPrivateTask(task)) {
-      badgeContainer.appendChild(createPrivateBadge());
-    } else {
-      const publicBadge = document.createElement('span');
-      publicBadge.className = 'badge badge-success';
-      publicBadge.innerHTML = '<i class="fas fa-globe"></i> Public';
-      badgeContainer.appendChild(publicBadge);
-    }
+
+    const visibilityBadge = document.createElement('span');
+    const privateTask = isPrivateTask(task);
+    visibilityBadge.className = `task-details-badge preview-badge ${privateTask ? 'priv' : 'pub'}`;
+    visibilityBadge.innerHTML = privateTask
+      ? '<i class="fas fa-lock"></i> Private'
+      : '<i class="fas fa-globe"></i> Public';
+    badgeContainer.appendChild(visibilityBadge);
 
     // Task Type Badge
     const typeBadge = document.createElement('span');
-    typeBadge.className = 'badge badge-info ml-2';
+    const typeClass = task.task_type === 'Faded' ? 'type-faded' : 'type-normal';
+    typeBadge.className = `task-details-badge preview-badge ${typeClass}`;
     typeBadge.innerHTML = `<i class="fas fa-tag"></i> ${task.task_type || 'normal'}`;
     badgeContainer.appendChild(typeBadge);
 

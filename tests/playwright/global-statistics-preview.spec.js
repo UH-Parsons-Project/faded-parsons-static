@@ -150,7 +150,14 @@ test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
     await expect(solveTaskLink).toBeVisible();
     await expect(solveTaskLink).toHaveAttribute('href', /\/task\?id=/);
     await expect(solveTaskLink).toHaveAttribute('target', '_blank');
+
+    // Extract href and navigate directly to verify page loads without 404
+    const href = await solveTaskLink.getAttribute('href');
+    await page.goto(href);
+    await expect(page.locator('#user-name')).toHaveText('PREVIEW');
+    await expect(page.locator('#problem-wrapper')).toBeVisible();
   });
+
 
   test('hovering different task cards dynamically updates preview panel', async ({ page }) => {
     await page.goto('/global-statistics');

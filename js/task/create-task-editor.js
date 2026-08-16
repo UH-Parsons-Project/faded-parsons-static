@@ -813,7 +813,7 @@ initBurgerMenu();
         updateCounters();
         persistParsonsRepr();
         hasOpenedStudentPreview = false;
-        updateAddToListState();
+        invalidateTestStatus('Blocks were moved. Please run tests again.');
       },
       injectDeleteButtons,
       injectGivenToggles,
@@ -952,7 +952,7 @@ initBurgerMenu();
     }
     persistParsonsRepr();
     hasOpenedStudentPreview = false;
-    updateAddToListState();
+    invalidateTestStatus('Block settings were modified. Please run tests again.');
   }
 
   function deleteBlock(blockId) {
@@ -973,7 +973,7 @@ initBurgerMenu();
     updateCounters();
     persistParsonsRepr();
     hasOpenedStudentPreview = false;
-    updateAddToListState();
+    invalidateTestStatus('A block was deleted. Please run tests again.');
   }
 
   function addCustomBlockToSource(blockCode) {
@@ -1026,6 +1026,8 @@ initBurgerMenu();
 
     updateCounters();
     persistParsonsRepr();
+    hasOpenedStudentPreview = false;
+    invalidateTestStatus('A custom block was added. Please run tests again.');
   }
 
   function setupGuideToggle() {
@@ -1086,6 +1088,12 @@ initBurgerMenu();
       el.classList.add('fail');
     }
     el.textContent = message;
+  }
+
+  function invalidateTestStatus(message = 'Workspace or test settings were modified. Please run tests again.') {
+    testsPassed = false;
+    renderTestResult('', message);
+    updateAddToListState();
   }
 
   function formatApiErrorDetail(detail) {
@@ -1432,6 +1440,8 @@ initBurgerMenu();
     document.addEventListener('input', (event) => {
       if (event.target instanceof HTMLInputElement && event.target.classList.contains('text-box')) {
         persistBlankValues();
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Block blank values were modified. Please run tests again.');
       }
     });
 
@@ -1444,7 +1454,6 @@ initBurgerMenu();
     const stdoutContainer = document.getElementById('stdout-container');
     const orderOnlyContainer = document.getElementById('order-only-container');
     const runBtn = document.getElementById('run-tests');
-    const testResults = document.getElementById('test-results');
     
     if (!evalTypeInput || !unitTestContainer || !stdoutContainer || !orderOnlyContainer) return;
 
@@ -1486,15 +1495,8 @@ initBurgerMenu();
           allowIndentCheckbox.checked = val !== 'order_only';
           allowIndentCheckbox.dispatchEvent(new Event('change'));
         }
+        invalidateTestStatus('Evaluation mode changed. Please run tests again.');
       }
-      
-      if (testResults && testResults.textContent !== '') {
-        testResults.textContent = 'Evaluation mode changed. Please run tests again.';
-        testResults.className = 'test-results-box';
-      }
-      testsPassed = false;
-      updateChecklist();
-      updateAddToListState();
     }
 
     evalTypeInput.addEventListener('change', updateUI);
@@ -1540,6 +1542,8 @@ initBurgerMenu();
           if (solutionUl) window.$(solutionUl).sortable('option', 'grid', grid);
           if (sourceUl) window.$(sourceUl).sortable('option', 'grid', grid);
         }
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Indentation setting changed. Please run tests again.');
       });
     }
     const previewStudentBtn = document.getElementById('preview-student-view');
@@ -1584,7 +1588,7 @@ initBurgerMenu();
         modelAnswerRepr = '';
         modelAnswerUpdatedAt = '';
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Workspace cleared. Please run tests again.');
         renderParsonsBoardLocal(normalizeSourceCode(draftPayload?.taskCode || ''));
         updateModelAnswerStatus();
         updateAddToListState();
@@ -1637,7 +1641,7 @@ initBurgerMenu();
           }
         }
         hasOpenedStudentPreview = false;
-        updateAddToListState();
+        invalidateTestStatus('Model answer was updated. Please run tests again.');
       });
     }
 
@@ -1713,7 +1717,7 @@ initBurgerMenu();
 
       testsInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Tests were modified. Please run tests again.');
         saveMetaToSession(
           taskTitleInput.value,
           descriptionInput.value,
@@ -1784,7 +1788,7 @@ initBurgerMenu();
       addCustomErrorBtn.addEventListener('click', () => {
         // customErrorMessagesInput.focus();
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Custom error messages were updated. Please run tests again.');
         saveMetaToSession(
           taskTitleInput.value,
           descriptionInput.value,

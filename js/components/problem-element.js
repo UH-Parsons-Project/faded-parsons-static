@@ -136,27 +136,26 @@ export class ProblemElement extends LitElement {
 												@click=${this.onNextTask}
 												type="button"
 												class="btn btn-success"
+												style="margin-right: 8px"
 											>
 												${this.nextTaskLabel || 'Next task'}
 											</button>
 										`
 										: this.allTasksCompleted && this.backToSetUrl
 											? html`
-												<a href=${this.backToSetUrl} class="btn btn-info">
+												<a href=${this.backToSetUrl} class="btn btn-info" style="margin-right: 8px">
 													Done
 												</a>
 											`
-											: html`
-												<button
-													@click=${this.onRun}
-													type="button"
-													class="btn btn-primary"
-													?disabled=${!this.enableRun}
-												>
-													Run Tests
-												</button>
-											`
-									}
+											: ''}
+									<button
+										@click=${this.onRun}
+										type="button"
+										class="btn btn-primary"
+										?disabled=${!this.enableRun}
+									>
+										Run Tests
+									</button>
 								</div>
 							</div>
 						</div>

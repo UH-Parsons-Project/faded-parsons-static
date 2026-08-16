@@ -37,6 +37,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
+    UpdateModelAnswerRequest,
 )
 from ...utils.task import is_task_editable
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
@@ -413,7 +414,10 @@ async def create_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -431,11 +435,13 @@ async def create_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 
@@ -519,7 +525,7 @@ async def get_model_answer(
 @router.put("/api/problems/{task_id}/model-answer")
 async def update_model_answer(
     task_id: int,
-    request: CreateProblemRequest,
+    request: UpdateModelAnswerRequest,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -644,7 +650,10 @@ async def update_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -662,11 +671,13 @@ async def update_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 

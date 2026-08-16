@@ -155,6 +155,11 @@
                 <p class="field-help">These are the main instructions students see on the task page while solving the task</p>
                 <textarea id="problem-description" class="problem-description" placeholder="add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b."></textarea>
               </div>
+              <div>
+                <label for="examples-input" class="mb-1">Examples <span class="text-muted font-weight-normal">(optional)</span></label>
+                <p class="field-help">Code examples or sample calls shown in a formatted box under the problem statement</p>
+                <textarea id="examples-input" class="problem-description" style="font-family: var(--gs-mono);" placeholder=">>> add_two_numbers(2, 3)&#10;5"></textarea>
+              </div>
             </div>
           </div>
         </div>
@@ -374,11 +379,7 @@
                   <div id="preview-source-sortable" class="sortable-code starter"></div>
                   <div id="preview-solution-sortable" class="sortable-code solution"></div>
                   <div style="clear: both;"></div>
-                  <div class="row float-right">
-                    <div class="col-sm-12">
-                      <button type="button" class="btn btn-primary" disabled>Run Tests</button>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>

@@ -332,6 +332,41 @@ class TestGetTaskForStudent:
         data = response.json()
         assert data["id"] == task.id
         assert data["title"] == task.title
+        assert "correct_solution" in data
+        assert "solution_code" not in data["correct_solution"]
+        assert "correct_order" not in data["correct_solution"]
+        assert "solution" not in data["correct_solution"]
+
+    async def test_get_task_for_student_includes_teacher_tests(self, client, db_session, task_set_with_task, student_session):
+        """Test that teacher_tests in correct_solution are delivered to student."""
+        task_set, task = task_set_with_task
+        task.correct_solution = {
+            "solution_code": "def foo(): pass",
+            "correct_order": ["block_1"],
+            "teacher_tests": ">>> foo()\n",
+            "custom_error_messages": "error rule",
+        }
+        await db_session.commit()
+
+        login_response = await client.post(
+            "/api/student_login",
+            json={
+                "username": student_session.username,
+                "password": "studentpass123",
+                "unique_link_code": task_set.unique_link_code,
+            }
+        )
+        assert login_response.status_code == 200
+
+        response = await client.get(
+            f"/api/sets/{task_set.unique_link_code}/tasks/{task.id}"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["correct_solution"]["teacher_tests"] == ">>> foo()\n"
+        assert data["correct_solution"]["custom_error_messages"] == "error rule"
+        assert "solution_code" not in data["correct_solution"]
+        assert "correct_order" not in data["correct_solution"]
 
     async def test_get_task_not_logged_in(self, client, task_set_with_task):
         """Test getting task without being logged in."""

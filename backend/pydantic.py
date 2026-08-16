@@ -33,8 +33,9 @@ class TaskResponse(BaseModel):
 class StudentTaskResponse(BaseModel):
     """Task response for student-facing endpoints.
 
-    Deliberately omits ``correct_solution`` and ``model_answer`` so students
-    cannot trivially read the answer from the network tab.
+    Includes ``teacher_tests`` and ``custom_error_messages`` in ``correct_solution``
+    so student client can execute tests, while omitting solution code and block order
+    and ``model_answer`` so students cannot read the answer from network tab.
     """
     id: int
     title: str
@@ -42,6 +43,7 @@ class StudentTaskResponse(BaseModel):
     description: str | None
     task_type: str
     code_blocks: dict
+    correct_solution: dict | None = None
     is_public: bool
     created_at: str
     submitted_order: dict | None = None
@@ -191,6 +193,7 @@ class CreateProblemRequest(BaseModel):
     startDescription: str
     tests: str
     solutionCode: str
+    examples: str | None = ""
     task_type: str | None = None
     modelAnswerCode: str | None = None
     parsonsRepr: str | None = None
@@ -199,6 +202,11 @@ class CreateProblemRequest(BaseModel):
     eval_type: str = "unit_test"
     expected_output: str = ""
     require_indentation: bool = True
+
+
+class UpdateModelAnswerRequest(BaseModel):
+    modelAnswerCode: str | None = None
+
 
 
 class CreateTaskSetRequest(BaseModel):

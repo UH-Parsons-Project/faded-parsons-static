@@ -223,7 +223,11 @@ async function loadTaskDetails() {
         blockEl.style.paddingLeft = `${Math.max(1.25, indentLevel * 2 + 1.25)}rem`;
 
         // Format !BLANK/___ into visual badges
-        const formattedCode = escapeHtml(block.code || '')
+        const cleanCode = String(block.code || '')
+          .replace(/<input\b[^>]*>(?:<\/input>)?/gi, '!BLANK')
+          .replace(/<input\b[^>]*\/>/gi, '!BLANK')
+          .replace(/<[^>]+>/g, '');
+        const formattedCode = escapeHtml(cleanCode)
           .replace(/(!BLANK|___)/g, '<span class="faded-blank">___</span>');
 
         // Build Badge HTML

@@ -317,6 +317,19 @@ class TestUpdateTask:
         saved_model_answer = result.scalar_one()
         assert saved_model_answer.answer_code == "def ma_update(x):\n    return 1"
 
+    async def test_model_answer_endpoint_supports_standalone_payload(self, client, task, test_teacher, db_session):
+        r = await client.put(
+            f"/api/problems/{task.id}/model-answer",
+            headers=_auth(test_teacher.username),
+            json={"modelAnswerCode": "def standalone_ma(x):\n    return x + 10"},
+        )
+        assert r.status_code == 200
+        result = await db_session.execute(
+            select(ModelAnswer).where(ModelAnswer.parsons_id == task.id)
+        )
+        saved_model_answer = result.scalar_one()
+        assert saved_model_answer.answer_code == "def standalone_ma(x):\n    return x + 10"
+
     async def test_updates_is_public(self, client, task, test_teacher, db_session):
         # Starts public (task fixture defaults to public)
         assert task.is_public is True

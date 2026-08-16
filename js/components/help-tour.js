@@ -988,15 +988,6 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: '.visibility-card',
-				popover: {
-					title: 'Task Visibility',
-					description:
-						'By default, tasks are public and shared with the teacher community. Check this box if you want to make the task private.',
-					side: 'bottom',
-				},
-			},
-			{
 				element: '.builder-layout',
 				popover: {
 					title: 'Block Builder & Model Answer',
@@ -1024,15 +1015,6 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: '#custom-error-messages',
-				popover: {
-					title: 'Custom Error Messages',
-					description:
-						'Configure custom feedback or hints in JSON format that will be shown to students when their code produces specific errors or outputs.',
-					side: 'top',
-				},
-			},
-			{
 				element: '#tests-input',
 				popover: {
 					title: 'Check Tests',
@@ -1042,7 +1024,34 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: '.finalize-actions',
+				element: '#custom-error-messages',
+				popover: {
+					title: 'Custom Error Messages',
+					description:
+						'Configure custom feedback or hints in JSON format that will be shown to students when their code produces specific errors or outputs.',
+					side: 'top',
+				},
+			},
+			{
+				element: '#task-type',
+				popover: {
+					title: 'Task Tag',
+					description:
+						'Select the task tag that best matches the main programming concept or topic.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '.visibility-card',
+				popover: {
+					title: 'Task Visibility',
+					description:
+						'By default, tasks are public and shared with the teacher community. Check this box if you want to make the task private.',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '.actions',
 				popover: {
 					title: 'Preview and Save',
 					description:

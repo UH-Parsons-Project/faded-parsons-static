@@ -160,6 +160,7 @@ initBurgerMenu();
     const previewModelAnswer = document.getElementById('preview-model-answer');
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const examplesInput = document.getElementById('examples-input');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
@@ -171,10 +172,16 @@ initBurgerMenu();
     const taskTitle = taskTitleInput?.value.trim() || 'No task name provided yet.';
     const startIntro = startDescriptionInput?.value.trim() || 'No start page intro provided yet.';
     const problemStatement = descriptionInput?.value.trim() || 'No problem statement provided yet.';
+    const examplesText = examplesInput?.value.trim() || '';
     const taskType = getTaskTypeValue();
     previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
-    previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+
+    let problemHtml = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+    if (examplesText) {
+      problemHtml += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(examplesText)}</code></pre>`;
+    }
+    previewText.innerHTML = problemHtml;
     previewTaskType.textContent = taskType ? `Task tag: ${taskType}` : 'Task tag not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
@@ -193,26 +200,16 @@ initBurgerMenu();
 
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
-    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues) || modelAnswerRepr;
-    previewParsonsWidget.init(normalizeBlankMarkup(previewRepr));
+    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
+    previewParsonsWidget.init(cleanPreviewRepr);
 
-    const previewSolutionIds = previewParsonsWidget.studentGiven.map((line) => line.id);
+    const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
-    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds, previewParsonsWidget);
-    const previewBlankValuesByLineId = previewSolutionIds.reduce((acc, id, index) => {
-      acc[id] = previewValuesToRestore[index] || [];
-      return acc;
-    }, {});
-    applyBlankValuesToWidgetLines(previewParsonsWidget, previewBlankValuesByLineId);
     previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
-
-    if (previewValuesToRestore.some((values) => values.length)) {
-      saveBlankValuesToSession(previewValuesToRestore);
-      restoreBlankValuesToDomByLineId(previewBlankValuesByLineId, previewSolution.querySelector('ul'));
-    }
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -540,6 +537,7 @@ initBurgerMenu();
         taskTitle: typeof parsed.taskTitle === 'string' ? parsed.taskTitle : '',
         description: typeof parsed.description === 'string' ? parsed.description : '',
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
+        examples: typeof parsed.examples === 'string' ? parsed.examples : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
         taskType: normalizeTaskTypeValue(parsed.taskType),
@@ -586,14 +584,17 @@ initBurgerMenu();
     }
   }
 
-  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType) {
+  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType, examples = null) {
     const taskTypeInput = document.getElementById('task-type');
+    const examplesInput = document.getElementById('examples-input');
+    const examplesValue = typeof examples === 'string' ? examples : (examplesInput?.value || '');
     const allowIndentCheckbox = document.getElementById('allow-indent');
     const requireIndentation = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
     sessionStorage.setItem(META_KEY, JSON.stringify({
       taskTitle,
       description,
       startDescription,
+      examples: examplesValue,
       tests,
       customErrorMessages,
       taskType: normalizeTaskTypeValue(typeof taskType === 'string' ? taskType : taskTypeInput?.value),
@@ -1282,6 +1283,7 @@ initBurgerMenu();
   function addToProblemList() {
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const examplesInput = document.getElementById('examples-input');
     const startDescriptionInput = document.getElementById('start-description');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
@@ -1296,6 +1298,7 @@ initBurgerMenu();
 
     const taskTitle = taskTitleInput.value.trim();
     const description = descriptionInput.value.trim();
+    const examples = examplesInput?.value.trim() || '';
     const startDescription = startDescriptionInput.value.trim();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
@@ -1314,7 +1317,7 @@ initBurgerMenu();
       return;
     }
 
-    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType);
+    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType, examples);
 
     if (!taskTitle || !description || !startDescription || !solutionCode) {
       alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
@@ -1337,10 +1340,12 @@ initBurgerMenu();
     }
 
     const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
     const problemData = {
       taskTitle,
       description,
       startDescription,
+      examples,
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
@@ -1365,6 +1370,9 @@ initBurgerMenu();
     })
       .then(async (response) => {
         if (response.ok) {
+          if (editTaskId && finalModelAnswerCode) {
+            await persistModelAnswerToServer(finalModelAnswerCode);
+          }
           alert(editTaskId ? 'Task updated successfully!' : 'Problem successfully added to the problem list!');
           window.location.href = '/teacher-dashboard';
         } else {
@@ -1870,6 +1878,8 @@ initBurgerMenu();
       try { instructions = JSON.parse(taskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || taskData.title || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || instructions.task_instructions || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = meta.examples !== undefined && meta.examples !== '' ? meta.examples : (instructions.examples || '');
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
@@ -1958,6 +1968,8 @@ initBurgerMenu();
       try { instructions = JSON.parse(apiTaskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
       if (taskTitleInput) taskTitleInput.value = apiTaskData.title || defaultTitle;
       if (descriptionInput) descriptionInput.value = instructions.task_instructions || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = instructions.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
@@ -1969,6 +1981,8 @@ initBurgerMenu();
     } else {
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = meta.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
       

@@ -54,23 +54,91 @@ export function buildReprFromBlocks(taskData) {
   }).join('\n');
 }
 
-export function buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues) {
+export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, getLineInputValues = null) {
   if (!parsonsWidget) {
     return '';
   }
-  const lines = Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : [];
-  if (!lines.length) {
+  const allLines = Array.isArray(parsonsWidget.modified_lines) ? parsonsWidget.modified_lines : [];
+  if (!allLines.length) {
     return '';
   }
 
-  return lines.map((line) => {
+  // Find solution and trash DOM elements if available
+  let solutionElement = null;
+  if (parsonsWidget.options?.sortableId) {
+    solutionElement = typeof parsonsWidget.options.sortableId === 'string'
+      ? document.getElementById(parsonsWidget.options.sortableId)
+      : parsonsWidget.options.sortableId;
+  }
+  if (!solutionElement && typeof document !== 'undefined') {
+    solutionElement = document.getElementById('solution-sortable');
+  }
+
+  let trashElement = null;
+  if (parsonsWidget.options?.trashId) {
+    trashElement = typeof parsonsWidget.options.trashId === 'string'
+      ? document.getElementById(parsonsWidget.options.trashId)
+      : parsonsWidget.options.trashId;
+  }
+  if (!trashElement && typeof document !== 'undefined') {
+    trashElement = document.getElementById('source-sortable');
+  }
+
+  const solutionUl = solutionElement ? (solutionElement.tagName === 'UL' ? solutionElement : solutionElement.querySelector('ul')) : null;
+  const trashUl = trashElement ? (trashElement.tagName === 'UL' ? trashElement : trashElement.querySelector('ul')) : null;
+
+  const lineMap = new Map();
+  allLines.forEach((l) => {
+    if (l && l.id) {
+      lineMap.set(l.id, l);
+    }
+  });
+
+  const solutionLines = [];
+  const distractorLines = [];
+  const processedIds = new Set();
+
+  if (solutionUl && solutionUl.children.length > 0) {
+    Array.from(solutionUl.children).forEach((li) => {
+      const line = lineMap.get(li.id);
+      if (line) {
+        solutionLines.push(line);
+        processedIds.add(li.id);
+      }
+    });
+  }
+
+  if (trashUl && trashUl.children.length > 0) {
+    Array.from(trashUl.children).forEach((li) => {
+      const line = lineMap.get(li.id);
+      if (line) {
+        distractorLines.push(line);
+        processedIds.add(li.id);
+      }
+    });
+  }
+
+  // Add any remaining lines that weren't found in either UL
+  allLines.forEach((line) => {
+    if (line && line.id && !processedIds.has(line.id)) {
+      if (!solutionUl) {
+        solutionLines.push(line);
+      } else {
+        distractorLines.push(line);
+      }
+      processedIds.add(line.id);
+    }
+  });
+
+  const formattedSolution = solutionLines.map((line) => {
     const lineText = normalizeSourceCode(line.code || '').trimEnd();
     if (!lineText) {
       return '';
     }
 
-    let reprLine = `${lineText} #${line.indent}given`;
-    const blankValues = getLineInputValues(line.id);
+    const indent = typeof line.indent === 'number' && line.indent >= 0 ? line.indent : 0;
+    let reprLine = `${lineText} #${indent}given`;
+    const blankValues = typeof getLineInputValues === 'function' ? getLineInputValues(line.id) : [];
     if (blankValues.length) {
       reprLine += blankValues.map((value) => ` #blank${value}`).join('');
     }
@@ -78,7 +146,17 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInput
       reprLine += ' #preplace';
     }
     return reprLine;
-  }).filter(Boolean).join('\n');
+  }).filter(Boolean);
+
+  const formattedDistractors = distractorLines.map((line) => {
+    const lineText = normalizeSourceCode(line.code || '').trimEnd();
+    if (!lineText) {
+      return '';
+    }
+    return lineText;
+  }).filter(Boolean);
+
+  return [...formattedSolution, ...formattedDistractors].join('\n');
 }
 
 export function renderParsonsBoard(initialText, options) {

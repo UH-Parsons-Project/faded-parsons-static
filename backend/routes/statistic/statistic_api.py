@@ -129,21 +129,33 @@ async def get_student_attempts(
     task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
 
     async def _handler(task_ids):
+        student_res = await db.execute(select(Student.id).where(Student.username == student_username))
+        student_id = student_res.scalar_one_or_none()
+
         stmt = (
             select(
                 Parsons.id,
                 Parsons.title,
                 Parsons.task_type,
                 func.count(TaskAttempt.id).label('attempts'),  # pylint: disable=not-callable
-                func.sum(func.cast(TaskAttempt.success, Integer)).label('success_count'),  # pylint: disable=not-callable
+                func.coalesce(func.sum(func.cast(TaskAttempt.success, Integer)), 0).label('success_count'),  # pylint: disable=not-callable
                 func.max(TaskAttempt.completed_at).label('last_attempt_at')
             )
-            .join(StudentTaskEnrollment, (StudentTaskEnrollment.task_id == Parsons.id) & (StudentTaskEnrollment.task_set_id == set_id))
-            .join(Student, (Student.id == StudentTaskEnrollment.student_id) & (Student.username == student_username))
-            .join(TaskAttempt, (TaskAttempt.task_id == Parsons.id) & (TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id))
+            .join(TaskSetItem, (TaskSetItem.task_id == Parsons.id) & (TaskSetItem.task_set_id == set_id))
+            .outerjoin(
+                StudentTaskEnrollment,
+                (StudentTaskEnrollment.task_id == Parsons.id)
+                & (StudentTaskEnrollment.task_set_id == set_id)
+                & (StudentTaskEnrollment.student_id == student_id)
+            )
+            .outerjoin(
+                TaskAttempt,
+                (TaskAttempt.task_id == Parsons.id)
+                & (TaskAttempt.student_task_enrollment_id == StudentTaskEnrollment.id)
+            )
             .where(Parsons.id.in_(task_ids))
-            .group_by(Parsons.id, Parsons.title, Parsons.task_type)
-            .order_by(func.max(TaskAttempt.completed_at).desc())
+            .group_by(Parsons.id, Parsons.title, Parsons.task_type, TaskSetItem.id)
+            .order_by(TaskSetItem.id.asc())
         )
 
         result = await db.execute(stmt)
@@ -162,6 +174,7 @@ async def get_student_attempts(
         ]
 
     return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
+
 
 
 @router.get("/api/students/{student_username}/tasks/{task_id}/statistics", response_model=StudentTaskStatisticsResponse)

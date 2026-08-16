@@ -25,20 +25,7 @@
   background-color: #e8f5e9;
   color: #1b5e20;
 }
-.user-status-badge {
-  font-size: 0.75rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-weight: 500;
-}
-.status-active {
-  background-color: #d4edda;
-  color: #155724;
-}
-.status-inactive {
-  background-color: #f8d7da;
-  color: #721c24;
-}
+
 .user-meta-info {
   font-size: 0.85rem;
   color: #676e75;

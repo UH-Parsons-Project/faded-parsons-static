@@ -292,3 +292,4 @@ class UserListItem(BaseModel):
     is_active: bool
     is_admin_teacher: bool
     is_current_user: bool
+    last_login: datetime | None = None

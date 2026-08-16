@@ -23,7 +23,6 @@ const overviewUsername = document.getElementById('overview-username');
 const overviewEmail = document.getElementById('overview-email');
 const overviewId = document.getElementById('overview-id');
 const overviewRegistered = document.getElementById('overview-registered');
-const overviewStatus = document.getElementById('overview-status');
 const overviewSetsCount = document.getElementById('overview-sets-count');
 const overviewTasksCount = document.getElementById('overview-tasks-count');
 const pageTitle = document.getElementById('page-title');
@@ -161,9 +160,6 @@ async function loadData() {
 		overviewEmail.textContent = teacher.email;
 		overviewId.textContent = teacher.id;
 		overviewRegistered.textContent = formatDate(teacher.created_at);
-		
-		overviewStatus.textContent = teacher.is_active ? 'Active' : 'Inactive';
-		overviewStatus.className = `badge p-2 font-weight-bold ${teacher.is_active ? 'status-active' : 'status-inactive'}`;
 
 		// 4. Filter lists by teacher
 		teacherSets = allSets.filter(ts => ts.owner_username === teacher.username || ts.teacher_id === teacher.id);

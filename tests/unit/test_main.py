@@ -1381,6 +1381,28 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert r.status_code == 200
         assert {item["unique_link_code"] for item in r.json()} == {task_set.unique_link_code}
 
+    async def test_my_sets_returns_task_and_student_counts(
+        self, client, test_teacher, task_set, task, db_session
+    ):
+        student = Student(username="student_count_test", email="counttest@example.com")
+        student.set_password("pass123")
+        db_session.add(student)
+        await db_session.commit()
+        await db_session.refresh(student)
+
+        db_session.add_all([
+            TaskSetItem(task_set_id=task_set.id, task_id=task.id),
+            StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id),
+        ])
+        await db_session.commit()
+
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        data = r.json()
+        matching = next(item for item in data if item["id"] == task_set.id)
+        assert matching["task_count"] == 1
+        assert matching["student_count"] == 1
+
     async def test_student_register_success_and_duplicate_rejected(self, client):
         payload = {
             "username": "studentx",

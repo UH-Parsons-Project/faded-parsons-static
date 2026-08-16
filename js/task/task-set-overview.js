@@ -409,8 +409,10 @@ function buildExpiryInnerHTML(taskSet, isOwner) {
 		const expired = new Date(taskSet.expires_at) < new Date();
 		const soon = !expired && (new Date(taskSet.expires_at) - new Date()) < 86400000;
 		const color = expired ? '#c0392b' : soon ? '#e67e22' : '';
-		const style = color ? ` style="color:${color}"` : '';
-		return `<span${style}><i class="far fa-clock"></i> Expires ${escapeHtml(formatDateTime(taskSet.expires_at))}</span>${editBtn}`;
+		const style = color ? ` style="color:${color}; font-weight:${expired ? 'bold' : 'normal'};"` : '';
+		const icon = expired ? 'fas fa-exclamation-circle' : 'far fa-clock';
+		const label = expired ? 'Expired' : 'Expires';
+		return `<span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.expires_at))}</span>${editBtn}`;
 	}
 	if (isOwner) {
 		return `<button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0" style="font-size:.85rem;"><i class="far fa-clock"></i> Set expiry</button>`;

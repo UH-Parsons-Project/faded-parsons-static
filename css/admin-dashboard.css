@@ -113,3 +113,72 @@
   font-family: var(--mono);
   letter-spacing: -0.02em;
 }
+
+/* ── Admin Modals ────────────────────────────────────── */
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.admin-modal {
+  background-color: var(--card, #ffffff);
+  padding: 1.5rem;
+  border-radius: var(--radius, 8px);
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  font-family: inherit;
+}
+
+.admin-modal h5 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.admin-modal-warning {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.admin-modal p {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: var(--text-muted, #5f6b7a);
+}
+
+.admin-password-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-password-input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--mono, monospace);
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border: 1.5px solid var(--brand, #0284c7);
+  border-radius: 6px;
+  background-color: #f0f9ff;
+  color: #0369a1;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+

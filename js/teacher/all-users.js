@@ -1,5 +1,6 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
 import { escapeHtml, formatDate, formatDateTime } from '../utils/ui-utils.js';
+import { deleteUser, makeAdmin, resetUserPassword } from '../admin/admin-user-actions.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -28,8 +29,6 @@ const teachersContainer = document.getElementById('teachers-container');
 const studentsContainer = document.getElementById('students-container');
 
 let allUsers = [];
-
-
 
 function renderUsers() {
 	renderGroup('teacher', teacherSearchInput.value.trim().toLowerCase(), teachersContainer);
@@ -201,20 +200,37 @@ function renderGroup(role, query, container) {
 			makeAdminBtn.innerHTML = '<i class="fas fa-user-shield"></i> Make Admin';
 			makeAdminBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
-				makeAdmin(user.id, user.username);
+				makeAdmin(user.id, user.username, () => {
+					user.is_admin_teacher = true;
+					renderUsers();
+				});
 			});
 			actionsContainer.appendChild(makeAdminBtn);
 		}
 
-		if (!user.is_current_user && user.id !== 999999) {
+		if (!user.is_admin_teacher && !user.is_current_user && user.id !== 999999) {
 			const deleteBtn = document.createElement('button');
 			deleteBtn.className = 'btn btn-sm btn-outline-danger';
 			deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Delete';
 			deleteBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
-				deleteUser(user.role, user.id, user.username);
+				deleteUser(user.role, user.id, user.username, () => {
+					allUsers = allUsers.filter(u => !(u.id === user.id && u.role === user.role));
+					renderUsers();
+				});
 			});
 			actionsContainer.appendChild(deleteBtn);
+		}
+
+		if (user.id !== 999999 && (!user.is_admin_teacher || user.is_current_user)) {
+			const resetPwdBtn = document.createElement('button');
+			resetPwdBtn.className = 'btn btn-sm btn-outline-info';
+			resetPwdBtn.innerHTML = '<i class="fas fa-key"></i> Reset Password';
+			resetPwdBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				resetUserPassword(user.role, user.id, user.username);
+			});
+			actionsContainer.appendChild(resetPwdBtn);
 		}
 
 		if (actionsContainer.children.length > 0) {
@@ -271,200 +287,3 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 
 
 
-function showPasswordPrompt(options = {}) {
-	const {
-		titleText = 'Confirm Action',
-		warningText = '',
-		warningColor = '#333',
-		instructionText = 'To confirm, enter your admin password:'
-	} = options;
-
-	return new Promise((resolve) => {
-		const overlay = document.createElement('div');
-		overlay.style.position = 'fixed';
-		overlay.style.top = '0';
-		overlay.style.left = '0';
-		overlay.style.width = '100vw';
-		overlay.style.height = '100vh';
-		overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-		overlay.style.display = 'flex';
-		overlay.style.alignItems = 'center';
-		overlay.style.justifyContent = 'center';
-		overlay.style.zIndex = '9999';
-
-		const modal = document.createElement('div');
-		modal.style.backgroundColor = '#fff';
-		modal.style.padding = '20px';
-		modal.style.borderRadius = '8px';
-		modal.style.width = '400px';
-		modal.style.maxWidth = '90%';
-		modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
-		modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-
-		const title = document.createElement('h5');
-		title.style.margin = '0 0 15px 0';
-		title.style.fontSize = '1.25rem';
-		title.style.fontWeight = '600';
-		title.textContent = titleText;
-		modal.appendChild(title);
-
-		if (warningText) {
-			const warningEl = document.createElement('div');
-			warningEl.style.margin = '0 0 12px 0';
-			warningEl.style.fontSize = '1.05rem';
-			warningEl.style.fontWeight = '600';
-			warningEl.style.color = warningColor;
-			warningEl.textContent = warningText;
-			modal.appendChild(warningEl);
-		}
-
-		const text = document.createElement('p');
-		text.style.margin = '0 0 15px 0';
-		text.style.fontSize = '0.9rem';
-		text.style.color = '#5f6b7a';
-		text.textContent = instructionText;
-		modal.appendChild(text);
-
-		const input = document.createElement('input');
-		input.type = 'password';
-		input.placeholder = 'Enter password';
-		input.style.width = '100%';
-		input.style.padding = '8px 12px';
-		input.style.marginBottom = '20px';
-		input.style.border = '1px solid #ccc';
-		input.style.borderRadius = '4px';
-		input.style.fontSize = '1rem';
-		modal.appendChild(input);
-
-		const btnContainer = document.createElement('div');
-		btnContainer.style.display = 'flex';
-		btnContainer.style.justifyContent = 'flex-end';
-		btnContainer.style.gap = '10px';
-
-		const cancelBtn = document.createElement('button');
-		cancelBtn.className = 'btn btn-outline-danger';
-		cancelBtn.textContent = 'Cancel';
-		cancelBtn.type = 'button';
-		btnContainer.appendChild(cancelBtn);
-
-		const confirmBtn = document.createElement('button');
-		if (warningColor === '#28a745' || warningColor === 'green') {
-			confirmBtn.className = 'btn btn-success';
-		} else {
-			confirmBtn.className = 'btn btn-secondary';
-		}
-		confirmBtn.textContent = 'Confirm';
-		confirmBtn.type = 'button';
-		btnContainer.appendChild(confirmBtn);
-
-		modal.appendChild(btnContainer);
-		overlay.appendChild(modal);
-		document.body.appendChild(overlay);
-
-		input.focus();
-
-		function cleanUp() {
-			document.body.removeChild(overlay);
-		}
-
-		confirmBtn.addEventListener('click', () => {
-			const val = input.value;
-			cleanUp();
-			resolve(val);
-		});
-
-		cancelBtn.addEventListener('click', () => {
-			cleanUp();
-			resolve(null);
-		});
-
-		input.addEventListener('keydown', (e) => {
-			if (e.key === 'Enter') {
-				const val = input.value;
-				cleanUp();
-				resolve(val);
-			} else if (e.key === 'Escape') {
-				cleanUp();
-				resolve(null);
-			}
-		});
-
-		overlay.addEventListener('click', (e) => {
-			if (e.target === overlay) {
-				cleanUp();
-				resolve(null);
-			}
-		});
-	});
-}
-
-async function deleteUser(role, id, username) {
-	const password = await showPasswordPrompt({
-		titleText: 'Confirm Deletion',
-		warningText: `Are you sure you want to delete the ${role} "${username}"?`,
-		warningColor: '#dc3545', // Red
-		instructionText: 'To confirm, enter your admin password:'
-	});
-	if (password === null) return;
-	if (!password) {
-		alert('Password cannot be empty.');
-		return;
-	}
-
-	fetch(`/api/admin/users/${role}/${id}`, {
-		method: 'DELETE',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ admin_password: password }),
-		credentials: 'include',
-	})
-	.then(r => {
-		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Delete failed'));
-		return r.json();
-	})
-	.then(() => {
-		allUsers = allUsers.filter(u => !(u.id === id && u.role === role));
-		renderUsers();
-	})
-	.catch(err => {
-		alert(typeof err === 'string' ? err : 'Failed to delete user.');
-	});
-}
-
-async function makeAdmin(id, username) {
-	const password = await showPasswordPrompt({
-		titleText: 'Confirm Make Admin',
-		warningText: `Are you sure you want to make "${username}" an admin?`,
-		warningColor: '#28a745', // Green
-		instructionText: 'To confirm, enter your admin password:'
-	});
-	if (password === null) return;
-	if (!password) {
-		alert('Password cannot be empty.');
-		return;
-	}
-
-	fetch(`/api/admin/users/teacher/${id}/make-admin`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ admin_password: password }),
-		credentials: 'include',
-	})
-	.then(r => {
-		if (!r.ok) return r.json().then(data => Promise.reject(data.detail || 'Failed to make admin'));
-		return r.json();
-	})
-	.then(() => {
-		const user = allUsers.find(u => u.id === id && u.role === 'teacher');
-		if (user) {
-			user.is_admin_teacher = true;
-		}
-		renderUsers();
-	})
-	.catch(err => {
-		alert(typeof err === 'string' ? err : 'Failed to make admin.');
-	});
-}

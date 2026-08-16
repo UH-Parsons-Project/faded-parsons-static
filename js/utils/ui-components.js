@@ -18,6 +18,8 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 	titleWrap.style.gap = '.45rem';
 	titleWrap.style.minWidth = '0';
 
+	const isExpired = Boolean(taskSet.expires_at && new Date(taskSet.expires_at) < new Date());
+
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
 	title.textContent = taskSet.title;
@@ -56,9 +58,12 @@ export function createTaskSetItem(taskSet, currentUsername = null) {
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
-	const expiryPart = taskSet.expires_at
-		? ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`
-		: '';
+	let expiryPart = '';
+	if (taskSet.expires_at) {
+		expiryPart = isExpired
+			? ` &nbsp;·&nbsp; <span class="text-danger font-weight-bold"><i class="fas fa-exclamation-circle"></i> Expired ${formatDate(taskSet.expires_at)}</span>`
+			: ` &nbsp;·&nbsp; <i class="far fa-clock"></i> Expires ${formatDate(taskSet.expires_at)}`;
+	}
 	const sharedPart = (currentUsername && taskSet.owner_username && taskSet.owner_username !== currentUsername)
 		? ` &nbsp;·&nbsp; <i class="fas fa-share-alt"></i> Shared by ${escapeHtml(taskSet.owner_username)}`
 		: '';

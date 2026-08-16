@@ -87,7 +87,7 @@ function renderHeader(username, completedTasks, attemptedTasks, totalTasks, task
 		` : ''}
 	</div>
 	${taskSetName ? `<div class="sa-taskset-info"><i class="fas fa-tasks mr-2"></i><strong>Task Set:</strong> ${escapeHtml(taskSetName)}</div>` : ''}
-	<p class="text-muted">All tasks attempted by this student in this task set</p>
+	<p class="text-muted">All tasks in this task set and student progress</p>
 	`;
 	bindRemoveStudentButton();
 
@@ -162,14 +162,27 @@ function createAttemptItem(attempt) {
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
 
-	const statusIcon = attempt.success_count > 0
-	? '<i class="fas fa-check-circle sa-icon-success"></i><span class="sa-status-label"> Success</span>'
-	: '<i class="fas fa-times-circle sa-icon-failed"></i><span class="sa-status-label"> Failed</span>';
+	let statusIcon = '';
+	let lastAttemptText = '';
+
+	if (attempt.success_count > 0) {
+		statusIcon = '<i class="fas fa-check-circle sa-icon-success"></i><span class="sa-status-label"> Success</span>';
+	} else if (attempt.attempts > 0) {
+		statusIcon = '<i class="fas fa-times-circle sa-icon-failed"></i><span class="sa-status-label"> Failed</span>';
+	} else {
+		statusIcon = '<i class="fas fa-circle sa-icon-not-started" style="font-size: 0.75em; vertical-align: middle;"></i><span class="sa-status-label text-muted"> Not started</span>';
+	}
+
+	if (attempt.attempts > 0 && attempt.last_attempt_at) {
+		lastAttemptText = `<i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}`;
+	} else {
+		lastAttemptText = `<i class="far fa-clock"></i> Not attempted yet`;
+	}
 
 	meta.innerHTML = `
 	${statusIcon}
 	<span class="sa-attempt-count">Total Attempts: ${attempt.attempts}</span>
-	<i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}
+	${lastAttemptText}
 	`;
 
 	item.appendChild(title);
@@ -186,8 +199,8 @@ function renderAttempts(attempts) {
 	attemptsList.innerHTML = `
 		<div class="empty-state">
 		<i class="fas fa-clipboard"></i>
-		<h4>No Attempts Found</h4>
-		<p>This student hasn't attempted any tasks in this list yet.</p>
+		<h4>No Tasks Found</h4>
+		<p>There are no tasks in this task set.</p>
 		</div>
 	`;
 	} else {
@@ -223,7 +236,7 @@ Promise.all([
 		}
 
 		const attempts = await attemptsResponse.json();
-		const attemptedTasks = attempts.length;
+		const attemptedTasks = attempts.filter(attempt => attempt.attempts > 0).length;
 		const completedTasks = attempts.filter(attempt => attempt.success_count > 0).length;
 
 		let totalTasks = attempts.length;

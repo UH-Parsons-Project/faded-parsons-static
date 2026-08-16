@@ -83,8 +83,8 @@ function loadCompletionStatus(bulkStatus, statusElement, itemIndex, numberElemen
 function createTaskCard(item, index) {
 	const card = document.createElement('div');
 	card.className = 'task-set-item';
-	const taskNumber = index + 1;
-	const navigate = () => { window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/${taskNumber}/start`; };
+	const taskId = item.id;
+	const navigate = () => { window.location.href = `/${username}/set/${uniqueLinkCode}/tasks/${taskId}/start`; };
 	card.onclick = navigate;
 	makeKeyActivatable(card, navigate);
 

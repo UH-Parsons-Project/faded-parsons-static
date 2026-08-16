@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status, Request, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...database import get_db
 from ...models import Student, StudentTaskSetEnrollment, TaskSet
 from ...student_auth import get_current_student_session_no_update
-from ..utils.commons import get_task_set_by_code_or_404, resolve_task_id_in_set_or_404
+from ..utils.commons import get_task_set_by_code_or_404, verify_task_in_set_or_404
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -110,9 +110,10 @@ async def task_set_task_page(
 
     if _is_expired(task_set):
         return _closed_response()
-
-    await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
-
+    try:
+        await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
+    except HTTPException as e:
+        return FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=e.status_code)
     if not await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -131,9 +132,10 @@ async def task_set_task_start_page(
 
     if _is_expired(task_set):
         return _closed_response()
-
-    await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
-
+    try:
+        await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
+    except HTTPException as e:
+        return FileResponse(BASE_DIR / "templates" / "not_found.html", status_code=e.status_code)
     if not await _check_enrollment(db, student_session, task_set):
         return RedirectResponse(url=f"/{username}/set/{unique_link_code}", status_code=status.HTTP_303_SEE_OTHER)
 

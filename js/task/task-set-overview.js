@@ -1,8 +1,11 @@
-import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
+/* global $ */
+import { initProtectedPage, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatDate, formatDateTime, showError, makeKeyActivatable } from '../utils/ui-utils.js';
 import { fetchJsonWithError } from '../utils/api-utils.js';
 import { loadHeatmap } from './task-set-heatmap.js';
+import { setupPreviewModalClose } from './task-preview.js';
+import { createAvailableTaskElement } from './task-helpers.js';
 
 initProtectedPage('/');
 initSignedInAs();
@@ -14,6 +17,13 @@ const setId = params.get('set_id');
 let currentTaskSet = null;
 let currentTasks = [];
 let currentStudents = [];
+
+// Edit mode and add task modal state
+let isEditMode = false;
+let allAvailableTasks = [];
+let selectedAvailableTaskIds = [];
+let activeTaskFilters = { query: '', activeScope: null };
+let draggedTaskElement = null;
 
 if (!setId) {
 	window.location.href = '/teacher-dashboard';
@@ -42,8 +52,6 @@ function buildCsvExportFilename(taskSet, exportType) {
 }
 
 
-
-let overviewTaskStatsPromise = null;
 
 function formatCsvNumber(value) {
 	if (value === null || value === undefined || Number.isNaN(value)) return '';
@@ -172,20 +180,20 @@ function buildStudentCompletionCsv(tasks, students) {
 		.join('\n');
 }
 
-async function fetchOverviewTaskStats(tasks, taskSet) {
-	if (!overviewTaskStatsPromise) {
-		overviewTaskStatsPromise = fetch(`/api/tasksets/${encodeURIComponent(taskSet.unique_link_code)}/tasks/statistics`, { credentials: 'include' })
-			.then(response => response.ok ? response.json() : {})
-			.then(bulkStats => {
-				return tasks.map(task => bulkStats[task.id] || null);
-			})
-			.catch(error => {
-				overviewTaskStatsPromise = null;
-				throw error;
+let overviewBulkStatsPromise = null;
+
+async function fetchOverviewTaskStats(tasks, taskSet, forceRefresh = false) {
+	if (!overviewBulkStatsPromise || forceRefresh) {
+		overviewBulkStatsPromise = fetch(`/api/tasksets/${encodeURIComponent(taskSet.unique_link_code)}/tasks/statistics`, { credentials: 'include' })
+			.then(response => (response.ok ? response.json() : {}))
+			.catch(() => {
+				overviewBulkStatsPromise = null;
+				return {};
 			});
 	}
 
-	return overviewTaskStatsPromise;
+	const bulkStats = await overviewBulkStatsPromise;
+	return tasks.map(task => bulkStats[task.id] || { students_completed: 0, students_attempted: 0 });
 }
 
 async function downloadTaskSetCsv(taskSet, tasks, students) {
@@ -616,11 +624,11 @@ function renderListHeader(taskSet, tasks, students) {
 		</div>
 	`;
 
-	const rightColHTML = `
+	const rightColHTML = isOwner ? `
 		<div style="display:flex; flex-direction:column; gap:1.5rem; min-width:0; width:100%; height:100%;">
 			${viewersHTML}
 		</div>
-	`;
+	` : '';
 
 	container.innerHTML = `
 		<div class="header-inner" style="display:grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 350px); gap:2rem; width:100%; align-items:stretch; margin-bottom:1.5rem;">
@@ -636,6 +644,9 @@ function renderListHeader(taskSet, tasks, students) {
 
 	setupViewerSharing();
 	setupExpiryEdit(taskSet, isOwner);
+	if (isOwner) {
+		loadViewers();
+	}
 	document.getElementById('download-task-set-csv-btn')?.addEventListener('click', () => {
 		downloadTaskSetCsv(taskSet, tasks, students);
 	});
@@ -680,21 +691,36 @@ function renderListHeader(taskSet, tasks, students) {
 
 function createTaskItem(task, taskSet, isOwner) {
 	const item = document.createElement('div');
-	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
-	const navigateToStats = () => {
-		window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
-	};
-	item.onclick = navigateToStats;
-	makeKeyActivatable(item, navigateToStats);
+	item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '') + (isEditMode ? ' edit-mode' : '');
+	item.dataset.taskId = task.id;
+
+	if (isEditMode) {
+		item.draggable = true;
+	} else {
+		const navigateToStats = () => {
+			window.location.href = `/task-statistics?id=${task.id}&task_set=${taskSet.unique_link_code}&set_id=${taskSet.id}`;
+		};
+		item.onclick = navigateToStats;
+		makeKeyActivatable(item, navigateToStats);
+	}
 
 	const headerRow = document.createElement('div');
 	headerRow.className = 'task-item-header';
+
+	if (isEditMode) {
+		const dragHandle = document.createElement('span');
+		dragHandle.className = 'drag-handle';
+		dragHandle.title = 'Drag to reorder';
+		dragHandle.innerHTML = '<i class="fas fa-bars"></i>';
+		headerRow.appendChild(dragHandle);
+	}
 
 	const titleWrap = document.createElement('div');
 	titleWrap.style.display = 'flex';
 	titleWrap.style.alignItems = 'center';
 	titleWrap.style.gap = '.45rem';
 	titleWrap.style.minWidth = '0';
+	titleWrap.style.flex = '1';
 
 	const title = document.createElement('div');
 	title.className = 'task-set-title';
@@ -705,7 +731,12 @@ function createTaskItem(task, taskSet, isOwner) {
 	}
 	headerRow.appendChild(titleWrap);
 
-	if (isOwner) {
+	const actionsWrap = document.createElement('div');
+	actionsWrap.style.display = 'flex';
+	actionsWrap.style.alignItems = 'center';
+	actionsWrap.style.gap = '.4rem';
+
+	if (isOwner && isEditMode) {
 		const toggleBtn = document.createElement('button');
 		toggleBtn.className = 'task-toggle-btn' + (task.is_hidden ? ' is-inactive' : '');
 		toggleBtn.type = 'button';
@@ -715,7 +746,6 @@ function createTaskItem(task, taskSet, isOwner) {
 		toggleBtn.title = task.is_hidden ? 'Make active for students' : 'Deactivate for students';
 		toggleBtn.addEventListener('click', async (e) => {
 			e.stopPropagation();
-			if (!task.is_hidden && !confirm(`Deactivate "${task.title}"? Students will no longer see this task.`)) return;
 			toggleBtn.disabled = true;
 			try {
 				const res = await fetch(`/api/my_sets/${taskSet.id}/tasks/${task.id}/hidden`, {
@@ -725,39 +755,16 @@ function createTaskItem(task, taskSet, isOwner) {
 				if (res.ok) {
 					const data = await res.json();
 					task.is_hidden = data.is_hidden;
-					item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '');
+					item.className = 'task-set-item' + (task.is_hidden ? ' task-inactive' : '') + (isEditMode ? ' edit-mode' : '');
 					if (task.is_hidden) {
 						toggleBtn.className = 'task-toggle-btn is-inactive';
 						toggleBtn.innerHTML = '<i class="fas fa-toggle-off"></i> Activate';
 						toggleBtn.title = 'Make active for students';
-						// Move to inactive section
-						const inactiveList = document.getElementById('tasks-list-inactive');
-						const inactiveSection = document.getElementById('tasks-inactive-section');
-						if (inactiveList) inactiveList.appendChild(item);
-						if (inactiveSection) inactiveSection.style.display = '';
-						// Show empty-state in active list if now empty
-						const activeList = document.getElementById('tasks-list-active');
-						if (activeList && activeList.querySelectorAll('.task-set-item').length === 0) {
-							activeList.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
-						}
 					} else {
 						toggleBtn.className = 'task-toggle-btn';
 						toggleBtn.innerHTML = '<i class="fas fa-toggle-on"></i> Deactivate';
 						toggleBtn.title = 'Deactivate for students';
-						// Move to active section
-						const activeList = document.getElementById('tasks-list-active');
-						if (activeList) {
-							activeList.querySelectorAll('.empty-state').forEach(el => el.remove());
-							activeList.appendChild(item);
-						}
-						// Hide inactive section if now empty
-						const inactiveList = document.getElementById('tasks-list-inactive');
-						if (inactiveList && inactiveList.querySelectorAll('.task-set-item').length === 0) {
-							const inactiveSection = document.getElementById('tasks-inactive-section');
-							if (inactiveSection) inactiveSection.style.display = 'none';
-						}
 					}
-					// Refresh stats
 					renderListHeader(currentTaskSet, currentTasks, currentStudents);
 					renderStudents(currentStudents, currentTasks);
 				}
@@ -766,8 +773,10 @@ function createTaskItem(task, taskSet, isOwner) {
 			}
 			toggleBtn.disabled = false;
 		});
-		headerRow.appendChild(toggleBtn);
+		actionsWrap.appendChild(toggleBtn);
 	}
+
+	headerRow.appendChild(actionsWrap);
 
 	const meta = document.createElement('div');
 	meta.className = 'task-set-meta';
@@ -780,6 +789,53 @@ function createTaskItem(task, taskSet, isOwner) {
 	item.appendChild(headerRow);
 	item.appendChild(meta);
 	item.appendChild(statsRow);
+
+	if (isEditMode) {
+		item.addEventListener('dragstart', (e) => {
+			draggedTaskElement = item;
+			item.classList.add('dragging');
+			e.dataTransfer.effectAllowed = 'move';
+		});
+
+		item.addEventListener('dragend', () => {
+			item.classList.remove('dragging');
+			draggedTaskElement = null;
+			document.querySelectorAll('.task-set-item').forEach((el) => el.classList.remove('drag-over'));
+		});
+
+		item.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			if (draggedTaskElement && draggedTaskElement !== item) {
+				item.classList.add('drag-over');
+			}
+		});
+
+		item.addEventListener('dragleave', () => {
+			item.classList.remove('drag-over');
+		});
+
+		item.addEventListener('drop', (e) => {
+			e.preventDefault();
+			item.classList.remove('drag-over');
+			if (draggedTaskElement && draggedTaskElement !== item) {
+				const draggedId = parseInt(draggedTaskElement.dataset.taskId, 10);
+				const targetTaskId = parseInt(item.dataset.taskId, 10);
+				const draggedIndex = currentTasks.findIndex((t) => t.id === draggedId);
+
+				if (draggedIndex !== -1) {
+					const [draggedTask] = currentTasks.splice(draggedIndex, 1);
+					const newTargetIndex = currentTasks.findIndex((t) => t.id === targetTaskId);
+
+					if (newTargetIndex !== -1) {
+						currentTasks.splice(newTargetIndex, 0, draggedTask);
+					} else {
+						currentTasks.push(draggedTask);
+					}
+					renderTasks(currentTasks, taskSet);
+				}
+			}
+		});
+	}
 
 	return item;
 }
@@ -831,8 +887,23 @@ function renderTasks(tasks, taskSet) {
 		return;
 	}
 
-	const activeTasks = tasks.filter(t => !t.is_hidden);
-	const inactiveTasks = tasks.filter(t => t.is_hidden);
+	if (isEditMode) {
+		const editNotice = document.createElement('p');
+		editNotice.className = 'text-muted style-sm mb-2';
+		editNotice.style.fontSize = '0.8rem';
+		editNotice.innerHTML = '<i class="fas fa-info-circle"></i> Drag tasks to reorder them. Click <strong>Done Editing</strong> when finished.';
+		tasksList.appendChild(editNotice);
+
+		const editContainer = document.createElement('div');
+		editContainer.id = 'tasks-list-edit';
+		tasks.forEach((task) => editContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+		tasksList.appendChild(editContainer);
+		loadTaskStats(tasks, taskSet, currentStudents.length);
+		return;
+	}
+
+	const activeTasks = tasks.filter((t) => !t.is_hidden);
+	const inactiveTasks = tasks.filter((t) => t.is_hidden);
 
 	// Active tasks section
 	const activeContainer = document.createElement('div');
@@ -840,7 +911,7 @@ function renderTasks(tasks, taskSet) {
 	if (activeTasks.length === 0) {
 		activeContainer.innerHTML = '<div class="empty-state"><i class="fas fa-check"></i><h4>No Active Tasks</h4><p>All tasks are currently deactivated.</p></div>';
 	} else {
-		activeTasks.forEach(task => activeContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+		activeTasks.forEach((task) => activeContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
 	}
 	tasksList.appendChild(activeContainer);
 
@@ -856,10 +927,188 @@ function renderTasks(tasks, taskSet) {
 
 	const inactiveContainer = document.createElement('div');
 	inactiveContainer.id = 'tasks-list-inactive';
-	inactiveTasks.forEach(task => inactiveContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
+	inactiveTasks.forEach((task) => inactiveContainer.appendChild(createTaskItem(task, taskSet, isOwner)));
 	inactiveSection.appendChild(inactiveContainer);
 
 	tasksList.appendChild(inactiveSection);
+	loadTaskStats(tasks, taskSet, currentStudents.length);
+}
+
+function setupEditTasksButton(taskSet) {
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim();
+	const isOwner = Boolean(currentUsername && taskSet.owner_username === currentUsername);
+	if (!isOwner) return;
+
+	const editBtn = document.getElementById('edit-tasks-btn');
+	const addBtn = document.getElementById('add-task-btn');
+	if (!editBtn || !addBtn) return;
+
+	editBtn.style.display = '';
+	let editSessionInitialHidden = new Map();
+
+	editBtn.addEventListener('click', async () => {
+		if (isEditMode) {
+			const newlyDeactivated = currentTasks.filter(
+				(t) => t.is_hidden && !editSessionInitialHidden.get(t.id)
+			);
+
+			if (newlyDeactivated.length > 0) {
+				const titles = newlyDeactivated.map((t) => `"${t.title}"`).join(', ');
+				if (!confirm(`Deactivating ${titles}? Students will no longer see deactivated tasks.`)) {
+					return;
+				}
+			}
+
+			editBtn.disabled = true;
+			editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+			try {
+				const taskIds = currentTasks.map((t) => t.id);
+				const res = await fetch(`/api/my_sets/${taskSet.id}/tasks`, {
+					method: 'PUT',
+					credentials: 'include',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ task_ids: taskIds }),
+				});
+				if (!res.ok) {
+					const data = await res.json();
+					alert('Failed to save tasks: ' + (data.detail || 'Unknown error'));
+				}
+			} catch (err) {
+				console.error('Failed to save tasks:', err);
+				alert('Failed to save tasks: ' + err.message);
+			}
+			isEditMode = false;
+			editBtn.disabled = false;
+			editBtn.className = 'btn btn-sm btn-outline-secondary';
+			editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Tasks';
+			addBtn.style.display = 'none';
+			renderTasks(currentTasks, taskSet);
+		} else {
+			isEditMode = true;
+			editSessionInitialHidden = new Map(currentTasks.map((t) => [t.id, Boolean(t.is_hidden)]));
+			editBtn.className = 'btn btn-sm btn-success';
+			editBtn.innerHTML = '<i class="fas fa-check"></i> Done Editing';
+			addBtn.style.display = '';
+			renderTasks(currentTasks, taskSet);
+		}
+	});
+
+	addBtn.addEventListener('click', async () => {
+		selectedAvailableTaskIds = [];
+		const confirmBtn = document.getElementById('confirm-add-task-btn');
+		if (confirmBtn) confirmBtn.disabled = true;
+		document.getElementById('tasks-loading').style.display = 'block';
+		document.getElementById('task-selector').innerHTML = '';
+		$('#add-task-modal').modal('show');
+		try {
+			const allTasks = await fetchJsonWithError('/api/tasks', 'Failed to load tasks');
+			const existingIds = new Set(currentTasks.map((t) => t.id));
+			allAvailableTasks = allTasks.filter((t) => !existingIds.has(t.id));
+			document.getElementById('tasks-loading').style.display = 'none';
+			applyAvailableTaskFilters();
+		} catch (err) {
+			console.error(err);
+			document.getElementById('tasks-loading').style.display = 'none';
+			alert('Failed to load available tasks');
+		}
+	});
+
+	setupAvailableTaskFilters();
+	setupConfirmAddTasksBtn(taskSet);
+}
+
+function setupAvailableTaskFilters() {
+	const searchInput = document.getElementById('task-search');
+	const filterScopes = document.querySelectorAll('.filter-scope');
+
+	if (searchInput) {
+		searchInput.addEventListener('input', (e) => {
+			activeTaskFilters.query = e.target.value.toLowerCase().trim();
+			applyAvailableTaskFilters();
+		});
+	}
+
+	filterScopes.forEach((cb) => {
+		cb.addEventListener('change', (e) => {
+			if (e.target.checked) {
+				filterScopes.forEach((other) => {
+					if (other !== e.target) other.checked = false;
+				});
+				activeTaskFilters.activeScope = e.target.value;
+			} else {
+				activeTaskFilters.activeScope = null;
+			}
+			applyAvailableTaskFilters();
+		});
+	});
+}
+
+function applyAvailableTaskFilters() {
+	const container = document.getElementById('task-selector');
+	if (!container) return;
+
+	const currentUsername = document.getElementById('user-name')?.textContent?.trim() || '';
+
+	let filtered = allAvailableTasks.filter((t) => {
+		if (activeTaskFilters.activeScope === 'my-exercises') {
+			if (t.owner_username !== currentUsername) return false;
+		} else if (activeTaskFilters.activeScope === 'favorites') {
+			if (!t.is_favorite) return false;
+		}
+
+		if (!activeTaskFilters.query) return true;
+
+		const q = activeTaskFilters.query;
+		const scope = activeTaskFilters.activeScope;
+
+		if (scope === 'title') return (t.title || '').toLowerCase().includes(q);
+		if (scope === 'teacher') return (t.owner_username || '').toLowerCase().includes(q);
+		if (scope === 'type') return (t.task_type || '').toLowerCase().includes(q);
+
+		return (
+			(t.title || '').toLowerCase().includes(q) ||
+			(t.owner_username || '').toLowerCase().includes(q) ||
+			(t.task_type || '').toLowerCase().includes(q)
+		);
+	});
+
+	container.innerHTML = '';
+	if (filtered.length === 0) {
+		container.innerHTML = '<p class="text-muted text-center p-3">No available tasks found.</p>';
+		return;
+	}
+
+	filtered.forEach((task) => {
+		const taskEl = createAvailableTaskElement(task, {
+			isSelected: selectedAvailableTaskIds.includes(task.id),
+			onSelectionChange: (taskId, isChecked) => {
+				if (isChecked) {
+					if (!selectedAvailableTaskIds.includes(taskId)) selectedAvailableTaskIds.push(taskId);
+				} else {
+					selectedAvailableTaskIds = selectedAvailableTaskIds.filter((id) => id !== taskId);
+				}
+				const confirmBtn = document.getElementById('confirm-add-task-btn');
+				if (confirmBtn) confirmBtn.disabled = selectedAvailableTaskIds.length === 0;
+			},
+			onFavoriteToggle: () => applyAvailableTaskFilters(),
+		});
+		container.appendChild(taskEl);
+	});
+}
+
+function setupConfirmAddTasksBtn(taskSet) {
+	const confirmBtn = document.getElementById('confirm-add-task-btn');
+	if (!confirmBtn) return;
+
+	confirmBtn.addEventListener('click', () => {
+		if (selectedAvailableTaskIds.length === 0) return;
+
+		const addedTasks = allAvailableTasks.filter((t) => selectedAvailableTaskIds.includes(t.id));
+		currentTasks.push(...addedTasks);
+
+		$('#add-task-modal').modal('hide');
+		renderTasks(currentTasks, taskSet);
+	});
 }
 
 function createStudentItem(student, tasks) {
@@ -948,14 +1197,15 @@ fetchJsonWithError(`/api/my_sets/${setId}`, 'Failed to load task set details')
 		fetchJsonWithError(`/api/my_sets/${setId}/students`, 'Failed to load students'),
 	]))
 	.then(([taskSet, tasks, students]) => {
-		overviewTaskStatsPromise = null;
+		overviewBulkStatsPromise = null;
 		currentTaskSet = taskSet;
 		currentTasks = tasks;
 		currentStudents = students;
 		renderListHeader(taskSet, tasks, students);
 		renderTasks(tasks, taskSet);
 		renderStudents(students, tasks);
-		loadViewers();
+		setupEditTasksButton(taskSet);
+		setupPreviewModalClose();
 		document.getElementById('content-container').style.display = 'block';
 		loadTaskStats(tasks, taskSet, students.length);
 

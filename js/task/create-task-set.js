@@ -1,6 +1,8 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, showError } from '../utils/ui-utils.js';
+import { openTaskPreview, setupPreviewModalClose } from './task-preview.js';
+import { createAvailableTaskElement } from './task-helpers.js';
     initSignedInAs();
     initProtectedPage('/');
     initBurgerMenu();
@@ -31,6 +33,7 @@ function initializePage() {
   setupViewerSharing();
   setupFormSubmission();
   setupCancelButton();
+  setupPreviewModalClose();
   loadTasks();
 }
 
@@ -339,121 +342,13 @@ function renderTasks(tasks) {
   }
 
   tasks.forEach(task => {
-    const taskEl = document.createElement('div');
-    taskEl.className = 'task-item';
-    if (selectedTaskIds.includes(task.id)) {
-      taskEl.classList.add('selected');
-    }
-
-    const header = document.createElement('div');
-    header.className = 'task-item-header';
-
-    const title = document.createElement('div');
-    title.className = 'task-item-title';
-    title.textContent = task.title;
-
-    const favoriteBtn = document.createElement('button');
-    favoriteBtn.type = 'button';
-    favoriteBtn.className = 'task-favorite-button' + (task.is_favorite ? ' is-favorite' : '');
-    favoriteBtn.innerHTML = task.is_favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
-    favoriteBtn.title = task.is_favorite ? 'Remove from favorites' : 'Add to favorites';
-    favoriteBtn.setAttribute('aria-label', favoriteBtn.title);
-    favoriteBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        await toggleFavorite(task);
-      } catch (error) {
-        console.error('Failed to update favorite:', error);
-        alert('Could not update favorite right now.');
-      }
+    const taskEl = createAvailableTaskElement(task, {
+      isSelected: selectedTaskIds.includes(task.id),
+      onSelectionChange: handleTaskSelection,
+      onFavoriteToggle: () => applyTaskFilters()
     });
-
-    const titleWrap = document.createElement('div');
-    titleWrap.style.display = 'flex';
-    titleWrap.style.alignItems = 'center';
-    titleWrap.style.gap = '.45rem';
-    titleWrap.style.minWidth = '0';
-    titleWrap.appendChild(title);
-    header.appendChild(titleWrap);
-
-    const controlsWrap = document.createElement('div');
-    controlsWrap.style.display = 'flex';
-    controlsWrap.style.alignItems = 'center';
-    controlsWrap.style.gap = '.2rem';
-    controlsWrap.style.flexShrink = '0';
-    controlsWrap.appendChild(favoriteBtn);
-    if (isPrivateTask(task)) {
-      controlsWrap.appendChild(createPrivateBadge());
-    }
-    header.appendChild(controlsWrap);
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.setAttribute('aria-label', `Select task: ${task.title}`);
-    checkbox.checked = selectedTaskIds.includes(task.id);
-    checkbox.addEventListener('change', (e) => {
-      handleTaskSelection(task.id, e.target.checked);
-    });
-
-    const content = document.createElement('div');
-    content.className = 'task-item-content';
-
-    const type = document.createElement('div');
-    type.className = 'task-item-type';
-    type.textContent = `Type: ${task.task_type}`;
-
-    const createdBy = document.createElement('div');
-    createdBy.className = 'task-item-meta';
-    createdBy.textContent = `Created by: ${task.creator_username || 'Unknown teacher'}`;
-
-    content.appendChild(header);
-    content.appendChild(type);
-    content.appendChild(createdBy);
-
-    const actions = document.createElement('div');
-    actions.className = 'task-item-actions';
-
-    const previewBtn = document.createElement('button');
-    previewBtn.type = 'button';
-    previewBtn.className = 'preview-btn';
-    previewBtn.innerHTML = '<i class="fas fa-eye"></i> Preview';
-    previewBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openTaskPreview(task);
-    });
-
-    actions.appendChild(previewBtn);
-
-    taskEl.appendChild(checkbox);
-    taskEl.appendChild(content);
-    taskEl.appendChild(actions);
-
-    taskEl.addEventListener('click', (e) => {
-      if (e.target !== checkbox && !e.target.closest('.task-item-actions')) {
-        checkbox.checked = !checkbox.checked;
-        handleTaskSelection(task.id, checkbox.checked);
-      }
-    });
-
     selector.appendChild(taskEl);
   });
-}
-
-async function toggleFavorite(task) {
-  const shouldFavorite = !task.is_favorite;
-  const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/favorite`, {
-    method: shouldFavorite ? 'POST' : 'DELETE',
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update favorite');
-  }
-
-  const result = await response.json();
-  task.is_favorite = Boolean(result.is_favorite);
-  applyTaskFilters();
 }
 
 /**
@@ -616,157 +511,7 @@ function updateSelectedTasksPreview() {
   });
 }
 
-/**
- * Open task preview in modal
- */
-let previewParsonsWidget = null;
 
-async function openTaskPreview(taskListItem) {
-  try {
-    const response = await fetch(`/api/tasks/${taskListItem.id}`, { credentials: 'include' });
-    if (!response.ok) {
-      throw new Error('Failed to load task details');
-    }
-    const task = await response.json();
-    
-    const modal = document.getElementById('student-preview-modal');
-    const previewTaskTitle = document.getElementById('preview-task-title');
-    const previewStartIntro = document.getElementById('preview-start-intro');
-    const previewText = document.getElementById('preview-problem-text');
-    const previewSource = document.getElementById('preview-source-sortable');
-    const previewSolution = document.getElementById('preview-solution-sortable');
-    const previewWrittenTests = document.getElementById('preview-written-tests');
-    const previewModelAnswer = document.getElementById('preview-model-answer');
-    
-    if (!modal) {
-      console.error('Preview modal not found.');
-      return;
-    }
-    
-    let startIntro = task.description || '';
-    let problemStatement = '';
-    try {
-      const instr = JSON.parse(task.task_instructions || '{}');
-      let baseText = instr.task_instructions || '';
-      problemStatement = escapeHtml(baseText).replace(/\n/g, '<br>');
-      if (instr.function_name) {
-        problemStatement = `<strong>${escapeHtml(instr.function_name)}</strong><br>` + problemStatement;
-      }
-      if (instr.examples) {
-        problemStatement += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(instr.examples)}</code></pre>`;
-      }
-    } catch (e) {
-      problemStatement = escapeHtml(task.task_instructions || '').replace(/\n/g, '<br>');
-    }
-    
-    const tests = task.correct_solution?.teacher_tests || '';
-    // For student preview, always show the canonical solution_code (with blanks),
-    // not the teacher's persisted model_answer which may contain filled values.
-    const modelAnswerCode = task.correct_solution?.solution_code || '';
-    
-    previewTaskTitle.innerHTML = escapeHtml(task.title || '').replace(/\n/g, '<br>');
-    previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
-    previewText.innerHTML = problemStatement;
-    previewWrittenTests.textContent = tests.trim() || 'No tests written yet.';
-    previewModelAnswer.textContent = modelAnswerCode.trim() || 'No model answer set yet.';
-    
-    previewSource.innerHTML = '';
-    previewSolution.innerHTML = '';
-    
-    if (window.ParsonsWidget) {
-      previewParsonsWidget = new window.ParsonsWidget({
-        sortableId: previewSolution,
-        trashId: previewSource,
-        max_wrong_lines: 10,
-        feedback_cb: false,
-        can_indent: true,
-        lang: 'en',
-      });
-      
-      previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
-      
-      const blocks = task.code_blocks?.blocks || [];
-      const solutionCode = (task.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
-      const INDENT = '    ';
-  
-      const solLinesList = solutionCode.split('\n').map(l => l.trimRight());
-      const ansLinesList = modelAnswer.split('\n').map(l => l.trimRight());
-  
-      // Create a list of solution line objects for sequential matching
-      const solLines = solLinesList.map((solLine, idx) => ({
-        solLine,
-        matched: false,
-      }));
-  
-      const previewRepr = blocks.map((block) => {
-        const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
-        const indented = INDENT.repeat(block.indent) + block.code;
-  
-        // Find the first unmatched solution line that matches this block's indented code
-        const matchItem = solLines.find(item => {
-          if (item.matched) return false;
-          return item.solLine.replace(/!BLANK/g, '___') === indented;
-        });
-  
-        if (matchItem) {
-          matchItem.matched = true;
-  
-          let line = `${codeWithBlanks} #${block.indent}given`;
-          if (block.given) {
-            line += ' #preplace';
-          }
-          return line;
-        }
-  
-        return codeWithBlanks;
-      }).join('\n');
-      
-      previewParsonsWidget.init(previewRepr);
-      
-      const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
-      const previewSolutionSet = new Set(previewSolutionIds);
-      const previewSourceIds = previewParsonsWidget.modified_lines
-        .filter((line) => !previewSolutionSet.has(line.id))
-        .map((line) => line.id);
-        
-      previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
-    }
-    
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    
-  } catch (error) {
-    console.error('Error previewing task:', error);
-    alert('Could not load task preview.');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const closeBtn = document.getElementById('close-student-preview');
-  const modal = document.getElementById('student-preview-modal');
-  
-  function closeModal() {
-    if (modal) {
-      modal.classList.remove('open');
-      modal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-  }
-
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeModal);
-  }
-  
-  if (modal) {
-    modal.addEventListener('click', (event) => {
-      // Close only if clicking directly on the modal backdrop, not the dialog inside
-      if (event.target === modal) {
-        closeModal();
-      }
-    });
-  }
-});
 
 
 
@@ -935,7 +680,5 @@ function setupFormSubmission() {
   });
 }
 
-/**
- * Initialize when DOM is ready
- */
 document.addEventListener('DOMContentLoaded', initializePage);
+

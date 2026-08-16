@@ -117,6 +117,16 @@ assert format_name('  linus', 'torvalds ') == 'Linus Torvalds'</code></pre>
 
         <form id="create-task-form">
             <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
+            
+            <div class="form-group mb-4" style="max-width: 400px;">
+                <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
+                <select id="eval-type" class="form-control">
+                    <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                    <option value="stdout">Console Output (print)</option>
+                    <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                </select>
+            </div>
+
             <div class="editor-grid">
                 <section class="editor-panel">
                     <div class="field-head">
@@ -139,10 +149,10 @@ assert format_name('  linus', 'torvalds ') == 'Linus Torvalds'</code></pre>
                     </div>
                 </section>
 
-                <section class="editor-panel">
+                <section class="editor-panel" id="task-tests-panel">
                     <div class="field-head">
-                        <label for="task-tests">Task Tests</label>
-                        <span class="field-hint">Use any Python test style you prefer</span>
+                        <label for="task-tests" id="task-tests-label">Task Tests</label>
+                        <span class="field-hint" id="task-tests-hint">Use any Python test style you prefer</span>
                     </div>
                     <textarea
                         id="task-tests"

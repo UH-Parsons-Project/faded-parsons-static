@@ -81,6 +81,7 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const taskTypeInput = document.getElementById('task-type');
+    const evalTypeInput = document.getElementById('eval-type');
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.querySelectorAll('li').length > 0);
     const taskTypeValue = normalizeTaskTypeValue(taskTypeInput?.value);
@@ -93,7 +94,7 @@ initBurgerMenu();
       { key: 'solution-blocks', done: hasSolutionBlocks },
       { key: 'model-answer', done: Boolean(modelAnswerCode) },
       { key: 'custom-errors', done: Boolean(customErrorMessagesInput && customErrorMessagesInput.value.trim()), optional: true },
-      { key: 'tests-written', done: Boolean(testsInput && testsInput.value.trim()) },
+      { key: 'tests-written', done: Boolean(evalTypeInput?.value !== 'unit_test' || (testsInput && testsInput.value.trim())) },
       { key: 'tests-passed', done: testsPassed },
       { key: 'previewed', done: hasOpenedStudentPreview },
     ];
@@ -377,25 +378,7 @@ initBurgerMenu();
     return Array.from(lineElement.querySelectorAll('input')).map((input) => input.value || '');
   }
 
-  function renderLineWithBlankValues(lineCode, blankValues = []) {
-    const normalizedCode = normalizeSourceCode(lineCode || '').trimEnd();
 
-    if (!normalizedCode.includes('!BLANK') && !normalizedCode.includes('___')) {
-      return normalizedCode;
-    }
-
-    let blankIndex = 0;
-    return normalizedCode.split(/!BLANK|___/).reduce((renderedCode, segment, index, segments) => {
-      const nextCode = renderedCode + segment;
-      if (index === segments.length - 1) {
-        return nextCode;
-      }
-
-      const blankValue = blankValues[blankIndex] ?? '';
-      blankIndex += 1;
-      return nextCode + blankValue;
-    }, '').trimEnd();
-  }
 
   function applyBlankValuesToWidgetLines(widget, blankValuesByLineId = {}) {
     if (!widget || !Array.isArray(widget.modified_lines)) {
@@ -483,23 +466,7 @@ initBurgerMenu();
     });
   }
 
-  function restoreBlankValuesToDom(blankValues = [], targetList = null) {
-    const solutionList = targetList || document.querySelector('#solution-sortable ul');
-    if (!solutionList) {
-      return;
-    }
 
-    const solutionChildren = Array.from(solutionList.children);
-    solutionChildren.forEach((child, index) => {
-      const values = blankValues[index] || [];
-      const inputs = Array.from(child.querySelectorAll('input.text-box'));
-      inputs.forEach((input, inputIndex) => {
-        const value = values[inputIndex] ?? '';
-        input.value = value;
-        input.style.width = `${(value.length + 3) * 8}px`;
-      });
-    });
-  }
 
   function restoreBlankValuesToDomByLineId(blankValuesByLineId = {}, targetList = null) {
     const solutionList = targetList || document.querySelector('#solution-sortable ul');
@@ -621,6 +588,8 @@ initBurgerMenu();
 
   function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType) {
     const taskTypeInput = document.getElementById('task-type');
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+    const requireIndentation = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
     sessionStorage.setItem(META_KEY, JSON.stringify({
       taskTitle,
       description,
@@ -629,6 +598,7 @@ initBurgerMenu();
       customErrorMessages,
       taskType: normalizeTaskTypeValue(typeof taskType === 'string' ? taskType : taskTypeInput?.value),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+      requireIndentation,
       taskId: draftPayload?.taskId ?? null,
     }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
@@ -830,10 +800,14 @@ initBurgerMenu();
     return [];
   }
   function renderParsonsBoardLocal(initialText, preferredSourceCode = '') {
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+    const canIndent = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
+    
     const newWidget = renderParsonsBoard(initialText, {
       sourceSortable: document.getElementById('source-sortable'),
       solutionSortable: document.getElementById('solution-sortable'),
       ParsonsWidgetCtor: window.ParsonsWidget,
+      can_indent: canIndent,
       onSortableUpdate: () => {
         refreshGivenToggles();
         updateCounters();
@@ -1197,17 +1171,28 @@ initBurgerMenu();
   }
 
   async function runTeacherTests() {
+    const evalTypeInput = document.getElementById('eval-type');
     const testsInput = document.getElementById('tests-input');
+    const expectedOutputInput = document.getElementById('expected-output-input');
     const runStatus = document.getElementById('run-status');
     const runBtn = document.getElementById('run-tests');
     const addToListBtn = document.getElementById('add-to-problem-list');
 
-    if (!testsInput || !runStatus || !runBtn || !addToListBtn) {
+    if (!runStatus || !runBtn || !addToListBtn) {
       return;
     }
 
     testsPassed = false;
     updateAddToListState();
+
+    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+    if (evalType === 'order_only') {
+      renderTestResult('pass', 'Order-only tasks do not require test execution. You can proceed!');
+      testsPassed = true;
+      updateAddToListState();
+      return;
+    }
 
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.children.length > 0);
@@ -1221,8 +1206,14 @@ initBurgerMenu();
       return;
     }
 
-    if (!testsCode) {
+    if (evalType === 'unit_test' && !testsCode) {
       renderTestResult('fail', 'Please add tests before running.');
+      return;
+    }
+
+    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
+    if (evalType === 'stdout' && !expectedOutput) {
+      renderTestResult('fail', 'Please provide the expected output before running.');
       return;
     }
 
@@ -1235,13 +1226,18 @@ initBurgerMenu();
     runBtn.disabled = true;
     runStatus.textContent = 'Running tests...';
 
-    const python = [
-      sourceCode,
-      '',
-      testsCode,
-      '',
-      'print("ALL_TEACHER_TESTS_PASSED")',
-    ].join('\n');
+    let python = '';
+    if (evalType === 'unit_test') {
+      python = [
+        sourceCode,
+        '',
+        testsCode,
+        '',
+        'print("ALL_TEACHER_TESTS_PASSED")',
+      ].join('\n');
+    } else {
+      python = sourceCode;
+    }
 
     try {
       const { results, error } = await new FiniteWorker(python);
@@ -1253,16 +1249,25 @@ initBurgerMenu();
         updateAddToListState();
       } else {
         const output = (results || '').toString().trim();
-        if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
-          renderTestResult('pass', 'All tests passed!');
-          testsPassed = true;
-          updateAddToListState();
-        } else {
-          const errorMessage = output || 'Test execution failed with no output.';
-          renderTestResult('fail', errorMessage);
-          testsPassed = false;
-          updateAddToListState();
+        if (evalType === 'unit_test') {
+          if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
+            renderTestResult('pass', 'All tests passed!');
+            testsPassed = true;
+          } else {
+            const errorMessage = output || 'Test execution failed with no output.';
+            renderTestResult('fail', errorMessage);
+            testsPassed = false;
+          }
+        } else if (evalType === 'stdout') {
+          if (output === expectedOutput) {
+            renderTestResult('pass', `Output matched perfectly!\n\nOutput:\n${output}`);
+            testsPassed = true;
+          } else {
+            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedOutput}\n\nGot:\n${output}`);
+            testsPassed = false;
+          }
         }
+        updateAddToListState();
       }
     } catch (err) {
       renderTestResult('fail', `Execution error: ${err.message || err}`);
@@ -1298,6 +1303,11 @@ initBurgerMenu();
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
     const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
 
+    const evalTypeInput = document.getElementById('eval-type');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
+
     if (!taskType) {
       alert('Please select a task tag before saving the task.');
       taskTypeInput?.focus();
@@ -1306,8 +1316,13 @@ initBurgerMenu();
 
     saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType);
 
-    if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
+    if (!taskTitle || !description || !startDescription || !solutionCode) {
       alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
+      return;
+    }
+
+    if (evalType === 'unit_test' && !tests) {
+      alert('Please ensure you write unit tests for this task.');
       return;
     }
 
@@ -1329,9 +1344,12 @@ initBurgerMenu();
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
-      parsonsRepr: buildCustomRepr(),
+      parsonsRepr: buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues),
       task_type: taskType,
       is_public: isPublic,
+      eval_type: evalType,
+      expected_output: expectedOutput,
+      require_indentation: document.getElementById('allow-indent') ? document.getElementById('allow-indent').checked : true,
     };
 
     const editTaskId = draftPayload?.taskId || null;
@@ -1420,6 +1438,69 @@ initBurgerMenu();
     document.body.dataset.blankInputBound = 'true';
   }
 
+  function setupEvalTypeToggle() {
+    const evalTypeInput = document.getElementById('eval-type');
+    const unitTestContainer = document.getElementById('unit-test-container');
+    const stdoutContainer = document.getElementById('stdout-container');
+    const orderOnlyContainer = document.getElementById('order-only-container');
+    const runBtn = document.getElementById('run-tests');
+    const testResults = document.getElementById('test-results');
+    
+    if (!evalTypeInput || !unitTestContainer || !stdoutContainer || !orderOnlyContainer) return;
+
+    function updateUI(event) {
+      const isInit = !event || !event.type;
+      const val = evalTypeInput.value;
+      unitTestContainer.style.display = val === 'unit_test' ? 'block' : 'none';
+      stdoutContainer.style.display = val === 'stdout' ? 'block' : 'none';
+      orderOnlyContainer.style.display = val === 'order_only' ? 'block' : 'none';
+      
+      const customBlockInput = document.getElementById('custom-block-input');
+      const startDescriptionInput = document.getElementById('start-description');
+      const problemDescriptionInput = document.getElementById('problem-description');
+      const testsInput = document.getElementById('tests-input');
+      const expectedOutputInput = document.getElementById('expected-output-input');
+
+      if (val === 'order_only') {
+         if (runBtn) runBtn.textContent = 'Check Order';
+         if (customBlockInput) customBlockInput.placeholder = 'Write custom step or block text here...';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice ordering steps.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Arrange the steps in the correct logical order.';
+      } else if (val === 'stdout') {
+         if (runBtn) runBtn.textContent = 'Check Output';
+         if (customBlockInput) customBlockInput.placeholder = 'print("Hello World!")';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice printing output.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Write a program that prints "Hello World!".';
+         if (expectedOutputInput) expectedOutputInput.placeholder = 'Hello World!';
+      } else {
+         if (runBtn) runBtn.textContent = 'Run Tests';
+         if (customBlockInput) customBlockInput.placeholder = 'Write custom block code here...';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice adding values.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b.';
+         if (testsInput) testsInput.placeholder = 'assert my_function(1) == 2\nassert my_function(2) == 4';
+      }
+      
+      if (!isInit) {
+        const allowIndentCheckbox = document.getElementById('allow-indent');
+        if (allowIndentCheckbox) {
+          allowIndentCheckbox.checked = val !== 'order_only';
+          allowIndentCheckbox.dispatchEvent(new Event('change'));
+        }
+      }
+      
+      if (testResults && testResults.textContent !== '') {
+        testResults.textContent = 'Evaluation mode changed. Please run tests again.';
+        testResults.className = 'test-results-box';
+      }
+      testsPassed = false;
+      updateChecklist();
+      updateAddToListState();
+    }
+
+    evalTypeInput.addEventListener('change', updateUI);
+    updateUI();
+  }
+
   function setupButtons() {
     const backBtn = document.getElementById('back-to-code');
     const clearBtn = document.getElementById('clear-blocks');
@@ -1436,6 +1517,31 @@ initBurgerMenu();
     const taskTypeInput = document.getElementById('task-type');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+
+    if (allowIndentCheckbox) {
+      allowIndentCheckbox.addEventListener('change', (e) => {
+        if (!parsonsWidget) return;
+        
+        const canIndent = e.target.checked;
+        parsonsWidget.options.can_indent = canIndent;
+        
+        if (!canIndent) {
+          parsonsWidget.modified_lines.forEach(line => {
+             line.indent = 0;
+             parsonsWidget.updateHTMLIndent(line.id);
+          });
+        }
+        
+        if (window.$) {
+          const grid = canIndent ? [parsonsWidget.options.x_indent, 1] : false;
+          const solutionUl = document.querySelector('#solution-sortable ul');
+          const sourceUl = document.querySelector('#source-sortable ul');
+          if (solutionUl) window.$(solutionUl).sortable('option', 'grid', grid);
+          if (sourceUl) window.$(sourceUl).sortable('option', 'grid', grid);
+        }
+      });
+    }
     const previewStudentBtn = document.getElementById('preview-student-view');
     const cancelBtn = document.getElementById('cancel-task-editor');
 
@@ -1521,7 +1627,7 @@ initBurgerMenu();
           return;
         }
 
-        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr());
+        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues));
         const persistedToServer = await persistModelAnswerToServer(currentSolutionCode);
         if (persistedToServer) {
           const status = document.getElementById('model-answer-status');
@@ -1795,6 +1901,13 @@ initBurgerMenu();
       const backBtn = document.getElementById('back-to-code');
       if (backBtn) backBtn.style.display = 'none';
 
+      const allowIndentCheckbox = document.getElementById('allow-indent');
+      if (allowIndentCheckbox) {
+        const currentEvalType = taskData.correct_solution?.eval_type || 'unit_test';
+        const defaultIndent = currentEvalType !== 'order_only';
+        allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (taskData.correct_solution?.require_indentation !== undefined ? taskData.correct_solution.require_indentation : defaultIndent);
+      }
+
       renderParsonsBoardLocal(initialText, persistedModelAnswerSource);
       setupBlankInputPersistence();
       setupGuideToggle();
@@ -1858,6 +1971,21 @@ initBurgerMenu();
       if (descriptionInput) descriptionInput.value = meta.description || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
+      
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput) {
+        evalTypeInput.value = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+      const expectedOutputInput = document.getElementById('expected-output-input');
+      if (expectedOutputInput) expectedOutputInput.value = apiTaskData?.correct_solution?.expected_output || draft.expectedOutput || '';
+      const allowIndentCheckbox = document.getElementById('allow-indent');
+      if (allowIndentCheckbox) {
+        const currentEvalType = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+        const defaultIndent = currentEvalType !== 'order_only';
+        allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (apiTaskData?.correct_solution?.require_indentation !== undefined ? apiTaskData.correct_solution.require_indentation : defaultIndent);
+      }
+
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);
 
@@ -1892,6 +2020,7 @@ initBurgerMenu();
     setupGuideToggle();
     setupPreviewModal();
     setupChecklistNavigation();
+    setupEvalTypeToggle();
     setupButtons();
     updateModelAnswerStatus();
     updateAddToListState();

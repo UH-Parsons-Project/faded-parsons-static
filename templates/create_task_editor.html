@@ -162,9 +162,15 @@
         <div class="builder-layout card">
           <div class="card-header">
             <h3 class="card-title"><strong>Step 2: Model Answer</strong></h3>
-            <div class="d-flex align-items-center" style="gap: 0.75rem;">
-              <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
-              <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
+            <div class="d-flex align-items-center" style="gap: 1.5rem;">
+              <div class="custom-control custom-checkbox" style="margin-bottom: 0;">
+                <input type="checkbox" class="custom-control-input" id="allow-indent" checked>
+                <label class="custom-control-label font-weight-normal text-dark" for="allow-indent" style="font-size: 0.9rem; cursor: pointer; user-select: none;">Allow Indentation</label>
+              </div>
+              <div class="d-flex align-items-center" style="gap: 0.75rem;">
+                <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
+                <button id="clear-blocks" class="btn btn-outline-danger btn-sm" type="button">Clear All Blocks</button>
+              </div>
             </div>
           </div>
           <div class="card-body">
@@ -192,9 +198,26 @@
               <h3 class="card-title"><strong>Step 3: Check Tests</strong></h3>
             </div>
             <div class="card-body">
-              <p class="field-help mb-2" style="margin-top: 0;">Write standard Python <code>assert</code> statements, each on a new line.</p>
-              <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2&#10;assert my_function(2) == 4"></textarea>
-              <div class="run-toolbar">
+              <div class="form-group mb-3">
+                <label for="eval-type" class="mb-2 font-weight-bold">Evaluation Mode</label>
+                <select id="eval-type" class="form-control" style="max-width: 300px;">
+                  <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                  <option value="stdout">Console Output (print)</option>
+                  <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                </select>
+              </div>
+              <div id="unit-test-container">
+                <p class="field-help mb-2" style="margin-top: 0;">Write standard Python <code>assert</code> statements, each on a new line.</p>
+                <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert my_function(1) == 2&#10;assert my_function(2) == 4"></textarea>
+              </div>
+              <div id="stdout-container" style="display: none;">
+                <p class="field-help mb-2" style="margin-top: 0;">Provide the exact expected output that the student's code should print.</p>
+                <textarea id="expected-output-input" class="tests-input" spellcheck="false" placeholder="Hello World!"></textarea>
+              </div>
+              <div id="order-only-container" style="display: none;">
+                <p class="field-help mb-2" style="margin-top: 0;">No tests needed! The task will automatically be checked against the model answer block order.</p>
+              </div>
+              <div class="run-toolbar mt-3">
                 <span id="run-status" class="run-status"></span>
                 <button id="run-tests" class="btn btn-primary" type="button">Run Tests</button>
               </div>
@@ -395,7 +418,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-  <script src="/js/jquery.ui.touch-punch.js"></script>
+  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
   <script src="/js-parsons/parsons.js"></script>
   <script type="module" src="/js/task/create-task-editor.js"></script>
 <footer style="background:#f5f7fa;margin-top:2rem;padding:1rem 0;text-align:center;border-top:1px solid #e1e4e8;">

@@ -200,6 +200,15 @@ export async function initWidget() {
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
+		
+		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
+		const expectedOutput = task.expected_output !== undefined ? task.expected_output : (task.correct_solution?.expected_output || '');
+		const correctOrder = task.correct_order || task.correct_solution?.correct_order || [];
+		const requireIndentation = task.require_indentation !== undefined ? task.require_indentation : (task.correct_solution?.require_indentation !== undefined ? task.correct_solution.require_indentation : true);
+		probEl.setAttribute('evalType', evalType);
+		if (requireIndentation) {
+			probEl.setAttribute('requireIndentation', 'true');
+		}
 
 		// Restore any unsent moves/edits from a previous session
 		const savedMoves = JSON.parse(get(lsKey(LS_MOVES), '[]'));
@@ -225,7 +234,7 @@ export async function initWidget() {
 
 		// Listen for 'run' event fired when user clicks the Run button
 		probEl.addEventListener('run', (e) => {
-			handleSubmit(e.detail.code, e.detail.repr, e.detail.moves, e.detail.edits, functionHeader, globalTeacherTests);
+			handleSubmit(e.detail.code, e.detail.repr, e.detail.studentOrder, e.detail.moves, e.detail.edits, functionHeader, globalTeacherTests, evalType, expectedOutput, correctOrder);
 		});
 
 		// Save arrangement and move/edit history to localStorage on every change
@@ -272,7 +281,7 @@ function reconstructCodeLines(blocks) {
 		raw = raw.replace(/\s*#preplace\b/g, '');
 
 		// If the block contains input HTML, replace inputs with a blank marker
-		if (/\<input\b/i.test(raw)) {
+		if (/<input\b/i.test(raw)) {
 			const container = document.createElement('div');
 			container.innerHTML = raw;
 			container.querySelectorAll('input').forEach((input) => {
@@ -305,9 +314,90 @@ function reconstructCodeLines(blocks) {
 // moves: array of move events recorded during the attempt
 // edits: array of blank field edit events recorded during the attempt
 // codeHeader: Python function template/header
-async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, teacherTests) {
+async function handleSubmit(submittedCode, reprCode, studentOrder, moves, edits, codeHeader, teacherTests, evalType, expectedOutput, correctOrder) {
+	if (evalType === 'order_only') {
+		let success = true;
+		
+		if (!correctOrder || correctOrder.length === 0) {
+			success = true; // no order defined
+		} else if (studentOrder.length !== correctOrder.length) {
+			success = false;
+		} else {
+			for (let i = 0; i < correctOrder.length; i++) {
+				if (studentOrder[i] !== correctOrder[i]) {
+					success = false;
+					break;
+				}
+			}
+		}
+
+		let testResults = {
+			status: success ? 'pass' : 'fail',
+			header: success ? 'Order is correct!' : 'Order is incorrect.',
+			details: success ? 'Great job! The blocks are in the correct order.' : 'Check the order of your blocks and try again.',
+		};
+
+		probEl.setAttribute('runStatus', '');
+		probEl.setAttribute('resultsStatus', testResults.status);
+		probEl.setAttribute('resultsHeader', testResults.header);
+		probEl.setAttribute('resultsDetails', testResults.details);
+		probEl.setAttribute('resultsMessageSource', 'system');
+		probEl.setAttribute('resultsTeacherHint', '');
+		probEl.showNextTask = false;
+		probEl.nextTaskUrl = '';
+		probEl.allTasksCompleted = false;
+		probEl.backToSetUrl = '';
+
+		if (testResults.status === 'pass') {
+			try {
+				const nextTaskUrl = await resolveNextTaskUrl();
+				if (nextTaskUrl) {
+					probEl.nextTaskUrl = nextTaskUrl;
+					probEl.showNextTask = true;
+				} else {
+					probEl.allTasksCompleted = true;
+					probEl.backToSetUrl = `/${globalUsername}/set/${globalUniqueLinkCode}/tasks`;
+				}
+			} catch (error) {
+				console.warn('Failed to resolve next task URL:', error);
+			}
+		}
+
+		set(lsKey(LS_MOVES), '[]');
+		set(lsKey(LS_EDITS), '[]');
+
+		try {
+			const resultData = {
+				task_id: parseInt(globalTaskId),
+				success: testResults.status === 'pass',
+				submitted_code: submittedCode,
+				test_output: testResults.details || '',
+				repr_code: reprCode,
+				arrangement: probEl.getCurrentArrangement(),
+				moves: moves || [],
+				edits: edits || []
+			};
+
+			const response = await fetch(`/api/sets/${globalUniqueLinkCode}/tasks/${globalTaskId}/submit-result`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(resultData)
+			});
+
+			if (response.ok) {
+				await response.json();
+				localStorage.removeItem(`task_${globalTaskId}_start_time`);
+			}
+		} catch (error) {
+			console.warn('Error saving test results to backend:', error);
+		}
+		return;
+	}
+
 	// Prepare code and inject test code
-	let testResults = prepareCode(submittedCode, codeHeader, teacherTests);
+	let testResults = prepareCode(submittedCode, codeHeader, teacherTests, evalType);
 
 	// If preparation succeeded, execute the code
 	if (testResults.code) {
@@ -319,7 +409,7 @@ async function handleSubmit(submittedCode, reprCode, moves, edits, codeHeader, t
 
 			// Process results or errors
 			if (typeof results === 'string') {
-				testResults = processTestResults(results, customErrorRules);
+				testResults = processTestResults(results, customErrorRules, evalType, expectedOutput);
 			} else {
 				testResults = processTestError(error, testResults.startLine, customErrorRules);
 			}

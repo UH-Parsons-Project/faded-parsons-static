@@ -300,8 +300,18 @@ function applyCustomErrorMessageRules(testResults, rawRules) {
 	return testResults;
 }
 
-export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
+export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalType = 'unit_test') {
 	submittedCode += '\n';
+
+	if (evalType === 'stdout') {
+		return {
+			status: 'success',
+			header: 'Running code...',
+			code: submittedCode,
+			startLine: 1,
+		};
+	}
+
 	let lines = (codeHeader || '').split('\n');
 	let startLine = countDocstringLines(lines);
 	const normalizedTeacherTests = (teacherTests || '').trim();
@@ -424,7 +434,24 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '') {
 	};
 }
 
-export function processTestResults(outputStr, customErrorRules = []) {
+export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '') {
+	if (evalType === 'stdout') {
+		const actualOutput = outputStr.trim();
+		if (actualOutput === expectedOutput) {
+			return {
+				status: 'pass',
+				header: `Output matched expected exactly!`,
+				details: `✅ Passed\n\nOutput:\n${actualOutput}`
+			};
+		} else {
+			return {
+				status: 'fail',
+				header: `Output did not match expected output.`,
+				details: `❌ Failed\n\nExpected:\n${expectedOutput}\n\nGot:\n${actualOutput}`
+			};
+		}
+	}
+
 	if (outputStr.includes('ALL_TEACHER_TESTS_PASSED')) {
 		const teacherTestBlocks = extractTeacherTestBlocks(outputStr);
 		const passedCount = teacherTestBlocks.filter((block) => block.startsWith('✅ Passed test')).length;

@@ -469,6 +469,10 @@ async def get_task_for_student_set(
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,
+        eval_type=task.correct_solution.get("eval_type", "unit_test"),
+        expected_output=task.correct_solution.get("expected_output", ""),
+        correct_order=task.correct_solution.get("correct_order", []),
+        require_indentation=task.correct_solution.get("require_indentation", True),
     )
 
 

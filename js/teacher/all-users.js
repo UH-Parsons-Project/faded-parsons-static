@@ -1,5 +1,5 @@
 import {initProtectedPage, initSignedInAs, initBurgerMenu} from '../core/auth-ui.js';
-import { escapeHtml, formatDate } from '../utils/ui-utils.js';
+import { escapeHtml, formatDate, formatDateTime } from '../utils/ui-utils.js';
 import { deleteUser, makeAdmin, resetUserPassword } from '../admin/admin-user-actions.js';
 
 initProtectedPage('/');
@@ -107,8 +107,63 @@ function renderGroup(role, query, container) {
 		headerDiv.appendChild(titleWrap);
 
 		const badgesDiv = document.createElement('div');
-		badgesDiv.className = 'd-flex align-items-center';
+		badgesDiv.className = 'd-flex flex-column align-items-end';
 		badgesDiv.style.gap = '0.35rem';
+
+		const lastLoginChip = document.createElement('div');
+		lastLoginChip.className = 'task-set-code-chip';
+		lastLoginChip.style.display = 'inline-flex';
+		lastLoginChip.style.flexDirection = 'column';
+		lastLoginChip.style.alignItems = 'flex-start';
+		lastLoginChip.style.lineHeight = '1.2';
+		lastLoginChip.style.padding = '0.3rem 0.55rem';
+
+		const lastLoginTime = user.last_login || user.last_activity_at || user.updated_at;
+		const loginDate = lastLoginTime ? new Date(lastLoginTime) : (user.created_at ? new Date(user.created_at) : null);
+		const loginStr = lastLoginTime ? formatDateTime(lastLoginTime) : (user.created_at ? formatDateTime(user.created_at) : 'Never');
+
+		let relativeText = 'Never';
+		if (loginDate && !isNaN(loginDate.getTime())) {
+			const diffMs = Date.now() - loginDate.getTime();
+			if (diffMs < 0) {
+				relativeText = 'just now';
+			} else {
+				const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+				const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+				if (diffHours < 1) {
+					relativeText = '<1 hour ago';
+				} else if (diffHours < 24) {
+					relativeText = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+				} else {
+					relativeText = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+				}
+			}
+		}
+
+		const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+		const isMoreActive = loginDate && !isNaN(loginDate.getTime()) && (Date.now() - loginDate.getTime() <= sixtyDaysMs);
+
+		const iconColor = isMoreActive ? '#15803d' : '#9ca3af';
+
+		if (isMoreActive) {
+			lastLoginChip.style.borderColor = '#86efac';
+			lastLoginChip.style.color = '#15803d';
+			lastLoginChip.style.backgroundColor = '#f0fdf4';
+		} else {
+			lastLoginChip.style.borderColor = '#e5e7eb';
+			lastLoginChip.style.color = '#6b7280';
+			lastLoginChip.style.backgroundColor = '#f9fafb';
+		}
+
+		lastLoginChip.innerHTML = `
+			<div style="font-weight: 600; font-size: 0.78rem;">
+				<i class="far fa-clock" style="color: ${iconColor}; margin-right: 0.2rem;"></i> Last login ${escapeHtml(relativeText)}
+			</div>
+			<div style="font-size: 0.7rem; opacity: 0.85; margin-top: 0.15rem; text-align: center; width: 100%;">
+				${escapeHtml(loginStr)}
+			</div>
+		`;
+		badgesDiv.appendChild(lastLoginChip);
 
 		if (user.is_admin_teacher) {
 			const adminChip = document.createElement('div');
@@ -120,15 +175,6 @@ function renderGroup(role, query, container) {
 			badgesDiv.appendChild(adminChip);
 		}
 
-		const statusChip = document.createElement('div');
-		statusChip.className = 'task-set-code-chip';
-		if (user.is_active) {
-			statusChip.innerHTML = '<i class="fas fa-check-circle" style="color:var(--green)"></i> Active';
-		} else {
-			statusChip.innerHTML = '<i class="fas fa-times-circle" style="color:var(--red)"></i> Inactive';
-			statusChip.style.color = 'var(--red)';
-		}
-		badgesDiv.appendChild(statusChip);
 		headerDiv.appendChild(badgesDiv);
 
 		card.appendChild(headerDiv);

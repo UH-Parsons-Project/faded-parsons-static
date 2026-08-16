@@ -289,6 +289,7 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 			"is_active": teacher.is_active,
 			"is_admin_teacher": teacher.is_admin_teacher,
 			"is_current_user": teacher.id == current_user.id,
+			"last_login": getattr(teacher, "updated_at", None) or teacher.created_at,
 		})
 
 	for student in students:
@@ -301,6 +302,7 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 			"is_active": student.is_active,
 			"is_admin_teacher": False,
 			"is_current_user": False,
+			"last_login": getattr(student, "last_activity_at", None) or getattr(student, "student_updated_at", None) or student.student_created_at,
 		})
 
 	# Sort by created_at descending

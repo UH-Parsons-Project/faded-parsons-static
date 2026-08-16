@@ -1439,6 +1439,10 @@ initBurgerMenu();
 
     document.addEventListener('input', (event) => {
       if (event.target instanceof HTMLInputElement && event.target.classList.contains('text-box')) {
+        const isMainEditor = event.target.closest('#solution-sortable, #source-sortable');
+        if (!isMainEditor) {
+          return;
+        }
         persistBlankValues();
         hasOpenedStudentPreview = false;
         invalidateTestStatus('Block blank values were modified. Please run tests again.');
@@ -1641,7 +1645,7 @@ initBurgerMenu();
           }
         }
         hasOpenedStudentPreview = false;
-        invalidateTestStatus('Model answer was updated. Please run tests again.');
+        updateAddToListState();
       });
     }
 

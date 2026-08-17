@@ -950,6 +950,23 @@ function getTourStepsForPath(pathname) {
 
 	// Create Task Editor (Step 2: Blocks and Details) Tour
 	if (pathname.startsWith('/create-task-editor')) {
+		const evalTypeInput = document.getElementById('eval-type');
+		const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+		let testsStepElement = '#unit-test-container';
+		let testsStepTitle = 'Check Tests (Unit Tests)';
+		let testsStepDesc = 'Review or edit test cases and click "Run Tests" to verify your model answer.';
+
+		if (evalType === 'stdout') {
+			testsStepElement = '#stdout-container';
+			testsStepTitle = 'Expected Output';
+			testsStepDesc = 'Review expected print output and click "Run Tests" to verify your model answer.';
+		} else if (evalType === 'order_only') {
+			testsStepElement = '#order-only-container';
+			testsStepTitle = 'Order Only (No Tests Required)';
+			testsStepDesc = 'No code execution required! The task is automatically verified against the model block order.';
+		}
+
 		return [
 			{
 				element: '.checklist-sidebar',
@@ -974,7 +991,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Start Page Intro',
 					description:
-						'Provide a brief introduction for students that will appear on the task start page before they begin. Do not give the entire description since this can be read before the timer starts. ',
+						'Provide a brief introduction for students that will appear on the task start page before they begin. Do not give the entire description since this can be read before the timer starts.',
 					side: 'bottom',
 				},
 			},
@@ -983,7 +1000,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Problem Statement',
 					description:
-						'Write clear instructions and problem requirements for students to read while solving the task. Its adviced to also add an example of how the program should work.',
+						'Write clear instructions and problem requirements for students to read while solving the task. It is advised to also add an example of how the program should work.',
 					side: 'bottom',
 				},
 			},
@@ -1015,11 +1032,10 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
-				element: '#tests-input',
+				element: testsStepElement,
 				popover: {
-					title: 'Check Tests',
-					description:
-						'Review or edit the test cases and click "Run Tests" to verify that your model answer passes all checks.',
+					title: testsStepTitle,
+					description: testsStepDesc,
 					side: 'top',
 				},
 			},
@@ -1068,7 +1084,10 @@ function getTourStepsForPath(pathname) {
 		!pathname.startsWith('/create-task-editor') &&
 		!pathname.startsWith('/create-task-set')
 	) {
-		return [
+		const evalTypeInput = document.getElementById('eval-type');
+		const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+		const steps = [
 			{
 				element: '.page-title',
 				popover: {
@@ -1079,33 +1098,63 @@ function getTourStepsForPath(pathname) {
 				},
 			},
 			{
+				element: '#guide-toggle',
+				popover: {
+					title: 'How to Create a Task Guide',
+					description:
+						'Click here anytime to view step-by-step guides and ready-to-copy examples for all 3 task types (Function Unit Tests, Console Output, and Order Only).',
+					side: 'bottom',
+				},
+			},
+			{
+				element: '#eval-type',
+				popover: {
+					title: 'Evaluation Mode',
+					description:
+						'Choose your task type:<br>- <b>Function Unit Tests</b>: Standard function code tested with assert statements.<br>- <b>Console Output (print)</b>: Code printing text matched against expected output.<br>- <b>Order Only</b>: Scrambled conceptual steps graded on sequence without code execution.',
+					side: 'bottom',
+				},
+			},
+			{
 				element: '#task-code',
 				popover: {
 					title: 'Task Code Editor',
 					description:
-						'Write the reference Python function that defines the task students need to solve. Use standard Python syntax.',
+						evalType === 'stdout'
+							? 'Write Python code that outputs text using print statements.'
+							: evalType === 'order_only'
+							? 'Write the scrambled lines or conceptual steps in correct order (one per line).'
+							: 'Write the reference Python function that defines the task students need to solve.',
 					side: 'right',
 				},
 			},
-			{
-				element: '#task-tests',
+		];
+
+		if (evalType !== 'order_only') {
+			steps.push({
+				element: '#task-tests-panel',
 				popover: {
-					title: 'Task Tests Editor',
+					title: evalType === 'stdout' ? 'Expected Output Editor' : 'Task Tests Editor',
 					description:
-						'Write Python tests (like assert statements) to verify the correctness of your task code.',
+						evalType === 'stdout'
+							? 'Enter the exact string expected to be printed by the code.'
+							: 'Write Python unit tests (like assert statements) to verify student solutions.',
 					side: 'left',
 				},
+			});
+		}
+
+		steps.push({
+			element: '#submit-task',
+			popover: {
+				title: 'Continue to Block Builder',
+				description:
+					'Once your task code and tests are configured, click here to move on to Step 2: Block Builder.',
+				side: 'top',
 			},
-			{
-				element: '#submit-task',
-				popover: {
-					title: 'Continue to Block Builder',
-					description:
-						'Once your task code and tests are written, click here to move on to Step 2: Block Builder.',
-					side: 'top',
-				},
-			},
-		];
+		});
+
+		return steps;
 	}
 
 	// Create Task Set Tour

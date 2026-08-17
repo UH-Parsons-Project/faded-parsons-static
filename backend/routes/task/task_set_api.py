@@ -65,6 +65,7 @@ ALLOWED_TASK_TYPES = {
     "lists",
     "loops",
     "other",
+    "printing",
     "recursion",
     "searching",
     "sets",

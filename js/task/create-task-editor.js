@@ -39,6 +39,7 @@ initBurgerMenu();
     'lists',
     'loops',
     'other',
+    'printing',
     'recursion',
     'searching',
     'sets',

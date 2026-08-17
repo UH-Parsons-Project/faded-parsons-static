@@ -82,7 +82,7 @@ async function resolveNextTaskUrl() {
 	});
 
 	const unfinished = statuses.filter(
-		(item) => !item.isCompleted && item.taskNumber !== currentTaskId
+		(item) => !item.isCompleted && item.taskId !== currentTaskId
 	);
 	if (unfinished.length === 0) {
 		return null;
@@ -90,10 +90,10 @@ async function resolveNextTaskUrl() {
 
 	const preferred = unfinished.find((item) => item.hasStarted) || unfinished[0];
 	if (preferred.hasStarted) {
-		return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}`;
+		return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}`;
 	}
 
-	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskNumber}/start`;
+	return `/${globalUsername}/set/${globalUniqueLinkCode}/tasks/${preferred.taskId}/start`;
 }
 
 
@@ -105,15 +105,12 @@ export async function initWidget() {
 	let params = new URL(document.location).searchParams;
 	globalTaskId = params.get('id');
 
-	// If no query parameter, try extracting from URL path
-	if (!globalTaskId) {
-		const pathParts = window.location.pathname.split('/').filter(p => p);
-		// Path format: {username}/set/unique_link_code/tasks/task_id
-		if (pathParts.length >= 5 && pathParts[3] === 'tasks') {
-			globalUsername = pathParts[0];
-			globalUniqueLinkCode = pathParts[2];
-			globalTaskId = pathParts[4];
-		}
+	const pathParts = window.location.pathname.split('/').filter(p => p);
+	// Path format: {username}/set/unique_link_code/tasks/task_id
+	if (pathParts.length >= 5 && pathParts[3] === 'tasks') {
+		if (!globalUsername) globalUsername = pathParts[0];
+		if (!globalUniqueLinkCode) globalUniqueLinkCode = pathParts[2];
+		if (!globalTaskId) globalTaskId = pathParts[4];
 	}
 
 	if (!globalTaskId) {

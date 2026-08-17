@@ -46,12 +46,22 @@ export async function openTaskPreview(taskListItem) {
 
 		const tests = task.correct_solution?.teacher_tests || '';
 		const modelAnswerCode = task.model_answer || '';
+		const isOrderOnly = task.correct_solution?.eval_type === 'order_only';
 
 		previewTaskTitle.innerHTML = escapeHtml(task.title || '').replace(/\n/g, '<br>');
 		previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
 		previewText.innerHTML = problemStatement;
-		previewWrittenTests.textContent = tests.trim() || 'No tests written yet.';
-		previewModelAnswer.textContent = modelAnswerCode.trim() || 'No model answer set yet.';
+
+		const writtenTestsRow = previewWrittenTests?.closest('.row') || previewWrittenTests?.closest('.card');
+		if (writtenTestsRow) {
+			writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
+		}
+		if (previewWrittenTests) {
+			previewWrittenTests.textContent = tests.trim() || 'No tests written yet.';
+		}
+		if (previewModelAnswer) {
+			previewModelAnswer.textContent = modelAnswerCode.trim() || 'No model answer set yet.';
+		}
 
 		previewSource.innerHTML = '';
 		previewSolution.innerHTML = '';

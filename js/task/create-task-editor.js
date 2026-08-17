@@ -191,6 +191,13 @@ initBurgerMenu();
     }
     previewText.innerHTML = problemHtml;
     previewTaskType.textContent = taskType ? `Task tag: ${taskType}` : 'Task tag not selected yet.';
+
+    const evalTypeInput = document.getElementById('eval-type');
+    const isOrderOnly = evalTypeInput?.value === 'order_only';
+    const writtenTestsRow = previewWrittenTests.closest('.row') || previewWrittenTests.closest('.card');
+    if (writtenTestsRow) {
+      writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
+    }
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
     previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
@@ -697,6 +704,7 @@ initBurgerMenu();
 
     if (setModelAnswerBtn) {
       setModelAnswerBtn.textContent = modelAnswerCode ? 'Update Model Answer' : 'Set as Model Answer';
+      setModelAnswerBtn.classList.toggle('saved', Boolean(modelAnswerCode));
     }
 
     if (!status) {
@@ -811,7 +819,7 @@ initBurgerMenu();
   function renderParsonsBoardLocal(initialText, preferredSourceCode = '') {
     const allowIndentCheckbox = document.getElementById('allow-indent');
     const canIndent = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
-    
+
     const newWidget = renderParsonsBoard(initialText, {
       sourceSortable: document.getElementById('source-sortable'),
       solutionSortable: document.getElementById('solution-sortable'),
@@ -1391,7 +1399,7 @@ initBurgerMenu();
           if (editTaskId && finalModelAnswerCode) {
             await persistModelAnswerToServer(finalModelAnswerCode);
           }
-          alert(editTaskId ? 'Task updated successfully!' : 'Problem successfully added to the problem list!');
+          alert(editTaskId ? 'Task updated successfully!' : 'Task successfully created!');
           window.location.href = '/teacher-dashboard';
         } else {
           let detail = '';
@@ -1476,7 +1484,7 @@ initBurgerMenu();
     const stdoutContainer = document.getElementById('stdout-container');
     const orderOnlyContainer = document.getElementById('order-only-container');
     const runBtn = document.getElementById('run-tests');
-    
+
     if (!evalTypeInput || !unitTestContainer || !stdoutContainer || !orderOnlyContainer) return;
 
     function updateUI(event) {
@@ -1485,7 +1493,7 @@ initBurgerMenu();
       unitTestContainer.style.display = val === 'unit_test' ? 'block' : 'none';
       stdoutContainer.style.display = val === 'stdout' ? 'block' : 'none';
       orderOnlyContainer.style.display = val === 'order_only' ? 'block' : 'none';
-      
+
       const customBlockInput = document.getElementById('custom-block-input');
       const startDescriptionInput = document.getElementById('start-description');
       const problemDescriptionInput = document.getElementById('problem-description');
@@ -1510,7 +1518,7 @@ initBurgerMenu();
          if (problemDescriptionInput) problemDescriptionInput.placeholder = 'sum returns the total of a and b. It should take a and b as inputs and return a + b.';
          if (testsInput) testsInput.placeholder = 'assert sum(1, 5) == 6\nassert sum(5, 5) == 10';
       }
-      
+
       if (!isInit) {
         const allowIndentCheckbox = document.getElementById('allow-indent');
         if (allowIndentCheckbox) {
@@ -1547,17 +1555,17 @@ initBurgerMenu();
     if (allowIndentCheckbox) {
       allowIndentCheckbox.addEventListener('change', (e) => {
         if (!parsonsWidget) return;
-        
+
         const canIndent = e.target.checked;
         parsonsWidget.options.can_indent = canIndent;
-        
+
         if (!canIndent) {
           parsonsWidget.modified_lines.forEach(line => {
              line.indent = 0;
              parsonsWidget.updateHTMLIndent(line.id);
           });
         }
-        
+
         if (window.$) {
           const grid = canIndent ? [parsonsWidget.options.x_indent, 1] : false;
           const solutionUl = document.querySelector('#solution-sortable ul');
@@ -2004,7 +2012,7 @@ initBurgerMenu();
       if (examplesInput) examplesInput.value = meta.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
-      
+
       const evalTypeInput = document.getElementById('eval-type');
       if (evalTypeInput) {
         evalTypeInput.value = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';

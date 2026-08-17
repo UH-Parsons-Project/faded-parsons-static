@@ -491,18 +491,26 @@ html, body {
   font-weight: 600;
 }
 
-.add-btn {
-  border: 0;
-  background: #0f766e;
-  color: #fff;
+.add-btn,
+#add-custom-block {
+  background: transparent;
+  color: #0056b3;
+  border: 1px solid #0056b3;
   border-radius: 6px;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.add-btn:hover {
-  background: #0d5f59;
+.add-btn:hover,
+.add-btn:focus,
+#add-custom-block:hover,
+#add-custom-block:focus {
+  background: #0056b3;
+  border-color: #0056b3;
+  color: #fff;
 }
 
 .custom-block-box {
@@ -728,12 +736,27 @@ label[for="test-results"] {
 
 /* "Set as Model Answer" */
 #set-model-answer {
-  color: #0056b3;
-  border-color: #0056b3;
+  background-color: #0056b3;
+  color: #fff;
+  border: 1px solid #0056b3;
+  font-weight: 500;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 #set-model-answer:hover,
 #set-model-answer:focus {
-  background-color: #0056b3;
+  background-color: #004085;
+  border-color: #003768;
+  color: #fff;
+}
+#set-model-answer.saved {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+#set-model-answer.saved:hover,
+#set-model-answer.saved:focus {
+  background-color: #15803d;
+  border-color: #15803d;
   color: #fff;
 }
 

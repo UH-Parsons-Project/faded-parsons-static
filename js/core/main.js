@@ -177,16 +177,20 @@ export async function initWidget() {
 			}
 		}
 
+		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
+
 		// Reconstruct code lines from blocks for display
 		let codeLines = reconstructCodeLines(codeBlocksData.blocks);
 
-		// Add debug print statements and blank lines
-		codeLines =
-			codeLines +
-			"\nprint('DEBUG:', !BLANK)" +
-			"\nprint('DEBUG:', !BLANK)" +
-			'\n# !BLANK' +
-			'\n# !BLANK';
+		// Add debug print statements and blank lines ONLY for code-executing tasks (unit_test, stdout)
+		if (evalType !== 'order_only') {
+			codeLines =
+				codeLines +
+				"\nprint('DEBUG:', !BLANK)" +
+				"\nprint('DEBUG:', !BLANK)" +
+				'\n# !BLANK' +
+				'\n# !BLANK';
+		}
 
 		// Create a new problem-element web component
 		probEl = document.createElement('problem-element');
@@ -199,7 +203,6 @@ export async function initWidget() {
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
 		
-		const evalType = task.eval_type || task.correct_solution?.eval_type || 'unit_test';
 		const expectedOutput = task.expected_output !== undefined ? task.expected_output : (task.correct_solution?.expected_output || '');
 		const correctOrder = task.correct_order || task.correct_solution?.correct_order || [];
 		const requireIndentation = task.require_indentation !== undefined ? task.require_indentation : (task.correct_solution?.require_indentation !== undefined ? task.correct_solution.require_indentation : true);

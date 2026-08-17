@@ -1484,21 +1484,21 @@ initBurgerMenu();
 
       if (val === 'order_only') {
          if (runBtn) runBtn.textContent = 'Check Order';
-         if (customBlockInput) customBlockInput.placeholder = 'Write custom step or block text here...';
+         if (customBlockInput) customBlockInput.placeholder = 'Buy all ingredients\nBake a pie\nEat the pie';
          if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice ordering steps.';
-         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Arrange the steps in the correct logical order.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Arrange the steps to bake a pie in the correct order.';
       } else if (val === 'stdout') {
          if (runBtn) runBtn.textContent = 'Check Output';
-         if (customBlockInput) customBlockInput.placeholder = 'print("Hello World!")';
+         if (customBlockInput) customBlockInput.placeholder = 'print("Hello")';
          if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice printing output.';
-         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Write a program that prints "Hello World!".';
-         if (expectedOutputInput) expectedOutputInput.placeholder = 'Hello World!';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Write a program that prints Hello World on separate lines.';
+         if (expectedOutputInput) expectedOutputInput.placeholder = 'Hello\nWorld';
       } else {
          if (runBtn) runBtn.textContent = 'Run Tests';
          if (customBlockInput) customBlockInput.placeholder = 'Write custom block code here...';
          if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice adding values.';
-         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b.';
-         if (testsInput) testsInput.placeholder = 'assert my_function(1) == 2\nassert my_function(2) == 4';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'sum returns the total of a and b. It should take a and b as inputs and return a + b.';
+         if (testsInput) testsInput.placeholder = 'assert sum(1, 5) == 6\nassert sum(5, 5) == 10';
       }
       
       if (!isInit) {

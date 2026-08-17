@@ -170,7 +170,7 @@
             <div class="d-flex align-items-center" style="gap: 1.5rem;">
               <div class="custom-control custom-checkbox" style="margin-bottom: 0;">
                 <input type="checkbox" class="custom-control-input" id="allow-indent" checked>
-                <label class="custom-control-label font-weight-normal text-dark" for="allow-indent" style="font-size: 0.9rem; cursor: pointer; user-select: none;">Allow Indentation</label>
+                <label class="custom-control-label font-weight-bold text-dark" for="allow-indent" style="font-size: 0.9rem; cursor: pointer; user-select: none;">Allow Indentation</label>
               </div>
               <div class="d-flex align-items-center" style="gap: 0.75rem;">
                 <small class="text-muted"><span id="source-line-count">0</span> left, <span id="block-count">0</span> right</small>
@@ -220,7 +220,13 @@
                 <textarea id="expected-output-input" class="tests-input" spellcheck="false" placeholder="Hello&#10;World"></textarea>
               </div>
               <div id="order-only-container" style="display: none;">
-                <p class="field-help mb-2" style="margin-top: 0;">No tests needed! The task will automatically be checked against the model answer block order.</p>
+                <div class="alert alert-info d-flex align-items-center mb-0" style="background: #e0f2fe; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 8px; padding: 0.9rem 1.1rem;">
+                  <i class="fas fa-info-circle fa-lg" style="font-size: 1.3rem; margin-right: 0.75rem; flex-shrink: 0;"></i>
+                  <div>
+                    <strong style="font-size: 0.95rem;">No tests needed for Conceptual tasks!</strong>
+                    <div style="font-size: 0.88rem; margin-top: 0.25rem; color: #075985;">Conceptual tasks do not execute code. Student solutions are automatically checked against the model answer block order set in Step 2 above.</div>
+                  </div>
+                </div>
               </div>
               <div class="run-toolbar mt-3">
                 <span id="run-status" class="run-status"></span>

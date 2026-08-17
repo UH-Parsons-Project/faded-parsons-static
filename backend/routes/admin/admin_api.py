@@ -289,6 +289,7 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 			"is_active": teacher.is_active,
 			"is_admin_teacher": teacher.is_admin_teacher,
 			"is_current_user": teacher.id == current_user.id,
+			"last_login": getattr(teacher, "updated_at", None) or teacher.created_at,
 		})
 
 	for student in students:
@@ -301,6 +302,7 @@ async def list_all_users(current_user: AdminUser, db: Annotated[AsyncSession, De
 			"is_active": student.is_active,
 			"is_admin_teacher": False,
 			"is_current_user": False,
+			"last_login": getattr(student, "last_activity_at", None) or getattr(student, "student_updated_at", None) or student.student_created_at,
 		})
 
 	# Sort by created_at descending
@@ -525,6 +527,63 @@ async def promote_teacher_to_admin(
 	teacher.is_admin_teacher = True
 	await db.commit()
 	return {"status": "success", "message": "Teacher promoted to admin"}
+
+
+@router.post("/api/admin/users/{role}/{user_id}/reset-password")
+async def reset_user_password(
+	role: str,
+	user_id: int,
+	body: AdminPasswordRequest,
+	current_user: AdminUser,
+	db: Annotated[AsyncSession, Depends(get_db)],
+):
+	"""Reset a teacher or student's password to a newly generated random token. Admin only."""
+
+	if not body.admin_password or not current_user.verify_password(body.admin_password):
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Incorrect admin password",
+		)
+
+	if user_id == 999999:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Cannot reset password for deleted_user",
+		)
+
+	new_password = generate_token(length=15)
+
+	if role == "teacher":
+		stmt = select(Teacher).where(Teacher.id == user_id)
+		result = await db.execute(stmt)
+		user = result.scalar_one_or_none()
+		if not user:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+		if user.is_admin_teacher and user.id != current_user.id:
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail="Cannot reset password for another admin",
+			)
+
+	elif role == "student":
+		stmt = select(Student).where(Student.id == user_id)
+		result = await db.execute(stmt)
+		user = result.scalar_one_or_none()
+		if not user:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+	else:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+
+	user.set_password(new_password)
+	await db.commit()
+
+	return {
+		"status": "success",
+		"message": f"Password reset for {role} {user.username}",
+		"new_password": new_password,
+		"username": user.username,
+	}
+
 
 
 @router.get("/api/admin/students/{student_id}", response_model=dict)

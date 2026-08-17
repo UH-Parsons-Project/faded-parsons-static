@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +36,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
+    UpdateTaskSetTasksRequest,
 )
 from ...utils.task import is_task_editable
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
@@ -107,14 +108,21 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
 async def list_my_sets(current_user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     """List all task sets for the current teacher."""
     stmt = (
-        select(TaskSet, Teacher.username)
+        select(
+            TaskSet,
+            Teacher.username,
+            func.count(func.distinct(StudentTaskSetEnrollment.student_id)).label("student_count"),
+            func.count(func.distinct(TaskSetItem.id)).label("task_count"),
+        )
         .join(Teacher, Teacher.id == TaskSet.teacher_id)
         .outerjoin(TaskSetViewer, TaskSetViewer.task_set_id == TaskSet.id)
+        .outerjoin(StudentTaskSetEnrollment, StudentTaskSetEnrollment.task_set_id == TaskSet.id)
+        .outerjoin(TaskSetItem, TaskSetItem.task_set_id == TaskSet.id)
         .where(
             (TaskSet.teacher_id == current_user.id) | (TaskSetViewer.teacher_id == current_user.id)
         )
+        .group_by(TaskSet.id, Teacher.username)
         .order_by(TaskSet.created_at.desc())
-        .distinct()
     )
     result = await db.execute(stmt)
     my_sets = result.all()
@@ -166,8 +174,9 @@ async def get_task_set(
 
 
 @router.get("/api/my_sets/{code}/tasks", response_model=list[TaskSetTaskResponse])
-async def get_task_set_tasks(code: str, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncSession, Depends(get_db)]):
     """Get all tasks belonging to a task_set by unique link code."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     task_set_result = await db.execute(
         select(TaskSet).where(TaskSet.unique_link_code == code)
     )
@@ -238,6 +247,82 @@ async def toggle_task_hidden(
     item.is_hidden = not item.is_hidden
     await db.commit()
     return {"task_id": task_id, "is_hidden": item.is_hidden}
+
+
+@router.put("/api/my_sets/{task_set_id}/tasks")
+async def update_task_set_tasks(
+    task_set_id: int,
+    request: UpdateTaskSetTasksRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Replace and reorder all tasks in a task set, preserving existing is_hidden flags."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    if request.task_ids:
+        # Verify tasks exist
+        stmt = select(Parsons.id).where(Parsons.id.in_(request.task_ids))
+        result = await db.execute(stmt)
+        existing_parsons_ids = set(result.scalars().all())
+        if len(existing_parsons_ids) != len(set(request.task_ids)):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more tasks not found")
+
+    # Get existing task items to preserve is_hidden status
+    existing_items_stmt = select(TaskSetItem).where(TaskSetItem.task_set_id == task_set_id)
+    existing_items_result = await db.execute(existing_items_stmt)
+    existing_items = existing_items_result.scalars().all()
+    hidden_map = {item.task_id: item.is_hidden for item in existing_items}
+
+    # Delete existing items for this task set
+    await db.execute(delete(TaskSetItem).where(TaskSetItem.task_set_id == task_set_id))
+
+    # Re-insert items in exact order specified by request.task_ids
+    for task_id in request.task_ids:
+        is_hidden = hidden_map.get(task_id, False)
+        db.add(TaskSetItem(task_set_id=task_set_id, task_id=task_id, is_hidden=is_hidden))
+
+    await db.commit()
+    return {"status": "success", "task_count": len(request.task_ids)}
+
+
+@router.post("/api/my_sets/{task_set_id}/tasks", status_code=status.HTTP_201_CREATED)
+async def add_tasks_to_task_set(
+    task_set_id: int,
+    request: UpdateTaskSetTasksRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Add tasks to an existing task set without removing existing ones."""
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    if not request.task_ids:
+        return {"status": "success", "added_count": 0}
+
+    # Verify tasks exist
+    stmt = select(Parsons.id).where(Parsons.id.in_(request.task_ids))
+    result = await db.execute(stmt)
+    existing_parsons_ids = set(result.scalars().all())
+    if len(existing_parsons_ids) != len(set(request.task_ids)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more tasks not found")
+
+    # Check existing items to prevent duplicates
+    existing_stmt = select(TaskSetItem.task_id).where(
+        TaskSetItem.task_set_id == task_set_id,
+        TaskSetItem.task_id.in_(request.task_ids)
+    )
+    existing_result = await db.execute(existing_stmt)
+    existing_task_ids = set(existing_result.scalars().all())
+
+    tasks_to_add = [tid for tid in request.task_ids if tid not in existing_task_ids]
+    for task_id in tasks_to_add:
+        db.add(TaskSetItem(task_set_id=task_set_id, task_id=task_id))
+
+    await db.commit()
+    return {"status": "success", "added_count": len(tasks_to_add)}
 
 
 @router.get("/api/my_sets/{code}/info", response_model=TaskSetResponse)

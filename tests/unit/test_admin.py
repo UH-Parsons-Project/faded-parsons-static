@@ -89,3 +89,5 @@ async def test_api_users_admin_returns_list_of_users(client, admin_teacher, test
     assert admin_teacher.username in usernames
     assert test_teacher.username in usernames
     assert test_student.username in usernames
+    for u in users:
+        assert "last_login" in u

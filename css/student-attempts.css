@@ -214,6 +214,10 @@ body {
   color: #dc3545;
 }
 
+.sa-icon-not-started {
+  color: #94a3b8;
+}
+
 .sa-status-label {
   margin-right: 0.5rem;
 }

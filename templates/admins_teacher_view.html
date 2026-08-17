@@ -89,13 +89,23 @@
           <div class="col-md-4 col-sm-6 mb-3">
             <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
               <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-user mr-1" style="color: #8c7fa6;"></i> Username</span>
-              <span id="overview-username" class="font-weight-bold" style="font-size: 1.1rem; color: #8c7fa6;"></span>
+              <div class="d-flex align-items-center justify-content-between">
+                <span id="overview-username" class="font-weight-bold" style="font-size: 1.1rem; color: #8c7fa6;"></span>
+                <button id="copy-username-btn" type="button" class="btn btn-sm btn-light p-1 ml-2" style="border: 1px solid var(--border); color: #8c7fa6; line-height: 1;" title="Copy Username">
+                  <i class="far fa-copy"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="col-md-4 col-sm-6 mb-3">
             <div style="background: var(--card); border: 1px solid var(--border); border-top: 3px solid #8c7fa6; padding: 0.75rem; border-radius: 6px; box-shadow: var(--shadow);">
               <span class="d-block small font-weight-bold text-uppercase" style="color: var(--text-muted); margin-bottom: 0.25rem;"><i class="fas fa-envelope mr-1" style="color: #8c7fa6;"></i> Email Address</span>
-              <span id="overview-email" class="font-weight-bold" style="word-break: break-all; color: #8c7fa6;"></span>
+              <div class="d-flex align-items-center justify-content-between">
+                <span id="overview-email" class="font-weight-bold" style="word-break: break-all; color: #8c7fa6;"></span>
+                <button id="copy-email-btn" type="button" class="btn btn-sm btn-light p-1 ml-2" style="border: 1px solid var(--border); color: #8c7fa6; line-height: 1;" title="Copy Email">
+                  <i class="far fa-copy"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="col-md-4 col-sm-6 mb-3">
@@ -122,6 +132,10 @@
               <span id="overview-tasks-count" class="font-weight-bold" style="font-size: 1.1rem; color: var(--green);"></span>
             </div>
           </div>
+        </div>
+        <div id="user-actions-row" class="pt-3 border-top d-flex align-items-center flex-wrap" style="gap: 0.5rem; display: none;">
+          <span class="font-weight-bold text-muted mr-2" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: .04em;"><i class="fas fa-tools mr-1"></i> User Actions:</span>
+          <div id="user-actions-container" class="d-flex flex-wrap" style="gap: 0.5rem;"></div>
         </div>
       </div>
     </div>

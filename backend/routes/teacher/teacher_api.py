@@ -1,5 +1,5 @@
 from typing import Annotated
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 # Third-party
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
@@ -52,6 +52,9 @@ async def login_access_token(
         )
 
     clear_failed_attempts(identifier)
+
+    user.updated_at = datetime.now(timezone.utc)
+    await db.commit()
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

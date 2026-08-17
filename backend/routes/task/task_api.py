@@ -37,12 +37,12 @@ from ...pydantic import (
     TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
+    UpdateModelAnswerRequest,
 )
 from ...utils.task import is_task_editable
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from backend.utils import generate_slug
 from ..utils.commons import (
-    build_taskset_response_list,
     get_task_set_or_404,
     run_with_task_ids_or_empty,
 )
@@ -347,10 +347,15 @@ async def create_problem(
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
 
-    if not task_title or not solution_code or not description or not start_description or not tests:
+    if not task_title or not solution_code or not description or not start_description:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="taskTitle, description, startDescription, tests and solutionCode are required",
+            detail="taskTitle, description, startDescription and solutionCode are required",
+        )
+    if request.eval_type == "unit_test" and not tests:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tests are required for unit_test evaluation type",
         )
 
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
@@ -367,17 +372,21 @@ async def create_problem(
     first_code_line = lines[0].strip()
     if " #" in first_code_line:
         first_code_line = first_code_line.split(" #", 1)[0].rstrip()
-    if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The first non-empty solution line must start with def or class",
-        )
 
     import re
 
-    header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
-    function_name = header_match.group(2) if header_match else "custom_task"
-    function_header = first_code_line
+    if request.eval_type == "unit_test":
+        if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The first non-empty solution line must start with def or class",
+            )
+        header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
+        function_name = header_match.group(2) if header_match else "custom_task"
+        function_header = first_code_line
+    else:
+        function_name = ""
+        function_header = ""
     final_title = task_title
 
     existing_task_stmt = select(Parsons).where(Parsons.title == final_title)
@@ -405,7 +414,10 @@ async def create_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -423,11 +435,13 @@ async def create_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 
@@ -446,6 +460,9 @@ async def create_problem(
             "teacher_tests": tests,
             "solution_code": solution_code,
             "custom_error_messages": custom_error_messages,
+            "eval_type": request.eval_type,
+            "expected_output": request.expected_output,
+            "require_indentation": request.require_indentation,
         },
         is_public=is_public,
     )
@@ -508,7 +525,7 @@ async def get_model_answer(
 @router.put("/api/problems/{task_id}/model-answer")
 async def update_model_answer(
     task_id: int,
-    request: CreateProblemRequest,
+    request: UpdateModelAnswerRequest,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -568,10 +585,15 @@ async def update_problem(
     tests = request.tests.strip()
     custom_error_messages = request.customErrorMessages.strip() if request.customErrorMessages else None
 
-    if not task_title or not solution_code or not description or not start_description or not tests:
+    if not task_title or not solution_code or not description or not start_description:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="taskTitle, description, startDescription, tests and solutionCode are required",
+            detail="taskTitle, description, startDescription and solutionCode are required",
+        )
+    if request.eval_type == "unit_test" and not tests:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="tests are required for unit_test evaluation type",
         )
 
     parsons_repr = (request.parsonsRepr or "").replace("\r\n", "\n").replace("\r", "\n")
@@ -587,15 +609,19 @@ async def update_problem(
     first_code_line = lines[0].strip()
     if " #" in first_code_line:
         first_code_line = first_code_line.split(" #", 1)[0].rstrip()
-    if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The first non-empty solution line must start with def or class",
-        )
 
-    header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
-    function_name = header_match.group(2) if header_match else "custom_task"
-    function_header = first_code_line
+    if request.eval_type == "unit_test":
+        if not (first_code_line.startswith("def ") or first_code_line.startswith("class ")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The first non-empty solution line must start with def or class",
+            )
+        header_match = re.match(r"^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)", first_code_line)
+        function_name = header_match.group(2) if header_match else "custom_task"
+        function_header = first_code_line
+    else:
+        function_name = ""
+        function_header = ""
     final_title = task_title
 
     if task.title != final_title:
@@ -624,7 +650,10 @@ async def update_problem(
         line_without_given = given_indent_re.sub("", line)
         line_without_preplace = preplace_re.sub("", line_without_given)
         line_without_blank_markers = blank_marker_re.sub("", line_without_preplace)
-        stripped_line = line_without_blank_markers.strip()
+        sanitized_input_line = re.sub(r"<input[^>]*>(?:</input>)?", "!BLANK", line_without_blank_markers, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<input[^>]*/>", "!BLANK", sanitized_input_line, flags=re.IGNORECASE)
+        sanitized_input_line = re.sub(r"<[^>]+>", "", sanitized_input_line)
+        stripped_line = sanitized_input_line.strip()
         is_faded = "!BLANK" in stripped_line
         if is_faded:
             has_faded = True
@@ -642,11 +671,13 @@ async def update_problem(
 
     requested_task_type = _resolve_task_type(request.task_type, has_faded)
 
+    examples_text = request.examples.strip() if request.examples else ""
+
     task_instructions_payload = json.dumps(
         {
             "function_name": function_name,
             "task_instructions": description,
-            "examples": "",
+            "examples": examples_text,
         }
     )
 
@@ -660,6 +691,9 @@ async def update_problem(
         "teacher_tests": tests,
         "solution_code": solution_code,
         "custom_error_messages": custom_error_messages,
+        "eval_type": request.eval_type,
+        "expected_output": request.expected_output,
+        "require_indentation": request.require_indentation,
     }
     task.is_public = True if request.is_public is None else request.is_public
 

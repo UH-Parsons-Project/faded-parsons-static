@@ -81,6 +81,7 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const taskTypeInput = document.getElementById('task-type');
+    const evalTypeInput = document.getElementById('eval-type');
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.querySelectorAll('li').length > 0);
     const taskTypeValue = normalizeTaskTypeValue(taskTypeInput?.value);
@@ -93,7 +94,7 @@ initBurgerMenu();
       { key: 'solution-blocks', done: hasSolutionBlocks },
       { key: 'model-answer', done: Boolean(modelAnswerCode) },
       { key: 'custom-errors', done: Boolean(customErrorMessagesInput && customErrorMessagesInput.value.trim()), optional: true },
-      { key: 'tests-written', done: Boolean(testsInput && testsInput.value.trim()) },
+      { key: 'tests-written', done: Boolean(evalTypeInput?.value !== 'unit_test' || (testsInput && testsInput.value.trim())) },
       { key: 'tests-passed', done: testsPassed },
       { key: 'previewed', done: hasOpenedStudentPreview },
     ];
@@ -159,6 +160,7 @@ initBurgerMenu();
     const previewModelAnswer = document.getElementById('preview-model-answer');
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const examplesInput = document.getElementById('examples-input');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
@@ -170,10 +172,16 @@ initBurgerMenu();
     const taskTitle = taskTitleInput?.value.trim() || 'No task name provided yet.';
     const startIntro = startDescriptionInput?.value.trim() || 'No start page intro provided yet.';
     const problemStatement = descriptionInput?.value.trim() || 'No problem statement provided yet.';
+    const examplesText = examplesInput?.value.trim() || '';
     const taskType = getTaskTypeValue();
     previewTaskTitle.innerHTML = escapeHtml(taskTitle).replace(/\n/g, '<br>');
     previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
-    previewText.innerHTML = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+
+    let problemHtml = escapeHtml(problemStatement).replace(/\n/g, '<br>');
+    if (examplesText) {
+      problemHtml += `<br><br><strong>Examples:</strong><pre style="margin-top: 0.5rem; background: #f1f5f9; padding: 0.75rem; border-radius: 6px;"><code>${escapeHtml(examplesText)}</code></pre>`;
+    }
+    previewText.innerHTML = problemHtml;
     previewTaskType.textContent = taskType ? `Task tag: ${taskType}` : 'Task tag not selected yet.';
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
@@ -192,26 +200,16 @@ initBurgerMenu();
 
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
-    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues) || modelAnswerRepr;
-    previewParsonsWidget.init(normalizeBlankMarkup(previewRepr));
+    const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
+    previewParsonsWidget.init(cleanPreviewRepr);
 
-    const previewSolutionIds = previewParsonsWidget.studentGiven.map((line) => line.id);
+    const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
-    const previewValuesToRestore = getBlankValuesToRestore(modelAnswerCode || '', previewSolutionIds, previewParsonsWidget);
-    const previewBlankValuesByLineId = previewSolutionIds.reduce((acc, id, index) => {
-      acc[id] = previewValuesToRestore[index] || [];
-      return acc;
-    }, {});
-    applyBlankValuesToWidgetLines(previewParsonsWidget, previewBlankValuesByLineId);
     previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
-
-    if (previewValuesToRestore.some((values) => values.length)) {
-      saveBlankValuesToSession(previewValuesToRestore);
-      restoreBlankValuesToDomByLineId(previewBlankValuesByLineId, previewSolution.querySelector('ul'));
-    }
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -377,25 +375,7 @@ initBurgerMenu();
     return Array.from(lineElement.querySelectorAll('input')).map((input) => input.value || '');
   }
 
-  function renderLineWithBlankValues(lineCode, blankValues = []) {
-    const normalizedCode = normalizeSourceCode(lineCode || '').trimEnd();
 
-    if (!normalizedCode.includes('!BLANK') && !normalizedCode.includes('___')) {
-      return normalizedCode;
-    }
-
-    let blankIndex = 0;
-    return normalizedCode.split(/!BLANK|___/).reduce((renderedCode, segment, index, segments) => {
-      const nextCode = renderedCode + segment;
-      if (index === segments.length - 1) {
-        return nextCode;
-      }
-
-      const blankValue = blankValues[blankIndex] ?? '';
-      blankIndex += 1;
-      return nextCode + blankValue;
-    }, '').trimEnd();
-  }
 
   function applyBlankValuesToWidgetLines(widget, blankValuesByLineId = {}) {
     if (!widget || !Array.isArray(widget.modified_lines)) {
@@ -483,23 +463,7 @@ initBurgerMenu();
     });
   }
 
-  function restoreBlankValuesToDom(blankValues = [], targetList = null) {
-    const solutionList = targetList || document.querySelector('#solution-sortable ul');
-    if (!solutionList) {
-      return;
-    }
 
-    const solutionChildren = Array.from(solutionList.children);
-    solutionChildren.forEach((child, index) => {
-      const values = blankValues[index] || [];
-      const inputs = Array.from(child.querySelectorAll('input.text-box'));
-      inputs.forEach((input, inputIndex) => {
-        const value = values[inputIndex] ?? '';
-        input.value = value;
-        input.style.width = `${(value.length + 3) * 8}px`;
-      });
-    });
-  }
 
   function restoreBlankValuesToDomByLineId(blankValuesByLineId = {}, targetList = null) {
     const solutionList = targetList || document.querySelector('#solution-sortable ul');
@@ -573,6 +537,7 @@ initBurgerMenu();
         taskTitle: typeof parsed.taskTitle === 'string' ? parsed.taskTitle : '',
         description: typeof parsed.description === 'string' ? parsed.description : '',
         startDescription: typeof parsed.startDescription === 'string' ? parsed.startDescription : '',
+        examples: typeof parsed.examples === 'string' ? parsed.examples : '',
         tests: typeof parsed.tests === 'string' ? parsed.tests : '',
         customErrorMessages: typeof parsed.customErrorMessages === 'string' ? parsed.customErrorMessages : '',
         taskType: normalizeTaskTypeValue(parsed.taskType),
@@ -619,16 +584,22 @@ initBurgerMenu();
     }
   }
 
-  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType) {
+  function saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType, examples = null) {
     const taskTypeInput = document.getElementById('task-type');
+    const examplesInput = document.getElementById('examples-input');
+    const examplesValue = typeof examples === 'string' ? examples : (examplesInput?.value || '');
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+    const requireIndentation = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
     sessionStorage.setItem(META_KEY, JSON.stringify({
       taskTitle,
       description,
       startDescription,
+      examples: examplesValue,
       tests,
       customErrorMessages,
       taskType: normalizeTaskTypeValue(typeof taskType === 'string' ? taskType : taskTypeInput?.value),
       isPublic: typeof isPublic === 'boolean' ? isPublic : true,
+      requireIndentation,
       taskId: draftPayload?.taskId ?? null,
     }));
     sessionStorage.setItem(META_SOURCE_KEY, normalizeSourceCode(draftPayload?.taskCode || ''));
@@ -830,16 +801,20 @@ initBurgerMenu();
     return [];
   }
   function renderParsonsBoardLocal(initialText, preferredSourceCode = '') {
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+    const canIndent = allowIndentCheckbox ? allowIndentCheckbox.checked : true;
+    
     const newWidget = renderParsonsBoard(initialText, {
       sourceSortable: document.getElementById('source-sortable'),
       solutionSortable: document.getElementById('solution-sortable'),
       ParsonsWidgetCtor: window.ParsonsWidget,
+      can_indent: canIndent,
       onSortableUpdate: () => {
         refreshGivenToggles();
         updateCounters();
         persistParsonsRepr();
         hasOpenedStudentPreview = false;
-        updateAddToListState();
+        invalidateTestStatus('Blocks were moved. Please run tests again.');
       },
       injectDeleteButtons,
       injectGivenToggles,
@@ -978,7 +953,7 @@ initBurgerMenu();
     }
     persistParsonsRepr();
     hasOpenedStudentPreview = false;
-    updateAddToListState();
+    invalidateTestStatus('Block settings were modified. Please run tests again.');
   }
 
   function deleteBlock(blockId) {
@@ -999,7 +974,7 @@ initBurgerMenu();
     updateCounters();
     persistParsonsRepr();
     hasOpenedStudentPreview = false;
-    updateAddToListState();
+    invalidateTestStatus('A block was deleted. Please run tests again.');
   }
 
   function addCustomBlockToSource(blockCode) {
@@ -1052,6 +1027,8 @@ initBurgerMenu();
 
     updateCounters();
     persistParsonsRepr();
+    hasOpenedStudentPreview = false;
+    invalidateTestStatus('A custom block was added. Please run tests again.');
   }
 
   function setupGuideToggle() {
@@ -1112,6 +1089,12 @@ initBurgerMenu();
       el.classList.add('fail');
     }
     el.textContent = message;
+  }
+
+  function invalidateTestStatus(message = 'Workspace or test settings were modified. Please run tests again.') {
+    testsPassed = false;
+    renderTestResult('', message);
+    updateAddToListState();
   }
 
   function formatApiErrorDetail(detail) {
@@ -1197,17 +1180,28 @@ initBurgerMenu();
   }
 
   async function runTeacherTests() {
+    const evalTypeInput = document.getElementById('eval-type');
     const testsInput = document.getElementById('tests-input');
+    const expectedOutputInput = document.getElementById('expected-output-input');
     const runStatus = document.getElementById('run-status');
     const runBtn = document.getElementById('run-tests');
     const addToListBtn = document.getElementById('add-to-problem-list');
 
-    if (!testsInput || !runStatus || !runBtn || !addToListBtn) {
+    if (!runStatus || !runBtn || !addToListBtn) {
       return;
     }
 
     testsPassed = false;
     updateAddToListState();
+
+    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+
+    if (evalType === 'order_only') {
+      renderTestResult('pass', 'Order-only tasks do not require test execution. You can proceed!');
+      testsPassed = true;
+      updateAddToListState();
+      return;
+    }
 
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.children.length > 0);
@@ -1221,8 +1215,14 @@ initBurgerMenu();
       return;
     }
 
-    if (!testsCode) {
+    if (evalType === 'unit_test' && !testsCode) {
       renderTestResult('fail', 'Please add tests before running.');
+      return;
+    }
+
+    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
+    if (evalType === 'stdout' && !expectedOutput) {
+      renderTestResult('fail', 'Please provide the expected output before running.');
       return;
     }
 
@@ -1235,13 +1235,18 @@ initBurgerMenu();
     runBtn.disabled = true;
     runStatus.textContent = 'Running tests...';
 
-    const python = [
-      sourceCode,
-      '',
-      testsCode,
-      '',
-      'print("ALL_TEACHER_TESTS_PASSED")',
-    ].join('\n');
+    let python = '';
+    if (evalType === 'unit_test') {
+      python = [
+        sourceCode,
+        '',
+        testsCode,
+        '',
+        'print("ALL_TEACHER_TESTS_PASSED")',
+      ].join('\n');
+    } else {
+      python = sourceCode;
+    }
 
     try {
       const { results, error } = await new FiniteWorker(python);
@@ -1253,16 +1258,25 @@ initBurgerMenu();
         updateAddToListState();
       } else {
         const output = (results || '').toString().trim();
-        if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
-          renderTestResult('pass', 'All tests passed!');
-          testsPassed = true;
-          updateAddToListState();
-        } else {
-          const errorMessage = output || 'Test execution failed with no output.';
-          renderTestResult('fail', errorMessage);
-          testsPassed = false;
-          updateAddToListState();
+        if (evalType === 'unit_test') {
+          if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
+            renderTestResult('pass', 'All tests passed!');
+            testsPassed = true;
+          } else {
+            const errorMessage = output || 'Test execution failed with no output.';
+            renderTestResult('fail', errorMessage);
+            testsPassed = false;
+          }
+        } else if (evalType === 'stdout') {
+          if (output === expectedOutput) {
+            renderTestResult('pass', `Output matched perfectly!\n\nOutput:\n${output}`);
+            testsPassed = true;
+          } else {
+            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedOutput}\n\nGot:\n${output}`);
+            testsPassed = false;
+          }
         }
+        updateAddToListState();
       }
     } catch (err) {
       renderTestResult('fail', `Execution error: ${err.message || err}`);
@@ -1277,6 +1291,7 @@ initBurgerMenu();
   function addToProblemList() {
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
+    const examplesInput = document.getElementById('examples-input');
     const startDescriptionInput = document.getElementById('start-description');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
@@ -1291,6 +1306,7 @@ initBurgerMenu();
 
     const taskTitle = taskTitleInput.value.trim();
     const description = descriptionInput.value.trim();
+    const examples = examplesInput?.value.trim() || '';
     const startDescription = startDescriptionInput.value.trim();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
     const tests = testsInput.value.trim();
@@ -1298,16 +1314,26 @@ initBurgerMenu();
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
     const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
 
+    const evalTypeInput = document.getElementById('eval-type');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
+
     if (!taskType) {
       alert('Please select a task tag before saving the task.');
       taskTypeInput?.focus();
       return;
     }
 
-    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType);
+    saveMetaToSession(taskTitle, description, startDescription, tests, customErrorMessages, isPublic, taskType, examples);
 
-    if (!taskTitle || !description || !startDescription || !tests || !solutionCode) {
+    if (!taskTitle || !description || !startDescription || !solutionCode) {
       alert('Please ensure all required fields are filled out and set a model answer before adding the problem.');
+      return;
+    }
+
+    if (evalType === 'unit_test' && !tests) {
+      alert('Please ensure you write unit tests for this task.');
       return;
     }
 
@@ -1322,16 +1348,21 @@ initBurgerMenu();
     }
 
     const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
     const problemData = {
       taskTitle,
       description,
       startDescription,
+      examples,
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
-      parsonsRepr: buildCustomRepr(),
+      parsonsRepr: buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues),
       task_type: taskType,
       is_public: isPublic,
+      eval_type: evalType,
+      expected_output: expectedOutput,
+      require_indentation: document.getElementById('allow-indent') ? document.getElementById('allow-indent').checked : true,
     };
 
     const editTaskId = draftPayload?.taskId || null;
@@ -1347,6 +1378,9 @@ initBurgerMenu();
     })
       .then(async (response) => {
         if (response.ok) {
+          if (editTaskId && finalModelAnswerCode) {
+            await persistModelAnswerToServer(finalModelAnswerCode);
+          }
           alert(editTaskId ? 'Task updated successfully!' : 'Problem successfully added to the problem list!');
           window.location.href = '/teacher-dashboard';
         } else {
@@ -1413,11 +1447,72 @@ initBurgerMenu();
 
     document.addEventListener('input', (event) => {
       if (event.target instanceof HTMLInputElement && event.target.classList.contains('text-box')) {
+        const isMainEditor = event.target.closest('#solution-sortable, #source-sortable');
+        if (!isMainEditor) {
+          return;
+        }
         persistBlankValues();
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Block blank values were modified. Please run tests again.');
       }
     });
 
     document.body.dataset.blankInputBound = 'true';
+  }
+
+  function setupEvalTypeToggle() {
+    const evalTypeInput = document.getElementById('eval-type');
+    const unitTestContainer = document.getElementById('unit-test-container');
+    const stdoutContainer = document.getElementById('stdout-container');
+    const orderOnlyContainer = document.getElementById('order-only-container');
+    const runBtn = document.getElementById('run-tests');
+    
+    if (!evalTypeInput || !unitTestContainer || !stdoutContainer || !orderOnlyContainer) return;
+
+    function updateUI(event) {
+      const isInit = !event || !event.type;
+      const val = evalTypeInput.value;
+      unitTestContainer.style.display = val === 'unit_test' ? 'block' : 'none';
+      stdoutContainer.style.display = val === 'stdout' ? 'block' : 'none';
+      orderOnlyContainer.style.display = val === 'order_only' ? 'block' : 'none';
+      
+      const customBlockInput = document.getElementById('custom-block-input');
+      const startDescriptionInput = document.getElementById('start-description');
+      const problemDescriptionInput = document.getElementById('problem-description');
+      const testsInput = document.getElementById('tests-input');
+      const expectedOutputInput = document.getElementById('expected-output-input');
+
+      if (val === 'order_only') {
+         if (runBtn) runBtn.textContent = 'Check Order';
+         if (customBlockInput) customBlockInput.placeholder = 'Write custom step or block text here...';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice ordering steps.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Arrange the steps in the correct logical order.';
+      } else if (val === 'stdout') {
+         if (runBtn) runBtn.textContent = 'Check Output';
+         if (customBlockInput) customBlockInput.placeholder = 'print("Hello World!")';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice printing output.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'Write a program that prints "Hello World!".';
+         if (expectedOutputInput) expectedOutputInput.placeholder = 'Hello World!';
+      } else {
+         if (runBtn) runBtn.textContent = 'Run Tests';
+         if (customBlockInput) customBlockInput.placeholder = 'Write custom block code here...';
+         if (startDescriptionInput) startDescriptionInput.placeholder = 'In this exercise you will practice adding values.';
+         if (problemDescriptionInput) problemDescriptionInput.placeholder = 'add_two_numbers returns the sum of two values. It should take a and b as inputs and return a + b.';
+         if (testsInput) testsInput.placeholder = 'assert my_function(1) == 2\nassert my_function(2) == 4';
+      }
+      
+      if (!isInit) {
+        const allowIndentCheckbox = document.getElementById('allow-indent');
+        if (allowIndentCheckbox) {
+          allowIndentCheckbox.checked = val !== 'order_only';
+          allowIndentCheckbox.dispatchEvent(new Event('change'));
+        }
+        invalidateTestStatus('Evaluation mode changed. Please run tests again.');
+      }
+    }
+
+    evalTypeInput.addEventListener('change', updateUI);
+    updateUI();
   }
 
   function setupButtons() {
@@ -1436,6 +1531,33 @@ initBurgerMenu();
     const taskTypeInput = document.getElementById('task-type');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+
+    if (allowIndentCheckbox) {
+      allowIndentCheckbox.addEventListener('change', (e) => {
+        if (!parsonsWidget) return;
+        
+        const canIndent = e.target.checked;
+        parsonsWidget.options.can_indent = canIndent;
+        
+        if (!canIndent) {
+          parsonsWidget.modified_lines.forEach(line => {
+             line.indent = 0;
+             parsonsWidget.updateHTMLIndent(line.id);
+          });
+        }
+        
+        if (window.$) {
+          const grid = canIndent ? [parsonsWidget.options.x_indent, 1] : false;
+          const solutionUl = document.querySelector('#solution-sortable ul');
+          const sourceUl = document.querySelector('#source-sortable ul');
+          if (solutionUl) window.$(solutionUl).sortable('option', 'grid', grid);
+          if (sourceUl) window.$(sourceUl).sortable('option', 'grid', grid);
+        }
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Indentation setting changed. Please run tests again.');
+      });
+    }
     const previewStudentBtn = document.getElementById('preview-student-view');
     const cancelBtn = document.getElementById('cancel-task-editor');
 
@@ -1478,7 +1600,7 @@ initBurgerMenu();
         modelAnswerRepr = '';
         modelAnswerUpdatedAt = '';
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Workspace cleared. Please run tests again.');
         renderParsonsBoardLocal(normalizeSourceCode(draftPayload?.taskCode || ''));
         updateModelAnswerStatus();
         updateAddToListState();
@@ -1521,7 +1643,7 @@ initBurgerMenu();
           return;
         }
 
-        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr());
+        saveModelAnswerToSession(currentSolutionCode, buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues));
         const persistedToServer = await persistModelAnswerToServer(currentSolutionCode);
         if (persistedToServer) {
           const status = document.getElementById('model-answer-status');
@@ -1607,7 +1729,7 @@ initBurgerMenu();
 
       testsInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Tests were modified. Please run tests again.');
         saveMetaToSession(
           taskTitleInput.value,
           descriptionInput.value,
@@ -1678,7 +1800,7 @@ initBurgerMenu();
       addCustomErrorBtn.addEventListener('click', () => {
         // customErrorMessagesInput.focus();
         hasOpenedStudentPreview = false;
-        testsPassed = false;
+        invalidateTestStatus('Custom error messages were updated. Please run tests again.');
         saveMetaToSession(
           taskTitleInput.value,
           descriptionInput.value,
@@ -1764,6 +1886,8 @@ initBurgerMenu();
       try { instructions = JSON.parse(taskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || taskData.title || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || instructions.task_instructions || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = meta.examples !== undefined && meta.examples !== '' ? meta.examples : (instructions.examples || '');
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
@@ -1794,6 +1918,13 @@ initBurgerMenu();
 
       const backBtn = document.getElementById('back-to-code');
       if (backBtn) backBtn.style.display = 'none';
+
+      const allowIndentCheckbox = document.getElementById('allow-indent');
+      if (allowIndentCheckbox) {
+        const currentEvalType = taskData.correct_solution?.eval_type || 'unit_test';
+        const defaultIndent = currentEvalType !== 'order_only';
+        allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (taskData.correct_solution?.require_indentation !== undefined ? taskData.correct_solution.require_indentation : defaultIndent);
+      }
 
       renderParsonsBoardLocal(initialText, persistedModelAnswerSource);
       setupBlankInputPersistence();
@@ -1845,6 +1976,8 @@ initBurgerMenu();
       try { instructions = JSON.parse(apiTaskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
       if (taskTitleInput) taskTitleInput.value = apiTaskData.title || defaultTitle;
       if (descriptionInput) descriptionInput.value = instructions.task_instructions || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = instructions.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
@@ -1856,8 +1989,25 @@ initBurgerMenu();
     } else {
       if (taskTitleInput) taskTitleInput.value = (meta.taskTitle || '').trim() || defaultTitle;
       if (descriptionInput) descriptionInput.value = meta.description || '';
+      const examplesInput = document.getElementById('examples-input');
+      if (examplesInput) examplesInput.value = meta.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
+      
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput) {
+        evalTypeInput.value = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+      const expectedOutputInput = document.getElementById('expected-output-input');
+      if (expectedOutputInput) expectedOutputInput.value = apiTaskData?.correct_solution?.expected_output || draft.expectedOutput || '';
+      const allowIndentCheckbox = document.getElementById('allow-indent');
+      if (allowIndentCheckbox) {
+        const currentEvalType = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+        const defaultIndent = currentEvalType !== 'order_only';
+        allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (apiTaskData?.correct_solution?.require_indentation !== undefined ? apiTaskData.correct_solution.require_indentation : defaultIndent);
+      }
+
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);
 
@@ -1892,6 +2042,7 @@ initBurgerMenu();
     setupGuideToggle();
     setupPreviewModal();
     setupChecklistNavigation();
+    setupEvalTypeToggle();
     setupButtons();
     updateModelAnswerStatus();
     updateAddToListState();

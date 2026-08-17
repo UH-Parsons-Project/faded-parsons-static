@@ -42,7 +42,6 @@ from ...utils.taskset import require_task_set_view_access
 from ..utils.commons import (
     ensure_unique_user,
     get_task_set_by_code_or_404,
-    resolve_task_id_in_set_or_404,
     validate_registration_basic,
     verify_task_in_set_or_404,
 )
@@ -58,15 +57,8 @@ def _parse_iso_datetime(value: str):
 
 async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id: int) -> tuple[TaskSet, int]:
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
-    try:
-        resolved_task_id = await resolve_task_id_in_set_or_404(db, task_set, task_id, visible_only=True)
-    except HTTPException as e:
-        if e.status_code == 404:
-            await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
-            resolved_task_id = task_id
-        else:
-            raise e
-    return task_set, resolved_task_id
+    await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
+    return task_set, task_id
 
 
 
@@ -467,6 +459,13 @@ async def get_task_for_student_set(
         if attempt and getattr(attempt, 'submitted_order', None):
             submitted_order = attempt.submitted_order
 
+    student_correct_solution = {}
+    if isinstance(task.correct_solution, dict):
+        if "teacher_tests" in task.correct_solution:
+            student_correct_solution["teacher_tests"] = task.correct_solution["teacher_tests"]
+        if "custom_error_messages" in task.correct_solution:
+            student_correct_solution["custom_error_messages"] = task.correct_solution["custom_error_messages"]
+
     return StudentTaskResponse(
         id=task.id,
         title=task.title,
@@ -474,9 +473,14 @@ async def get_task_for_student_set(
         description=task.description,
         task_type=task.task_type,
         code_blocks=task.code_blocks,
+        correct_solution=student_correct_solution,
         is_public=task.is_public,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,
+        eval_type=task.correct_solution.get("eval_type", "unit_test"),
+        expected_output=task.correct_solution.get("expected_output", ""),
+        correct_order=task.correct_solution.get("correct_order", []),
+        require_indentation=task.correct_solution.get("require_indentation", True),
     )
 
 

@@ -160,6 +160,15 @@ class TestStaticPages:
         r = await client.get("/global-statistics", headers=_auth(test_teacher.username))
         assert r.status_code == 200
 
+    async def test_task_preview_unauthenticated_redirects(self, client):
+        r = await client.get("/task", follow_redirects=False)
+        assert r.status_code == 303
+        assert "/" in r.headers["location"]
+
+    async def test_task_preview_authenticated_returns_200(self, client, test_teacher):
+        r = await client.get("/task", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+
     async def test_task_statistics_view_unauthenticated_redirects(self, client):
         r = await client.get("/task-statistics", follow_redirects=False)
         assert r.status_code == 303
@@ -1372,6 +1381,28 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert r.status_code == 200
         assert {item["unique_link_code"] for item in r.json()} == {task_set.unique_link_code}
 
+    async def test_my_sets_returns_task_and_student_counts(
+        self, client, test_teacher, task_set, task, db_session
+    ):
+        student = Student(username="student_count_test", email="counttest@example.com")
+        student.set_password("pass123")
+        db_session.add(student)
+        await db_session.commit()
+        await db_session.refresh(student)
+
+        db_session.add_all([
+            TaskSetItem(task_set_id=task_set.id, task_id=task.id),
+            StudentTaskSetEnrollment(student_id=student.id, task_set_id=task_set.id),
+        ])
+        await db_session.commit()
+
+        r = await client.get("/api/my_sets", headers=_auth(test_teacher.username))
+        assert r.status_code == 200
+        data = r.json()
+        matching = next(item for item in data if item["id"] == task_set.id)
+        assert matching["task_count"] == 1
+        assert matching["student_count"] == 1
+
     async def test_student_register_success_and_duplicate_rejected(self, client):
         payload = {
             "username": "studentx",
@@ -1492,3 +1523,33 @@ class TestCreateProblemApi:
         assert created_task.task_type == "normal"
         blocks = created_task.code_blocks["blocks"]
         assert all(block["faded"] is False for block in blocks)
+
+        import json
+        instructions_data = json.loads(created_task.task_instructions)
+        assert instructions_data["examples"] == ""
+
+    async def test_create_problem_with_examples(self, client, test_teacher, db_session):
+        payload = {
+            "taskTitle": "Add In Range Task",
+            "description": "Return sum of range.",
+            "startDescription": "Practice loops.",
+            "examples": ">>> add_in_range(3, 5)\n12",
+            "tests": "assert add_in_range(3, 5) == 12",
+            "solutionCode": "def add_in_range(start, stop):\n    return sum(range(start, stop + 1))",
+        }
+
+        response = await client.post(
+            "/api/problems",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+
+        assert response.status_code == 200
+        created_id = response.json()["id"]
+
+        result = await db_session.execute(select(Parsons).where(Parsons.id == created_id))
+        created_task = result.scalar_one()
+
+        import json
+        instructions_data = json.loads(created_task.task_instructions)
+        assert instructions_data["examples"] == ">>> add_in_range(3, 5)\n12"

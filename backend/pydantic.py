@@ -33,8 +33,9 @@ class TaskResponse(BaseModel):
 class StudentTaskResponse(BaseModel):
     """Task response for student-facing endpoints.
 
-    Deliberately omits ``correct_solution`` and ``model_answer`` so students
-    cannot trivially read the answer from the network tab.
+    Includes ``teacher_tests`` and ``custom_error_messages`` in ``correct_solution``
+    so student client can execute tests, while omitting solution code and block order
+    and ``model_answer`` so students cannot read the answer from network tab.
     """
     id: int
     title: str
@@ -42,9 +43,14 @@ class StudentTaskResponse(BaseModel):
     description: str | None
     task_type: str
     code_blocks: dict
+    correct_solution: dict | None = None
     is_public: bool
     created_at: str
     submitted_order: dict | None = None
+    eval_type: str = "unit_test"
+    expected_output: str | None = None
+    correct_order: list | None = None
+    require_indentation: bool = True
 
 
 
@@ -187,11 +193,20 @@ class CreateProblemRequest(BaseModel):
     startDescription: str
     tests: str
     solutionCode: str
+    examples: str | None = ""
     task_type: str | None = None
     modelAnswerCode: str | None = None
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
     is_public: bool | None = True
+    eval_type: str = "unit_test"
+    expected_output: str = ""
+    require_indentation: bool = True
+
+
+class UpdateModelAnswerRequest(BaseModel):
+    modelAnswerCode: str | None = None
+
 
 
 class CreateTaskSetRequest(BaseModel):
@@ -199,6 +214,10 @@ class CreateTaskSetRequest(BaseModel):
     student_description: str | None = None
     teacher_description: str | None = None
     expires_at: str | None = None
+    task_ids: list[int]
+
+
+class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
 
 
@@ -292,3 +311,4 @@ class UserListItem(BaseModel):
     is_active: bool
     is_admin_teacher: bool
     is_current_user: bool
+    last_login: datetime | None = None

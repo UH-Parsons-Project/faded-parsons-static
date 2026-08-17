@@ -33,30 +33,6 @@ async def get_task_set_by_code_or_404(db: AsyncSession, task_set_model, unique_l
     return task_set
 
 
-async def resolve_task_id_in_set_or_404(db: AsyncSession, task_set, task_position: int, visible_only: bool = False) -> int:
-    """Resolve a 1-based task position inside a set to the underlying task id."""
-    if task_position < 1:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found in this set",
-        )
-
-    stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == task_set.id)
-    if visible_only:
-        stmt = stmt.where(TaskSetItem.is_hidden == False)  # noqa: E712
-    stmt = stmt.order_by(TaskSetItem.id.asc()).offset(task_position - 1).limit(1)
-
-    result = await db.execute(stmt)
-    task_id = result.scalar_one_or_none()
-
-    if task_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found in this set",
-        )
-
-    return task_id
-
 
 async def verify_task_in_set_or_404(db: AsyncSession, task_set, task_id: int, visible_only: bool = False) -> None:
     """Verify that a real task_id belongs to the given task set.

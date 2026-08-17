@@ -199,14 +199,25 @@
       const task = await response.json();
       const solutionCode = task.correct_solution?.solution_code || '';
       const teacherTests = task.correct_solution?.teacher_tests || '';
+      const evalType = task.correct_solution?.eval_type || 'unit_test';
+      const expectedOutput = task.correct_solution?.expected_output || '';
 
       if (taskCodeInput) {
         taskCodeInput.value = solutionCode;
         taskCodeInput.dispatchEvent(new Event('input'));
       }
       if (taskTestsInput) {
-        taskTestsInput.value = teacherTests;
+        if (evalType === 'stdout') {
+          taskTestsInput.value = expectedOutput;
+        } else {
+          taskTestsInput.value = teacherTests;
+        }
         taskTestsInput.dispatchEvent(new Event('input'));
+      }
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput) {
+        evalTypeInput.value = evalType;
+        evalTypeInput.dispatchEvent(new Event('change'));
       }
 
       const pageTitle = document.querySelector('.page-title');
@@ -232,9 +243,38 @@
     const taskCodeStatus = document.getElementById('task-code-status');
     const taskTestsStatus = document.getElementById('task-tests-status');
     const clearButtons = document.querySelectorAll('[data-clear-target]');
+    
+    const evalTypeInput = document.getElementById('eval-type');
+    const taskTestsPanel = document.getElementById('task-tests-panel');
+    const taskTestsLabel = document.getElementById('task-tests-label');
+    const taskTestsHint = document.getElementById('task-tests-hint');
 
     if (!form || !submitBtn || !taskCodeInput || !taskTestsInput) {
       return;
+    }
+
+    if (evalTypeInput) {
+      evalTypeInput.addEventListener('change', () => {
+        const val = evalTypeInput.value;
+        if (val === 'order_only') {
+          taskTestsPanel.style.display = 'none';
+          taskCodeInput.placeholder = 'Step 1\nStep 2\nStep 3';
+        } else if (val === 'stdout') {
+          taskTestsPanel.style.display = 'block';
+          taskTestsLabel.textContent = 'Expected Output';
+          taskTestsHint.textContent = 'Exact output expected from the print statements';
+          taskTestsInput.placeholder = 'Hello World!';
+          taskCodeInput.placeholder = 'print("Hello World!")';
+        } else {
+          taskTestsPanel.style.display = 'block';
+          taskTestsLabel.textContent = 'Task Tests';
+          taskTestsHint.textContent = 'Use any Python test style you prefer';
+          taskTestsInput.placeholder = 'assert format_name(\'ada\', \'lovelace\') == \'Ada Lovelace\'\nassert format_name(\'  linus\', \'torvalds \') == \'Linus Torvalds\'';
+          taskCodeInput.placeholder = 'def format_name(first, last):\n    return f"{first.strip().title()} {last.strip().title()}"';
+        }
+      });
+      // trigger initial update
+      evalTypeInput.dispatchEvent(new Event('change'));
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -298,11 +338,22 @@
     submitBtn.addEventListener('click', async () => {
       const taskCode = taskCodeInput.value;
       const taskTests = taskTestsInput.value;
+      const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
 
       try {
+        let tests = '';
+        let expectedOutput = '';
+        if (evalType === 'stdout') {
+          expectedOutput = taskTests;
+        } else if (evalType === 'unit_test') {
+          tests = taskTests;
+        }
+
         const draftPayload = {
           taskCode,
-          taskTests,
+          taskTests: tests,
+          expectedOutput: expectedOutput,
+          evalType: evalType,
           savedAt: new Date().toISOString(),
           taskId: editTaskId,
         };

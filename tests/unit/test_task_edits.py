@@ -478,7 +478,7 @@ class TestDeleteTaskSet:
 
 
 # ---------------------------------------------------------------------------
-# DELETE /api/my_sets/{task_set_id}/students/{student_username}
+# DELETE /api/my_sets/{task_set_id}/students/{student.id}
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -572,7 +572,7 @@ class TestRemoveStudentFromTaskSet:
         await db_session.commit()
 
         response = await client.delete(
-            f"/api/my_sets/{task_set.id}/students/{student.username}",
+            f"/api/my_sets/{task_set.id}/students/{student.id}",
             headers=_auth(test_teacher.username),
         )
         assert response.status_code == 204
@@ -628,7 +628,7 @@ class TestRemoveStudentFromTaskSet:
 
     async def test_not_owner_gets_403(self, client, task_set, other_teacher):
         response = await client.delete(
-            f"/api/my_sets/{task_set.id}/students/student1",
+            f"/api/my_sets/{task_set.id}/students/1",
             headers=_auth(other_teacher.username),
         )
         assert response.status_code == 403

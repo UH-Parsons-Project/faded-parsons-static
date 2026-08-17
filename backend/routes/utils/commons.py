@@ -140,14 +140,19 @@ def validate_registration_basic(username: str, password: str, password_confirm: 
         )
 
 
-async def ensure_unique_user(db: AsyncSession, model, username: str, email: str):
-    stmt = select(model).where((model.username == username) | (model.email == email))
+async def ensure_unique_user(db: AsyncSession, model, username: str, email: str, check_username: bool = True):
+    if check_username:
+        stmt = select(model).where((model.username == username) | (model.email == email))
+    else:
+        stmt = select(model).where(model.email == email)
+        
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
     if existing:
+        detail = "Username or email already exists" if check_username else "Email already exists"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already exists",
+            detail=detail,
         )
 
 

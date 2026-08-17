@@ -20,7 +20,7 @@ async function setupTeacherWithTaskSet(page, unique) {
   await registerTeacher(page, teacher.username, teacher.email, teacher.password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacher.username, teacher.password);
+  await loginTeacher(page, teacher.email, teacher.password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSetWithTasks(
@@ -79,7 +79,7 @@ test('heatmap shows enrolled student row', async ({ page, browser }) => {
   const studentCtx = await browser.newContext();
   const studentPage = await studentCtx.newPage();
   await studentPage.goto(studentUrl);
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
   await studentCtx.close();
 
@@ -102,7 +102,7 @@ test('heatmap shows in_progress cell after student attempts a task', async ({ pa
   const studentCtx = await browser.newContext();
   const studentPage = await studentCtx.newPage();
   await studentPage.goto(studentUrl);
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
 
   await studentPage.locator('.task-set-item', { hasText: 'add_in_range' }).click();

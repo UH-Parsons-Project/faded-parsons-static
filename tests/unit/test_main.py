@@ -290,7 +290,7 @@ class TestLogin:
     async def test_valid_credentials_return_token(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert r.status_code == 200
         assert "access_token" in r.json()
@@ -299,7 +299,7 @@ class TestLogin:
     async def test_valid_login_sets_cookie(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "testpassword123"},
+            data={"username": "test@example.com", "password": "testpassword123"},
         )
         assert "access_token" in r.cookies
 
@@ -314,7 +314,7 @@ class TestLogin:
     async def test_wrong_password_returns_400(self, client, test_teacher):
         r = await client.post(
             "/api/login/access-token",
-            data={"username": "testteacher", "password": "wrong"},
+            data={"username": "test@example.com", "password": "wrong"},
         )
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
@@ -1069,7 +1069,7 @@ class TestStatistics:
         await _add_attempt(db_session, student_session.id, private_task.id, task_set.id, success=True)
 
         response = await client.get(
-            f"/api/students/{student_session.username}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
+            f"/api/students/{student_session.id}/tasks/{private_task.id}/statistics?set_id={task_set.id}",
             headers=_auth(viewer.username),
         )
         assert response.status_code == 200
@@ -1296,7 +1296,7 @@ class TestAdditionalMainPagesAndStudentAuth:
     async def test_student_login_invalid_credentials_returns_400(self, client):
         r = await client.post(
             "/api/student_login",
-            json={"username": "ghost", "password": "wrong", "unique_link_code": None},
+            json={"email": "ghost@example.com", "password": "wrong", "unique_link_code": None},
         )
         assert r.status_code == 400
         assert "Incorrect" in r.json()["detail"]
@@ -1305,7 +1305,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.email,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": None,
             },
@@ -1330,7 +1330,7 @@ class TestAdditionalMainPagesAndStudentAuth:
         r = await client.post(
             "/api/student_login",
             json={
-                "username": student_session.username,
+                "email": student_session.email,
                 "password": "studentpass123",
                 "unique_link_code": "WEEK2",
             },

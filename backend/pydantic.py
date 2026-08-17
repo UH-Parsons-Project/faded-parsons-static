@@ -91,10 +91,11 @@ class NicknameRequest(BaseModel):
 
 
 class StudentLoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
     unique_link_code: str | None = None
 class StudentInTaskSetResponse(BaseModel):
+    student_id: int
     username: str
     email: str
     started_at: str
@@ -120,6 +121,7 @@ class StudentTaskStatisticsResponse(BaseModel):
     task_description: str | None
     task_instructions: str | None = None
     model_answer: str | None = None
+    student_id: int
     student_username: str
     total_attempts: int
     successful_attempts: int

@@ -4,7 +4,7 @@ import { loginTeacher, createTestStudent } from './test-helpers.js';
 
 test.beforeEach(async ({ page }) => {
   // Login as seeded admin user
-  await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+  await loginTeacher(page, 'matti.ruotsalainen@example.com', 'test1234');
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Register one student so "Registered Students" stat is non-zero

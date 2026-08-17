@@ -5,7 +5,7 @@ import { loginTeacher } from './test-helpers.js';
 test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Login as default seeded test teacher
-    await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+    await loginTeacher(page, 'matti.ruotsalainen@example.com', 'test1234');
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
   });
 

@@ -681,6 +681,7 @@ async def get_task_set_students(
 
         stmt = (
             select(
+                Student.id,
                 Student.username,
                 Student.email,
                 StudentTaskSetEnrollment.enrolled_at.label('started_at'),
@@ -710,6 +711,7 @@ async def get_task_set_students(
 
         return [
             StudentInTaskSetResponse(
+                student_id=student['id'],
                 username=student['username'],
                 email=student['email'],
                 started_at=student['started_at'].isoformat(),
@@ -726,10 +728,10 @@ async def get_task_set_students(
     return await run_with_task_ids_or_empty(db, task_ids_stmt, _handler)
 
 
-@router.delete("/api/my_sets/{task_set_id}/students/{student_username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/api/my_sets/{task_set_id}/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_student_from_task_set(
     task_set_id: int,
-    student_username: str,
+    student_id: int,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -742,7 +744,7 @@ async def remove_student_from_task_set(
             detail="You don't have permission to modify this task set",
         )
 
-    student_result = await db.execute(select(Student).where(Student.username == student_username))
+    student_result = await db.execute(select(Student).where(Student.id == student_id))
     student = student_result.scalar_one_or_none()
     if not student:
         raise HTTPException(
@@ -858,7 +860,7 @@ async def get_heatmap(
                 "last_active_at": last.isoformat() if last else None,
             })
 
-        student_rows.append({"username": student.username, "cells": cells})
+        student_rows.append({"id": student.id, "username": student.username, "cells": cells})
 
     return {
         "tasks": [{"id": t.id, "title": t.title, "is_hidden": is_hidden} for t, is_hidden in tasks],

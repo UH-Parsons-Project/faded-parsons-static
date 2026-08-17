@@ -17,7 +17,7 @@ test('teacher can register and then login from the main page', async ({ page }) 
   );
 
   // Login from the main page with the just-created credentials
-  await loginTeacher(page, username, password);
+  await loginTeacher(page, email, password);
 
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 });
@@ -34,7 +34,7 @@ test('teacher can logout after successful login', async ({ page }) => {
     'Registration successful.'
   );
 
-  await loginTeacher(page, username, password);
+  await loginTeacher(page, email, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await logoutTeacher(page);
@@ -85,7 +85,7 @@ test('login shows error with wrong password', async ({ page }) => {
     'Registration successful.'
   );
 
-  await loginTeacher(page, username, 'wrong-password');
+  await loginTeacher(page, email, 'wrong-password');
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('#error-message')).toBeVisible();
   await expect(page.locator('#error-message')).toContainText('Incorrect username, email, or password');

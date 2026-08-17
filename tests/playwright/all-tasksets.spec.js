@@ -5,7 +5,7 @@ import { loginTeacher } from './test-helpers.js';
 test.describe('All Task Sets Page', () => {
   test.beforeEach(async ({ page }) => {
     // Login as admin teacher
-    await loginTeacher(page, 'mattiruotsalainen', 'test1234');
+    await loginTeacher(page, 'matti.ruotsalainen@example.com', 'test1234');
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
   });
 

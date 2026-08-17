@@ -116,21 +116,22 @@ def _parse_custom_error_messages(task: Parsons) -> list:
 # use shared helpers from utils.taskset
 
 
-@router.get("/api/students/{student_username}/attempts", response_model=list[StudentTaskAttemptResponse])
+@router.get("/api/students/{student_id}/attempts", response_model=list[StudentTaskAttemptResponse])
 async def get_student_attempts(
-    student_username: str,
+    student_id: int,
     set_id: int,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
+
+    student_username_res = await db.execute(select(Student.id, Student.username).where(Student.id == student_id))
+    student_username = student_username_res.scalar_one_or_none() or "Unknown"
     await require_task_set_view_access(task_set, current_user, db)
 
     task_ids_stmt = select(TaskSetItem.task_id).where(TaskSetItem.task_set_id == set_id)
 
     async def _handler(task_ids):
-        student_res = await db.execute(select(Student.id).where(Student.username == student_username))
-        student_id = student_res.scalar_one_or_none()
 
         stmt = (
             select(
@@ -177,15 +178,18 @@ async def get_student_attempts(
 
 
 
-@router.get("/api/students/{student_username}/tasks/{task_id}/statistics", response_model=StudentTaskStatisticsResponse)
+@router.get("/api/students/{student_id}/tasks/{task_id}/statistics", response_model=StudentTaskStatisticsResponse)
 async def get_student_task_statistics(
-    student_username: str,
+    student_id: int,
     task_id: int,
     set_id: int,
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
     task_set = await get_task_set_or_404(db, TaskSet, set_id)
+
+    student_username_res = await db.execute(select(Student.username).where(Student.id == student_id))
+    student_username = student_username_res.scalar_one_or_none() or "Unknown"
     await require_task_set_view_access(task_set, current_user, db)
 
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
@@ -207,7 +211,7 @@ async def get_student_task_statistics(
         select(TaskAttempt, StudentTaskEnrollment)
         .join(Student, Student.id == TaskAttempt.student_id)
         .join(StudentTaskEnrollment, StudentTaskEnrollment.id == TaskAttempt.student_task_enrollment_id)
-        .where(Student.username == student_username)
+        .where(Student.id == student_id)
         .where(TaskAttempt.task_id == task_id)
         .where(StudentTaskEnrollment.task_set_id == task_set.id)
         .order_by(TaskAttempt.completed_at.asc())
@@ -220,7 +224,7 @@ async def get_student_task_statistics(
     enrollment_stmt = (
         select(StudentTaskEnrollment)
         .join(Student, Student.id == StudentTaskEnrollment.student_id)
-        .where(Student.username == student_username)
+        .where(Student.id == student_id)
         .where(StudentTaskEnrollment.task_id == task_id)
         .where(StudentTaskEnrollment.task_set_id == task_set.id)
     )
@@ -237,7 +241,7 @@ async def get_student_task_statistics(
         select(func.count(MoveEvent.id))  # pylint: disable=not-callable
         .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
         .join(Student, Student.id == TaskAttempt.student_id)
-        .where(Student.username == student_username)
+        .where(Student.id == student_id)
         .where(TaskAttempt.task_id == task_id)
     )
     move_count = (await db.execute(move_count_stmt)).scalar() or 0
@@ -275,14 +279,14 @@ async def get_student_task_statistics(
                 select(func.min(MoveEvent.event_time))
                 .join(TaskAttempt, TaskAttempt.id == MoveEvent.attempt_id)
                 .join(Student, Student.id == TaskAttempt.student_id)
-                .where(Student.username == student_username)
+                .where(Student.id == student_id)
                 .where(TaskAttempt.task_id == task_id)
             )
             first_edit_stmt = (
                 select(func.min(EditEvent.event_time))
                 .join(TaskAttempt, TaskAttempt.id == EditEvent.attempt_id)
                 .join(Student, Student.id == TaskAttempt.student_id)
-                .where(Student.username == student_username)
+                .where(Student.id == student_id)
                 .where(TaskAttempt.task_id == task_id)
             )
             first_move_time = (await db.execute(first_move_stmt)).scalar()
@@ -318,7 +322,7 @@ async def get_student_task_statistics(
             task_description=task.description,
             task_instructions=task.task_instructions,
             model_answer=await _get_model_answer_for_task(task, db),
-            student_username=student_username,
+            student_id=student_id, student_username=student_username,
             total_attempts=0,
             successful_attempts=0,
             failed_attempts=0,
@@ -393,7 +397,7 @@ async def get_student_task_statistics(
         task_description=task.description,
         task_instructions=task.task_instructions,
         model_answer=await _get_model_answer_for_task(task, db),
-        student_username=student_username,
+        student_id=student_id, student_username=student_username,
         total_attempts=len(attempts_data),
         successful_attempts=successful_attempts,
         failed_attempts=failed_attempts,
@@ -511,11 +515,11 @@ async def get_task_statistics(
         early_not_started_names: list[str] = []
         if task_set_code and task_set:
             enrolled_result = await db.execute(
-                select(Student.username)
+                select(Student.id, Student.username)
                 .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
                 .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
             )
-            early_not_started_names = sorted(row[0] for row in enrolled_result.all())
+            early_not_started_names = sorted([(row[0], row[1]) for row in enrolled_result.all()], key=lambda x: x[1])
             early_not_started = len(early_not_started_names)
         return {
             "task_name": task.title,
@@ -539,7 +543,7 @@ async def get_task_statistics(
             "students": {
                 "completed": [],
                 "not_yet_completed": [],
-                "not_started": [{"name": n, "meta": ""} for n in early_not_started_names],
+                "not_started": [{"name": n_username, "meta": "", "id": n_id} for n_id, n_username in early_not_started_names],
             },
             "median_page_exits": 0.0,
             "min_page_exits": None,
@@ -707,22 +711,22 @@ async def get_task_statistics(
 
     # Students enrolled in the task set but never attempted this task (not started)
     students_not_started = 0
-    not_started_student_names: list[str] = []
+    not_started_student_info: list[dict] = []
     if task_set_code and task_set:
         enrolled_result = await db.execute(
-            select(Student.username)
+            select(Student.id, Student.username)
             .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
             .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
         )
-        enrolled_usernames = {row[0] for row in enrolled_result.all()}
+        enrolled_students = {row[0]: row[1] for row in enrolled_result.all()}
         attempted_student_ids = {a.student_id for a, _ in attempts_data}
-        attempted_usernames_result = await db.execute(
-            select(Student.username).where(Student.id.in_(attempted_student_ids))
+        attempted_students_result = await db.execute(
+            select(Student.id, Student.username).where(Student.id.in_(attempted_student_ids))
         )
-        attempted_usernames = {row[0] for row in attempted_usernames_result.all()}
-        not_started_usernames = enrolled_usernames - attempted_usernames
-        students_not_started = len(not_started_usernames)
-        not_started_student_names = sorted(not_started_usernames)
+        attempted_student_ids = {row[0] for row in attempted_students_result.all()}
+        not_started_ids = set(enrolled_students.keys()) - attempted_student_ids
+        students_not_started = len(not_started_ids)
+        not_started_student_info = sorted([{"name": enrolled_students[i], "meta": "", "id": i} for i in not_started_ids], key=lambda x: x["name"])
 
     # Build per-student try counts for sidebar
     completed_student_info: list[dict] = []
@@ -738,7 +742,7 @@ async def get_task_statistics(
     for student_id, student_attempts_list in student_attempts.items():
         username = student_id_to_username.get(student_id, str(student_id))
         tries = len(student_attempts_list)
-        info = {"name": username, "meta": f"{tries} tr{'y' if tries == 1 else 'ies'}"}
+        info = {"name": username, "meta": f"{tries} tr{'y' if tries == 1 else 'ies'}", "id": student_id}
         if student_id in student_ids_completed:
             completed_student_info.append(info)
         else:
@@ -796,6 +800,6 @@ async def get_task_statistics(
         "students": {
             "completed": completed_student_info,
             "not_yet_completed": not_yet_completed_student_info,
-            "not_started": [{"name": n, "meta": ""} for n in not_started_student_names],
+            "not_started": not_started_student_info,
         },
     }

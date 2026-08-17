@@ -312,14 +312,14 @@ async def student_login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     body = await request.json()
-    username = body.get("username") if isinstance(body, dict) else None
+    email = body.get("email") if isinstance(body, dict) else None
     password = body.get("password") if isinstance(body, dict) else None
     unique_link_code = body.get("unique_link_code") if isinstance(body, dict) else None
 
-    if username is None or password is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="username and password are required")
+    if email is None or password is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="email and password are required")
 
-    identifier = username.strip().lower()
+    identifier = email.strip().lower()
 
     remaining = check_brute_force(identifier)
     if remaining is not None:
@@ -328,12 +328,12 @@ async def student_login(
             detail=f"Account temporarily locked. Try again in {int(remaining // 60) + 1} minute(s).",
         )
 
-    student = await authenticate_student(username, password, db)
+    student = await authenticate_student(email, password, db)
     if not student:
         record_failed_attempt(identifier)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
         )
 
     clear_failed_attempts(identifier)
@@ -406,7 +406,7 @@ async def api_student_register(request: Request, db: Annotated[AsyncSession, Dep
                                 username_max=20, email_max=100)
 
     # Ensure uniqueness in DB
-    await ensure_unique_user(db, Student, username, email)
+    await ensure_unique_user(db, Student, username, email, check_username=False)
 
     student = Student(username=username, email=email)
     student.set_password(password)
@@ -798,9 +798,9 @@ async def record_task_exit(
     return {"status": "success"}
 
 
-@router.get("/api/students/{student_username}/tasks/{task_id}/moves")
+@router.get("/api/students/{student_id}/tasks/{task_id}/moves")
 async def get_task_moves(
-    student_username: str,
+    student_id: int,
     task_id: int,
     set_id: int,
     current_user: CurrentUser,
@@ -811,9 +811,7 @@ async def get_task_moves(
         raise HTTPException(status_code=404, detail="Task set not found")
     await require_task_set_view_access(task_set, current_user, db)
 
-    stmt = select(Student).where(Student.username == student_username)
-    result = await db.execute(stmt)
-    student = result.scalar_one_or_none()
+    student = await db.get(Student, student_id)
 
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")

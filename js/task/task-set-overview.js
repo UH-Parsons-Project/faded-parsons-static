@@ -1118,7 +1118,7 @@ function createStudentItem(student, tasks) {
 	item.className = 'student-item';
 	item.style.cursor = 'pointer';
 	const navigateToAttempts = () => {
-		window.location.href = `/student-attempts?student=${encodeURIComponent(student.username)}&set_id=${setId}`;
+		window.location.href = `/student-attempts?student_id=${encodeURIComponent(student.student_id)}&student=${encodeURIComponent(student.username)}&set_id=${setId}`;
 	};
 	item.onclick = navigateToAttempts;
 	makeKeyActivatable(item, navigateToAttempts);

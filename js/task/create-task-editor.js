@@ -62,8 +62,10 @@ initBurgerMenu();
 
   function updateAddToListState() {
     const addToListBtn = document.getElementById('add-to-problem-list');
+    const evalTypeInput = document.getElementById('eval-type');
+    const isOrderOnly = evalTypeInput?.value === 'order_only';
     if (addToListBtn) {
-      addToListBtn.disabled = !(testsPassed && hasOpenedStudentPreview);
+      addToListBtn.disabled = !((isOrderOnly || testsPassed) && hasOpenedStudentPreview);
     }
 
     updateChecklist();
@@ -104,6 +106,12 @@ initBurgerMenu();
       if (!item) {
         return;
       }
+
+      if (evalTypeInput?.value === 'order_only' && (key === 'tests-written' || key === 'tests-passed')) {
+        item.style.display = 'none';
+        return;
+      }
+      item.style.display = '';
 
       item.classList.toggle('is-done', done);
 
@@ -1342,7 +1350,9 @@ initBurgerMenu();
       return;
     }
 
-    if (!testsPassed) {
+    const isOrderOnly = evalTypeInput?.value === 'order_only';
+
+    if (!isOrderOnly && !testsPassed) {
       alert('Please run tests successfully before adding the problem to the list.');
       return;
     }
@@ -1509,6 +1519,7 @@ initBurgerMenu();
         }
         invalidateTestStatus('Evaluation mode changed. Please run tests again.');
       }
+      updateAddToListState();
     }
 
     evalTypeInput.addEventListener('change', updateUI);

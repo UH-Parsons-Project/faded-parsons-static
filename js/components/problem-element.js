@@ -156,19 +156,8 @@ export class ProblemElement extends LitElement {
 										class="btn btn-primary"
 										?disabled=${!this.enableRun}
 									>
-										Run Tests
+										${this.evalType === 'order_only' ? 'Check Order' : (this.evalType === 'stdout' ? 'Check Output' : 'Run Tests')}
 									</button>
-											: html`
-												<button
-													@click=${this.onRun}
-													type="button"
-													class="btn btn-primary"
-													?disabled=${!this.enableRun}
-												>
-													${this.evalType === 'order_only' ? 'Check Order' : (this.evalType === 'stdout' ? 'Check Output' : 'Run Tests')}
-												</button>
-											`
-									}
 								</div>
 							</div>
 						</div>

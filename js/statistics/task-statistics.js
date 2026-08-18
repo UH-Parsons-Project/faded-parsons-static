@@ -12,11 +12,6 @@ const setId = params.get('set_id');
 
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
-	if (!task_setCode) {
-		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Global Statistics';
-	} else {
-		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
-	}
 	backBtn.href = "#";
 	backBtn.addEventListener('click', (e) => {
 		e.preventDefault();

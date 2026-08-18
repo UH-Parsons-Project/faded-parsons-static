@@ -28,7 +28,6 @@ const activeTaskFilters = {
  */
 function initializePage() {
   loadUsername();
-  setupExpirationDateToggle();
   setupTaskSearch();
   setupViewerSharing();
   setupFormSubmission();
@@ -97,18 +96,6 @@ function loadUsername() {
         userNameEl.textContent = '';
       }
     });
-}
-
-/**
- * Toggle expiration date input visibility
- */
-function setupExpirationDateToggle() {
-  document.getElementById('set-expiration').addEventListener('change', (e) => {
-    document.getElementById('expiration-group').style.display = e.target.checked ? 'block' : 'none';
-    if (!e.target.checked) {
-      document.getElementById('expiration-date').value = '';
-    }
-  });
 }
 
 /**
@@ -588,9 +575,7 @@ function setupFormSubmission() {
     const title = document.getElementById('task-set-title').value.trim();
     const studentDescription = document.getElementById('student-description').value.trim();
     const teacherDescription = document.getElementById('teacher-description').value.trim();
-    const expirationDate = document.getElementById('set-expiration').checked
-      ? document.getElementById('expiration-date').value
-      : null;
+    const expirationDate = document.getElementById('expiration-date').value || null;
 
     const viewersToShare = [...validatedViewers];
 

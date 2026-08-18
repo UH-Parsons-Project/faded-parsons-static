@@ -269,7 +269,7 @@ code {
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1030;
   height: 80px;
   min-height: 80px;
   padding-top: 0;

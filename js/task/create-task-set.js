@@ -3,6 +3,7 @@ import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.j
 import { escapeHtml, showError } from '../utils/ui-utils.js';
 import { openTaskPreview, setupPreviewModalClose } from './task-preview.js';
 import { createAvailableTaskElement } from './task-helpers.js';
+import { TaskSearchFilter } from '../components/task-search-filter.js';
     initSignedInAs();
     initProtectedPage('/');
     initBurgerMenu();
@@ -15,21 +16,19 @@ import { createAvailableTaskElement } from './task-helpers.js';
 let allTasks = [];
 let selectedTaskIds = [];  // Array to preserve order
 let draggedElement = null;
-let currentTeacherId = null;
-let currentTeacherUsername = '';
 
-const activeTaskFilters = {
-  query: '',
-  activeScope: null
-};
+let currentTeacherUsername = '';
+let searchFilter = null;
 
 /**
  * Initialize the page when DOM is ready
  */
 function initializePage() {
+  searchFilter = new TaskSearchFilter('universal-task-search', {
+    onFilter: renderTasks
+  });
   loadUsername();
   setupExpirationDateToggle();
-  setupTaskSearch();
   setupViewerSharing();
   setupFormSubmission();
   setupCancelButton();
@@ -62,14 +61,9 @@ function setupCancelButton() {
 function loadUsername() {
   const userNameEl = document.getElementById('user-name');
   const storedUsername = localStorage.getItem('username');
-  const storedUserId = localStorage.getItem('userId');
 
-  if (storedUserId) {
-    const parsedId = Number.parseInt(storedUserId, 10);
-    if (!Number.isNaN(parsedId)) {
-      currentTeacherId = parsedId;
-    }
-  }
+
+
 
   if (storedUsername) {
     userNameEl.textContent = storedUsername;
@@ -86,11 +80,12 @@ function loadUsername() {
       }
 
       if (typeof data?.id === 'number') {
-        currentTeacherId = data.id;
-        localStorage.setItem('userId', String(data.id));
+        // previously updated currentTeacherId here, now unneeded
       }
 
-      applyTaskFilters();
+      if (searchFilter) {
+        searchFilter.updateTeacher(data.id, data.username);
+      }
     })
     .catch(() => {
       if (!storedUsername) {
@@ -111,103 +106,7 @@ function setupExpirationDateToggle() {
   });
 }
 
-/**
- * Setup task search functionality with scoped filtering
- */
-function setupTaskSearch() {
-  const taskSearchInput = document.getElementById('task-search');
-  const scopeCheckboxes = document.querySelectorAll('.filter-scope');
-
-  taskSearchInput.addEventListener('input', (e) => {
-    activeTaskFilters.query = e.target.value.trim().toLowerCase();
-    applyTaskFilters();
-  });
-
-  scopeCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        scopeCheckboxes.forEach(other => {
-          if (other !== e.target) {
-            other.checked = false;
-          }
-        });
-        activeTaskFilters.activeScope = e.target.value;
-      } else {
-        activeTaskFilters.activeScope = null;
-      }
-      applyTaskFilters();
-    });
-  });
-}
-
-function isOwnTask(task, creatorUsername) {
-  const byTeacherId =
-    currentTeacherId !== null && Number(task.created_by_teacher_id) === currentTeacherId;
-  const byTeacherName =
-    !!currentTeacherUsername && creatorUsername === currentTeacherUsername.toLowerCase();
-  return byTeacherId || byTeacherName;
-}
-
-function applyTaskFilters() {
-  const query = activeTaskFilters.query;
-  const activeScope = activeTaskFilters.activeScope;
-
-  const filteredTasks = allTasks.filter(task => {
-    const taskTitle = (task.title || '').toLowerCase();
-    const taskType = (task.task_type || '').toLowerCase();
-    const creatorUsername = (task.creator_username || '').toLowerCase();
-    const ownTask = isOwnTask(task, creatorUsername);
-
-    // If no query, return all matching my-exercises filter if selected
-    if (!query) {
-      if (activeScope === 'my-exercises') {
-        return ownTask;
-      }
-      if (activeScope === 'favorites') {
-        return Boolean(task.is_favorite);
-      }
-      return true;
-    }
-
-    // If no specific scope is selected, search all text fields.
-    if (!activeScope) {
-      return (
-        taskTitle.includes(query) ||
-        taskType.includes(query) ||
-        creatorUsername.includes(query)
-      );
-    }
-
-    if (activeScope === 'title') {
-      return taskTitle.includes(query);
-    }
-    if (activeScope === 'type') {
-      return taskType.includes(query);
-    }
-    if (activeScope === 'teacher') {
-      return creatorUsername.includes(query);
-    }
-    if (activeScope === 'my-exercises') {
-      return ownTask && (taskTitle.includes(query) || taskType.includes(query));
-    }
-    if (activeScope === 'favorites') {
-      return Boolean(task.is_favorite) && (
-        taskTitle.includes(query) || taskType.includes(query) || creatorUsername.includes(query)
-      );
-    }
-
-    return false;
-  });
-
-  // Sort alphabetically by title
-  filteredTasks.sort((a, b) => {
-    const titleA = (a.title || '').toLowerCase();
-    const titleB = (b.title || '').toLowerCase();
-    return titleA.localeCompare(titleB);
-  });
-
-  renderTasks(filteredTasks);
-}
+// Filter UI logic moved to TaskSearchFilter component
 
 // Each entry: { teacher_id, username, email }
 let validatedViewers = [];
@@ -320,7 +219,9 @@ async function loadTasks() {
     const response = await fetch('/api/tasks', { credentials: 'include' });
     if (!response.ok) throw new Error('Failed to load tasks');
     allTasks = await response.json();
-    applyTaskFilters();
+    if (searchFilter) {
+      searchFilter.setTasks(allTasks);
+    }
   } catch (error) {
     console.error('Error loading tasks:', error);
     showError('Failed to load tasks. Please try again.');
@@ -345,7 +246,9 @@ function renderTasks(tasks) {
     const taskEl = createAvailableTaskElement(task, {
       isSelected: selectedTaskIds.includes(task.id),
       onSelectionChange: handleTaskSelection,
-      onFavoriteToggle: () => applyTaskFilters()
+      onFavoriteToggle: () => {
+        if (searchFilter) searchFilter.applyFilters();
+      }
     });
     selector.appendChild(taskEl);
   });
@@ -363,7 +266,9 @@ function handleTaskSelection(taskId, isSelected) {
     selectedTaskIds = selectedTaskIds.filter(id => id !== taskId);
   }
   updateSelectedTasksPreview();
-  applyTaskFilters(); // Re-render to update checked state while preserving active filters
+  if (searchFilter) {
+    searchFilter.applyFilters(); // Re-render to update checked state while preserving active filters
+  }
 }
 
 /**

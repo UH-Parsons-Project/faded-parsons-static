@@ -45,7 +45,7 @@ test('student cannot login with non-registered credentials', async ({ browser })
   // Expect an error message about invalid credentials
   await studentPage.waitForSelector('#error-message:not([style*="display: none"])', { timeout: 10000 });
   await expect(studentPage.locator('#error-message')).toContainText(
-    'Incorrect username or password'
+    'Incorrect email or password'
   );
 });
 

@@ -45,6 +45,8 @@ export class ProblemElement extends LitElement {
 	testResultsCardRef = createRef();
 	starterRef = createRef();
 	solutionRef = createRef();
+	leftColumnRef = createRef();
+	rightColumnRef = createRef();
 
 	// Array to store moves locally as they happen
 	recordedMoves = [];
@@ -61,9 +63,9 @@ export class ProblemElement extends LitElement {
 	}
 
 	render() {
-		// Default results placeholder until tests are run
-		let results =
-			'Test results will appear here after clicking "Run Tests" above.';
+		let results = html`<div class="p-3 text-muted">Test results will appear here after clicking "Run Tests" above.</div>`;
+		let badgeClass = '';
+
 		const generalGuidance = html`
 			<ul class="mb-0 pl-3">
 				<li>Read the problem statement first and identify what the final program should do.</li>
@@ -73,7 +75,27 @@ export class ProblemElement extends LitElement {
 				<li>When all tests pass, move on to the next task.</li>
 			</ul>
 		`;
+
 		if (this.resultsStatus) {
+			const summaryMatch = (this.resultsHeader || '').match(/^(\d+) of (\d+) tests passed$/i);
+			let summaryVariant = 'unknown';
+			if (summaryMatch) {
+				const passedCount = Number(summaryMatch[1]);
+				const totalCount = Number(summaryMatch[2]);
+				if (passedCount > 0 && passedCount === totalCount) {
+					summaryVariant = 'full-pass';
+				} else if (passedCount > 0) {
+					summaryVariant = 'partial-pass';
+				} else {
+					summaryVariant = 'no-pass';
+				}
+			} else if ((this.resultsStatus || '').toLowerCase() === 'fail') {
+				summaryVariant = 'no-pass';
+			} else if ((this.resultsStatus || '').toLowerCase() === 'pass') {
+				summaryVariant = 'full-pass';
+			}
+			badgeClass = `test-result-badge ${summaryVariant}`;
+
 			// Render the test results component with current status
 			results = html`<test-results-element
 				status=${this.resultsStatus}
@@ -88,33 +110,18 @@ export class ProblemElement extends LitElement {
 
 		return html`
 
-			<!-- Top row: problem statement + general guidance -->
-			<div class="row mt-3 align-items-stretch">
-				<div class="col-12 col-lg-9 mb-3 mb-lg-0">
-					<div class="card h-100 top-info-card">
+			<!-- Main Content Row -->
+			<div class="row mt-3 align-items-start">
+				<!-- Left column: Problem statement + Parsons widget -->
+				<div class="col-12 col-lg-9 mb-4 mb-lg-0 d-flex flex-column" ${ref(this.leftColumnRef)}>
+					<div class="card top-info-card mb-3">
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
 						<div class="card-body">${unsafeHTML(this.taskInstructions)}</div>
 					</div>
-				</div>
-				<div class="col-12 col-lg-3">
-					<div class="card h-100 top-info-card">
-						<div class="card-header">
-							<h4>General Guidance</h4>
-						</div>
-						<div class="card-body">
-							${generalGuidance}
-						</div>
-					</div>
-				</div>
-			</div>
 
-			<!-- Content container with Parsons widget and test results side by side -->
-			<div class="row mt-4 align-items-start">
-				<!-- Parsons widget area: starter (trash) and solution columns -->
-				<div class="col-12 col-lg-9 mb-4 mb-lg-0">
-						<div class="card" ${ref(this.taskCardRef)}>
+					<div class="card flex-grow-1" ${ref(this.taskCardRef)}>
 						<div class="card-body">
 							<div
 								${ref(this.starterRef)}
@@ -164,14 +171,28 @@ export class ProblemElement extends LitElement {
 					</div>
 				</div>
 
-				<!-- Right column: test results -->
-				<div class="col-12 col-lg-3">
-					<!-- Test results card -->
-					<div class="card test-results-card" ${ref(this.testResultsCardRef)}>
-						<div class="card-header">
-							<h4>Test Cases</h4>
+				<!-- Right column: Guidance + test results -->
+				<div class="col-12 col-lg-3 d-flex flex-column" ${ref(this.rightColumnRef)}>
+					
+					<!-- General Guidance (Collapsible) -->
+					<details class="card top-info-card guidance-details mb-3" ?open=${!this.resultsStatus}>
+						<summary class="card-header guidance-summary">
+							<h4 style="display: inline-block; margin: 0;">General Guidance</h4>
+						</summary>
+						<div class="card-body">
+							${generalGuidance}
 						</div>
-						<div id="test_description" class="card-body">${results}</div>
+					</details>
+
+					<!-- Test results card -->
+					<div class="card test-results-card flex-grow-1 d-flex flex-column" ${ref(this.testResultsCardRef)} style="min-height: 0;">
+						<div class="card-header d-flex align-items-center justify-content-between" style="padding-right: 1rem;">
+							<h4 style="margin: 0;">Test Results</h4>
+							${this.resultsHeader ? html`<span class="${badgeClass}">${this.resultsHeader}</span>` : ''}
+						</div>
+						<div id="test_description" class="card-body d-flex flex-column p-0" style="overflow-y: auto; overflow-x: hidden;">
+							${results}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -267,25 +288,47 @@ export class ProblemElement extends LitElement {
 		}
 	};
 
-	syncTestCardHeight = () => {
-		const taskCard = this.taskCardRef.value;
-		const testCard = this.testResultsCardRef.value;
-		if (!taskCard || !testCard) {
+	syncColumnHeight = () => {
+		const leftCol = this.leftColumnRef.value;
+		const rightCol = this.rightColumnRef.value;
+		if (!leftCol || !rightCol) {
 			return;
 		}
 
-		testCard.style.height = `${taskCard.offsetHeight}px`;
+		const problemCard = leftCol.querySelector('.card.top-info-card');
+		const guidanceCard = rightCol.querySelector('.card.guidance-details');
+
+		// Reset heights to auto first to get natural sizes
+		if (problemCard) problemCard.style.height = 'auto';
+		if (guidanceCard) guidanceCard.style.height = 'auto';
+
+		// Only sync height on large screens where they are side-by-side
+		if (window.innerWidth >= 992) {
+			if (problemCard && guidanceCard && guidanceCard.open) {
+				const maxHeight = Math.max(problemCard.offsetHeight, guidanceCard.offsetHeight);
+				problemCard.style.height = `${maxHeight}px`;
+				guidanceCard.style.height = `${maxHeight}px`;
+			}
+			rightCol.style.height = `${leftCol.offsetHeight}px`;
+		} else {
+			rightCol.style.height = 'auto';
+		}
 	};
 
 	firstUpdated() {
-		this.syncTestCardHeight();
-		window.addEventListener('resize', this.syncTestCardHeight);
+		this.syncColumnHeight();
+		window.addEventListener('resize', this.syncColumnHeight);
 
-		if (window.ResizeObserver && this.taskCardRef.value) {
+		if (window.ResizeObserver && this.leftColumnRef.value) {
 			this.taskCardResizeObserver = new ResizeObserver(() => {
-				this.syncTestCardHeight();
+				this.syncColumnHeight();
 			});
-			this.taskCardResizeObserver.observe(this.taskCardRef.value);
+			this.taskCardResizeObserver.observe(this.leftColumnRef.value);
+		}
+
+		const guidanceDetails = this.rightColumnRef.value?.querySelector('.guidance-details');
+		if (guidanceDetails) {
+			guidanceDetails.addEventListener('toggle', this.syncColumnHeight);
 		}
 
 		const getListName = (listEl) => {
@@ -456,13 +499,13 @@ export class ProblemElement extends LitElement {
 				changedProperties.has('resultsHeader') ||
 				changedProperties.has('resultsDetails')
 			) {
-				requestAnimationFrame(() => this.syncTestCardHeight());
+				requestAnimationFrame(() => this.syncColumnHeight());
 			}
 		}
 
 	disconnectedCallback() {
 		super.disconnectedCallback();
-		window.removeEventListener('resize', this.syncTestCardHeight);
+		window.removeEventListener('resize', this.syncColumnHeight);
 		if (this.taskCardResizeObserver) {
 			this.taskCardResizeObserver.disconnect();
 			this.taskCardResizeObserver = null;

@@ -236,7 +236,7 @@ export async function submitTaskWrongThenCorrect(page) {
 
   await page.getByRole('button', { name: 'Run Tests' }).click();
   await page.waitForSelector('test-results-element', { timeout: 30000 });
-  await expect(page.locator('.test-result-summary.full-pass')).toHaveCount(0);
+  await expect(page.locator('.test-result-badge.full-pass')).toHaveCount(0);
 
   // Phase 2: set correct ordering/indents and blanks, then run again
   await page.evaluate(() => {
@@ -294,6 +294,6 @@ export async function submitTaskWrongThenCorrect(page) {
   });
 
   await page.getByRole('button', { name: 'Run Tests' }).click();
-  await page.waitForSelector('.test-result-summary.full-pass', { timeout: 30000 });
-  await expect(page.locator('.test-result-summary.full-pass')).toBeVisible();
+  await page.waitForSelector('.test-result-badge.full-pass', { timeout: 30000 });
+  await expect(page.locator('.test-result-badge.full-pass')).toBeVisible();
 }

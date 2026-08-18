@@ -13,15 +13,15 @@ const setId = params.get('set_id');
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
 	if (!task_setCode) {
-		backBtn.href = '/global-statistics';
-		backBtn.textContent = 'Back to Global Statistics';
-	} else if (setId) {
-		backBtn.href = `/task-set-overview?set_id=${encodeURIComponent(setId)}`;
-		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
+		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Back to Global Statistics';
 	} else {
-		backBtn.href = '/teacher-dashboard';
 		backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Task Set';
 	}
+	backBtn.href = "#";
+	backBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		history.back();
+	});
 }
 
 if (!task_setCode) {

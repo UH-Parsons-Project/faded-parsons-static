@@ -21,9 +21,6 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3">
-        <i class="fas fa-arrow-left"></i> My Dashboard
-      </a>
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
 	    <i class="fas fa-user"></i>
 	    <span id="user-name"></span>
@@ -54,7 +51,12 @@
     </div>
   </nav>
 
-  <div class="page-header">
+  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+    <div class="mb-2" style="width: 100%;">
+      <a href="/teacher-dashboard" class="btn btn-sm btn-link text-decoration-none text-dark p-0" style="font-weight: 500;">
+        <i class="fas fa-arrow-left"></i> My Dashboard
+      </a>
+    </div>
     <div id="list-header" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>

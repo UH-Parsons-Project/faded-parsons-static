@@ -2288,37 +2288,3 @@ a.navbar-burger-item:visited {
 a.navbar-burger-item:hover,
 a.navbar-burger-item:focus { background-color: #f8f9fa; color: #0056b3; text-decoration: underline; }
 
-.embossed-btn,
-a.embossed-btn,
-a.embossed-btn:link,
-a.embossed-btn:visited {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.5rem;
-	background-color: #f0f3f6;
-	border: none;
-	border-radius: 50px;
-	box-shadow: 6px 6px 12px #d1d5da, -6px -6px 12px #ffffff;
-	font-weight: 600;
-	color: #495057 !important;
-	padding: 0.5rem 1.25rem;
-	transition: all 0.2s ease;
-	text-decoration: none !important;
-	outline: none;
-}
-
-.embossed-btn:hover,
-a.embossed-btn:hover,
-a.embossed-btn:focus {
-	box-shadow: 4px 4px 8px #d1d5da, -4px -4px 8px #ffffff;
-	color: #495057 !important;
-	text-decoration: none !important;
-}
-
-.embossed-btn:active,
-a.embossed-btn:active {
-	box-shadow: inset 4px 4px 8px #d1d5da, inset -4px -4px 8px #ffffff;
-	color: #495057 !important;
-	text-decoration: none !important;
-}

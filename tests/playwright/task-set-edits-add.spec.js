@@ -22,7 +22,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     // 1. Teacher registers & logs in
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
     await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-    await loginTeacher(page, teacherUsername, teacherPassword);
+    await loginTeacher(page, teacherEmail, teacherPassword);
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
     // 2. Teacher creates a task set with 1 initial task ('add_in_range')
@@ -117,7 +117,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     //    - 'greater_num': the newly-added task to verify visibility
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
     await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-    await loginTeacher(page, teacherUsername, teacherPassword);
+    await loginTeacher(page, teacherEmail, teacherPassword);
     await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
     await createTaskSetWithTasks(
@@ -177,7 +177,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     const loginResponsePromise = studentPage.waitForResponse(
       r => r.url().includes('/api/student_login')
     );
-    await loginStudent(studentPage, studentUsername);
+    await loginStudent(studentPage, studentEmail);
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.status()).toBe(200);
 

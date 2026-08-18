@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
     'Registration successful.'
   );
 
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await createTaskSet(
     page,
     `Student Test List ${unique}`,
@@ -40,12 +40,12 @@ test('student cannot login with non-registered credentials', async ({ browser })
   await studentPage.goto(studentUrl);
 
   // Attempt to login with invalid credentials
-  await loginStudent(studentPage, 'invalid_user', 'wrong_password');
+  await loginStudent(studentPage, 'invalid@example.com', 'wrong_password');
 
   // Expect an error message about invalid credentials
   await studentPage.waitForSelector('#error-message:not([style*="display: none"])', { timeout: 10000 });
   await expect(studentPage.locator('#error-message')).toContainText(
-    'Incorrect username or password'
+    'Incorrect email or password'
   );
 });
 
@@ -81,7 +81,7 @@ test('student can register and then login from task set page', async ({ browser 
     r => r.url().includes('/api/student_login')
   );
 
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
 
   // Assert login API returned success before waiting for navigation
   const loginResponse = await loginResponsePromise;

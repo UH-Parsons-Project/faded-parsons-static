@@ -21,7 +21,7 @@ test('student can open and submit a task first incorrectly and then correctly fr
   await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await createTaskSetWithTasks(
@@ -56,7 +56,7 @@ test('student can open and submit a task first incorrectly and then correctly fr
     r => r.url().includes('/api/student_login')
   );
 
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
 
   // Assert login API returned success before waiting for navigation
   const loginResponse = await loginResponsePromise;
@@ -89,7 +89,7 @@ test('student can navigate back to task list and see in-progress status', async 
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
   // Teacher logs in
-  await loginTeacher(page, teacherUsername, teacherPassword);
+  await loginTeacher(page, teacherEmail, teacherPassword);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Teacher creates a task set with tasks
@@ -125,7 +125,7 @@ test('student can navigate back to task list and see in-progress status', async 
     r => r.url().includes('/api/student_login')
   );
 
-  await loginStudent(studentPage, studentUsername);
+  await loginStudent(studentPage, studentEmail);
 
   const loginResponse = await loginResponsePromise;
   expect(loginResponse.status()).toBe(200);

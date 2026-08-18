@@ -6,9 +6,10 @@ initBurgerMenu();
 
 const params = new URLSearchParams(window.location.search);
 const studentUsername = params.get('student');
+const studentId = params.get('student_id');
 const setId = params.get('set_id');
 
-if (!studentUsername || !setId) {
+if (!studentId || !setId) {
 	window.location.href = '/teacher-dashboard';
 	throw new Error('Missing required query params: student or set_id');
 }
@@ -29,7 +30,7 @@ function bindRemoveStudentButton() {
 		removeStudentBtn.disabled = true;
 		try {
 			const response = await fetch(
-				`/api/my_sets/${encodeURIComponent(setId)}/students/${encodeURIComponent(studentUsername)}`,
+				`/api/my_sets/${encodeURIComponent(setId)}/students/${encodeURIComponent(studentId)}`,
 				{
 					method: 'DELETE',
 					credentials: 'include'
@@ -150,7 +151,7 @@ function createAttemptItem(attempt) {
 	const item = document.createElement('div');
 	item.className = 'task-set-item';
 	const navigate = () => {
-		window.location.href = `/student-task-statistics?student=${encodeURIComponent(studentUsername)}&task_id=${attempt.task_id}&set_id=${setId}`;
+		window.location.href = `/student-task-statistics?student_id=${encodeURIComponent(studentId)}&student=${encodeURIComponent(studentUsername || '')}&task_id=${attempt.task_id}&set_id=${setId}`;
 	};
 	item.onclick = navigate;
 	makeKeyActivatable(item, navigate);
@@ -216,7 +217,7 @@ function renderAttempts(attempts) {
 
 // Load student attempts and full task set task count
 Promise.all([
-	fetch(`/api/students/${encodeURIComponent(studentUsername)}/attempts?set_id=${setId}`, {
+	fetch(`/api/students/${encodeURIComponent(studentId)}/attempts?set_id=${setId}`, {
 		credentials: 'include'
 	}),
 	fetch(`/api/my_sets/${encodeURIComponent(setId)}/tasks`, {

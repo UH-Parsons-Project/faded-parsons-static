@@ -322,7 +322,7 @@ function renderSidebarSection(listEl, names, urlFn) {
 		return;
 	}
 	listEl.innerHTML = names.map(n => {
-		const url = urlFn ? urlFn(n.name) : null;
+		const url = urlFn ? urlFn(n) : null;
 		const tag = url ? 'a' : 'div';
 		const href = url ? ` href="${url}"` : '';
 		return `
@@ -345,10 +345,10 @@ function updateSidebar(completed, notYetCompleted, notStarted, total, students) 
 	document.getElementById('sidebar-not-started-count').textContent = notStarted;
 
 	const taskStatsUrl = (taskId && setId)
-		? name => `/student-task-statistics?student=${encodeURIComponent(name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-task-statistics?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&task_id=${encodeURIComponent(taskId)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 	const attemptsUrl = setId
-		? name => `/student-attempts?student=${encodeURIComponent(name)}&set_id=${encodeURIComponent(setId)}`
+		? n => `/student-attempts?student_id=${encodeURIComponent(n.id)}&student=${encodeURIComponent(n.name)}&set_id=${encodeURIComponent(setId)}`
 		: null;
 
 	renderSidebarSection(

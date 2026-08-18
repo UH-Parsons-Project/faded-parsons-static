@@ -12,7 +12,7 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   // Register and login as teacher1
   await registerTeacher(page, teacher1, email1, password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await loginTeacher(page, teacher1, password);
+  await loginTeacher(page, email1, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   // Prepare minimal task blocks in sessionStorage so editor initializes
@@ -82,7 +82,7 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   const email2 = `teacher_priv2_${unique}@example.com`;
   await registerTeacher(page, teacher2, email2, password);
   await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await loginTeacher(page, teacher2, password);
+  await loginTeacher(page, email2, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
   await page.goto('/global-statistics');

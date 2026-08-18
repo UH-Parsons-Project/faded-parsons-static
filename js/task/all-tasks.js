@@ -74,6 +74,7 @@ function renderPreviewSkeleton(item) {
 						<div class="preview-badges">
 							<span class="preview-badge ${typeClass}"><i class="fas fa-tag"></i> ${escapeHtml(typeText)}</span>
 							${visibilityBadge}
+							${item.faded ? '<span class="preview-badge type-faded"><i class="fas fa-keyboard"></i> Faded</span>' : ''}
 						</div>
 						<div class="preview-meta">
 							${item.creator_username ? '<i class="fas fa-user"></i> Teacher ' + escapeHtml(item.creator_username) : ''}
@@ -335,6 +336,13 @@ function createExerciseCard(item) {
 		? '<i class="fas fa-lock"></i> Private'
 		: '<i class="fas fa-globe"></i> Public';
 	badges.appendChild(visibilityBadge);
+
+	if (item.faded) {
+		const fadedBadge = document.createElement('span');
+		fadedBadge.className = 'preview-badge type-faded';
+		fadedBadge.innerHTML = '<i class="fas fa-keyboard"></i> Faded';
+		badges.appendChild(fadedBadge);
+	}
 
 	headerContent.appendChild(badges);
 	header.appendChild(headerContent);

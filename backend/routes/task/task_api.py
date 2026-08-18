@@ -172,6 +172,7 @@ async def get_task(
         code_blocks=task.code_blocks,
         correct_solution=task.correct_solution,
         is_public=task.is_public,
+        faded=task.faded,
         created_at=task.created_at.isoformat(),
         model_answer=model_answer_code,
     )
@@ -282,6 +283,7 @@ async def list_tasks(current_user: CurrentUser, db: Annotated[AsyncSession, Depe
                 "created_at": task.created_at.isoformat(),
                 "is_favorite": favorite_id is not None,
                 "is_public": task.is_public,
+                "faded": task.faded,
             }
         )
 
@@ -466,6 +468,7 @@ async def create_problem(
             "require_indentation": request.require_indentation,
         },
         is_public=is_public,
+        faded=has_faded,
     )
 
     db.add(task)
@@ -697,6 +700,7 @@ async def update_problem(
         "require_indentation": request.require_indentation,
     }
     task.is_public = True if request.is_public is None else request.is_public
+    task.faded = has_faded
 
     await db.commit()
     await db.refresh(task)

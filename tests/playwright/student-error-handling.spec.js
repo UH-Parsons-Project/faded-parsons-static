@@ -150,7 +150,7 @@ test('student task displays a friendly error for an infinite loop', async ({ pag
   await studentPage.waitForSelector('test-results-element', { timeout: 10000 });
 
   // Assert results show the infinite loop error
-  const summary = studentPage.locator('test-results-element .test-result-summary');
+  const summary = studentPage.locator('.test-result-badge');
   const details = studentPage.locator('test-results-element .test-results-details');
 
   await expect(summary).toHaveText('Infinite loop');
@@ -228,7 +228,7 @@ test('student task displays a syntax error when code has invalid syntax', async 
   await studentPage.waitForSelector('test-results-element', { timeout: 10000 });
 
   // Assert results show the SyntaxError
-  const summary = studentPage.locator('test-results-element .test-result-summary');
+  const summary = studentPage.locator('.test-result-badge');
   const details = studentPage.locator('test-results-element .test-results-details');
 
   await expect(summary).toHaveText('SyntaxError');

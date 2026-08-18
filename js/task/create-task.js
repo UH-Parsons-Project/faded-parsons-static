@@ -140,6 +140,30 @@
     });
   }
 
+  function switchGuideTab(tabName, updateDropdown = true) {
+    const tabBtns = document.querySelectorAll('.guide-tab-btn');
+    const tabPanes = document.querySelectorAll('.guide-tab-pane');
+
+    tabBtns.forEach((btn) => {
+      const isMatch = btn.getAttribute('data-tab') === tabName;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+
+    tabPanes.forEach((pane) => {
+      const isMatch = pane.id === `guide-pane-${tabName}`;
+      pane.classList.toggle('active', isMatch);
+    });
+
+    if (updateDropdown) {
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput && evalTypeInput.value !== tabName) {
+        evalTypeInput.value = tabName;
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+    }
+  }
+
   function setupGuideToggle() {
     const guideToggle = document.getElementById('guide-toggle');
     const guideContent = document.getElementById('guide-content');
@@ -152,6 +176,16 @@
       guideToggle.classList.toggle('expanded');
       guideContent.classList.toggle('expanded');
     });
+
+    const tabBtns = document.querySelectorAll('.guide-tab-btn');
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.getAttribute('data-tab');
+        if (tabName) {
+          switchGuideTab(tabName, true);
+        }
+      });
+    });
   }
 
   function setupCopyButtons() {
@@ -159,32 +193,59 @@
 
     copyButtons.forEach((button) => {
       button.addEventListener('click', async () => {
-        const targetId = button.getAttribute('data-copy-target');
-        if (!targetId) {
-          return;
+        const evalType = button.getAttribute('data-eval-type');
+        const copyCodeTarget = button.getAttribute('data-copy-code-target') || button.getAttribute('data-copy-target');
+        const copyTestsTarget = button.getAttribute('data-copy-tests-target');
+
+        const taskCodeInput = document.getElementById('task-code');
+        const taskTestsInput = document.getElementById('task-tests');
+        const evalTypeInput = document.getElementById('eval-type');
+
+        let textCopied = false;
+
+        if (evalType && evalTypeInput) {
+          evalTypeInput.value = evalType;
+          evalTypeInput.dispatchEvent(new Event('change'));
         }
 
-        const sourceElement = document.getElementById(targetId);
-        if (!sourceElement) {
-          return;
+        if (copyCodeTarget && taskCodeInput) {
+          const codeEl = document.getElementById(copyCodeTarget);
+          if (codeEl) {
+            taskCodeInput.value = codeEl.textContent;
+            taskCodeInput.dispatchEvent(new Event('input'));
+            textCopied = true;
+          }
         }
 
-        const textToCopy = sourceElement.textContent;
+        if (taskTestsInput) {
+          if (copyTestsTarget) {
+            const testsEl = document.getElementById(copyTestsTarget);
+            if (testsEl) {
+              taskTestsInput.value = testsEl.textContent;
+              taskTestsInput.dispatchEvent(new Event('input'));
+              textCopied = true;
+            }
+          } else if (evalType === 'order_only') {
+            taskTestsInput.value = '';
+            taskTestsInput.dispatchEvent(new Event('input'));
+          }
+        }
 
-        try {
-          await navigator.clipboard.writeText(textToCopy);
+        if (textCopied) {
+          try {
+            await navigator.clipboard.writeText(taskCodeInput ? taskCodeInput.value : '');
+          } catch (e) {
+            // Ignore clipboard permission errors if fallback copied into textareas
+          }
 
           const originalHTML = button.innerHTML;
-          button.innerHTML = '<i class="fas fa-check"></i> Copied';
+          button.innerHTML = '<i class="fas fa-check"></i> Copied to Editors';
           button.classList.add('copied');
 
           setTimeout(() => {
             button.innerHTML = originalHTML;
             button.classList.remove('copied');
           }, 2000);
-        } catch (error) {
-          console.error('Failed to copy:', error);
-          alert('Failed to copy. Please try manually selecting and copying.');
         }
       });
     });
@@ -248,6 +309,7 @@
     const taskTestsPanel = document.getElementById('task-tests-panel');
     const taskTestsLabel = document.getElementById('task-tests-label');
     const taskTestsHint = document.getElementById('task-tests-hint');
+    const taskCodeHint = document.getElementById('task-code-hint');
 
     if (!form || !submitBtn || !taskCodeInput || !taskTestsInput) {
       return;
@@ -256,21 +318,25 @@
     if (evalTypeInput) {
       evalTypeInput.addEventListener('change', () => {
         const val = evalTypeInput.value;
+        switchGuideTab(val, false);
         if (val === 'order_only') {
           taskTestsPanel.style.display = 'none';
-          taskCodeInput.placeholder = 'Step 1\nStep 2\nStep 3';
+          taskCodeInput.placeholder = 'Buy all ingredients\nBake a pie\nEat the pie';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>Buy all ingredients</code>';
         } else if (val === 'stdout') {
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Expected Output';
           taskTestsHint.textContent = 'Exact output expected from the print statements';
-          taskTestsInput.placeholder = 'Hello World!';
-          taskCodeInput.placeholder = 'print("Hello World!")';
+          taskTestsInput.placeholder = 'Hello\nWorld';
+          taskCodeInput.placeholder = 'print("Hello")\nprint("World")';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>print("Hello")</code>';
         } else {
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Task Tests';
           taskTestsHint.textContent = 'Use any Python test style you prefer';
-          taskTestsInput.placeholder = 'assert format_name(\'ada\', \'lovelace\') == \'Ada Lovelace\'\nassert format_name(\'  linus\', \'torvalds \') == \'Linus Torvalds\'';
-          taskCodeInput.placeholder = 'def format_name(first, last):\n    return f"{first.strip().title()} {last.strip().title()}"';
+          taskTestsInput.placeholder = 'assert sum(1, 5) == 6\nassert sum(5, 5) == 10';
+          taskCodeInput.placeholder = 'def sum(a, b):\n    total = a + b\n    return total';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>def sum(a, b):</code>';
         }
       });
       // trigger initial update

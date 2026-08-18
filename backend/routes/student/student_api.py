@@ -846,14 +846,22 @@ async def get_task_moves(
     task_result = await db.execute(select(Parsons).where(Parsons.id == task_id))
     task = task_result.scalar_one_or_none()
 
-    # main.js appends these 4 extra lines to codeLines before passing to the widget,
-    # so they get sortable-codelineN IDs just like real blocks and live in the starter.
+    eval_type = getattr(task, "eval_type", None)
+    if not eval_type and task and hasattr(task, "correct_solution") and task.correct_solution:
+        if isinstance(task.correct_solution, dict):
+            eval_type = task.correct_solution.get("eval_type")
+        else:
+            eval_type = getattr(task.correct_solution, "eval_type", None)
+    eval_type = eval_type or "unit_test"
+
+    # main.js appends these 4 extra lines to codeLines before passing to the widget
+    # for non-order_only tasks, so they get sortable-codelineN IDs.
     DEBUG_LINES = [
         {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
         {"code": "print('DEBUG:', !BLANK)", "given": False, "indent": 0},
         {"code": "# !BLANK", "given": False, "indent": 0},
         {"code": "# !BLANK", "given": False, "indent": 0},
-    ]
+    ] if eval_type != "order_only" else []
 
     initial_blocks = []
     block_code_map = {}

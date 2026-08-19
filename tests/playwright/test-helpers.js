@@ -297,3 +297,73 @@ export async function submitTaskWrongThenCorrect(page) {
   await page.waitForSelector('.test-result-badge.full-pass', { timeout: 30000 });
   await expect(page.locator('.test-result-badge.full-pass')).toBeVisible();
 }
+
+/**
+ * Start a Parsons task for 'greater_num' and submit a correct solution
+ * @param {import('@playwright/test').Page} page - student page on the problem view (after clicking Start)
+ */
+export async function submitGreaterNumCorrect(page) {
+  await page.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
+
+  await page.evaluate(() => {
+    const pe = document.querySelector('problem-element');
+    const widget = pe?.parsonsWidget;
+    if (!widget) return;
+    
+    const findId = (substr) => {
+      const l = widget.modified_lines.find(x => x.code && x.code.includes(substr));
+      return l ? l.id : null;
+    };
+    
+    const findAll = (substr) => {
+      return widget.modified_lines.filter(x => x.code && x.code.includes(substr)).map(l => l.id);
+    };
+
+    const returns = findAll('return ');
+
+    const ordered = [
+      findId('def greater_num(num1, num2):'),
+      findId('if '),
+      returns[0],
+      findId('else:'),
+      returns[1],
+    ].filter(Boolean);
+
+    const indentMap = {};
+    if (ordered[0]) indentMap[ordered[0]] = 0;
+    if (ordered[1]) indentMap[ordered[1]] = 1;
+    if (ordered[2]) indentMap[ordered[2]] = 2;
+    if (ordered[3]) indentMap[ordered[3]] = 1;
+    if (ordered[4]) indentMap[ordered[4]] = 2;
+
+    Object.entries(indentMap).forEach(([id, val]) => {
+      const line = widget.getLineById(id);
+      if (line) line.indent = val;
+    });
+
+    widget.createHTMLFromLists(ordered, widget.modified_lines.map(l => l.id).filter(id => !ordered.includes(id)));
+    ordered.forEach(id => widget.updateHTMLIndent(id));
+    
+    const setInputs = (id, values) => {
+      if (!id) return;
+      const li = document.getElementById(id);
+      if (!li) return;
+      const inputs = Array.from(li.querySelectorAll('input.text-box'));
+      values.forEach((v, i) => {
+        if (inputs[i]) {
+          inputs[i].value = v;
+          inputs[i].dispatchEvent(new Event('input', { bubbles: true }));
+          inputs[i].dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      });
+    };
+
+    setInputs(ordered[1], ['num1 > num2']);
+    setInputs(ordered[2], ['num1']);
+    setInputs(ordered[4], ['num2']);
+  });
+
+  await page.getByRole('button', { name: 'Run Tests' }).click();
+  await page.waitForSelector('.test-result-badge.full-pass', { timeout: 30000 });
+  await expect(page.locator('.test-result-badge.full-pass')).toBeVisible();
+}

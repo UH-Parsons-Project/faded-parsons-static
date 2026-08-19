@@ -23,6 +23,20 @@ test('teacher can register and then login from the main page', async ({ page }) 
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 });
 
+test('teacher can login using username instead of email', async ({ page }) => {
+  const unique = Date.now();
+  const username = `teacher_uname_${unique}`;
+  const email = `teacher_uname_${unique}@example.com`;
+  const password = 'password123';
+
+  await registerTeacher(page, username, email, password);
+  await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+
+  await loginTeacher(page, username, password);
+
+  await expect(page).toHaveURL(/\/teacher-dashboard$/);
+});
+
 test('teacher cannot login with non-registered credentials', async ({ page }) => {
   await loginTeacher(page, 'nonexistent_teacher@example.com', 'wrong_password');
 

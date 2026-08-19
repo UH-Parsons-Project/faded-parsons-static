@@ -475,6 +475,7 @@ async def get_task_for_student_set(
         code_blocks=task.code_blocks,
         correct_solution=student_correct_solution,
         is_public=task.is_public,
+        faded=task.faded,
         created_at=task.created_at.isoformat(),
         submitted_order=submitted_order,
         eval_type=task.correct_solution.get("eval_type", "unit_test"),

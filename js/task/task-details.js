@@ -105,6 +105,14 @@ async function loadTaskDetails() {
     typeBadge.innerHTML = `<i class="fas fa-tag"></i> ${task.task_type || 'normal'}`;
     badgeContainer.appendChild(typeBadge);
 
+    // Faded Badge
+    if (task.faded) {
+      const fadedBadge = document.createElement('span');
+      fadedBadge.className = 'task-details-badge preview-badge type-faded';
+      fadedBadge.innerHTML = '<i class="fas fa-keyboard"></i> Faded';
+      badgeContainer.appendChild(fadedBadge);
+    }
+
     // 3. Setup Navigation buttons
     document.getElementById('action-run-task').href = `/task?id=${task.id}`;
     document.getElementById('action-stats-task').href = `/task-statistics?id=${task.id}`;

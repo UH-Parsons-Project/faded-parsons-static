@@ -1,9 +1,13 @@
 // @ts-check
+/* eslint-env node */
 import { test, expect } from '@playwright/test';
 import { registerTeacher, loginTeacher, createTaskSet, registerStudent, loginStudent, getStudentUrl } from './test-helpers.js';
 
-// Before testing student registration and login, we need to create a teacher account and a task set for the student to access
-test.beforeEach(async ({ page }) => {
+let studentUrl = '';
+
+// Create a teacher account and a task set ONCE for all student auth tests
+test.beforeAll(async ({ browser }) => {
+  const page = await browser.newPage();
   const unique = Date.now();
   const teacherUsername = `teacher_${unique}`;
   const teacherEmail = `teacher_${unique}@example.com`;
@@ -25,16 +29,11 @@ test.beforeEach(async ({ page }) => {
   await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  const studentUrl = await getStudentUrl(page, `Student Test List ${unique}`);
-  // Store the URL in test.info().annotations for access in the test
-  test.info().annotations.push({ type: 'studentUrl', description: studentUrl });
+  studentUrl = (await getStudentUrl(page, `Student Test List ${unique}`)).trim();
+  await page.close();
 });
 
 test('student cannot login with non-registered credentials', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -50,11 +49,6 @@ test('student cannot login with non-registered credentials', async ({ browser })
 });
 
 test('student can register and then login from task set page', async ({ browser }) => {
-  // Get the tasklist URL from test.info().annotations
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   // Start the test from the student tasklist URL in a fresh browser
   const context = await browser.newContext();
   const studentPage = await context.newPage();
@@ -93,10 +87,6 @@ test('student can register and then login from task set page', async ({ browser 
 });
 
 test('student registration fails with too short username', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -114,10 +104,6 @@ test('student registration fails with too short username', async ({ browser }) =
 });
 
 test('student registration fails with existing email', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -142,10 +128,6 @@ test('student registration fails with existing email', async ({ browser }) => {
 });
 
 test('student registration enforces max length on username', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -176,10 +158,6 @@ test('student registration enforces max length on username', async ({ browser })
 });
 
 test('student registration handles invalid email format via HTML validation', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -209,10 +187,6 @@ test('student registration handles invalid email format via HTML validation', as
 });
 
 test('student can logout and is redirected to login', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);
@@ -240,10 +214,6 @@ test('student can logout and is redirected to login', async ({ browser }) => {
 });
 
 test('student is redirected to login if attempting to access tasks without session', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   
@@ -256,10 +226,6 @@ test('student is redirected to login if attempting to access tasks without sessi
 });
 
 test('student session expiry redirects to login', async ({ browser }) => {
-  const annotation = test.info().annotations.find(a => a.type === 'studentUrl');
-  if (!annotation) throw new Error('Student URL not found in test annotations');
-  const studentUrl = annotation.description.trim();
-
   const context = await browser.newContext();
   const studentPage = await context.newPage();
   await studentPage.goto(studentUrl);

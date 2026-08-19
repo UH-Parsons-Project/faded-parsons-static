@@ -30,8 +30,12 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-size: 15px;
 }
+
+footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
 
 /* ── Navbar ──────────────────────────────────────────── */
 .navbar {

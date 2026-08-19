@@ -70,12 +70,26 @@ body {
 /* ── Page header ─────────────────────────────────────── */
 .page-header {
   width: 100%;
-  padding: 1.25rem 2.5rem .75rem;
+  padding: 1.5rem 2.5rem 1rem;
   border-bottom: 1px solid var(--border);
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
 }
+
+/* ── Main layout ─────────────────────────────────────── */
+.overview-main {
+  width: 100%;
+  padding: 1.5rem 2.5rem 3rem;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .header-inner {
   display: flex;
   align-items: flex-start;

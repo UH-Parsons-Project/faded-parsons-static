@@ -53,9 +53,11 @@ function renderHeader(data) {
 
 	const backBtn = document.getElementById('back-btn');
 	if (backBtn) {
-		const taskSetCode = data.task_set_code || '';
-		const taskSetQuery = taskSetCode ? `&task_set=${encodeURIComponent(taskSetCode)}` : '';
-		backBtn.href = `/task-statistics?id=${encodeURIComponent(taskId)}${taskSetQuery}&set_id=${encodeURIComponent(setId)}`;
+		backBtn.href = "#";
+		backBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			history.back();
+		});
 	}
 }
 

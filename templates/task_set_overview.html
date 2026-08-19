@@ -11,7 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/js-parsons/parsons.css">
-  <link rel="stylesheet" href="/css/task-set-overview.css">
+  <link rel="stylesheet" href="/css/task-set-overview.css?v=3">
+  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
 </head>
 
 <body>
@@ -21,9 +22,6 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3">
-        <i class="fas fa-arrow-left"></i> My Dashboard
-      </a>
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
 	    <i class="fas fa-user"></i>
 	    <span id="user-name"></span>
@@ -54,7 +52,12 @@
     </div>
   </nav>
 
-  <div class="page-header">
+  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+    <div class="mb-2" style="width: 100%;">
+      <a href="/teacher-dashboard" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
     <div id="list-header" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
         <span class="sr-only">Loading...</span>

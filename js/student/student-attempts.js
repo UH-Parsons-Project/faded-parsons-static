@@ -17,7 +17,11 @@ if (!studentId || !setId) {
 // Set up back button
 const backBtn = document.getElementById('back-btn');
 if (backBtn) {
-	backBtn.href = `/task-set-overview?set_id=${setId}`;
+	backBtn.href = "#";
+	backBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+		history.back();
+	});
 }
 
 function bindRemoveStudentButton() {

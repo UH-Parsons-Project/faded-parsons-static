@@ -1,3 +1,4 @@
+import { TaskSearchFilter } from '../components/task-search-filter.js';
 import {initNavbarExercisesButton, initSignedInAs, initProtectedPage, initBurgerMenu} from '../core/auth-ui.js';
 import { isPrivateTask } from '../components/privacy-badge.js';
 import { formatDate, escapeHtml } from '../utils/ui-utils.js';
@@ -13,19 +14,10 @@ initBurgerMenu();
 // Load exercise list
 const container = document.getElementById('problems-list');
 const taskCountBadge = document.getElementById('task-count-badge');
-const filterToggleBtn = document.getElementById('task-filter-toggle');
-const filterPanel = document.getElementById('task-filter-panel');
-const taskSearchInput = document.getElementById('task-search');
-const scopeCheckboxes = document.querySelectorAll('.filter-scope');
+
 
 let allTasks = [];
-let currentTeacherId = null;
-let currentTeacherUsername = '';
-
-const activeTaskFilters = {
-	query: '',
-	activeScope: null
-};
+let searchFilter = null;
 
 function truncate(text, maxLength) {
 	if (!text) return '';
@@ -421,7 +413,9 @@ async function toggleFavorite(task) {
 		}
 	}
 
-	applyTaskFilters();
+	if (searchFilter) {
+		searchFilter.applyFilters();
+	}
 }
 
 function updateTaskCountBadge(count) {
@@ -455,151 +449,45 @@ function render(list) {
 	container.appendChild(cardsColumn);
 }
 
-function toggleFilterPanel() {
-	if (!filterPanel || !filterToggleBtn) return;
-	const isExpanded = filterPanel.classList.contains('show');
-	filterPanel.classList.toggle('show', !isExpanded);
-	filterToggleBtn.setAttribute('aria-expanded', String(!isExpanded));
-}
-
-function setupFilterUi() {
-	if (filterToggleBtn) {
-		filterToggleBtn.addEventListener('click', toggleFilterPanel);
-	}
-
-	if (taskSearchInput) {
-		taskSearchInput.addEventListener('input', (e) => {
-			activeTaskFilters.query = e.target.value.trim().toLowerCase();
-			applyTaskFilters();
-		});
-	}
-
-	scopeCheckboxes.forEach((checkbox) => {
-		checkbox.addEventListener('change', (e) => {
-			if (e.target.checked) {
-				scopeCheckboxes.forEach((other) => {
-					if (other !== e.target) {
-						other.checked = false;
-					}
-				});
-				activeTaskFilters.activeScope = e.target.value;
-			} else {
-				activeTaskFilters.activeScope = null;
-			}
-			applyTaskFilters();
-		});
-	});
-}
-
-function isOwnTask(task, creatorUsername) {
-	const byTeacherId =
-		currentTeacherId !== null && Number(task.created_by_teacher_id) === currentTeacherId;
-	const byTeacherName =
-		!!currentTeacherUsername && creatorUsername === currentTeacherUsername.toLowerCase();
-	return byTeacherId || byTeacherName;
-}
-
-function applyTaskFilters() {
-	const query = activeTaskFilters.query;
-	const activeScope = activeTaskFilters.activeScope;
-
-	const filteredTasks = allTasks.filter((task) => {
-		const taskTitle = (task.title || '').toLowerCase();
-		const taskType = (task.task_type || '').toLowerCase();
-		const creatorUsername = (task.creator_username || '').toLowerCase();
-		const ownTask = isOwnTask(task, creatorUsername);
-
-		// Hide private tasks unless they belong to the current user
-		if (isPrivateTask(task) && !ownTask) {
-			return false;
-		}
-
-		if (!query) {
-			if (activeScope === 'my-exercises') {
-				return ownTask;
-			}
-			if (activeScope === 'favorites') {
-				return Boolean(task.is_favorite);
-			}
-			return true;
-		}
-
-		if (!activeScope) {
-			return (
-				taskTitle.includes(query) ||
-				taskType.includes(query) ||
-				creatorUsername.includes(query)
-			);
-		}
-
-		if (activeScope === 'title') {
-			return taskTitle.includes(query);
-		}
-		if (activeScope === 'type') {
-			return taskType.includes(query);
-		}
-		if (activeScope === 'teacher') {
-			return creatorUsername.includes(query);
-		}
-		if (activeScope === 'my-exercises') {
-			return ownTask && (taskTitle.includes(query) || taskType.includes(query));
-		}
-		if (activeScope === 'favorites') {
-			return Boolean(task.is_favorite) && (
-				taskTitle.includes(query) ||
-				taskType.includes(query) ||
-				creatorUsername.includes(query)
-			);
-		}
-
-		return false;
-	});
-
-	filteredTasks.sort((a, b) => {
-		const titleA = (a.title || '').toLowerCase();
-		const titleB = (b.title || '').toLowerCase();
-		return titleA.localeCompare(titleB);
-	});
-
-	render(filteredTasks);
-}
+// Filter UI logic moved to TaskSearchFilter component
 
 function loadCurrentTeacher() {
 	const storedUsername = localStorage.getItem('username');
 	const storedUserId = localStorage.getItem('userId');
 
-	if (storedUsername) {
-		currentTeacherUsername = storedUsername;
-	}
-
+	let cachedId = null;
 	if (storedUserId) {
 		const parsedId = Number.parseInt(storedUserId, 10);
 		if (!Number.isNaN(parsedId)) {
-			currentTeacherId = parsedId;
+			cachedId = parsedId;
 		}
+	}
+
+	if (searchFilter && (cachedId !== null || storedUsername)) {
+		searchFilter.updateTeacher(cachedId, storedUsername || '');
 	}
 
 	fetch('/api/me', { credentials: 'include' })
 		.then((r) => (r.ok ? r.json() : Promise.reject()))
 		.then((data) => {
 			if (data?.username) {
-				currentTeacherUsername = data.username;
 				localStorage.setItem('username', data.username);
 			}
 			if (typeof data?.id === 'number') {
-				currentTeacherId = data.id;
 				localStorage.setItem('userId', String(data.id));
 			}
-			applyTaskFilters();
+			if (searchFilter) {
+				searchFilter.updateTeacher(data.id, data.username);
+			}
 		})
-
-
 		.catch(() => {
 			// Keep cached identity when /api/me is unavailable.
 		});
 }
 
-setupFilterUi();
+searchFilter = new TaskSearchFilter('universal-task-search', {
+	onFilter: render
+});
 loadCurrentTeacher();
 
 // Fetch problems list
@@ -610,7 +498,7 @@ loadCurrentTeacher();
 	})
 	.then(function (json) {
 		allTasks = json;
-		applyTaskFilters();
+		searchFilter.setTasks(allTasks);
 	})
 	.catch(function () {
 		container.className = 'empty-state';

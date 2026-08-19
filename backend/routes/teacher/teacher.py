@@ -70,11 +70,6 @@ async def privacy_policy_page():
     privacy_policy_path = BASE_DIR / "templates" / "privacy_policy.html"
     return FileResponse(privacy_policy_path)
 
-@router.get("/data-retention-policy", response_class=HTMLResponse)
-async def data_retention_policy_page():
-    """Serve the data retention policy page."""
-    data_retention_path = BASE_DIR / "templates" / "data_retention_policy.html"
-    return FileResponse(data_retention_path)
 
 @router.get("/contact", response_class=HTMLResponse)
 async def contact_page():

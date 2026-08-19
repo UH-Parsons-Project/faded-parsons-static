@@ -23,6 +23,7 @@ from ...models import (
     TaskSet,
     TaskSetItem,
     TaskSetViewer,
+    TaskType,
     Teacher,
     TeacherFavoriteTask,
 )
@@ -31,6 +32,7 @@ from ...pydantic import (
     CreateTaskSetRequest,
     StudentInTaskSetResponse,
     TaskResponse,
+    TaskTypeResponse,
     TaskSetResponse,
     TaskSetTaskResponse,
     TaskSetViewerRequest,
@@ -40,6 +42,7 @@ from ...pydantic import (
     UpdateModelAnswerRequest,
 )
 from ...utils.task import is_task_editable
+from ...utils.task_types import find_task_type
 from ...utils.taskset import has_task_set_view_access, require_task_set_view_access
 from backend.utils import generate_slug
 from ..utils.commons import (
@@ -48,46 +51,26 @@ from ..utils.commons import (
 )
 
 router = APIRouter()
-ALLOWED_TASK_TYPES = {
-    "algorithms",
-    "arithmetic",
-    "booleans",
-    "classes",
-    "comprehensions",
-    "conditionals",
-    "debugging",
-    "dictionaries",
-    "exceptions",
-    "files",
-    "functions",
-    "imports",
-    "input",
-    "lists",
-    "loops",
-    "other",
-    "recursion",
-    "searching",
-    "sets",
-    "sorting",
-    "strings",
-    "testing",
-    "tuples",
-    "typecasting",
-    "variables",
-}
 
 
-def _normalize_task_type(task_type: str | None) -> str:
-    return (task_type or "").strip().lower()
+async def _resolve_task_type(
+    task_type: str | None,
+    has_faded: bool,
+    db: AsyncSession,
+    current_task_type: str | None = None,
+) -> str:
+    """Resolve a task type against active database tags.
 
-
-def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
-    normalized = _normalize_task_type(task_type)
+    When editing an old task, its legacy value is accepted if the value is
+    unchanged. This keeps old tasks editable without offering legacy values
+    for newly created tasks, including values from older deployments that are
+    not present in the seeded task type list.
+    """
+    normalized = (task_type or "").strip().lower()
     if not normalized:
+        if current_task_type:
+            return current_task_type
         return "Faded" if has_faded else "normal"
-
-    if normalized in ALLOWED_TASK_TYPES:
-        return normalized
 
     if normalized == "normal":
         return "normal"
@@ -95,13 +78,34 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
     if normalized == "faded":
         return "Faded"
 
-    if normalized not in ALLOWED_TASK_TYPES:
-        allowed = ", ".join(sorted(ALLOWED_TASK_TYPES))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"task_type is required and must be one of: {allowed}",
-        )
-    return normalized
+    active_type = await find_task_type(db, normalized)
+    if active_type:
+        return active_type.slug
+
+    if current_task_type and normalized == current_task_type.strip().lower():
+        return current_task_type
+
+    active_result = await db.execute(
+        select(TaskType.slug)
+        .where(TaskType.is_active.is_(True))
+        .order_by(TaskType.sort_order, TaskType.label)
+    )
+    allowed = ", ".join(active_result.scalars().all())
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"task_type must be one of: {allowed}",
+    )
+
+
+def _task_type_response(task_type: TaskType) -> TaskTypeResponse:
+    return TaskTypeResponse(
+        id=task_type.id,
+        slug=task_type.slug,
+        label=task_type.label,
+        is_active=task_type.is_active,
+        sort_order=task_type.sort_order,
+        created_at=task_type.created_at.isoformat(),
+    )
 
 
 def _sanitize_model_answer_code(code: str | None) -> str:
@@ -127,6 +131,20 @@ def _sanitize_model_answer_code(code: str | None) -> str:
 
     sanitized = re.sub(r"#blank\w*", _replace_blank_markers, sanitized)
     return sanitized.strip()
+
+
+@router.get("/api/task-types", response_model=list[TaskTypeResponse])
+async def list_active_task_types(
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Return active task type tags for authenticated teachers."""
+    result = await db.execute(
+        select(TaskType)
+        .where(TaskType.is_active.is_(True))
+        .order_by(TaskType.sort_order, TaskType.label)
+    )
+    return [_task_type_response(task_type) for task_type in result.scalars().all()]
 
 
 @router.get("/api/tasks/{task_id}", response_model=TaskResponse)
@@ -433,7 +451,7 @@ async def create_problem(
             }
         )
 
-    requested_task_type = _resolve_task_type(request.task_type, has_faded)
+    requested_task_type = await _resolve_task_type(request.task_type, has_faded, db)
 
     examples_text = request.examples.strip() if request.examples else ""
 
@@ -669,7 +687,12 @@ async def update_problem(
             }
         )
 
-    requested_task_type = _resolve_task_type(request.task_type, has_faded)
+    requested_task_type = await _resolve_task_type(
+        request.task_type,
+        has_faded,
+        db,
+        current_task_type=task.task_type,
+    )
 
     examples_text = request.examples.strip() if request.examples else ""
 

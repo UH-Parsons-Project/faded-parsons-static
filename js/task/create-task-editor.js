@@ -2047,11 +2047,12 @@ initBurgerMenu();
 
     const evalTypeInput = document.getElementById('eval-type');
     if (evalTypeInput) {
-      evalTypeInput.value = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+      // draft.evalType takes priority: the user may have changed it on step 1
+      evalTypeInput.value = draft.evalType || apiTaskData?.correct_solution?.eval_type || 'unit_test';
       evalTypeInput.dispatchEvent(new Event('change'));
     }
     const expectedOutputInput = document.getElementById('expected-output-input');
-    if (expectedOutputInput) expectedOutputInput.value = apiTaskData?.correct_solution?.expected_output || draft.expectedOutput || '';
+    if (expectedOutputInput) expectedOutputInput.value = draft.expectedOutput || apiTaskData?.correct_solution?.expected_output || '';
     const allowIndentCheckbox = document.getElementById('allow-indent');
     if (allowIndentCheckbox) {
       const currentEvalType = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';

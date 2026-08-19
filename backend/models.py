@@ -67,6 +67,20 @@ class Parsons(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
 
+
+class TaskType(Base):
+    """A configurable task type tag."""
+
+    __tablename__ = "task_types"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class TaskSet(Base):
     """Task list model."""
 

@@ -1,8 +1,3 @@
-html,
-body {
-	height: 100%;
-}
-
 body {
 	min-height: 100vh;
 	display: flex;
@@ -269,7 +264,7 @@ code {
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 1030;
   height: 80px;
   min-height: 80px;
   padding-top: 0;
@@ -2287,3 +2282,4 @@ a.navbar-burger-item:visited {
 }
 a.navbar-burger-item:hover,
 a.navbar-burger-item:focus { background-color: #f8f9fa; color: #0056b3; text-decoration: underline; }
+

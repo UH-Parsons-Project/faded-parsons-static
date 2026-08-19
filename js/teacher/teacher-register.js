@@ -22,6 +22,11 @@ form.addEventListener('submit', async (e) => {
 		return;
 	}
 
+	if (payload.password.length < 8) {
+		showAlert(alertPlaceholder, 'Password must be at least 8 characters long.');
+		return;
+	}
+
 	try {
 		const res = await fetch('/api/teacher_register', {
 			method: 'POST',

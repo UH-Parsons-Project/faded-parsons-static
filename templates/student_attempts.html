@@ -12,6 +12,8 @@
 
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/student-attempts.css">
+  <link rel="stylesheet" href="/css/task-statistics.css">
+  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
 </head>
 
 <body>
@@ -21,9 +23,6 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="#" id="back-btn" class="btn btn-outline-dark btn-sm mr-3">
-        <i class="fas fa-arrow-left"></i> Task Set
-      </a>
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
 		    <i class="fas fa-user"></i>
 		    <span id="user-name"></span>
@@ -56,6 +55,12 @@
   </nav>
 
   <div class="container py-4">
+
+    <div class="mb-3">
+      <a href="#" id="back-btn" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
 
     <div id="page-header" class="loading-spinner">
       <div class="spinner-border text-primary" role="status">
@@ -116,7 +121,6 @@
   <div style="max-width:1000px;margin:0 auto;">
     <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>
     <a class="footer-btn" href="/contact" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Contact</a>
-    <a class="footer-btn" href="/data-retention-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Data retention</a>
   </div>
 </footer>
 <!-- Footer partial (source): templates/footer.html -->

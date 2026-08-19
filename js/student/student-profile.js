@@ -43,8 +43,8 @@ if (enrolledSetsContainer) {
 // Helpers for alerts
 
 
-function buildTaskSetUrl(username, uniqueLinkCode) {
-	return `/${encodeURIComponent(username)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
+function buildTaskSetUrl(teacherUsername, uniqueLinkCode) {
+	return `/${encodeURIComponent(teacherUsername)}/set/${encodeURIComponent(uniqueLinkCode)}/tasks`;
 }
 
 function normalizePath(path) {
@@ -115,7 +115,7 @@ function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	const completedSets = taskSets.filter((taskSet) => taskSet.is_completed);
 	const normalizedLastSetUrl = normalizePath(lastSetUrl);
 	const currentSet = taskSets.find(
-		(taskSet) => normalizePath(buildTaskSetUrl(username, taskSet.unique_link_code)) === normalizedLastSetUrl
+		(taskSet) => normalizePath(buildTaskSetUrl(taskSet.teacher_username, taskSet.unique_link_code)) === normalizedLastSetUrl
 	);
 	const currentSetIncomplete = Boolean(currentSet && !currentSet.is_completed);
 
@@ -123,7 +123,7 @@ function renderJoinedTaskSets(taskSets, username, lastSetUrl) {
 	enrolledSetsContainer.dataset.currentSetIncomplete = String(currentSetIncomplete);
 
 	const renderSetItem = (taskSet) => {
-		const taskSetUrl = buildTaskSetUrl(username, taskSet.unique_link_code);
+		const taskSetUrl = buildTaskSetUrl(taskSet.teacher_username, taskSet.unique_link_code);
 		const buttonLabel = normalizePath(taskSetUrl) === normalizedLastSetUrl ? 'Current set' : 'Open set';
 
 		return `

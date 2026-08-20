@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
 </head>
 <body>
 
@@ -17,9 +18,6 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3" id="back-to-dashboard" title="Back to Dashboard">
-        <i class="fas fa-arrow-left"></i> Back to Dashboard
-      </a>
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
         <span id="signed-in-as"><i class="fas fa-user"></i> <span id="user-name"></span> <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span></span>
       </a>
@@ -49,6 +47,11 @@
   </nav>
 
   <div class="container pt-5 pb-4">
+    <div class="mb-3">
+      <a href="/teacher-dashboard" class="embossed-btn" id="back-to-dashboard" title="Back">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
 
     <div class="row">
       <!-- Left Column: Profile Info and Change Email -->
@@ -139,7 +142,6 @@
     <div style="max-width:1000px;margin:0 auto;">
       <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>
       <a class="footer-btn" href="/contact" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Contact</a>
-      <a class="footer-btn" href="/data-retention-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Data retention</a>
     </div>
   </footer>
 

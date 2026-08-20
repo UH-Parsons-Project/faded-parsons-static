@@ -25,6 +25,7 @@ class TaskResponse(BaseModel):
     code_blocks: dict
     correct_solution: dict
     is_public: bool
+    faded: bool = False
     created_at: str
     model_answer: str | None = None
     submitted_order: dict | None = None
@@ -45,6 +46,7 @@ class StudentTaskResponse(BaseModel):
     code_blocks: dict
     correct_solution: dict | None = None
     is_public: bool
+    faded: bool = False
     created_at: str
     submitted_order: dict | None = None
     eval_type: str = "unit_test"
@@ -201,6 +203,7 @@ class CreateProblemRequest(BaseModel):
     parsonsRepr: str | None = None
     customErrorMessages: str | None = None
     is_public: bool | None = True
+    faded: bool = False
     eval_type: str = "unit_test"
     expected_output: str = ""
     require_indentation: bool = True

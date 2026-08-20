@@ -61,6 +61,7 @@ class Parsons(Base):
     task_type: Mapped[str] = mapped_column(String(50), nullable=False)
     code_blocks: Mapped[dict] = mapped_column(JSON, nullable=False)
     correct_solution: Mapped[dict] = mapped_column(JSON, nullable=False)
+    faded: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     is_public: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

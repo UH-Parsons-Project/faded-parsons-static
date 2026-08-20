@@ -203,61 +203,7 @@
           <div class="form-section mt-4">
             <h5><i class="fas fa-list"></i> Select Tasks</h5>
 
-            <div class="task-filter-menu">
-              <button
-                class="btn btn-outline-secondary task-filter-toggle"
-                type="button"
-                data-toggle="collapse"
-                data-target="#task-filter-panel"
-                aria-expanded="false"
-                aria-controls="task-filter-panel"
-              >
-                <i class="fas fa-bars"></i> Search & Filter
-              </button>
-
-              <div class="collapse mt-2" id="task-filter-panel">
-                <div class="filter-panel-content">
-                  <div class="form-group mb-3">
-                    <input type="text" class="form-control" id="task-search"
-                           placeholder="Search tasks...">
-                    <small class="form-text text-muted mt-1">
-                      Select fields below to narrow search
-                    </small>
-                  </div>
-
-                  <div class="filter-scopes">
-                    <label class="filter-scope-label">Search in:</label>
-                    <div class="scope-checkboxes">
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-title" value="title">
-                        <label class="custom-control-label" for="scope-title">Title</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-teacher" value="teacher">
-                        <label class="custom-control-label" for="scope-teacher">Teacher</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-type" value="type">
-                        <label class="custom-control-label" for="scope-type">Type</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-my-exercises" value="my-exercises">
-                        <label class="custom-control-label" for="scope-my-exercises">My exercises</label>
-                      </div>
-                      <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input filter-scope"
-                               id="scope-favorites" value="favorites">
-                        <label class="custom-control-label" for="scope-favorites">Favorites</label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div id="universal-task-search"></div>
 
             <div id="tasks-loading" class="loading-spinner" style="display: none;">
               <div class="spinner-border text-primary" role="status">
@@ -360,7 +306,6 @@
   <div style="max-width:1000px;margin:0 auto;">
     <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>
     <a class="footer-btn" href="/contact" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Contact</a>
-    <a class="footer-btn" href="/data-retention-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Data retention</a>
   </div>
 </footer>
 <!-- Footer partial (source): templates/footer.html -->

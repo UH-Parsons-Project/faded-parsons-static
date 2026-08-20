@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="/css/teacher-dashboard.css">
 
   <link rel="stylesheet" href="/css/task-details.css">
+  <link rel="stylesheet" href="/css/task-set-overview.css">
+  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
 </head>
 
 <body>
@@ -22,9 +24,6 @@
       <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
     </a>
     <div class="ml-auto d-flex align-items-center">
-      <a href="/teacher-dashboard" class="btn btn-outline-dark btn-sm mr-3">
-        My Dashboard
-      </a>
       <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
         <i class="fas fa-user"></i> <span id="user-name"></span>
       </a>
@@ -53,8 +52,13 @@
     </div>
   </nav>
 
-  <div class="page-header">
-    <div class="task-details-header-content">
+  <div class="page-header" style="flex-direction: column; align-items: flex-start;">
+    <div class="mb-2" style="width: 100%;">
+      <a href="/teacher-dashboard" class="embossed-btn">
+        <i class="fas fa-arrow-left"></i> Back
+      </a>
+    </div>
+    <div class="task-details-header-content w-100">
       <div class="page-title" id="details-task-title">Loading Task...</div>
       <div class="d-flex align-items-center flex-wrap" id="task-badge-container">
         <!-- Populated dynamically -->
@@ -164,5 +168,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
   <script type="module" src="/js/task/task-details.js"></script>
+<style>
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+
+<footer style="background:#f5f7fa;margin-top:auto;padding:1rem 0;text-align:center;border-top:1px solid #e1e4e8;">
+  <div style="max-width:1000px;margin:0 auto;">
+    <a class="footer-btn" href="/privacy-policy" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Privacy Policy</a>
+    <a class="footer-btn" href="/contact" style="margin:0 .5rem .5rem .5rem;padding:.4rem .75rem;border:1px solid #ccc;border-radius:6px;text-decoration:none;display:inline-block;background:#fff;color:#111;">Contact</a>
+  </div>
+</footer>
+<!-- Footer partial (source): templates/footer.html -->
 </body>
 </html>

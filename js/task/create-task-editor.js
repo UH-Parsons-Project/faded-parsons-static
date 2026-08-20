@@ -1368,6 +1368,7 @@ initBurgerMenu();
 
     const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
     const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
+    const parsonsRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
     const problemData = {
       taskTitle,
       description,
@@ -1376,7 +1377,8 @@ initBurgerMenu();
       customErrorMessages,
       tests,
       solutionCode: solutionCodeWithBlanks,
-      parsonsRepr: buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues),
+      parsonsRepr,
+      faded: parsonsRepr.includes('!BLANK'),
       task_type: taskType,
       is_public: isPublic,
       eval_type: evalType,

@@ -365,6 +365,12 @@ async def create_task_set(
     current_user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
+    if len(request.title.strip()) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Task set title must be at least 4 characters long"
+        )
+
     # Verify all tasks exist and belong to the current user
     if request.task_ids:
         task_ids_tuple = tuple(request.task_ids)

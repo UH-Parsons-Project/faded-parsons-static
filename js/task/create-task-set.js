@@ -594,8 +594,8 @@ function setupFormSubmission() {
 
     const viewersToShare = [...validatedViewers];
 
-    if (!title) {
-      showError('Please enter a task set title');
+    if (!title || title.length < 4) {
+      showError('Task set title must be at least 4 characters long');
       return;
     }
 

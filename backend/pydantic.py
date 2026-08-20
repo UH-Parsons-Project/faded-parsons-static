@@ -1,6 +1,6 @@
 # Pydantic models for request/response
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Token(BaseModel):
@@ -212,7 +212,7 @@ class UpdateModelAnswerRequest(BaseModel):
 
 
 class CreateTaskSetRequest(BaseModel):
-    title: str
+    title: str = Field(..., min_length=4)
     student_description: str | None = None
     teacher_description: str | None = None
     expires_at: str | None = None

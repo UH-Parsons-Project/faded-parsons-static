@@ -1,6 +1,13 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import { registerTeacher, loginTeacher } from './test-helpers.js';
+import {
+  registerTeacher,
+  loginTeacher,
+  createTaskSetWithTasks,
+  createTestStudent,
+  loginStudent,
+  getStudentUrl,
+} from './test-helpers.js';
 
 test.describe('Task Edit and Delete Lifecycle', () => {
   let teacherEmail;
@@ -188,6 +195,67 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await expect(taskCard.locator('button.btn-outline-danger')).toBeHidden();
     await expect(taskCard.locator('a.btn-outline-success', { hasText: 'Edit' })).toBeHidden();
     await expect(taskCard.locator('.btn-secondary.disabled')).toBeVisible();
+  });
+
+  test('teacher can delete a task set from task set overview page', async ({ page }) => {
+    const unique = Date.now();
+    const taskSetTitle = `Set to Delete ${unique}`;
+
+    // 1. Create task set
+    await createTaskSetWithTasks(page, taskSetTitle, 'Student desc', 'Teacher desc', ['add_in_range']);
+    await page.waitForURL(/\/(teacher-dashboard|)$/, { timeout: 15000 });
+    if (!page.url().includes('teacher-dashboard')) {
+      await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
+    }
+
+    // 2. Open task set overview page
+    await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+    await page.waitForURL(/\/task-set-overview/, { timeout: 10000 });
+    await page.waitForSelector('#delete-set-btn', { timeout: 10000 });
+
+    // 3. Confirm dialog and click delete
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#delete-set-btn').click();
+
+    // 4. Verify redirected back to teacher dashboard and set is removed
+    await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
+    await expect(page.locator('.task-set-title', { hasText: taskSetTitle })).toBeHidden();
+  });
+
+  test('teacher cannot delete a task set when students are enrolled', async ({ page, browser }) => {
+    const unique = Date.now();
+    const taskSetTitle = `Locked Set ${unique}`;
+
+    // 1. Create task set
+    await createTaskSetWithTasks(page, taskSetTitle, 'Student desc', 'Teacher desc', ['add_in_range']);
+    await page.waitForURL(/\/(teacher-dashboard|)$/, { timeout: 15000 });
+    if (!page.url().includes('teacher-dashboard')) {
+      await page.waitForURL(/\/teacher-dashboard$/, { timeout: 15000 });
+    }
+
+    // 2. Get student link code & enroll a student
+    const studentUrl = await getStudentUrl(page, taskSetTitle);
+    const studentContext = await browser.newContext();
+    const studentPage = await studentContext.newPage();
+    const studentUsername = `st_del_lock_${unique % 1000000}`;
+    const studentEmail = `st_del_lock_${unique}@example.com`;
+
+    await createTestStudent(studentPage, studentUsername, studentEmail);
+    await studentPage.goto(studentUrl);
+    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
+    await loginStudent(studentPage, studentEmail);
+    await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
+    await studentContext.close();
+
+    // 3. Teacher navigates to overview page
+    await page.goto('/teacher-dashboard');
+    await page.waitForSelector('.task-set-title', { timeout: 10000 });
+    await page.locator('.task-set-title', { hasText: taskSetTitle }).click();
+    await page.waitForURL(/\/task-set-overview/, { timeout: 10000 });
+
+    // Delete button should be hidden; disabled "In use" element should be visible
+    await expect(page.locator('#delete-set-btn')).toBeHidden();
+    await expect(page.locator('.btn-secondary.disabled', { hasText: 'In use' })).toBeVisible();
   });
 
   // --------------------------------------------------------------------------

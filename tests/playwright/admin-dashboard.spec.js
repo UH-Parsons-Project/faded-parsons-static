@@ -70,3 +70,29 @@ test('admin dashboard shows stats and can create a registration token', async ({
   expect(parseNumber(teachersText)).toBeGreaterThan(0);
   expect(parseNumber(listsText)).toBeGreaterThan(0);
 });
+
+test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
+  await page.goto('/admin-dashboard');
+  await page.waitForSelector('#task-types-list .task-type-admin-row', { timeout: 10000 });
+
+  const unique = Date.now();
+  const slug = `e2e-task-tag-${unique}`;
+  const label = `E2E Task Tag ${unique}`;
+
+  await page.locator('#task-type-label').fill(label);
+  await page.locator('#task-type-slug').fill(slug);
+  await page.locator('#task-type-sort-order').fill('9999');
+  await page.locator('#add-task-type-btn').click();
+
+  const row = page.locator('.task-type-admin-row').filter({ hasText: slug });
+  await expect(row).toBeVisible();
+
+  const updatedLabel = `${label} Updated`;
+  await row.locator('input[type="text"]').fill(updatedLabel);
+  await row.locator('input[type="checkbox"]').uncheck();
+  await row.locator('button', { hasText: 'Save' }).click();
+
+  const updatedRow = page.locator('.task-type-admin-row').filter({ hasText: slug });
+  await expect(updatedRow).toHaveClass(/is-inactive/);
+  await expect(updatedRow.locator('input[type="text"]')).toHaveValue(updatedLabel);
+});

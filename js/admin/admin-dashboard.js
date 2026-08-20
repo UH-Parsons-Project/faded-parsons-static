@@ -289,6 +289,175 @@ function loadStatistics() {
 		});
 }
 
+// ==================== Task Type Management ====================
+
+function setTaskTypeStatus(message, isError = false) {
+	const status = document.getElementById('task-type-status');
+	if (!status) return;
+	status.textContent = message;
+	status.className = `small mt-2 ${isError ? 'text-danger' : 'text-success'}`;
+}
+
+async function loadTaskTypes() {
+	const list = document.getElementById('task-types-list');
+	if (!list) return;
+
+	list.innerHTML = '<div class="text-muted small"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+	try {
+		const response = await fetch('/api/admin/task-types', { credentials: 'include' });
+		if (!response.ok) throw new Error('Failed to load task types');
+		renderTaskTypes(await response.json());
+	} catch (error) {
+		console.error('Error loading task types:', error);
+		list.innerHTML = '<p class="text-danger small mb-0">Failed to load task types</p>';
+	}
+}
+
+function renderTaskTypes(taskTypes) {
+	const list = document.getElementById('task-types-list');
+	if (!list) return;
+
+	list.innerHTML = '';
+	if (!Array.isArray(taskTypes) || taskTypes.length === 0) {
+		list.innerHTML = '<p class="text-muted small mb-0">No task types configured.</p>';
+		return;
+	}
+
+	taskTypes.forEach((taskType) => {
+		const row = document.createElement('div');
+		row.className = `task-type-admin-row${taskType.is_active ? '' : ' is-inactive'}`;
+
+		const fields = document.createElement('div');
+		fields.className = 'task-type-admin-fields';
+
+		const labelGroup = document.createElement('div');
+		labelGroup.className = 'task-type-admin-label-group';
+		const labelInput = document.createElement('input');
+		labelInput.type = 'text';
+		labelInput.className = 'form-control form-control-sm';
+		labelInput.value = taskType.label;
+		labelInput.maxLength = 100;
+		labelInput.setAttribute('aria-label', `Label for ${taskType.slug}`);
+		labelGroup.appendChild(labelInput);
+
+		const slug = document.createElement('small');
+		slug.className = 'text-muted task-type-slug';
+		slug.textContent = taskType.slug;
+		labelGroup.appendChild(slug);
+		fields.appendChild(labelGroup);
+
+		const sortInput = document.createElement('input');
+		sortInput.type = 'number';
+		sortInput.className = 'form-control form-control-sm task-type-sort-input';
+		sortInput.min = '0';
+		sortInput.value = String(taskType.sort_order);
+		sortInput.setAttribute('aria-label', `Display order for ${taskType.slug}`);
+		fields.appendChild(sortInput);
+
+		const activeLabel = document.createElement('label');
+		activeLabel.className = 'task-type-active-control';
+		const activeInput = document.createElement('input');
+		activeInput.type = 'checkbox';
+		activeInput.checked = taskType.is_active;
+		activeInput.setAttribute('aria-label', `Active: ${taskType.slug}`);
+		activeLabel.appendChild(activeInput);
+		activeLabel.appendChild(document.createTextNode(' Active'));
+		fields.appendChild(activeLabel);
+
+		const saveButton = document.createElement('button');
+		saveButton.type = 'button';
+		saveButton.className = 'btn btn-sm btn-outline-primary';
+		saveButton.innerHTML = '<i class="fas fa-save"></i> Save';
+		saveButton.addEventListener('click', async () => {
+			const sortOrder = Number.parseInt(sortInput.value, 10);
+			if (!labelInput.value.trim() || Number.isNaN(sortOrder) || sortOrder < 0) {
+				setTaskTypeStatus('Enter a label and a non-negative display order.', true);
+				return;
+			}
+
+			saveButton.disabled = true;
+			try {
+				const response = await fetch(`/api/admin/task-types/${taskType.id}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'include',
+					body: JSON.stringify({
+						label: labelInput.value,
+						sort_order: sortOrder,
+						is_active: activeInput.checked,
+					}),
+				});
+				if (!response.ok) {
+					const payload = await response.json().catch(() => ({}));
+					throw new Error(payload.detail || 'Failed to update task type');
+				}
+				setTaskTypeStatus(`Updated “${labelInput.value.trim()}”.`);
+				await loadTaskTypes();
+			} catch (error) {
+				console.error('Error updating task type:', error);
+				setTaskTypeStatus(error.message, true);
+			} finally {
+				saveButton.disabled = false;
+			}
+		});
+
+		const actions = document.createElement('div');
+		actions.className = 'task-type-admin-actions';
+		actions.appendChild(saveButton);
+		row.appendChild(fields);
+		row.appendChild(actions);
+		list.appendChild(row);
+	});
+}
+
+function initTaskTypeManagement() {
+	const addButton = document.getElementById('add-task-type-btn');
+	if (!addButton) return;
+
+	addButton.addEventListener('click', async () => {
+		const labelInput = document.getElementById('task-type-label');
+		const slugInput = document.getElementById('task-type-slug');
+		const sortInput = document.getElementById('task-type-sort-order');
+		const label = labelInput?.value.trim() || '';
+		const sortOrder = Number.parseInt(sortInput?.value || '0', 10);
+
+		if (!label || Number.isNaN(sortOrder) || sortOrder < 0) {
+			setTaskTypeStatus('Enter a label and a non-negative display order.', true);
+			return;
+		}
+
+		addButton.disabled = true;
+		try {
+			const response = await fetch('/api/admin/task-types', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					label,
+					slug: slugInput?.value.trim() || null,
+					sort_order: sortOrder,
+				}),
+			});
+			if (!response.ok) {
+				const payload = await response.json().catch(() => ({}));
+				throw new Error(payload.detail || 'Failed to add task type');
+			}
+
+			if (labelInput) labelInput.value = '';
+			if (slugInput) slugInput.value = '';
+			setTaskTypeStatus(`Added “${label}”.`);
+			await loadTaskTypes();
+		} catch (error) {
+			console.error('Error adding task type:', error);
+			setTaskTypeStatus(error.message, true);
+		} finally {
+			addButton.disabled = false;
+		}
+	});
+
+	loadTaskTypes();
+}
+
 // ==================== Token Management ====================
 
 function initTokenManagement() {
@@ -459,6 +628,7 @@ fetch('/api/admin/registration-tokens', { credentials: 'include' })
 		}
 		if (r.ok) {
 			initTokenManagement();
+			initTaskTypeManagement();
 			loadStatistics();
 		}
 	})

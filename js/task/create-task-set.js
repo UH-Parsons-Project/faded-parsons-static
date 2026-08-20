@@ -28,7 +28,6 @@ function initializePage() {
     onFilter: renderTasks
   });
   loadUsername();
-  setupExpirationDateToggle();
   setupViewerSharing();
   setupFormSubmission();
   setupCancelButton();
@@ -94,113 +93,6 @@ function loadUsername() {
     });
 }
 
-/**
- * Setup task search functionality with scoped filtering
- */
-function setupTaskSearch() {
-  const taskSearchInput = document.getElementById('task-search');
-  const scopeCheckboxes = document.querySelectorAll('.filter-scope');
-
-  taskSearchInput.addEventListener('input', (e) => {
-    activeTaskFilters.query = e.target.value.trim().toLowerCase();
-    applyTaskFilters();
-  });
-
-  scopeCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        scopeCheckboxes.forEach(other => {
-          if (other !== e.target) {
-            other.checked = false;
-          }
-        });
-        activeTaskFilters.activeScope = e.target.value;
-      } else {
-        activeTaskFilters.activeScope = null;
-      }
-      applyTaskFilters();
-    });
-  });
-}
-
-function isOwnTask(task, creatorUsername) {
-  const byTeacherId =
-    currentTeacherId !== null && Number(task.created_by_teacher_id) === currentTeacherId;
-  const byTeacherName =
-    !!currentTeacherUsername && creatorUsername === currentTeacherUsername.toLowerCase();
-  return byTeacherId || byTeacherName;
-}
-
-function applyTaskFilters() {
-  const query = activeTaskFilters.query;
-  const activeScope = activeTaskFilters.activeScope;
-
-  const filteredTasks = allTasks.filter(task => {
-    const taskTitle = (task.title || '').toLowerCase();
-    const taskType = (task.task_type || '').toLowerCase();
-    const creatorUsername = (task.creator_username || '').toLowerCase();
-    const ownTask = isOwnTask(task, creatorUsername);
-
-    // If no query, return all matching my-exercises filter if selected
-    if (!query) {
-      if (activeScope === 'my-exercises') {
-        return ownTask;
-      }
-      if (activeScope === 'favorites') {
-        return Boolean(task.is_favorite);
-      }
-      return true;
-    }
-
-    // If no specific scope is selected, search all text fields.
-    if (!activeScope) {
-      return (
-        taskTitle.includes(query) ||
-        taskType.includes(query) ||
-        creatorUsername.includes(query)
-      );
-    }
-
-    if (activeScope === 'title') {
-      return taskTitle.includes(query);
-    }
-    if (activeScope === 'type') {
-      return taskType.includes(query);
-    }
-    if (activeScope === 'teacher') {
-      return creatorUsername.includes(query);
-    }
-    if (activeScope === 'my-exercises') {
-      return ownTask && (taskTitle.includes(query) || taskType.includes(query));
-    }
-    if (activeScope === 'favorites') {
-      return Boolean(task.is_favorite) && (
-        taskTitle.includes(query) || taskType.includes(query) || creatorUsername.includes(query)
-      );
-    }
-
-    return false;
-  });
-
-  // Sort alphabetically by title
-  filteredTasks.sort((a, b) => {
-    const titleA = (a.title || '').toLowerCase();
-    const titleB = (b.title || '').toLowerCase();
-    return titleA.localeCompare(titleB);
-  });
-
-  renderTasks(filteredTasks);
-}
- * Toggle expiration date input visibility
- */
-function setupExpirationDateToggle() {
-  document.getElementById('set-expiration').addEventListener('change', (e) => {
-    document.getElementById('expiration-group').style.display = e.target.checked ? 'block' : 'none';
-    if (!e.target.checked) {
-      document.getElementById('expiration-date').value = '';
-    }
-  });
-}
 
 // Filter UI logic moved to TaskSearchFilter component
 

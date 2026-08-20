@@ -23,6 +23,8 @@ const lsKey = (suffix) => `${globalUniqueLinkCode}-${globalTaskId}${suffix}`;
 // Global reference to the current problem element
 let probEl;
 
+const isStudentTask = /^\/[^/]+\/set\/[^/]+\/tasks\/(?:\d+|demo)\/?$/.test(window.location.pathname);
+
 // Global variable to store task ID for local storage operations
 let globalTaskId;
 
@@ -202,6 +204,7 @@ export async function initWidget() {
 		probEl.setAttribute('codeLines', codeLines);
 		probEl.setAttribute('codeHeader', functionHeader);
 		probEl.setAttribute('runStatus', 'Loading Pyodide...');
+		probEl.shuffleStarterBlocks = isStudentTask;
 		
 		const expectedOutput = task.expected_output !== undefined ? task.expected_output : (task.correct_solution?.expected_output || '');
 		const correctOrder = task.correct_order || task.correct_solution?.correct_order || [];

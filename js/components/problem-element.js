@@ -38,6 +38,7 @@ export class ProblemElement extends LitElement {
 		allTasksCompleted: {type: Boolean},
 		backToSetUrl: {type: String},
 		nextTaskLabel: {type: String},
+		shuffleStarterBlocks: {type: Boolean},
 	};
 
 	// Refs to the container elements bound to the Parsons widget
@@ -288,6 +289,20 @@ export class ProblemElement extends LitElement {
 		}
 	};
 
+	shuffleStarterList = (starterList) => {
+		if (!starterList) return;
+
+		const blocks = Array.from(starterList.children);
+		for (let index = blocks.length - 1; index > 0; index -= 1) {
+			const randomIndex = Math.floor(Math.random() * (index + 1));
+			[blocks[index], blocks[randomIndex]] = [blocks[randomIndex], blocks[index]];
+		}
+
+		for (const block of blocks) {
+			starterList.appendChild(block);
+		}
+	};
+
 	syncColumnHeight = () => {
 		const leftCol = this.leftColumnRef.value;
 		const rightCol = this.rightColumnRef.value;
@@ -407,6 +422,9 @@ export class ProblemElement extends LitElement {
 		// Sort blocks alphabetically for consistent starting state
 		this.parsonsWidget.alphabetize();
 		this.applyBlankInputLimit();
+		if (this.shuffleStarterBlocks && !this.savedArrangement) {
+			this.shuffleStarterList(this.starterRef.value?.querySelector('ul'));
+		}
 		// Restore a previously saved arrangement (if any) — must happen after
 		// alphabetize() and before sortableList is queried, so that listeners
 		// attach to the correct <ul> elements.

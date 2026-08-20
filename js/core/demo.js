@@ -171,6 +171,7 @@ probEl.setAttribute(
 probEl.setAttribute('codeLines', buildCodeLines(BLOCKS));
 probEl.setAttribute('codeHeader', FUNCTION_HEADER);
 probEl.setAttribute('runStatus', 'Loading Pyodide...');
+probEl.shuffleStarterBlocks = true;
 
 const savedArrangementJson = localStorage.getItem(LS_DEMO_REPR);
 if (savedArrangementJson) {

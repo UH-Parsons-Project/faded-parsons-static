@@ -48,16 +48,17 @@ export class TaskSearchFilter {
             <div class="task-filter-menu mb-4">
                 <button
                     class="btn btn-outline-secondary task-filter-toggle"
+                    id="task-filter-toggle"
                     type="button"
                     aria-expanded="false"
                 >
                     <i class="fas fa-bars"></i> Search & Filter
                 </button>
 
-                <div class="task-filter-panel collapse mt-2">
+                <div class="task-filter-panel collapse mt-2" id="task-filter-panel">
                     <div class="filter-panel-content">
                         <div class="form-group mb-3">
-                            <input type="text" class="form-control" id="universal-task-search" placeholder="Search tasks...">
+                            <input type="text" class="form-control" id="task-search" placeholder="Search tasks...">
                             <small class="form-text text-muted mt-1">Search by title, type, or teacher</small>
                         </div>
 
@@ -106,7 +107,7 @@ export class TaskSearchFilter {
 
         this.filterToggleBtn = this.container.querySelector('.task-filter-toggle');
         this.filterPanel = this.container.querySelector('.task-filter-panel');
-        this.searchInput = this.container.querySelector('#universal-task-search');
+        this.searchInput = this.container.querySelector('#task-search') || this.container.querySelector('#universal-task-search');
         this.scopeCheckboxes = this.container.querySelectorAll('.filter-scope');
         this.tagsList = this.container.querySelector('#tags-list');
         this.applyTagsBtn = this.container.querySelector('#apply-tags-btn');

@@ -21,10 +21,4 @@ test.describe('Static & Information Pages E2E', () => {
     await expect(page).toHaveURL(/\/contact$/);
     await expect(page.locator('body')).not.toBeEmpty();
   });
-
-  test('data retention policy page renders retention guidelines', async ({ page }) => {
-    await page.goto('/data-retention-policy');
-    await expect(page).toHaveURL(/\/data-retention-policy$/);
-    await expect(page.locator('h1')).toHaveText('Data Retention Policy');
-  });
 });

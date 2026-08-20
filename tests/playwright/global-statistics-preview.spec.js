@@ -300,14 +300,14 @@ test.describe('Global Statistics Task Browser & Quick Preview E2E', () => {
     await expect(titleCheckbox).toBeChecked();
 
     // Ensure checking another scope unchecks previous single-select scope checkbox
-    const typeCheckbox = page.locator('#scope-type');
-    await page.locator('label[for="scope-type"]').click();
-    await expect(typeCheckbox).toBeChecked();
+    const teacherCheckbox = page.locator('#scope-teacher');
+    await page.locator('label[for="scope-teacher"]').click();
+    await expect(teacherCheckbox).toBeChecked();
     await expect(titleCheckbox).not.toBeChecked();
 
     // Uncheck scope by clicking label again
-    await page.locator('label[for="scope-type"]').click();
-    await expect(typeCheckbox).not.toBeChecked();
+    await page.locator('label[for="scope-teacher"]').click();
+    await expect(teacherCheckbox).not.toBeChecked();
   });
 });
 

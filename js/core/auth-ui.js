@@ -23,10 +23,6 @@ function setExercisesButtonVisible(visible) {
 	if (globalStatsBtn) {
 		globalStatsBtn.style.display = visible ? 'inline-block' : 'none';
 	}
-	const burgerMenu = document.getElementById('navbar-burger-menu');
-	if (burgerMenu) {
-		burgerMenu.style.display = visible ? 'inline-block' : 'none';
-	}
 }
 
 
@@ -187,8 +183,10 @@ export function initLoginPage() {
 	// Handle login form submission
 	loginForm.addEventListener('submit', async function (e) {
 		e.preventDefault();
-		const username = document.getElementById('username').value.trim();
-		const password = document.getElementById('password').value;
+		const usernameInput = document.getElementById('nav-username') || document.getElementById('username');
+		const passwordInput = document.getElementById('nav-password') || document.getElementById('password');
+		const username = usernameInput ? usernameInput.value.trim() : '';
+		const password = passwordInput ? passwordInput.value : '';
 
 		if (!username || !password) {
 			showError('Please enter username or email and password');
@@ -262,8 +260,8 @@ export function initLoginPage() {
 					setAuth(data.access_token, userData.username);
 
 					// Clear form
-					document.getElementById('username').value = '';
-					document.getElementById('password').value = '';
+					if (usernameInput) usernameInput.value = '';
+					if (passwordInput) passwordInput.value = '';
 
 					// Show user info
 					showUserInfo(userData.username, userData.role);
@@ -317,10 +315,10 @@ export function initLoginPage() {
 	}
 
 	// If redirected from registration, focus username field
-	const usernameInput = document.getElementById('username');
+	const focusInput = document.getElementById('nav-username') || document.getElementById('username');
 	const params = new URLSearchParams(window.location.search);
-	if (params.get('focus') === 'username' && usernameInput) {
-		usernameInput.focus();
+	if (params.get('focus') === 'username' && focusInput) {
+		focusInput.focus();
 	}
 
 	// Check authentication on page load
@@ -508,7 +506,7 @@ export async function initSignedInAs({
 	if (name) {
 		userNameEl.textContent = name;
 		displayUserRole(userRoleEl, role);
-		if (userInfoEl) userInfoEl.style.display = 'block';
+		if (userInfoEl) userInfoEl.style.display = 'flex';
 	} else {
 		if (userInfoEl) userInfoEl.style.display = 'none';
 	}

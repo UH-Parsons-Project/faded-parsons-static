@@ -30,40 +30,7 @@
 
 <body>
 
-  <nav class="navbar">
-    <a href="/teacher-dashboard">
-      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
-    </a>
-    <div class="ml-auto d-flex align-items-center">
-    <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
-	    <i class="fas fa-user"></i>
-	    <span id="user-name"></span>
-	    <span id="user-role" class="badge" style="display: none; margin-left: 8px;"></span>
-	</a>
-      <div class="navbar-burger-menu" style="margin-left: 1rem;">
-        <button class="navbar-burger-toggle" id="navbar-burger-toggle" aria-label="Toggle menu" aria-expanded="false">
-          <i class="fas fa-bars"></i>
-        </button>
-        <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
-          <a href="/global-statistics" class="navbar-burger-item">
-                 <i class="fas fa-chart-bar"></i> All Tasks & Global Statistics
-          </a>
-          <a href="/teacher-dashboard" class="navbar-burger-item">
-            <i class="fas fa-chalkboard-teacher"></i> My Dashboard
-          </a>
-          <a href="/instructions" class="navbar-burger-item">
-            <i class="fas fa-info-circle"></i> Instructions
-          </a>
-          <a href="/teacher/profile" class="navbar-burger-item">
-            <i class="fas fa-cog"></i> Profile Settings
-          </a>
-          <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </a>
-        </div>
-      </div>
-    </div>
-  </nav>
+  {% include 'common/nav-teacher.html' %}
 
   <div class="page-header d-flex justify-content-between align-items-center flex-wrap" style="padding: 1.25rem 2rem .9rem; max-width: 1600px; margin-left: auto; margin-right: auto; gap: 1rem;">
     <div>

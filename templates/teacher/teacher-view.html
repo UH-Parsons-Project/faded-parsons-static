@@ -15,25 +15,7 @@
 
 <body>
 
-  <nav class="navbar">
-    <a href="/admin-dashboard">
-      <img src="/ohtuproj_logo.png" alt="Parsons Code Lab Logo" class="navbar-logo">
-    </a>
-    <div class="ml-auto d-flex align-items-center">
-      <a href="/all-users" class="btn btn-outline-dark btn-sm mr-3">
-        <i class="fas fa-arrow-left"></i> Back to Users
-      </a>
-      <a href="/admin-dashboard" class="btn btn-outline-dark btn-sm mr-3">
-        Admin Dashboard
-      </a>
-      <a href="/teacher-dashboard" class="text-dark mr-3" style="text-decoration: none;">
-        <span id="signed-in-as"><i class="fas fa-user-shield"></i> Admin</span>
-      </a>
-      <button class="btn btn-outline-dark btn-sm ml-3" id="logout-btn">
-        Logout
-      </button>
-    </div>
-  </nav>
+  {% include 'common/nav-teacher.html' %}
 
   <div class="page-header">
     <div class="page-title" id="page-title">Teacher Profile</div>

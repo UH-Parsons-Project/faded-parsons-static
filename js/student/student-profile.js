@@ -195,8 +195,13 @@ async function loadProfile() {
 
 		// Setup back button and navbar link
 		const lastSetUrl = localStorage.getItem('last_task_set_url') || '/';
+		const backBtn = document.getElementById('back-btn');
+		if (backBtn) {
+			backBtn.href = lastSetUrl;
+		}
 		if (backToSetsBtn) {
 			backToSetsBtn.href = lastSetUrl;
+			backToSetsBtn.style.display = 'inline-block';
 		}
 		const profileLink = document.getElementById('profile-link');
 		if (profileLink) {

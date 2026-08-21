@@ -33,7 +33,7 @@ function showPageContent() {
 		document.getElementById('back-to-list')
 	];
 	contentElements.forEach(el => {
-		if (el) el.style.display = '';
+		if (el) el.style.display = el.id === 'back-to-list' ? 'inline-block' : '';
 	});
 }
 
@@ -65,6 +65,7 @@ checkAndRedirectIfStarted();
 const backButton = document.getElementById('back-to-list');
 if (backButton) {
 	backButton.href = `/${username}/set/${uniqueLinkCode}/tasks`;
+	backButton.style.display = 'inline-block';
 }
 
 // Set the start button to create the start record and navigate to the task

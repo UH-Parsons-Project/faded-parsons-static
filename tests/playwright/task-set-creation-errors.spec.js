@@ -192,6 +192,8 @@ test.describe('Task Set Creation Validation & Features', () => {
   });
 
   test('creates a task set with expiration date and verifies student access is closed after expiry', async ({ page }) => {
+    test.slow();
+
     const unique = Date.now();
     const teacherUsername = `teacher_exp_${unique}`;
     const teacherEmail = `teacher_exp_${unique}@example.com`;

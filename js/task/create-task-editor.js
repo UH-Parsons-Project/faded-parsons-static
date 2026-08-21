@@ -1918,6 +1918,18 @@ initBurgerMenu();
         visibilityInput.checked = (meta.taskTitle ? meta.isPublic : taskData.is_public) === false;
       }
 
+      const evalTypeInput = document.getElementById('eval-type');
+      if (evalTypeInput) {
+        evalTypeInput.value = taskData.correct_solution?.eval_type || 'unit_test';
+        // Delay the dispatch slightly to ensure DOM is ready for the UI update
+        setTimeout(() => evalTypeInput.dispatchEvent(new Event('change')), 0);
+      }
+      
+      const expectedOutputInput = document.getElementById('expected-output-input');
+      if (expectedOutputInput) {
+        expectedOutputInput.value = taskData.correct_solution?.expected_output || '';
+      }
+
       const savedModelAnswer = loadModelAnswerFromSession(solutionCode);
       persistedModelAnswerSource = fetchedModelAnswer || taskData.model_answer || taskData.correct_solution?.solution_code || '';
       if (persistedModelAnswerSource) {
@@ -1953,6 +1965,7 @@ initBurgerMenu();
       setupGuideToggle();
       setupPreviewModal();
       setupChecklistNavigation();
+      setupEvalTypeToggle();
       setupButtons();
       updateModelAnswerStatus();
       updateAddToListState();
@@ -2016,20 +2029,6 @@ initBurgerMenu();
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
 
-      const evalTypeInput = document.getElementById('eval-type');
-      if (evalTypeInput) {
-        evalTypeInput.value = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
-        evalTypeInput.dispatchEvent(new Event('change'));
-      }
-      const expectedOutputInput = document.getElementById('expected-output-input');
-      if (expectedOutputInput) expectedOutputInput.value = apiTaskData?.correct_solution?.expected_output || draft.expectedOutput || '';
-      const allowIndentCheckbox = document.getElementById('allow-indent');
-      if (allowIndentCheckbox) {
-        const currentEvalType = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
-        const defaultIndent = currentEvalType !== 'order_only';
-        allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (apiTaskData?.correct_solution?.require_indentation !== undefined ? apiTaskData.correct_solution.require_indentation : defaultIndent);
-      }
-
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);
 
@@ -2046,6 +2045,21 @@ initBurgerMenu();
         modelAnswerRepr = savedModelAnswer.repr;
         modelAnswerUpdatedAt = savedModelAnswer.updatedAt;
       }
+    }
+
+    const evalTypeInput = document.getElementById('eval-type');
+    if (evalTypeInput) {
+      // draft.evalType takes priority: the user may have changed it on step 1
+      evalTypeInput.value = draft.evalType || apiTaskData?.correct_solution?.eval_type || 'unit_test';
+      evalTypeInput.dispatchEvent(new Event('change'));
+    }
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    if (expectedOutputInput) expectedOutputInput.value = draft.expectedOutput || apiTaskData?.correct_solution?.expected_output || '';
+    const allowIndentCheckbox = document.getElementById('allow-indent');
+    if (allowIndentCheckbox) {
+      const currentEvalType = apiTaskData?.correct_solution?.eval_type || draft.evalType || 'unit_test';
+      const defaultIndent = currentEvalType !== 'order_only';
+      allowIndentCheckbox.checked = meta.requireIndentation !== undefined ? meta.requireIndentation : (apiTaskData?.correct_solution?.require_indentation !== undefined ? apiTaskData.correct_solution.require_indentation : defaultIndent);
     }
 
     if (visibilityInput) {

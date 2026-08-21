@@ -225,6 +225,9 @@ async def update_student_password(
     if new_password != new_password_confirm:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match")
 
+    if current_password == new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password cannot be the same as the current password")
+
     if len(new_password) < 8:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must have a minimum length of 8 characters")
 

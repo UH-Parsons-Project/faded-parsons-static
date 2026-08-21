@@ -304,7 +304,7 @@
     const taskCodeStatus = document.getElementById('task-code-status');
     const taskTestsStatus = document.getElementById('task-tests-status');
     const clearButtons = document.querySelectorAll('[data-clear-target]');
-    
+
     const evalTypeInput = document.getElementById('eval-type');
     const taskTestsPanel = document.getElementById('task-tests-panel');
     const taskTestsLabel = document.getElementById('task-tests-label');

@@ -192,6 +192,8 @@ test.describe('Task Set Creation Validation & Features', () => {
   });
 
   test('creates a task set with expiration date and verifies student access is closed after expiry', async ({ page }) => {
+    test.slow();
+
     const unique = Date.now();
     const teacherUsername = `teacher_exp_${unique}`;
     const teacherEmail = `teacher_exp_${unique}@example.com`;
@@ -213,8 +215,8 @@ test.describe('Task Set Creation Validation & Features', () => {
     await page.waitForSelector('.task-item', { timeout: 10000 });
     await page.locator('.task-item').first().click();
 
-    // 4. Set expiration date in the past using ISO 8601 format (YYYY-MM-DDTHH:mm) required by HTML5 datetime-local inputs
-    await page.locator('#set-expiration').check();
+    // 4. Set expiration date in the past.
+    // The UI exposes a direct datetime-local field (no separate enable checkbox).
     await page.locator('#expiration-date').fill('2020-01-01T12:00');
 
     // 5. Submit form

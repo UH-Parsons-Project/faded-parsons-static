@@ -127,9 +127,12 @@
             </div>
 
             <div class="form-group">
-              <label for="expiration-date">
-                <i class="fas fa-calendar-times"></i> Expiration Date (optional)
-              </label>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="set-expiration">
+                <label class="form-check-label font-weight-bold text-secondary" for="set-expiration">
+                  <i class="fas fa-calendar-times"></i> Expiration Date (optional)
+                </label>
+              </div>
               <input type="datetime-local" class="form-control" id="expiration-date">
               <small class="form-text text-muted">After this date, students won't be able to join or submit</small>
             </div>

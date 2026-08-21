@@ -184,6 +184,8 @@ async function loadProfile() {
 		const data = await res.json();
 
 		// Set user info displays
+		const userInfoEl = document.getElementById('user-info');
+		if (userInfoEl) userInfoEl.style.display = 'flex';
 		if (userNameEl) userNameEl.textContent = data.username;
 		if (profileUsernameEl) profileUsernameEl.textContent = data.username;
 		if (profileEmailEl) profileEmailEl.textContent = data.email;

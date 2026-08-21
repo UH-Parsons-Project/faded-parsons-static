@@ -105,6 +105,10 @@ export function initLoginPage() {
 			const userRoleElement = document.getElementById('user-role');
 			displayUserRole(userRoleElement, role);
 		}
+		const burgerMenu = document.getElementById('navbar-burger-menu');
+		if (burgerMenu) {
+			burgerMenu.style.display = 'inline-block';
+		}
 		setExercisesButtonVisible(true);
 	}
 
@@ -174,6 +178,10 @@ export function initLoginPage() {
 		if (userInfo) {
 			userInfo.style.display = 'none';
 		}
+		const burgerMenu = document.getElementById('navbar-burger-menu');
+		if (burgerMenu) {
+			burgerMenu.style.display = 'none';
+		}
 		hideTeacherInstructions();
 		setExercisesButtonVisible(false);
 	}
@@ -183,10 +191,8 @@ export function initLoginPage() {
 	// Handle login form submission
 	loginForm.addEventListener('submit', async function (e) {
 		e.preventDefault();
-		const usernameInput = document.getElementById('nav-username') || document.getElementById('username');
-		const passwordInput = document.getElementById('nav-password') || document.getElementById('password');
-		const username = usernameInput ? usernameInput.value.trim() : '';
-		const password = passwordInput ? passwordInput.value : '';
+		const username = document.getElementById('username').value.trim();
+		const password = document.getElementById('password').value;
 
 		if (!username || !password) {
 			showError('Please enter username or email and password');
@@ -260,8 +266,8 @@ export function initLoginPage() {
 					setAuth(data.access_token, userData.username);
 
 					// Clear form
-					if (usernameInput) usernameInput.value = '';
-					if (passwordInput) passwordInput.value = '';
+					document.getElementById('username').value = '';
+					document.getElementById('password').value = '';
 
 					// Show user info
 					showUserInfo(userData.username, userData.role);
@@ -315,10 +321,10 @@ export function initLoginPage() {
 	}
 
 	// If redirected from registration, focus username field
-	const focusInput = document.getElementById('nav-username') || document.getElementById('username');
+	const usernameInput = document.getElementById('username');
 	const params = new URLSearchParams(window.location.search);
-	if (params.get('focus') === 'username' && focusInput) {
-		focusInput.focus();
+	if (params.get('focus') === 'username' && usernameInput) {
+		usernameInput.focus();
 	}
 
 	// Check authentication on page load

@@ -33,6 +33,8 @@ async function loadProfile() {
 		const data = await res.json();
 
 		// Set profile details displays
+		const userInfoEl = document.getElementById('user-info');
+		if (userInfoEl) userInfoEl.style.display = 'flex';
 		if (profileUsernameEl) profileUsernameEl.textContent = data.username;
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl) profileCreatedEl.textContent = formatDate(data.created_at);

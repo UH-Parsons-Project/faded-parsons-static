@@ -302,6 +302,19 @@ footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
   white-space: nowrap;
 }
 .meta-badge:empty { display: none; }
+.meta-badge-missing {
+  background: var(--amber-light, #fef3c7);
+  border: 1px dashed var(--amber, #d97706);
+  color: var(--amber, #d97706);
+  cursor: pointer;
+  transition: all .15s ease;
+  outline: none;
+}
+.meta-badge-missing:hover {
+  background: #fde68a;
+  border-style: solid;
+  color: #b45309;
+}
 .meta-badge i { font-size: .75rem; }
 .teacher-notes-box {
   font-size: .875rem;

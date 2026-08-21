@@ -402,9 +402,6 @@ async function removeViewer(teacherId) {
 }
 
 function buildExpiryInnerHTML(taskSet, isOwner) {
-	const editBtn = isOwner
-		? ` <button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;" title="Edit expiration date"><i class="fas fa-pencil-alt"></i></button>`
-		: '';
 	if (taskSet.expires_at) {
 		const expired = new Date(taskSet.expires_at) < new Date();
 		const soon = !expired && (new Date(taskSet.expires_at) - new Date()) < 86400000;
@@ -412,10 +409,13 @@ function buildExpiryInnerHTML(taskSet, isOwner) {
 		const style = color ? ` style="color:${color}; font-weight:${expired ? 'bold' : 'normal'};"` : '';
 		const icon = expired ? 'fas fa-exclamation-circle' : 'far fa-clock';
 		const label = expired ? 'Expired' : 'Expires';
-		return `<span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.expires_at))}</span>${editBtn}`;
+		const editBtn = isOwner
+			? ` <button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit expiration date"><i class="fas fa-pencil-alt"></i></button>`
+			: '';
+		return `<span class="meta-badge"><span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.expires_at))}</span>${editBtn}</span>`;
 	}
 	if (isOwner) {
-		return `<button id="edit-expiry-btn" type="button" class="btn btn-sm btn-link p-0" style="font-size:.85rem;"><i class="far fa-clock"></i> Set expiry</button>`;
+		return `<button id="edit-expiry-btn" type="button" class="meta-badge meta-badge-missing"><i class="far fa-clock"></i> Set expiry</button>`;
 	}
 	return '';
 }
@@ -596,7 +596,7 @@ function renderListHeader(taskSet, tasks, students) {
 					<h1 class="taskset-page-title" style="margin-bottom:.25rem;">${escapeHtml(taskSet.title)}</h1>
 					<div class="taskset-meta-row" style="margin-bottom:.6rem;display:flex;gap:.4rem;">
 						<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
-						<span id="expiry-section" class="meta-badge">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
+						<span id="expiry-section" style="display:inline-flex;">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
 					</div>
 					<div class="taskset-link-box" style="margin-bottom:0; width:fit-content; max-width:100%;">
 						<span id="link-code" class="taskset-link-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${url}</span>

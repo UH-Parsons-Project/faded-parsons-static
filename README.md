@@ -16,10 +16,8 @@ Parsons Code Lab lets students practice programming basics by solving Parsons Pr
 The coding problems hosted in Parsons Code Lab are currently written in Python 3, and student submissions are checked for correctness using doctests. The software is straightforward to use; educators can build task sets from a library of ready-made exercises or include their own custom tasks. Each task set can be shared with students through a unique URL, making the whole process easy and smooth. 
 
 
-<div style="border: 2px solid #7d93a6; padding: 6px; width:250px">
-  <div><strong>Check it out here:</strong></div>
-  <a>https://parsonscodelab.web.helsinki.fi</a>
-</div>
+### Check it out here:
+https://parsonscodelab.web.helsinki.fi
 
 
 </br>

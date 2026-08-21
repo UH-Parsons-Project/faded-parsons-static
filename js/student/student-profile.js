@@ -184,13 +184,18 @@ async function loadProfile() {
 		const data = await res.json();
 
 		// Set user info displays
-		const userInfoEl = document.getElementById('user-info');
-		if (userInfoEl) userInfoEl.style.display = 'flex';
 		if (userNameEl) userNameEl.textContent = data.username;
 		if (profileUsernameEl) profileUsernameEl.textContent = data.username;
 		if (profileEmailEl) profileEmailEl.textContent = data.email;
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
+
+		// Show the navbar user-info section (contains burger menu and logout)
+		const userInfoEl = document.getElementById('user-info');
+		if (userInfoEl) userInfoEl.style.display = 'flex';
+		// Hide login form since student is authenticated
+		const loginFormEl = document.getElementById('login-form');
+		if (loginFormEl) loginFormEl.style.display = 'none';
 
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);

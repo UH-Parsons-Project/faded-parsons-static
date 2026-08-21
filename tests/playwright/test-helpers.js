@@ -61,7 +61,15 @@ export async function registerTeacher(
  * @param {string} password - Teacher password
  */
 export async function loginTeacher(page, username, password) {
+  await page.goto('/teacher-dashboard');
+
+  // Auto-login after registration can already place the user on dashboard.
+  if (/\/teacher-dashboard$/.test(new URL(page.url()).pathname)) {
+    return;
+  }
+
   await page.goto('/');
+  await page.waitForSelector('#login-form', { timeout: 10000 });
   await page.waitForTimeout(200);
   await page.locator('#username').fill(username);
   await page.locator('#password').fill(password);

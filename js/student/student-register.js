@@ -21,6 +21,7 @@ form.addEventListener('submit', async (e) => {
 		email: document.getElementById('email').value,
 		password: document.getElementById('password').value,
 		password_confirm: document.getElementById('password_confirm').value,
+		unique_link_code: _code || null,
 	};
 
 	// Client-side confirmation check
@@ -48,12 +49,15 @@ form.addEventListener('submit', async (e) => {
 		}
 
 		showAlert(alertPlaceholder, 'Registration successful.', 'success');
+		localStorage.setItem('nickname', payload.username);
 		form.reset();
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
 		const username = params.get('username');
 		if (code && username) {
-			setTimeout(() => { window.location.href = '/' + username + '/set/' + code; }, 1000);
+			setTimeout(() => { window.location.href = '/' + username + '/set/' + code + '/tasks'; }, 1000);
+		} else {
+			setTimeout(() => { window.location.href = '/student/profile'; }, 1000);
 		}
 	} catch (err) {
 		showAlert(alertPlaceholder, 'Network error');

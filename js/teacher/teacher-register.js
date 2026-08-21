@@ -1,4 +1,5 @@
 import { showAlert } from '../utils/ui-utils.js';
+import { setAuth } from '../core/auth-utils.js';
 const form = document.getElementById('register-form');
 const alertPlaceholder = document.getElementById('alert-placeholder');
 
@@ -41,8 +42,11 @@ form.addEventListener('submit', async (e) => {
 		}
 
 		showAlert(alertPlaceholder, 'Registration successful.', 'success');
+		if (data.access_token) {
+			setAuth(data.access_token, data.username || payload.username);
+		}
 		form.reset();
-		setTimeout(() => { window.location.href = '/?focus=username'; }, 1000);
+		setTimeout(() => { window.location.href = '/teacher-dashboard'; }, 1000);
 	} catch (err) {
 		showAlert(alertPlaceholder, 'Network error');
 	}

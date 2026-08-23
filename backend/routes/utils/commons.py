@@ -1,11 +1,16 @@
+from pathlib import Path
 from typing import Iterable, Callable, Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import TaskSetItem
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
 async def get_task_set_or_404(db: AsyncSession, task_set_model, task_set_id: int):
@@ -90,6 +95,15 @@ def build_taskset_response_list(rows: Iterable):
 def set_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
+    return response
+
+
+def render_template(template_name: str, request: Request, status_code: int = 200, headers: dict | None = None):
+    response = templates.TemplateResponse(request=request, name=template_name, status_code=status_code)
+    set_no_cache_headers(response)
+    if headers:
+        for k, v in headers.items():
+            response.headers[k] = v
     return response
 
 

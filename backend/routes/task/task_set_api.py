@@ -36,6 +36,7 @@ from ...pydantic import (
     TaskSetViewerResponse,
     TeacherLookupResponse,
     UpdateExpiresAtRequest,
+    UpdateOpensAtRequest,
     UpdateTaskSetTasksRequest,
 )
 from ...utils.task import is_task_editable
@@ -169,6 +170,7 @@ async def get_task_set(
         student_description=task_set.student_description,
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
         deletable=task_set.teacher_id == current_user.id and enrolled_count == 0,
     )
@@ -354,6 +356,7 @@ async def get_task_set_info(code: str, db: Annotated[AsyncSession, Depends(get_d
         student_description=task_set.student_description,
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None,
     )
 
@@ -396,6 +399,17 @@ async def create_task_set(
             detail=f"You already have a task set with the title '{request.title}'. Please use a different title."
         )
 
+    # Parse opening date if provided
+    opens_at = None
+    if request.opens_at:
+        try:
+            opens_at = datetime.fromisoformat(request.opens_at.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid opening date format"
+            )
+
     # Parse expiration date if provided
     expires_at = None
     if request.expires_at:
@@ -428,6 +442,7 @@ async def create_task_set(
         student_description=request.student_description,
         teacher_description=request.teacher_description,
         unique_link_code=unique_link_code,
+        opens_at=opens_at,
         expires_at=expires_at
     )
 
@@ -453,6 +468,7 @@ async def create_task_set(
         student_description=task_set.student_description,
         teacher_description=task_set.teacher_description,
         created_at=task_set.created_at.isoformat(),
+        opens_at=task_set.opens_at.isoformat() if task_set.opens_at else None,
         expires_at=task_set.expires_at.isoformat() if task_set.expires_at else None
     )
 
@@ -478,6 +494,29 @@ async def update_task_set_expires_at(
 
     await db.commit()
     return {"expires_at": task_set.expires_at.isoformat() if task_set.expires_at else None}
+
+
+@router.patch("/api/my_sets/{task_set_id}/opens_at")
+async def update_task_set_opens_at(
+    task_set_id: int,
+    request: UpdateOpensAtRequest,
+    current_user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task_set = await get_task_set_or_404(db, TaskSet, task_set_id)
+    if task_set.teacher_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No permission to modify this task set")
+
+    if request.opens_at:
+        try:
+            task_set.opens_at = datetime.fromisoformat(request.opens_at.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
+    else:
+        task_set.opens_at = None
+
+    await db.commit()
+    return {"opens_at": task_set.opens_at.isoformat() if task_set.opens_at else None}
 
 
 @router.delete("/api/my_sets/{task_set_id}", status_code=status.HTTP_204_NO_CONTENT)

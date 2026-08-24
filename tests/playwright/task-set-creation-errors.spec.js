@@ -229,8 +229,7 @@ test.describe('Task Set Creation Validation & Features', () => {
     const studentUrl = await getStudentUrl(page, taskSetTitle);
     await page.goto(studentUrl);
 
-    // 8. Verify student page displays task set closed page
-    await expect(page.locator('body')).toContainText('This task set has been closed', { timeout: 10000 });
-    await expect(page.locator('body')).toContainText('The deadline for this task set has passed');
+    // 8. Verify student page displays task set not open page
+    await expect(page.locator('body')).toContainText('This task set is not open', { timeout: 10000 });
   });
 });

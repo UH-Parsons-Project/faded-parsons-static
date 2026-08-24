@@ -2260,6 +2260,10 @@ a.btn-cancel:focus {
   padding: 0.5rem;
 }
 
+.welcome_text_student {
+  margin-top: 100px;
+}
+
 /* ── Navbar Burger Menu ──────────────────────────────── */
 .navbar-burger-menu { position: relative; display: inline-block; }
 .navbar-burger-toggle {

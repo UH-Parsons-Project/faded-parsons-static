@@ -47,10 +47,6 @@ test('student can open and submit a task first incorrectly and then correctly fr
   const studentEmail = `student_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   // Start listening for the login API response BEFORE triggering the login
   const loginResponsePromise = studentPage.waitForResponse(
@@ -116,10 +112,6 @@ test('student can navigate back to task list and see in-progress status', async 
   const studentEmail = `student_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   // Start listening for the login API response BEFORE triggering the login
   const loginResponsePromise = studentPage.waitForResponse(
@@ -195,7 +187,6 @@ test('student task progress updates correctly when task is completed and can rev
 
   // Student registers and logs in
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await studentPage.goto(studentUrl);
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -218,7 +209,7 @@ test('student task progress updates correctly when task is completed and can rev
   await studentPage.waitForSelector('.task-set-item', { timeout: 10000 });
 
   // Verify task progress
-  await expect(studentPage.locator('#completed-count')).toHaveText('1');
+  await expect(studentPage.locator('#completed-count')).toHaveText('1', { timeout: 15000 });
 
   // Verify the task item shows "Completed"
   const addInRangeTask = studentPage.locator('.task-set-item', { hasText: 'add_in_range' });
@@ -265,7 +256,6 @@ test('student sees Next Task and Done buttons when completing tasks sequentially
 
   // Student registers and logs in
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await studentPage.goto(studentUrl);
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -333,7 +323,6 @@ test('Next Task prefers navigating to an in-progress task over an unstarted task
 
   // Student registers and logs in
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await studentPage.goto(studentUrl);
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

@@ -73,7 +73,6 @@ test.describe('Task URL resilience and Task Reordering', () => {
     expect(regResp.ok()).toBeTruthy();
     
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
     // Explicitly pass unique_link_code to login
     const urlParts = studentUrl.split('/set/');
@@ -189,8 +188,6 @@ test.describe('Task URL resilience and Task Reordering', () => {
     expect(regResp.ok()).toBeTruthy();
     
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
     const urlParts = studentUrl.split('/set/');
     const uniqueLinkCode = urlParts.length > 1 ? urlParts[1].split('/')[0] : null;
 

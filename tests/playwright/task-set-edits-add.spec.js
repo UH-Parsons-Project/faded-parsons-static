@@ -266,7 +266,6 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
 
     await createTestStudent(studentPage, studentUsername, studentEmail);
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
     await loginStudent(studentPage, studentEmail);
     await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
 

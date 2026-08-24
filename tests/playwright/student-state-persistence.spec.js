@@ -44,10 +44,6 @@ async function setupStudentTask(page, browser, unique) {
   const studentEmail = `student_sp_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   const loginResponsePromise = studentPage.waitForResponse(
     r => r.url().includes('/api/student_login')

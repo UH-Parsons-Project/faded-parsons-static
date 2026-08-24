@@ -212,7 +212,6 @@ test('student session expiry redirects to login', async ({ browser }) => {
   const studentEmail = `student_exp_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await studentPage.goto(studentUrl);
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

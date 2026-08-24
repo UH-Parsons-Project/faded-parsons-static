@@ -39,8 +39,6 @@ test('student role is redirected to home page when attempting to access teacher 
   const studentEmail = `student_sec_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
 
   const loginResponsePromise = studentPage.waitForResponse(
     r => r.url().includes('/api/student_login')

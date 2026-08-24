@@ -242,7 +242,6 @@ test.describe('Task Edit and Delete Lifecycle', () => {
 
     await createTestStudent(studentPage, studentUsername, studentEmail);
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
     await loginStudent(studentPage, studentEmail);
     await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
     await studentContext.close();

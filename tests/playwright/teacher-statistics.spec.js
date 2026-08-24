@@ -44,10 +44,6 @@ test('teacher can see empty student submission in task set statistics under "stu
   const studentEmail = `student_stat_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
 
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

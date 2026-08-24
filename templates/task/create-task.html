@@ -115,29 +115,37 @@ assert sum(5, 5) == 10</code></pre>
                     </div>
 
                     <div class="guide-example">
-                        <h3>Example Task: Print Hello World</h3>
-                        <p>Simple script that prints a Hello World:</p>
+                        <h3>Example Task: Hello Greeting</h3>
+                        <p>Function that prints a greeting for given targets:</p>
 
                         <div class="example-container">
                             <div class="example-code">
                                 <div class="example-header">
                                     <span>Task Code</span>
                                 </div>
-                                <pre tabindex="0" aria-label="Task code example"><code id="example-task-code-stdout">print("Hello")
-print("World")</code></pre>
+                                <pre tabindex="0" aria-label="Task code example"><code id="example-task-code-stdout">def hello(target):
+    print("Hello", target)</code></pre>
+                            </div>
+
+                            <div class="example-code">
+                                <div class="example-header">
+                                    <span>Function Calls (Optional)</span>
+                                </div>
+                                <pre tabindex="0" aria-label="Function calls example"><code id="example-task-calls-stdout">hello("Emily")
+hello("Bob")</code></pre>
                             </div>
 
                             <div class="example-code">
                                 <div class="example-header">
                                     <span>Expected Output</span>
                                 </div>
-                                <pre tabindex="0" aria-label="Expected output example"><code id="example-task-tests-stdout">Hello
-World</code></pre>
+                                <pre tabindex="0" aria-label="Expected output example"><code id="example-task-tests-stdout">Hello Emily
+Hello Bob</code></pre>
                             </div>
                         </div>
 
                         <div class="example-actions">
-                            <button type="button" class="copy-btn copy-example-btn" data-copy-code-target="example-task-code-stdout" data-copy-tests-target="example-task-tests-stdout" data-eval-type="stdout">
+                            <button type="button" class="copy-btn copy-example-btn" data-copy-code-target="example-task-code-stdout" data-copy-calls-target="example-task-calls-stdout" data-copy-tests-target="example-task-tests-stdout" data-eval-type="stdout">
                                 <i class="fas fa-copy"></i> Copy Example to Editors
                             </button>
                         </div>
@@ -223,26 +231,48 @@ Eat the pie</code></pre>
                     </div>
                 </section>
 
-                <section class="editor-panel" id="task-tests-panel">
-                    <div class="field-head">
-                        <label for="task-tests" id="task-tests-label">Task Tests</label>
-                        <span class="field-hint" id="task-tests-hint">Use any Python test style you prefer</span>
-                    </div>
-                    <textarea
-                        id="task-tests"
-                        name="task-tests"
-                        class="code-editor"
-                        spellcheck="false"
-                        autocapitalize="off"
-                        autocomplete="off"
-                        autocorrect="off"
-                        placeholder="assert sum(1, 5) == 6&#10;assert sum(5, 5) == 10"
-                    ></textarea>
-                    <div class="editor-footer">
-                        <span id="task-tests-status">Ln 1, Col 1</span>
-                        <button type="button" class="text-btn" data-clear-target="task-tests">Clear</button>
-                    </div>
-                </section>
+                <div class="stdout-panels-grid" id="stdout-panels-wrapper">
+                    <section class="editor-panel" id="task-stdout-calls-panel" style="display: none;">
+                        <div class="field-head">
+                            <label for="task-stdout-calls" id="task-stdout-calls-label">Function Calls / Driver Code (Optional)</label>
+                            <span class="field-hint" id="task-stdout-calls-hint">Calls to execute function(s)</span>
+                        </div>
+                        <textarea
+                            id="task-stdout-calls"
+                            name="task-stdout-calls"
+                            class="code-editor"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            autocorrect="off"
+                            placeholder="hello(&quot;Emily&quot;)&#10;hello(&quot;Bob&quot;)"
+                        ></textarea>
+                        <div class="editor-footer">
+                            <span id="task-stdout-calls-status">Ln 1, Col 1</span>
+                            <button type="button" class="text-btn" data-clear-target="task-stdout-calls">Clear</button>
+                        </div>
+                    </section>
+                    <section class="editor-panel" id="task-tests-panel">
+                        <div class="field-head">
+                            <label for="task-tests" id="task-tests-label">Task Tests</label>
+                            <span class="field-hint" id="task-tests-hint">Use any Python test style you prefer</span>
+                        </div>
+                        <textarea
+                            id="task-tests"
+                            name="task-tests"
+                            class="code-editor"
+                            spellcheck="false"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            autocorrect="off"
+                            placeholder="assert sum(1, 5) == 6&#10;assert sum(5, 5) == 10"
+                        ></textarea>
+                        <div class="editor-footer">
+                            <span id="task-tests-status">Ln 1, Col 1</span>
+                            <button type="button" class="text-btn" data-clear-target="task-tests">Clear</button>
+                        </div>
+                    </section>
+                </div>
             </div>
 
             <div class="actions">

@@ -1199,6 +1199,7 @@ initBurgerMenu();
   async function runTeacherTests() {
     const evalTypeInput = document.getElementById('eval-type');
     const testsInput = document.getElementById('tests-input');
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
     const expectedOutputInput = document.getElementById('expected-output-input');
     const runStatus = document.getElementById('run-status');
     const runBtn = document.getElementById('run-tests');
@@ -1225,7 +1226,7 @@ initBurgerMenu();
     const sourceCode = hasSolutionBlocks && parsonsWidget
       ? parsonsWidget.solutionCode()
       : (draftPayload?.taskCode || '');
-    const testsCode = testsInput.value.trim();
+    const testsCode = (evalType === 'stdout' && stdoutTestsInput ? stdoutTestsInput.value : (testsInput ? testsInput.value : '')).trim();
 
     if (!sourceCode.trim()) {
       renderTestResult('fail', 'No source code found to test. Drag blocks to the right column or add code in the first step.');
@@ -1261,6 +1262,8 @@ initBurgerMenu();
         '',
         'print("ALL_TEACHER_TESTS_PASSED")',
       ].join('\n');
+    } else if (evalType === 'stdout') {
+      python = testsCode ? `${sourceCode}\n\n${testsCode}` : sourceCode;
     } else {
       python = sourceCode;
     }
@@ -1274,7 +1277,7 @@ initBurgerMenu();
         testsPassed = false;
         updateAddToListState();
       } else {
-        const output = (results || '').toString().trim();
+        const output = (results || '').toString().replace(/\r\n/g, '\n').trim();
         if (evalType === 'unit_test') {
           if (output.includes('ALL_TEACHER_TESTS_PASSED')) {
             renderTestResult('pass', 'All tests passed!');
@@ -1285,11 +1288,12 @@ initBurgerMenu();
             testsPassed = false;
           }
         } else if (evalType === 'stdout') {
-          if (output === expectedOutput) {
+          const expectedNorm = expectedOutput.replace(/\r\n/g, '\n').trim();
+          if (output === expectedNorm) {
             renderTestResult('pass', `Output matched perfectly!\n\nOutput:\n${output}`);
             testsPassed = true;
           } else {
-            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedOutput}\n\nGot:\n${output}`);
+            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedNorm}\n\nGot:\n${output}`);
             testsPassed = false;
           }
         }
@@ -1312,29 +1316,30 @@ initBurgerMenu();
     const startDescriptionInput = document.getElementById('start-description');
     const customErrorMessagesInput = document.getElementById('custom-error-messages');
     const testsInput = document.getElementById('tests-input');
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
     const visibilityInput = document.getElementById('task-visibility-public');
     const taskTypeInput = document.getElementById('task-type');
     const solutionList = document.querySelector('#solution-sortable ul');
 
-    if (!taskTitleInput || !descriptionInput || !startDescriptionInput || !testsInput || !solutionList || !parsonsWidget) {
+    if (!taskTitleInput || !descriptionInput || !startDescriptionInput || !solutionList || !parsonsWidget) {
       alert('Missing required fields to add the problem.');
       return;
     }
+
+    const evalTypeInput = document.getElementById('eval-type');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
 
     const taskTitle = taskTitleInput.value.trim();
     const description = descriptionInput.value.trim();
     const examples = examplesInput?.value.trim() || '';
     const startDescription = startDescriptionInput.value.trim();
     const customErrorMessages = customErrorMessagesInput.value.trim() || '';
-    const tests = testsInput.value.trim();
+    const tests = (evalType === 'stdout' && stdoutTestsInput ? stdoutTestsInput.value : (testsInput ? testsInput.value : '')).trim();
     const solutionCode = sanitizeBlankInputMarkup(modelAnswerCode);
     const isPublic = visibilityInput ? !visibilityInput.checked : true;
     const taskType = normalizeTaskTypeValue(taskTypeInput?.value);
-
-    const evalTypeInput = document.getElementById('eval-type');
-    const expectedOutputInput = document.getElementById('expected-output-input');
-    const evalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
-    const expectedOutput = expectedOutputInput ? expectedOutputInput.value.trim() : '';
 
     if (!taskType) {
       alert('Please select a task tag before saving the task.');
@@ -1911,7 +1916,9 @@ initBurgerMenu();
       const examplesInput = document.getElementById('examples-input');
       if (examplesInput) examplesInput.value = meta.examples !== undefined && meta.examples !== '' ? meta.examples : (instructions.examples || '');
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
+      const stdoutTestsInput = document.getElementById('stdout-tests-input');
       if (testsInput) testsInput.value = meta.tests || teacherTests || '';
+      if (stdoutTestsInput) stdoutTestsInput.value = meta.tests || teacherTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(taskData.task_type);
       if (visibilityInput) {
@@ -2006,6 +2013,7 @@ initBurgerMenu();
         console.error('Failed to fetch task for editing:', e);
       }
     }
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
     if (fetchedFromApi && !meta.taskTitle) {
       let instructions = {};
       try { instructions = JSON.parse(apiTaskData.task_instructions || '{}'); } catch (e) { instructions = {}; }
@@ -2015,6 +2023,7 @@ initBurgerMenu();
       if (examplesInput) examplesInput.value = instructions.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
       if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
+      if (stdoutTestsInput) stdoutTestsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData.task_type || draft.taskType);
       const savedAnswer = apiTaskData.model_answer || apiTaskData.correct_solution?.solution_code || '';
@@ -2028,6 +2037,7 @@ initBurgerMenu();
       if (examplesInput) examplesInput.value = meta.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
       if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
+      if (stdoutTestsInput) stdoutTestsInput.value = draft.taskTests || meta.tests || '';
 
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);

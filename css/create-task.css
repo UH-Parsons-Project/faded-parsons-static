@@ -77,6 +77,18 @@ body {
     gap: 1rem;
 }
 
+.stdout-panels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .stdout-panels-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .editor-panel {
     background: var(--panel-bg);
     border: 1px solid var(--panel-border);

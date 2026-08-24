@@ -188,8 +188,16 @@
                 <textarea id="tests-input" class="tests-input" spellcheck="false" placeholder="assert sum(1, 5) == 6&#10;assert sum(5, 5) == 10"></textarea>
               </div>
               <div id="stdout-container" style="display: none;">
-                <p class="field-help mb-2" style="margin-top: 0;">Provide the exact expected output that the student's code should print.</p>
-                <textarea id="expected-output-input" class="tests-input" spellcheck="false" placeholder="Hello&#10;World"></textarea>
+                <div class="form-group mb-3">
+                  <label for="stdout-tests-input" class="mb-1 font-weight-bold">Function Calls / Driver Code (Optional)</label>
+                  <p class="field-help mb-2" style="margin-top: 0;">If your code defines functions (e.g. <code>def hello(target):</code>), write the function calls here to execute them. Leave empty if your code prints directly.</p>
+                  <textarea id="stdout-tests-input" class="tests-input mb-3" spellcheck="false" style="min-height: 80px;" placeholder="hello(&quot;Emily&quot;)&#10;hello(&quot;Bob&quot;)"></textarea>
+                </div>
+                <div class="form-group mb-0">
+                  <label for="expected-output-input" class="mb-1 font-weight-bold">Expected Output</label>
+                  <p class="field-help mb-2" style="margin-top: 0;">Provide the exact expected console output that the program should print when executed.</p>
+                  <textarea id="expected-output-input" class="tests-input" spellcheck="false" placeholder="Hello Emily&#10;Hello Bob"></textarea>
+                </div>
               </div>
               <div id="order-only-container" style="display: none;">
                 <div class="alert alert-info d-flex align-items-center mb-0" style="background: #e0f2fe; border: 1px solid #7dd3fc; color: #0369a1; border-radius: 8px; padding: 0.9rem 1.1rem;">

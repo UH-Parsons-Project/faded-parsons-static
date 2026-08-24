@@ -65,7 +65,8 @@ class TaskSetResponse(BaseModel):
     student_description: str | None
     teacher_description: str | None
     created_at: str
-    expires_at: str | None
+    opens_at: str | None = None
+    expires_at: str | None = None
     student_count: int = 0
     task_count: int = 0
     deletable: bool = True
@@ -218,6 +219,7 @@ class CreateTaskSetRequest(BaseModel):
     title: str = Field(..., min_length=4)
     student_description: str | None = None
     teacher_description: str | None = None
+    opens_at: str | None = None
     expires_at: str | None = None
     task_ids: list[int]
 
@@ -228,6 +230,10 @@ class UpdateTaskSetTasksRequest(BaseModel):
 
 class UpdateExpiresAtRequest(BaseModel):
     expires_at: str | None = None
+
+
+class UpdateOpensAtRequest(BaseModel):
+    opens_at: str | None = None
 
 
 

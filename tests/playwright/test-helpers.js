@@ -45,7 +45,16 @@ export async function registerTeacher(
   password = 'password123',
   registrationToken = getTestRegistrationToken()
 ) {
-  await page.goto('/teacher-register');
+  try {
+    await page.goto('/teacher-register');
+  } catch (err) {
+    if (err.message && (err.message.includes('interrupted') || err.message.includes('ERR_ABORTED') || err.message.includes('Navigation'))) {
+      await page.waitForTimeout(300);
+      await page.goto('/teacher-register');
+    } else {
+      throw err;
+    }
+  }
   await page.locator('#username').fill(username);
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
@@ -212,6 +221,7 @@ export async function loginStudent(page, username, password = 'password123', uni
 export async function logoutTeacher(page) {
   await page.locator('#navbar-burger-toggle').click();
   await page.locator('#logout-btn').click();
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForSelector('#login-form', { timeout: 10000 });
 }
 

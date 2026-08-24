@@ -1553,3 +1553,55 @@ class TestCreateProblemApi:
         import json
         instructions_data = json.loads(created_task.task_instructions)
         assert instructions_data["examples"] == ">>> add_in_range(3, 5)\n12"
+
+    async def test_create_and_update_task_set_opens_at(self, client, test_teacher, task):
+        payload = {
+            "title": "Opens At Test Set",
+            "opens_at": "2099-01-01T12:00:00Z",
+            "task_ids": [task.id],
+        }
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["opens_at"].startswith("2099-01-01T12:00:00")
+        task_set_id = data["id"]
+
+        # Update opens_at
+        patch_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": "2099-06-01T12:00:00Z"},
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["opens_at"].startswith("2099-06-01T12:00:00")
+
+        # Clear opens_at
+        clear_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": None},
+        )
+        assert clear_res.status_code == 200
+        assert clear_res.json()["opens_at"] is None
+
+    async def test_student_access_blocked_before_opens_at(self, client, test_teacher, task, db_session):
+        payload = {
+            "title": "Future Opening Set",
+            "opens_at": "2099-01-01T12:00:00Z",
+            "task_ids": [task.id],
+        }
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json=payload,
+        )
+        assert res.status_code == 200
+        unique_code = res.json()["unique_link_code"]
+
+        student_res = await client.get(f"/{test_teacher.username}/set/{unique_code}")
+        assert student_res.status_code == 200
+        assert "This task set is not open" in student_res.text

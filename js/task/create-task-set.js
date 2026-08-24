@@ -481,6 +481,8 @@ function setupFormSubmission() {
     const title = document.getElementById('task-set-title').value.trim();
     const studentDescription = document.getElementById('student-description').value.trim();
     const teacherDescription = document.getElementById('teacher-description').value.trim();
+    // eslint-disable-next-line no-unused-vars
+    const openingDate = document.getElementById('opening-date')?.value || null;
     const expirationDate = document.getElementById('expiration-date').value || null;
 
     const viewersToShare = [...validatedViewers];

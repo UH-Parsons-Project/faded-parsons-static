@@ -10,11 +10,11 @@ form.addEventListener('submit', async (e) => {
 	alertPlaceholder.innerHTML = '';
 
 	const payload = {
-		username: document.getElementById('username').value,
-		email: document.getElementById('email').value,
-		password: document.getElementById('password').value,
-		password_confirm: document.getElementById('password_confirm').value,
-		registration_token: document.getElementById('registration_token').value,
+		username: form.querySelector('#username').value,
+		email: form.querySelector('#email').value,
+		password: form.querySelector('#password').value,
+		password_confirm: form.querySelector('#password_confirm').value,
+		registration_token: form.querySelector('#registration_token').value,
 	};
 
 	// Client-side confirmation check

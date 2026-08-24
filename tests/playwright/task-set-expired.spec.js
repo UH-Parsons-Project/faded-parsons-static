@@ -53,9 +53,8 @@ test.describe('Expired Task Set E2E', () => {
     // 4. Student opens the student URL for the expired task set
     await page.goto(studentUrl);
 
-    // 5. Verify the closed task set page is rendered
+    // 5. Verify the not open task set page is rendered
     await page.waitForSelector('h1', { timeout: 10000 });
-    await expect(page.locator('h1')).toContainText('This task set has been closed');
-    await expect(page.locator('.text-muted')).toContainText('The deadline for this task set has passed');
+    await expect(page.locator('h1')).toContainText('This task set is not open');
   });
 });

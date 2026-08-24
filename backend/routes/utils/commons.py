@@ -85,6 +85,7 @@ def build_taskset_response_list(rows: Iterable):
             "student_description": ps.student_description,
             "teacher_description": ps.teacher_description,
             "created_at": ps.created_at.isoformat(),
+            "opens_at": ps.opens_at.isoformat() if getattr(ps, "opens_at", None) else None,
             "expires_at": ps.expires_at.isoformat() if ps.expires_at else None,
             "student_count": student_count,
             "task_count": task_count,

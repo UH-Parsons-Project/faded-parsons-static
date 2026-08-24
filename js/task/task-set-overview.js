@@ -401,6 +401,71 @@ async function removeViewer(teacherId) {
 	}
 }
 
+function buildOpeningInnerHTML(taskSet, isOwner) {
+	if (taskSet.opens_at) {
+		const isNotOpenYet = new Date(taskSet.opens_at) > new Date();
+		const style = isNotOpenYet ? ' style="color:#2980b9; font-weight:bold;"' : '';
+		const icon = 'fas fa-calendar-alt';
+		const label = isNotOpenYet ? 'Opens' : 'Opened';
+		const editBtn = isOwner
+			? ` <button id="edit-opening-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit opening date"><i class="fas fa-pencil-alt"></i></button>`
+			: '';
+		return `<span class="meta-badge"><span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
+	}
+	if (isOwner) {
+		return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
+	}
+	return '';
+}
+
+function setupOpeningEdit(taskSet, isOwner) {
+	if (!isOwner) return;
+
+	const section = document.getElementById('opening-section');
+	if (!section) return;
+
+	function renderDisplay() {
+		section.innerHTML = buildOpeningInnerHTML(taskSet, true);
+		document.getElementById('edit-opening-btn')?.addEventListener('click', showEditForm);
+	}
+
+	async function saveOpening(isoValueOrNull) {
+		try {
+			const res = await fetch(`/api/my_sets/${setId}/opens_at`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ opens_at: isoValueOrNull }),
+			});
+			if (!res.ok) throw new Error();
+			const data = await res.json();
+			taskSet.opens_at = data.opens_at;
+			renderDisplay();
+		} catch {
+			alert('Failed to update opening date.');
+		}
+	}
+
+	function showEditForm() {
+		const currentValue = taskSet.opens_at ? toDatetimeLocalValue(taskSet.opens_at) : '';
+		section.innerHTML = `
+			<input type="datetime-local" id="opening-input" value="${currentValue}" style="font-size:.85rem;padding:2px 6px;">
+			<button id="save-opening-btn" type="button" class="btn btn-sm btn-primary ml-1">Save</button>
+			${taskSet.opens_at ? `<button id="clear-opening-btn" type="button" class="btn btn-sm btn-outline-secondary ml-1">Remove</button>` : ''}
+			<button id="cancel-opening-btn" type="button" class="btn btn-sm btn-outline-danger ml-1">Cancel</button>
+		`;
+		document.getElementById('cancel-opening-btn').addEventListener('click', renderDisplay);
+		document.getElementById('save-opening-btn').addEventListener('click', () => {
+			const val = document.getElementById('opening-input').value;
+			if (!val) { renderDisplay(); return; }
+			saveOpening(new Date(val).toISOString());
+		});
+		document.getElementById('clear-opening-btn')?.addEventListener('click', () => saveOpening(null));
+	}
+
+	document.getElementById('edit-opening-btn')?.addEventListener('click', showEditForm);
+}
+
 function buildExpiryInnerHTML(taskSet, isOwner) {
 	if (taskSet.expires_at) {
 		const expired = new Date(taskSet.expires_at) < new Date();
@@ -596,6 +661,7 @@ function renderListHeader(taskSet, tasks, students) {
 					<h1 class="taskset-page-title" style="margin-bottom:.25rem;">${escapeHtml(taskSet.title)}</h1>
 					<div class="taskset-meta-row" style="margin-bottom:.6rem;display:flex;gap:.4rem;">
 						<span class="meta-badge"><i class="far fa-calendar"></i> Created ${formatDate(taskSet.created_at)}</span>
+						<span id="opening-section" style="display:inline-flex;">${buildOpeningInnerHTML(taskSet, isOwner)}</span>
 						<span id="expiry-section" style="display:inline-flex;">${buildExpiryInnerHTML(taskSet, isOwner)}</span>
 					</div>
 					<div class="taskset-link-box" style="margin-bottom:0; width:fit-content; max-width:100%;">
@@ -645,6 +711,7 @@ function renderListHeader(taskSet, tasks, students) {
 	}
 
 	setupViewerSharing();
+	setupOpeningEdit(taskSet, isOwner);
 	setupExpiryEdit(taskSet, isOwner);
 	if (isOwner) {
 		loadViewers();

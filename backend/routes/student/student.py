@@ -43,12 +43,20 @@ async def _check_enrollment(db: AsyncSession, student_session: Student | None, t
 
 
 def _is_expired(task_set) -> bool:
+    now = datetime.now(timezone.utc)
+    if task_set.opens_at:
+        opens = task_set.opens_at
+        if opens.tzinfo is None:
+            opens = opens.replace(tzinfo=timezone.utc)
+        if now < opens:
+            return True
+
     if not task_set.expires_at:
         return False
     expires = task_set.expires_at
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) > expires
+    return now > expires
 
 
 @router.get("/student-start-task", response_class=HTMLResponse)

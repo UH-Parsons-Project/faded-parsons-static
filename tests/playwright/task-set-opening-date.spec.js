@@ -7,13 +7,13 @@ import {
   getStudentUrl,
 } from './test-helpers.js';
 
-test.describe('Expired Task Set E2E', () => {
-  test('student visiting an expired task set URL sees the closed task set page', async ({ page }) => {
+test.describe('Not Yet Open Task Set E2E', () => {
+  test('student visiting a task set URL before opening date sees the not open task set page', async ({ page }) => {
     const unique = Date.now();
-    const teacherUsername = `exp_teacher_${unique}`;
-    const teacherEmail = `exp_teacher_${unique}@example.com`;
+    const teacherUsername = `open_teacher_${unique}`;
+    const teacherEmail = `open_teacher_${unique}@example.com`;
     const teacherPassword = 'password123';
-    const taskSetTitle = `Expired Set ${unique}`;
+    const taskSetTitle = `Future Opening Set ${unique}`;
 
     // 1. Teacher registers and logs in
     await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
@@ -32,7 +32,7 @@ test.describe('Expired Task Set E2E', () => {
 
     const studentUrl = await getStudentUrl(page, taskSetTitle);
 
-    // 3. Set the task set expiration date to the past via API
+    // 3. Set the task set opening date to the future via API
     await page.evaluate(async (taskTitle) => {
       // Fetch teacher's task sets to find setId
       const res = await fetch('/api/my_sets');
@@ -41,16 +41,16 @@ test.describe('Expired Task Set E2E', () => {
       const targetSet = sets.find((s) => s.title === taskTitle);
       if (!targetSet) return;
 
-      // Update expires_at to past date
-      await fetch(`/api/my_sets/${targetSet.id}/expires_at`, {
+      // Update opens_at to future date
+      await fetch(`/api/my_sets/${targetSet.id}/opens_at`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ expires_at: '2020-01-01T00:00:00.000Z' }),
+        body: JSON.stringify({ opens_at: '2099-01-01T00:00:00.000Z' }),
       });
     }, taskSetTitle);
 
-    // 4. Student opens the student URL for the expired task set
+    // 4. Student opens the student URL for the task set before its opening date
     await page.goto(studentUrl);
 
     // 5. Verify the not open task set page is rendered

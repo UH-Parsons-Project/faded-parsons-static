@@ -304,10 +304,15 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 	submittedCode += '\n';
 
 	if (evalType === 'stdout') {
+		const normalizedTeacherTests = (teacherTests || '').trim();
+		let code = submittedCode;
+		if (normalizedTeacherTests) {
+			code += '\n' + normalizedTeacherTests + '\n';
+		}
 		return {
 			status: 'success',
 			header: 'Running code...',
-			code: submittedCode,
+			code: code,
 			startLine: 1,
 		};
 	}
@@ -437,18 +442,19 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 
 export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '') {
 	if (evalType === 'stdout') {
-		const actualOutput = outputStr.trim();
-		if (actualOutput === expectedOutput) {
+		const actualOutput = outputStr.replace(/\r\n/g, '\n').trim();
+		const expectedNorm = (expectedOutput || '').replace(/\r\n/g, '\n').trim();
+		if (actualOutput === expectedNorm) {
 			return {
 				status: 'pass',
-				header: `Output matched expected exactly!`,
+				header: `Output matched expected output!`,
 				details: `✅ Passed\n\nOutput:\n${actualOutput}`
 			};
 		} else {
 			return {
 				status: 'fail',
 				header: `Output did not match expected output.`,
-				details: `❌ Failed\n\nExpected:\n${expectedOutput}\n\nGot:\n${actualOutput}`
+				details: `❌ Failed\n\nExpected:\n${expectedNorm}\n\nGot:\n${actualOutput}`
 			};
 		}
 	}

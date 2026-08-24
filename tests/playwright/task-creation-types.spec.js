@@ -159,6 +159,43 @@ test.describe('Task Creation - Evaluation Modes (unit_test, stdout, order_only)'
     await expect(page.locator('#test-results')).toContainText('Output did not match.', { timeout: 30000 });
   });
 
+  test('stdout mode: function definition with driver calls execution', async ({ page }) => {
+    await page.goto('/create-task');
+
+    await page.locator('#eval-type').selectOption('stdout');
+    await expect(page.locator('#task-stdout-calls-panel')).toBeVisible();
+
+    const taskCode = 'def hello(target):\n    print("Hello", target)';
+    const driverCalls = 'hello("Emily")\nhello("Bob")';
+    const expectedOutput = 'Hello Emily\nHello Bob';
+    const blocksRepr = 'def hello(target): #0given\n    print("Hello", target) #1given';
+
+    await page.locator('#task-code').fill(taskCode);
+    await page.locator('#task-stdout-calls').fill(driverCalls);
+    await page.locator('#task-tests').fill(expectedOutput);
+
+    await page.evaluate(({ taskCode, blocksRepr }) => {
+      sessionStorage.setItem('create_task_builder_blocks', blocksRepr);
+      sessionStorage.setItem('create_task_builder_blocks_source', taskCode);
+    }, { taskCode, blocksRepr });
+
+    await page.locator('#submit-task').click();
+    await page.waitForURL(/\/create-task-editor/, { timeout: 10000 });
+
+    await page.locator('#task-title').fill(`stdout_fn_${Date.now()}`);
+    await page.locator('#problem-description').fill('Define hello function and call it.');
+
+    await page.waitForSelector('#solution-sortable ul li', { timeout: 10000 });
+
+    // Verify driver calls field was preserved in step 2
+    await expect(page.locator('#stdout-tests-input')).toHaveValue(driverCalls);
+    await expect(page.locator('#expected-output-input')).toHaveValue(expectedOutput);
+
+    // Run tests and verify stdout match success
+    await page.locator('#run-tests').click();
+    await expect(page.locator('#test-results')).toContainText('Output matched perfectly!', { timeout: 30000 });
+  });
+
   // --------------------------------------------------------------------------
   // 3. Order Only (order_only)
   // --------------------------------------------------------------------------

@@ -194,11 +194,13 @@
     copyButtons.forEach((button) => {
       button.addEventListener('click', async () => {
         const evalType = button.getAttribute('data-eval-type');
-        const copyCodeTarget = button.getAttribute('data-copy-code-target') || button.getAttribute('data-copy-target');
+        const copyCodeTarget = button.getAttribute('data-copy-code-target');
+        const copyCallsTarget = button.getAttribute('data-copy-calls-target');
         const copyTestsTarget = button.getAttribute('data-copy-tests-target');
 
         const taskCodeInput = document.getElementById('task-code');
         const taskTestsInput = document.getElementById('task-tests');
+        const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
         const evalTypeInput = document.getElementById('eval-type');
 
         let textCopied = false;
@@ -214,6 +216,20 @@
             taskCodeInput.value = codeEl.textContent;
             taskCodeInput.dispatchEvent(new Event('input'));
             textCopied = true;
+          }
+        }
+
+        if (taskStdoutCallsInput) {
+          if (copyCallsTarget) {
+            const callsEl = document.getElementById(copyCallsTarget);
+            if (callsEl) {
+              taskStdoutCallsInput.value = callsEl.textContent;
+              taskStdoutCallsInput.dispatchEvent(new Event('input'));
+              textCopied = true;
+            }
+          } else {
+            taskStdoutCallsInput.value = '';
+            taskStdoutCallsInput.dispatchEvent(new Event('input'));
           }
         }
 
@@ -262,18 +278,30 @@
       const teacherTests = task.correct_solution?.teacher_tests || '';
       const evalType = task.correct_solution?.eval_type || 'unit_test';
       const expectedOutput = task.correct_solution?.expected_output || '';
+      const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
 
       if (taskCodeInput) {
         taskCodeInput.value = solutionCode;
         taskCodeInput.dispatchEvent(new Event('input'));
       }
-      if (taskTestsInput) {
-        if (evalType === 'stdout') {
-          taskTestsInput.value = expectedOutput;
-        } else {
-          taskTestsInput.value = teacherTests;
+      if (evalType === 'stdout') {
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = teacherTests;
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
         }
-        taskTestsInput.dispatchEvent(new Event('input'));
+        if (taskTestsInput) {
+          taskTestsInput.value = expectedOutput;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+      } else {
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        }
+        if (taskTestsInput) {
+          taskTestsInput.value = teacherTests;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
       }
       const evalTypeInput = document.getElementById('eval-type');
       if (evalTypeInput) {
@@ -301,11 +329,15 @@
     const cancelBtn = document.getElementById('cancel-task');
     const taskCodeInput = document.getElementById('task-code');
     const taskTestsInput = document.getElementById('task-tests');
+    const taskStdoutCallsInput = document.getElementById('task-stdout-calls');
+    const taskStdoutCallsPanel = document.getElementById('task-stdout-calls-panel');
     const taskCodeStatus = document.getElementById('task-code-status');
     const taskTestsStatus = document.getElementById('task-tests-status');
+    const taskStdoutCallsStatus = document.getElementById('task-stdout-calls-status');
     const clearButtons = document.querySelectorAll('[data-clear-target]');
 
     const evalTypeInput = document.getElementById('eval-type');
+    const stdoutPanelsWrapper = document.getElementById('stdout-panels-wrapper');
     const taskTestsPanel = document.getElementById('task-tests-panel');
     const taskTestsLabel = document.getElementById('task-tests-label');
     const taskTestsHint = document.getElementById('task-tests-hint');
@@ -320,17 +352,23 @@
         const val = evalTypeInput.value;
         switchGuideTab(val, false);
         if (val === 'order_only') {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'none';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'none';
           taskTestsPanel.style.display = 'none';
           taskCodeInput.placeholder = 'Buy all ingredients\nBake a pie\nEat the pie';
           if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>Buy all ingredients</code>';
         } else if (val === 'stdout') {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'grid';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'block';
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Expected Output';
           taskTestsHint.textContent = 'Exact output expected from the print statements';
-          taskTestsInput.placeholder = 'Hello\nWorld';
-          taskCodeInput.placeholder = 'print("Hello")\nprint("World")';
-          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>print("Hello")</code>';
+          taskTestsInput.placeholder = 'Hello Emily\nHello Bob';
+          taskCodeInput.placeholder = 'def hello(target):\n    print("Hello", target)';
+          if (taskCodeHint) taskCodeHint.innerHTML = 'Example: <code>def hello(target):</code>';
         } else {
+          if (stdoutPanelsWrapper) stdoutPanelsWrapper.style.display = 'block';
+          if (taskStdoutCallsPanel) taskStdoutCallsPanel.style.display = 'none';
           taskTestsPanel.style.display = 'block';
           taskTestsLabel.textContent = 'Task Tests';
           taskTestsHint.textContent = 'Use any Python test style you prefer';
@@ -353,6 +391,9 @@
 
     setupEditorBehavior(taskCodeInput, taskCodeStatus, TASK_CODE_DRAFT_KEY);
     setupEditorBehavior(taskTestsInput, taskTestsStatus, TASK_TESTS_DRAFT_KEY);
+    if (taskStdoutCallsInput && taskStdoutCallsStatus) {
+      setupEditorBehavior(taskStdoutCallsInput, taskStdoutCallsStatus, 'create_task_draft_stdout_calls');
+    }
 
     clearButtons.forEach((button) => {
       button.addEventListener('click', () => {
@@ -372,10 +413,13 @@
       clearDraftsBtn.addEventListener('click', () => {
         localStorage.removeItem(TASK_CODE_DRAFT_KEY);
         localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+        localStorage.removeItem('create_task_draft_stdout_calls');
         taskCodeInput.value = '';
         taskTestsInput.value = '';
+        if (taskStdoutCallsInput) taskStdoutCallsInput.value = '';
         taskCodeInput.dispatchEvent(new Event('input'));
         taskTestsInput.dispatchEvent(new Event('input'));
+        if (taskStdoutCallsInput) taskStdoutCallsInput.dispatchEvent(new Event('input'));
         taskCodeInput.focus();
       });
     }
@@ -392,7 +436,7 @@
       });
     }
 
-    [taskCodeInput, taskTestsInput].forEach((input) => {
+    [taskCodeInput, taskTestsInput, taskStdoutCallsInput].filter(Boolean).forEach((input) => {
       input.addEventListener('keydown', (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault();
@@ -411,6 +455,7 @@
         let expectedOutput = '';
         if (evalType === 'stdout') {
           expectedOutput = taskTests;
+          tests = taskStdoutCallsInput ? taskStdoutCallsInput.value : '';
         } else if (evalType === 'unit_test') {
           tests = taskTests;
         }

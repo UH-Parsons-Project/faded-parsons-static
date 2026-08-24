@@ -385,7 +385,11 @@ async def student_logout(
 
 @router.post("/api/student_register")
 @limiter.limit("10/minute")
-async def api_student_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def api_student_register(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     reg_identifier = f"student_reg:{request.client.host}"
 
     remaining = check_brute_force(reg_identifier)
@@ -403,6 +407,7 @@ async def api_student_register(request: Request, db: Annotated[AsyncSession, Dep
     password = payload.get("password", "")
     password_confirm = payload.get("password_confirm", "")
     email = str(payload.get("email", "")).strip()
+    unique_link_code = payload.get("unique_link_code")
 
     # Basic validation (lengths, presence, password match)
     validate_registration_basic(username, password, password_confirm, email,
@@ -413,10 +418,33 @@ async def api_student_register(request: Request, db: Annotated[AsyncSession, Dep
 
     student = Student(username=username, email=email)
     student.set_password(password)
+    student.started_at = datetime.now(timezone.utc)
+    student.last_activity_at = datetime.now(timezone.utc)
+    student.session_token = secrets.token_urlsafe(32)
 
     db.add(student)
     await db.commit()
     await db.refresh(student)
+
+    if unique_link_code:
+        stmt = select(TaskSet).where(TaskSet.unique_link_code == unique_link_code)
+        result = await db.execute(stmt)
+        task_set = result.scalar_one_or_none()
+        if task_set:
+            enroll_result = await db.execute(
+                select(StudentTaskSetEnrollment).where(
+                    StudentTaskSetEnrollment.student_id == student.id,
+                    StudentTaskSetEnrollment.task_set_id == task_set.id,
+                )
+            )
+            if not enroll_result.scalar_one_or_none():
+                db.add(StudentTaskSetEnrollment(
+                    student_id=student.id,
+                    task_set_id=task_set.id,
+                ))
+                await db.commit()
+
+    set_session_cookie(response, student.session_token)
 
     clear_failed_attempts(reg_identifier)
     return {"status": "success", "id": student.id}

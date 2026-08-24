@@ -170,18 +170,7 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
     const studentEmail = `student_add_${unique}@example.com`;
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-
-    // After registration, student is redirected back to task set page for login
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
-    const loginResponsePromise = studentPage.waitForResponse(
-      r => r.url().includes('/api/student_login')
-    );
-    await loginStudent(studentPage, studentEmail);
-    const loginResponse = await loginResponsePromise;
-    expect(loginResponse.status()).toBe(200);
-
+    // Registration now auto-logs in and redirects directly to /tasks.
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
     // 5. Verify student sees BOTH tasks (initial + newly added via Edit Mode)
@@ -277,7 +266,6 @@ test.describe('Task Set - Task Addition (Teacher & Student Side E2E)', () => {
 
     await createTestStudent(studentPage, studentUsername, studentEmail);
     await studentPage.goto(studentUrl);
-    await studentPage.waitForSelector('#login-form', { timeout: 10000 });
     await loginStudent(studentPage, studentEmail);
     await studentPage.waitForURL(`${studentUrl}/tasks`, { timeout: 15000 });
 

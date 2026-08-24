@@ -93,7 +93,11 @@ async def logout(response: Response):
 
 
 @router.post("/api/teacher_register")
-async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+async def api_teacher_register(
+    request: Request,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     """Register a new teacher with username, password and email."""
     try:
         payload = await request.json()
@@ -162,8 +166,29 @@ async def api_teacher_register(request: Request, db: Annotated[AsyncSession, Dep
     await db.commit()
     await db.refresh(teacher)
 
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": teacher.username}, expires_delta=access_token_expires
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+        samesite="lax",
+        secure=config.COOKIE_SECURE,
+    )
+
     clear_failed_attempts(reg_identifier)
-    return {"status": "success", "id": teacher.id}
+    return {
+        "status": "success",
+        "id": teacher.id,
+        "username": teacher.username,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 
 
 @router.get("/api/teacher/profile")

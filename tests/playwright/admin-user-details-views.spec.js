@@ -26,7 +26,9 @@ test.describe('Admin User Details Inspection Views E2E', () => {
     await page.waitForSelector('#teachers-container .task-set-item', { timeout: 15000 });
 
     // 4. Search for teacher and click card
-    await page.locator('#teacher-search').fill(teacherUsername);
+    const teacherSearch = page.locator('#teacher-search');
+    await expect(teacherSearch).toBeVisible({ timeout: 10000 });
+    await teacherSearch.fill(teacherUsername);
     const teacherCard = page.locator('#teachers-container .task-set-item', { hasText: teacherUsername });
     await expect(teacherCard).toBeVisible({ timeout: 10000 });
     await teacherCard.click();

@@ -61,27 +61,7 @@ test('student can register and then login from task set page', async ({ browser 
 
   await registerStudent(studentPage, studentUsername, studentEmail);
 
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await expect(studentPage.locator('#alert-placeholder .alert-success')).toContainText(
-    'Registration successful.'
-  );
-
-  // After registration, the page redirects back to studentUrl (task set page) after a short delay. Wait for it to fully load.
-  await studentPage.waitForURL(studentUrl, { timeout: 10000 });
-  await studentPage.waitForSelector('#login-form', { timeout: 10000 });
-
-  // Start listening for the login API response BEFORE triggering the login
-  const loginResponsePromise = studentPage.waitForResponse(
-    r => r.url().includes('/api/student_login')
-  );
-
-  await loginStudent(studentPage, studentEmail);
-
-  // Assert login API returned success before waiting for navigation
-  const loginResponse = await loginResponsePromise;
-  expect(loginResponse.status()).toBe(200);
-
-  // After successful login, expect redirect to /tasks
+  // Registration now auto-logs in and redirects straight to /tasks.
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
   await expect(studentPage).toHaveURL(studentUrl + '/tasks');
 });
@@ -115,7 +95,7 @@ test('student registration fails with existing email', async ({ browser }) => {
 
   // First registration succeeds
   await registerStudent(studentPage, studentUsername1, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+  await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Go back to student login page and try second registration with same email
   await studentPage.goto(studentUrl);
@@ -196,9 +176,6 @@ test('student can logout and is redirected to login', async ({ browser }) => {
   const studentEmail = `student_lo_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
-  await studentPage.goto(studentUrl);
-  await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
 
   // Now logout
@@ -235,7 +212,6 @@ test('student session expiry redirects to login', async ({ browser }) => {
   const studentEmail = `student_exp_${unique}@example.com`;
 
   await registerStudent(studentPage, studentUsername, studentEmail);
-  await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
   await studentPage.goto(studentUrl);
   await loginStudent(studentPage, studentEmail);
   await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

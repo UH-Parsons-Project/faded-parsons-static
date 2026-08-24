@@ -52,7 +52,6 @@ test.describe('Student Task Statistics & Timeline Replay E2E', () => {
     studentEmail = `student_rp_${unique}@example.com`;
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });

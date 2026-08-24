@@ -110,7 +110,7 @@ test('heatmap shows in_progress cell after student attempts a task', async ({ pa
   await studentPage.locator('#start-btn').click();
   await studentPage.waitForSelector('.btn.btn-primary:not([disabled])', { timeout: 30000 });
   await studentPage.getByRole('button', { name: 'Run Tests' }).click();
-  await studentPage.waitForSelector('test-results-element', { timeout: 30000 });
+  await expect(studentPage.locator('problem-element')).toHaveAttribute('resultsstatus', /.+/, { timeout: 30000 });
   await studentCtx.close();
 
   await page.goto('/teacher-dashboard');

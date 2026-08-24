@@ -15,13 +15,9 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   await loginTeacher(page, email1, password);
   await expect(page).toHaveURL(/\/teacher-dashboard$/);
 
-  // Prepare minimal task blocks in sessionStorage so editor initializes
+  // Prepare the task code and block representation for the editor.
   const taskCode = 'def test_private():\n    return 1';
   const blocksRepr = 'def test_private(): #0given\nreturn 1 #1given';
-  await page.evaluate(({ taskCode, blocksRepr }) => {
-    sessionStorage.setItem('create_task_builder_blocks', blocksRepr);
-    sessionStorage.setItem('create_task_builder_blocks_source', taskCode);
-  }, { taskCode, blocksRepr });
 
   // Create new task and go through editor flow
   const newTaskLink = page.locator('a[href="/create-task"]');
@@ -34,6 +30,10 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   // Click continue to block builder
   await page.locator('#task-code').fill(taskCode);
   await page.locator('#task-tests').fill('assert test_private() == 1');
+  await page.evaluate(({ taskCode, blocksRepr }) => {
+    sessionStorage.setItem('create_task_builder_blocks', blocksRepr);
+    sessionStorage.setItem('create_task_builder_blocks_source', taskCode);
+  }, { taskCode, blocksRepr });
   await page.locator('#submit-task').click();
   await page.waitForURL(/\/create-task-editor/, { timeout: 20000 });
 
@@ -44,7 +44,8 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   await page.locator('#task-type').selectOption('functions');
   // Wait for the Parsons widget to initialize and populate the solution list
   await page.waitForFunction('!!window.ParsonsWidget', null, { timeout: 15000 });
-  await page.waitForSelector('#solution-sortable ul li', { timeout: 30000 });
+  await expect(page.locator('#solution-sortable')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('#solution-sortable li').first()).toBeVisible({ timeout: 30000 });
   await page.locator('#tests-input').fill('assert test_private() == 1');
   await page.locator('#run-tests').click();
   await page.waitForSelector('#test-results', { timeout: 30000 });

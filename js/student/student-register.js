@@ -3,8 +3,14 @@ const _params = new URLSearchParams(window.location.search);
 const _code = _params.get('code');
 const _username = _params.get('username');
 if (_code && _username) {
-	document.getElementById('login-link-container').innerHTML =
-		'Already have an account? <a href="/' + _username + '/set/' + _code + '">Login</a>';
+	const loginLinkContainer = document.getElementById('login-link-container');
+	if (loginLinkContainer) {
+		loginLinkContainer.textContent = 'Already have an account? ';
+		const loginLink = document.createElement('a');
+		loginLink.href = `/${encodeURIComponent(_username)}/set/${encodeURIComponent(_code)}`;
+		loginLink.textContent = 'Login';
+		loginLinkContainer.appendChild(loginLink);
+	}
 }
 
 const form = document.getElementById('register-form');
@@ -21,6 +27,7 @@ form.addEventListener('submit', async (e) => {
 		email: form.querySelector('#email').value,
 		password: form.querySelector('#password').value,
 		password_confirm: form.querySelector('#password_confirm').value,
+		unique_link_code: _code || null,
 	};
 
 	// Client-side confirmation check
@@ -48,12 +55,17 @@ form.addEventListener('submit', async (e) => {
 		}
 
 		showAlert(alertPlaceholder, 'Registration successful.', 'success');
+		localStorage.setItem('nickname', payload.username);
 		form.reset();
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
 		const username = params.get('username');
 		if (code && username) {
-			setTimeout(() => { window.location.href = '/' + username + '/set/' + code; }, 1000);
+			const encodedUsername = encodeURIComponent(username);
+			const encodedCode = encodeURIComponent(code);
+			setTimeout(() => { window.location.href = `/${encodedUsername}/set/${encodedCode}/tasks`; }, 1000);
+		} else {
+			setTimeout(() => { window.location.href = '/student/profile'; }, 1000);
 		}
 	} catch (err) {
 		showAlert(alertPlaceholder, 'Network error');

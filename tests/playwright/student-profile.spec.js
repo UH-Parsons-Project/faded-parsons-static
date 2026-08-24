@@ -44,7 +44,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const newEmail = `new_${unique}@example.com`;
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -82,7 +81,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const newEmail = `new_${unique}@example.com`;
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -118,7 +116,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const newPassword = 'newpassword123';
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -145,7 +142,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
       await toggle.click();
     }
     await studentPage.locator('#logout-btn').click();
-    await studentPage.waitForURL(studentUrl, { timeout: 10000 });
 
     await loginStudent(studentPage, studentEmail, newPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -163,7 +159,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const studentPassword = 'password123';
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -208,7 +203,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const studentPassword = 'password123';
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -243,7 +237,6 @@ test.describe('Student Profile - Email & Password Changes', () => {
     const studentPassword = 'password123';
 
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
     await studentPage.goto(studentUrl);
     await loginStudent(studentPage, studentEmail, studentPassword);
     await studentPage.waitForURL(studentUrl + '/tasks', { timeout: 15000 });
@@ -308,7 +301,6 @@ test.describe('Student Profile - My Task Sets', () => {
     // Student registers via Set 1
     await studentPage.goto(set1Url);
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
     await studentPage.goto(set1Url);
     await loginStudent(studentPage, studentEmail, 'password123');
@@ -368,7 +360,6 @@ test.describe('Student Profile - My Task Sets', () => {
     // Student registers via Set 1
     await studentPage.goto(set1Url);
     await registerStudent(studentPage, studentUsername, studentEmail);
-    await studentPage.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
 
     await studentPage.goto(set1Url);
     await loginStudent(studentPage, studentEmail, 'password123');

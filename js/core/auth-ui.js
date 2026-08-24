@@ -23,10 +23,6 @@ function setExercisesButtonVisible(visible) {
 	if (globalStatsBtn) {
 		globalStatsBtn.style.display = visible ? 'inline-block' : 'none';
 	}
-	const burgerMenu = document.getElementById('navbar-burger-menu');
-	if (burgerMenu) {
-		burgerMenu.style.display = visible ? 'inline-block' : 'none';
-	}
 }
 
 
@@ -505,10 +501,31 @@ export async function initSignedInAs({
 		}
 	}
 
+	// Student cookie-session fallback — /api/me only covers teacher JWT tokens.
+	// Student sessions are cookie-based; check /api/student/profile instead.
+	if (!name) {
+		try {
+			const response = await fetch('/api/student/profile', {credentials: 'include'});
+			if (response.ok) {
+				const userData = await response.json();
+				if (userData?.username) {
+					name = userData.username;
+					role = 'Student';
+					localStorage.setItem('nickname', name);
+				}
+			}
+		} catch (error) {
+			console.error('Student session fallback failed:', error);
+		}
+	}
+
 	if (name) {
 		userNameEl.textContent = name;
 		displayUserRole(userRoleEl, role);
-		if (userInfoEl) userInfoEl.style.display = 'block';
+		if (userInfoEl) userInfoEl.style.display = 'flex';
+		// Hide login form when user is authenticated
+		const loginForm = document.getElementById('login-form');
+		if (loginForm) loginForm.style.display = 'none';
 	} else {
 		if (userInfoEl) userInfoEl.style.display = 'none';
 	}

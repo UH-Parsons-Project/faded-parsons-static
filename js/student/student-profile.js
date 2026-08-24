@@ -190,13 +190,25 @@ async function loadProfile() {
 		if (profileCreatedEl)
 			profileCreatedEl.textContent = formatDate(data.student_created_at);
 
+		// Show the navbar user-info section (contains burger menu and logout)
+		const userInfoEl = document.getElementById('user-info');
+		if (userInfoEl) userInfoEl.style.display = 'flex';
+		// Hide login form since student is authenticated
+		const loginFormEl = document.getElementById('login-form');
+		if (loginFormEl) loginFormEl.style.display = 'none';
+
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);
 
 		// Setup back button and navbar link
 		const lastSetUrl = localStorage.getItem('last_task_set_url') || '/';
+		const backBtn = document.getElementById('back-btn');
+		if (backBtn) {
+			backBtn.href = lastSetUrl;
+		}
 		if (backToSetsBtn) {
 			backToSetsBtn.href = lastSetUrl;
+			backToSetsBtn.style.display = 'inline-block';
 		}
 		const profileLink = document.getElementById('profile-link');
 		if (profileLink) {

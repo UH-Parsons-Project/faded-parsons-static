@@ -1,4 +1,4 @@
-import { initStudentLogout, initSignedInAs } from '../core/auth-ui.js';
+import { initStudentLogout, initSignedInAs, initBurgerMenu } from '../core/auth-ui.js';
 import { getUsername } from '../core/auth-utils.js';
 import {
 	prepareCode,
@@ -7,6 +7,7 @@ import {
 } from '../core/doctest-grader.js';
 import { FiniteWorker } from '../core/worker-manager.js';
 
+initBurgerMenu();
 initSignedInAs({ preferNickname: true });
 initStudentLogout();
 
@@ -23,7 +24,10 @@ if (!returnUrl) {
 }
 
 const backBtn = document.getElementById('back-to-list');
-if (backBtn) backBtn.href = returnUrl || '/';
+if (backBtn) {
+	backBtn.href = returnUrl || localStorage.getItem('last_task_set_url') || '/';
+	backBtn.style.display = 'inline-block';
+}
 
 const FUNCTION_HEADER = 'def greet(name):\n    """\n    Returns a greeting for the given name.\n    """\n';
 

@@ -63,7 +63,7 @@ test('teacher can logout after successful login', async ({ page }) => {
 
   await logoutTeacher(page);
   await expect(page.locator('#login-form')).toBeVisible();
-  await expect(page.locator('#navbar-burger-menu')).toHaveCSS('display', 'none');
+  await expect(page.locator('#navbar-burger-menu')).toBeHidden();
 });
 
 test('registration shows error for duplicate username', async ({ page }) => {

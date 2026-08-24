@@ -215,8 +215,7 @@ test.describe('Task Set Creation Validation & Features', () => {
     await page.waitForSelector('.task-item', { timeout: 10000 });
     await page.locator('.task-item').first().click();
 
-    // 4. Set expiration date in the past.
-    // The UI exposes a direct datetime-local field (no separate enable checkbox).
+    // 4. Set expiration date in the past using ISO 8601 format (YYYY-MM-DDTHH:mm) required by HTML5 datetime-local inputs
     await page.locator('#expiration-date').fill('2020-01-01T12:00');
 
     // 5. Submit form

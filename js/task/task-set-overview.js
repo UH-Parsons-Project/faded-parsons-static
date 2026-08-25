@@ -624,8 +624,8 @@ function renderListHeader(taskSet, tasks, students) {
 			<div class="dist-bar-wrap">
 				<div class="dist-bar-label">Student Progression</div>
 				<div class="dist-bar">
-					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
-					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
+					<div class="dist-bar-seg done"        style="width:${donePct}%"></div>
+					<div class="dist-bar-seg in-progress" style="width:${progPct}%"></div>
 				</div>
 				<div class="dist-bar-legend">
 					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
@@ -927,12 +927,12 @@ async function loadTaskStats(tasks, taskSet, enrolledCount) {
 
 		el.innerHTML = `
 			<div class="task-stat-bar">
-				<div class="task-stat-bar-seg done"     style="width:${donePct}%"></div>
-				<div class="task-stat-bar-seg progress" style="width:${progPct}%"></div>
+				<div class="task-stat-bar-seg done"        style="width:${donePct}%"></div>
+				<div class="task-stat-bar-seg in-progress" style="width:${progPct}%"></div>
 			</div>
 			<div class="task-stat-counts">
 				<span class="tsc done"><span class="tsc-dot done"></span>${completed} done</span>
-				${attempted > 0 ? `<span class="tsc progress"><span class="tsc-dot progress"></span>${attempted} in progress</span>` : ''}
+				${attempted > 0 ? `<span class="tsc in-progress"><span class="tsc-dot in-progress"></span>${attempted} in progress</span>` : ''}
 				<span class="tsc not-started"><span class="tsc-dot not-started"></span>${notStarted} not started</span>
 			</div>
 		`;

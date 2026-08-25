@@ -27,6 +27,8 @@ test.describe('All Task Sets Page', () => {
     await expect(page.locator('#task-search')).toBeVisible();
 
     // Verify task set cards exist or empty state is rendered cleanly
+    await expect(page.locator('.task-set-item').first().or(page.locator('.empty-state'))).toBeVisible({ timeout: 10000 });
+
     const taskSetItems = page.locator('.task-set-item');
     const count = await taskSetItems.count();
 

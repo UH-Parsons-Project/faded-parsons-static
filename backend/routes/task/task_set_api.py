@@ -918,7 +918,7 @@ async def export_initial_events(
 
             filename = (
                 f"{set_name}_{teacher_name}_{_safe_filename_part(task.title, 'task')}_"
-                f"{task.id}_{generation_date}.csv"
+                f"taskID_{task.id}_{generation_date}.csv"
             )
             zip_file.writestr(filename, _initial_events_csv(rows))
 

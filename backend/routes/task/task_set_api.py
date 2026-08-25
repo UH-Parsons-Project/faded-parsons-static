@@ -725,6 +725,16 @@ async def get_task_set_students(
             for task_id in task_ids
         ]
 
+        task_started_columns = [
+            func.max(
+                case(
+                    (StudentTaskEnrollment.task_id == task_id, 1),
+                    else_=0,
+                )
+            ).label(f'task_{task_id}_started')
+            for task_id in task_ids
+        ]
+
         stmt = (
             select(
                 Student.id,
@@ -736,6 +746,7 @@ async def get_task_set_students(
                 func.count(func.distinct(TaskAttempt.task_id)).label('tasks_attempted'),
                 *task_completion_columns,
                 *task_attempt_count_columns,
+                *task_started_columns,
             )
             .join(StudentTaskSetEnrollment, (StudentTaskSetEnrollment.student_id == Student.id) & (StudentTaskSetEnrollment.task_set_id == task_set_id))
             .outerjoin(StudentTaskEnrollment, and_(
@@ -767,6 +778,7 @@ async def get_task_set_students(
                 completed_tasks=sum(int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids),
                 task_completion_flags=[int(student[f'task_{task_id}_completed'] or 0) for task_id in task_ids],
                 task_attempts=[int(student[f'task_{task_id}_attempts'] or 0) for task_id in task_ids],
+                task_started_flags=[int(student[f'task_{task_id}_started'] or 0) for task_id in task_ids],
             )
             for student in students
         ]
@@ -874,6 +886,13 @@ async def get_heatmap(
     )
     attempts = attempts_result.scalars().all()
 
+    enrollments_result = await db.execute(
+        select(StudentTaskEnrollment)
+        .where(StudentTaskEnrollment.task_set_id == task_set_id)
+    )
+    enrollments = enrollments_result.scalars().all()
+    enrollment_map = {(e.student_id, e.task_id): e for e in enrollments}
+
     attempt_map: dict = defaultdict(list)
     for a in attempts:
         attempt_map[(a.student_id, a.task_id)].append(a)
@@ -883,18 +902,20 @@ async def get_heatmap(
         cells = []
         for task, _ in tasks:
             student_attempts = attempt_map[(student.id, task.id)]
+            enrollment = enrollment_map.get((student.id, task.id))
+            has_started = enrollment is not None
             total = len(student_attempts)
             completed = any(a.success for a in student_attempts)
             last = max(
                 (a.completed_at for a in student_attempts if a.completed_at),
-                default=None,
+                default=enrollment.started_at if enrollment else None,
             )
 
             if completed:
                 cell_status = "completed"
             elif total >= STRUGGLING_THRESHOLD:
                 cell_status = "struggling"
-            elif total > 0:
+            elif total > 0 or has_started:
                 cell_status = "in_progress"
             else:
                 cell_status = "not_started"

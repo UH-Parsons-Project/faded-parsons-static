@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import Integer, func, select
+from sqlalchemy import Integer, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.utils import _clean_mistake_code, _mistake_code_fingerprint, has_user_added_own_code
@@ -140,7 +140,8 @@ async def get_student_attempts(
                 Parsons.task_type,
                 func.count(TaskAttempt.id).label('attempts'),  # pylint: disable=not-callable
                 func.coalesce(func.sum(func.cast(TaskAttempt.success, Integer)), 0).label('success_count'),  # pylint: disable=not-callable
-                func.max(TaskAttempt.completed_at).label('last_attempt_at')
+                func.max(TaskAttempt.completed_at).label('last_attempt_at'),
+                func.max(case((StudentTaskEnrollment.id.isnot(None), 1), else_=0)).label('has_started')
             )
             .join(TaskSetItem, (TaskSetItem.task_id == Parsons.id) & (TaskSetItem.task_set_id == set_id))
             .outerjoin(
@@ -169,7 +170,8 @@ async def get_student_attempts(
                 task_type=attempt.task_type,
                 attempts=attempt.attempts,
                 success_count=attempt.success_count or 0,
-                last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else ""
+                last_attempt_at=attempt.last_attempt_at.isoformat() if attempt.last_attempt_at else "",
+                has_started=bool(attempt.has_started)
             )
             for attempt in attempts
         ]
@@ -512,15 +514,28 @@ async def get_task_statistics(
 
     if not attempts_data:
         early_not_started = 0
-        early_not_started_names: list[str] = []
+        early_started = 0
+        early_not_started_names: list[dict] = []
         if task_set_code and task_set:
             enrolled_result = await db.execute(
                 select(Student.id, Student.username)
                 .join(StudentTaskSetEnrollment, StudentTaskSetEnrollment.student_id == Student.id)
                 .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
             )
-            early_not_started_names = sorted([(row[0], row[1]) for row in enrolled_result.all()], key=lambda x: x[1])
-            early_not_started = len(early_not_started_names)
+            enrolled_students = {row[0]: row[1] for row in enrolled_result.all()}
+
+            started_result = await db.execute(
+                select(StudentTaskEnrollment.student_id)
+                .where(
+                    StudentTaskEnrollment.task_set_id == task_set.id,
+                    StudentTaskEnrollment.task_id == task.id
+                )
+            )
+            started_ids = set(started_result.scalars().all())
+            not_started_ids = set(enrolled_students.keys()) - started_ids
+            early_not_started = len(not_started_ids)
+            early_started = len(started_ids)
+            early_not_started_names = sorted([{"name": enrolled_students[i], "meta": "", "id": i} for i in not_started_ids], key=lambda x: x["name"])
         return {
             "task_name": task.title,
             "is_public": task.is_public,
@@ -528,7 +543,7 @@ async def get_task_statistics(
             "model_answer": await _get_model_answer_for_task(task, db),
             "custom_error_messages": _parse_custom_error_messages(task),
             "total_completions": 0,
-            "students_attempted": 0,
+            "students_attempted": early_started,
             "students_completed": 0,
             "students_not_started": early_not_started,
             "avg_tries": 0,
@@ -709,7 +724,7 @@ async def get_task_statistics(
         else:
             median_page_exits = (sorted_exits[n_exits // 2 - 1] + sorted_exits[n_exits // 2]) / 2.0
 
-    # Students enrolled in the task set but never attempted this task (not started)
+    # Students enrolled in the task set but never started this task (not started)
     students_not_started = 0
     not_started_student_info: list[dict] = []
     if task_set_code and task_set:
@@ -719,13 +734,18 @@ async def get_task_statistics(
             .where(StudentTaskSetEnrollment.task_set_id == task_set.id)
         )
         enrolled_students = {row[0]: row[1] for row in enrolled_result.all()}
-        attempted_student_ids = {a.student_id for a, _ in attempts_data}
-        attempted_students_result = await db.execute(
-            select(Student.id, Student.username).where(Student.id.in_(attempted_student_ids))
+
+        started_result = await db.execute(
+            select(StudentTaskEnrollment.student_id)
+            .where(
+                StudentTaskEnrollment.task_set_id == task_set.id,
+                StudentTaskEnrollment.task_id == task.id
+            )
         )
-        attempted_student_ids = {row[0] for row in attempted_students_result.all()}
-        not_started_ids = set(enrolled_students.keys()) - attempted_student_ids
+        started_student_ids = set(started_result.scalars().all()) | {a.student_id for a, _ in attempts_data}
+        not_started_ids = set(enrolled_students.keys()) - started_student_ids
         students_not_started = len(not_started_ids)
+        students_attempted = len(started_student_ids)
         not_started_student_info = sorted([{"name": enrolled_students[i], "meta": "", "id": i} for i in not_started_ids], key=lambda x: x["name"])
 
     # Build per-student try counts for sidebar

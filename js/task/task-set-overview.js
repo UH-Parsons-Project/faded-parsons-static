@@ -548,8 +548,9 @@ function renderListHeader(taskSet, tasks, students) {
 		const completedActive = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden && st.task_completion_flags?.[index] ? 1 : 0);
 		}, 0);
-		const attemptedActive = tasks.reduce((sum, task, index) => {
-			return sum + (!task.is_hidden && st.task_attempts?.[index] > 0 ? 1 : 0);
+		const startedActive = tasks.reduce((sum, task, index) => {
+			const isStarted = st.task_started_flags?.[index] === 1 || st.task_attempts?.[index] > 0;
+			return sum + (!task.is_hidden && isStarted ? 1 : 0);
 		}, 0);
 		const activeAttempts = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden ? (st.task_attempts?.[index] ?? 0) : 0);
@@ -557,7 +558,7 @@ function renderListHeader(taskSet, tasks, students) {
 
 		return {
 			completedActive,
-			attemptedActive,
+			startedActive,
 			activeAttempts
 		};
 	});
@@ -571,8 +572,8 @@ function renderListHeader(taskSet, tasks, students) {
 
 	// Distribution: fully done / in progress / not started
 	const fullyDone = studentStats.filter(s => taskCount > 0 && s.completedActive >= taskCount).length;
-	const inProgress = studentStats.filter(s => taskCount > 0 && s.attemptedActive > 0 && s.completedActive < taskCount).length;
-	const notStarted = studentStats.filter(s => taskCount === 0 || s.attemptedActive === 0).length;
+	const inProgress = studentStats.filter(s => taskCount > 0 && s.startedActive > 0 && s.completedActive < taskCount).length;
+	const notStarted = studentStats.filter(s => taskCount === 0 || s.startedActive === 0).length;
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
@@ -920,7 +921,7 @@ async function loadTaskStats(tasks, taskSet, enrolledCount) {
 		const completed  = s.students_completed ?? 0;
 		const attempted  = Math.max(0, (s.students_attempted ?? 0) - completed);
 		const total      = enrolledCount || 1;
-		const notStarted = Math.max(0, total - completed - attempted);
+		const notStarted = s.students_not_started ?? Math.max(0, enrolledCount - completed - attempted);
 		const donePct    = (completed / total * 100).toFixed(1);
 		const progPct    = (attempted / total * 100).toFixed(1);
 

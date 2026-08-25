@@ -59,18 +59,8 @@ def _task_type_response(task_type: TaskType) -> TaskTypeResponse:
         slug=task_type.slug,
         label=task_type.label,
         is_active=task_type.is_active,
-        sort_order=task_type.sort_order,
         created_at=task_type.created_at.isoformat(),
     )
-
-
-def _validate_sort_order(sort_order: int | None) -> int | None:
-    if sort_order is not None and sort_order < 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="sort_order must be zero or greater",
-        )
-    return sort_order
 
 
 @router.get("/api/admin/task-types", response_model=list[TaskTypeResponse])
@@ -80,7 +70,7 @@ async def list_task_types(
 ):
     """List all task type tags, including inactive legacy tags."""
     result = await db.execute(
-        select(TaskType).order_by(TaskType.sort_order, TaskType.label)
+        select(TaskType).order_by(TaskType.label)
     )
     return [_task_type_response(task_type) for task_type in result.scalars().all()]
 
@@ -94,7 +84,6 @@ async def create_task_type(
     """Create a task type tag. Admin only."""
     label = normalize_label(request.label)
     slug = slugify_task_type(request.slug or label)
-    sort_order = _validate_sort_order(request.sort_order)
 
     if not label:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="label is required")
@@ -123,7 +112,6 @@ async def create_task_type(
         slug=slug,
         label=label,
         is_active=True,
-        sort_order=sort_order if sort_order is not None else 0,
     )
     db.add(task_type)
     try:
@@ -143,7 +131,7 @@ async def update_task_type(
     current_user: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Update a task type label, active state or display order. Admin only."""
+    """Update a task type label or active state. Admin only."""
     result = await db.execute(select(TaskType).where(TaskType.id == task_type_id))
     task_type = result.scalar_one_or_none()
     if not task_type:
@@ -167,8 +155,6 @@ async def update_task_type(
 
     if request.is_active is not None:
         task_type.is_active = request.is_active
-    if request.sort_order is not None:
-        task_type.sort_order = _validate_sort_order(request.sort_order)
 
     await db.commit()
     await db.refresh(task_type)

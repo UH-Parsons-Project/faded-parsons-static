@@ -19,8 +19,8 @@ async def _make_admin(test_teacher, db_session) -> Teacher:
 @pytest.mark.asyncio
 async def test_teacher_can_list_only_active_task_types(client, db_session, test_teacher):
     db_session.add_all([
-        TaskType(slug="functions", label="Functions", is_active=True, sort_order=10),
-        TaskType(slug="legacy", label="Legacy", is_active=False, sort_order=20),
+        TaskType(slug="functions", label="Functions", is_active=True),
+        TaskType(slug="legacy", label="Legacy", is_active=False),
     ])
     await db_session.commit()
 
@@ -50,7 +50,7 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     create_response = await client.post(
         "/api/admin/task-types",
         headers=_auth(test_teacher.username),
-        json={"label": "  Error Handling  ", "sort_order": 300},
+        json={"label": "  Error Handling  "},
     )
 
     assert create_response.status_code == 201
@@ -61,7 +61,7 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     update_response = await client.patch(
         f"/api/admin/task-types/{created['id']}",
         headers=_auth(test_teacher.username),
-        json={"label": "Exceptions", "is_active": False, "sort_order": 301},
+        json={"label": "Exceptions", "is_active": False},
     )
 
     assert update_response.status_code == 200
@@ -85,7 +85,7 @@ async def test_admin_can_create_update_and_deactivate_task_type(
 async def test_new_task_type_is_accepted_when_creating_task(
     client, db_session, test_teacher
 ):
-    db_session.add(TaskType(slug="recursion", label="Recursion", is_active=True, sort_order=10))
+    db_session.add(TaskType(slug="recursion", label="Recursion", is_active=True))
     await db_session.commit()
 
     response = await client.post(

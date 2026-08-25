@@ -10,41 +10,41 @@ from ..models import TaskType
 
 
 DEFAULT_TASK_TYPES = (
-    ("algorithms", "Algorithms", 10),
-    ("arithmetic", "Arithmetic", 20),
-    ("booleans", "Booleans", 30),
-    ("classes", "Classes", 40),
-    ("comprehensions", "Comprehensions", 50),
-    ("conditionals", "Conditionals", 60),
-    ("debugging", "Debugging", 70),
-    ("dictionaries", "Dictionaries", 80),
-    ("exceptions", "Exceptions", 90),
-    ("files", "Files", 100),
-    ("functions", "Functions", 110),
-    ("imports", "Imports", 120),
-    ("input", "Input", 130),
-    ("lists", "Lists", 140),
-    ("loops", "Loops", 150),
-    ("other", "Other", 160),
-    ("recursion", "Recursion", 170),
-    ("searching", "Searching", 180),
-    ("sets", "Sets", 190),
-    ("sorting", "Sorting", 200),
-    ("strings", "Strings", 210),
-    ("testing", "Testing", 220),
-    ("tuples", "Tuples", 230),
-    ("typecasting", "Typecasting", 240),
-    ("variables", "Variables", 250),
+    ("algorithms", "Algorithms"),
+    ("arithmetic", "Arithmetic"),
+    ("booleans", "Booleans"),
+    ("classes", "Classes"),
+    ("comprehensions", "Comprehensions"),
+    ("conditionals", "Conditionals"),
+    ("debugging", "Debugging"),
+    ("dictionaries", "Dictionaries"),
+    ("exceptions", "Exceptions"),
+    ("files", "Files"),
+    ("functions", "Functions"),
+    ("imports", "Imports"),
+    ("input", "Input"),
+    ("lists", "Lists"),
+    ("loops", "Loops"),
+    ("other", "Other"),
+    ("recursion", "Recursion"),
+    ("searching", "Searching"),
+    ("sets", "Sets"),
+    ("sorting", "Sorting"),
+    ("strings", "Strings"),
+    ("testing", "Testing"),
+    ("tuples", "Tuples"),
+    ("typecasting", "Typecasting"),
+    ("variables", "Variables"),
 )
 
 # These values were written by older versions of the application. They remain
 # in the database as inactive entries so existing tasks can keep their value,
 # but they are not offered for new tasks.
 LEGACY_TASK_TYPES = (
-    ("normal", "Normal (legacy)", 9000),
-    ("faded", "Faded (legacy)", 9010),
-    ("python", "Python (legacy)", 9020),
-    ("parsons", "Parsons (legacy)", 9030),
+    ("normal", "Normal (legacy)"),
+    ("faded", "Faded (legacy)"),
+    ("python", "Python (legacy)"),
+    ("parsons", "Parsons (legacy)"),
 )
 
 
@@ -70,7 +70,7 @@ async def ensure_default_task_types(db: AsyncSession) -> None:
     result = await db.execute(select(TaskType.slug))
     existing_slugs = {slug.lower() for slug in result.scalars().all()}
 
-    for slug, label, sort_order in (*DEFAULT_TASK_TYPES, *LEGACY_TASK_TYPES):
+    for slug, label in (*DEFAULT_TASK_TYPES, *LEGACY_TASK_TYPES):
         if slug in existing_slugs:
             continue
         db.add(
@@ -78,7 +78,6 @@ async def ensure_default_task_types(db: AsyncSession) -> None:
                 slug=slug,
                 label=label,
                 is_active=slug not in {legacy[0] for legacy in LEGACY_TASK_TYPES},
-                sort_order=sort_order,
             )
         )
     await db.flush()

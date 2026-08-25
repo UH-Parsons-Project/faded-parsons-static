@@ -35,20 +35,17 @@ class TaskTypeResponse(BaseModel):
     slug: str
     label: str
     is_active: bool
-    sort_order: int
     created_at: str
 
 
 class CreateTaskTypeRequest(BaseModel):
     label: str
     slug: str | None = None
-    sort_order: int | None = None
 
 
 class UpdateTaskTypeRequest(BaseModel):
     label: str | None = None
     is_active: bool | None = None
-    sort_order: int | None = None
 
 
 class StudentTaskResponse(BaseModel):

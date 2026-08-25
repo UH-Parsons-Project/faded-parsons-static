@@ -88,7 +88,7 @@ async def _resolve_task_type(
     active_result = await db.execute(
         select(TaskType.slug)
         .where(TaskType.is_active.is_(True))
-        .order_by(TaskType.sort_order, TaskType.label)
+        .order_by(TaskType.label)
     )
     allowed = ", ".join(active_result.scalars().all())
     raise HTTPException(
@@ -103,7 +103,6 @@ def _task_type_response(task_type: TaskType) -> TaskTypeResponse:
         slug=task_type.slug,
         label=task_type.label,
         is_active=task_type.is_active,
-        sort_order=task_type.sort_order,
         created_at=task_type.created_at.isoformat(),
     )
 
@@ -142,7 +141,7 @@ async def list_active_task_types(
     result = await db.execute(
         select(TaskType)
         .where(TaskType.is_active.is_(True))
-        .order_by(TaskType.sort_order, TaskType.label)
+        .order_by(TaskType.label)
     )
     return [_task_type_response(task_type) for task_type in result.scalars().all()]
 

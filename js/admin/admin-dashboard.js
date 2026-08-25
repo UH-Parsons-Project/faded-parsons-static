@@ -346,14 +346,6 @@ function renderTaskTypes(taskTypes) {
 		labelGroup.appendChild(slug);
 		fields.appendChild(labelGroup);
 
-		const sortInput = document.createElement('input');
-		sortInput.type = 'number';
-		sortInput.className = 'form-control form-control-sm task-type-sort-input';
-		sortInput.min = '0';
-		sortInput.value = String(taskType.sort_order);
-		sortInput.setAttribute('aria-label', `Display order for ${taskType.slug}`);
-		fields.appendChild(sortInput);
-
 		const activeLabel = document.createElement('label');
 		activeLabel.className = 'task-type-active-control';
 		const activeInput = document.createElement('input');
@@ -369,9 +361,8 @@ function renderTaskTypes(taskTypes) {
 		saveButton.className = 'btn btn-sm btn-outline-primary';
 		saveButton.innerHTML = '<i class="fas fa-save"></i> Save';
 		saveButton.addEventListener('click', async () => {
-			const sortOrder = Number.parseInt(sortInput.value, 10);
-			if (!labelInput.value.trim() || Number.isNaN(sortOrder) || sortOrder < 0) {
-				setTaskTypeStatus('Enter a label and a non-negative display order.', true);
+			if (!labelInput.value.trim()) {
+				setTaskTypeStatus('Enter a label.', true);
 				return;
 			}
 
@@ -383,7 +374,6 @@ function renderTaskTypes(taskTypes) {
 					credentials: 'include',
 					body: JSON.stringify({
 						label: labelInput.value,
-						sort_order: sortOrder,
 						is_active: activeInput.checked,
 					}),
 				});
@@ -417,12 +407,10 @@ function initTaskTypeManagement() {
 	addButton.addEventListener('click', async () => {
 		const labelInput = document.getElementById('task-type-label');
 		const slugInput = document.getElementById('task-type-slug');
-		const sortInput = document.getElementById('task-type-sort-order');
 		const label = labelInput?.value.trim() || '';
-		const sortOrder = Number.parseInt(sortInput?.value || '0', 10);
 
-		if (!label || Number.isNaN(sortOrder) || sortOrder < 0) {
-			setTaskTypeStatus('Enter a label and a non-negative display order.', true);
+		if (!label) {
+			setTaskTypeStatus('Enter a label.', true);
 			return;
 		}
 
@@ -435,7 +423,6 @@ function initTaskTypeManagement() {
 				body: JSON.stringify({
 					label,
 					slug: slugInput?.value.trim() || null,
-					sort_order: sortOrder,
 				}),
 			});
 			if (!response.ok) {

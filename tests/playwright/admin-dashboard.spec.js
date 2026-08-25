@@ -81,7 +81,6 @@ test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
 
   await page.locator('#task-type-label').fill(label);
   await page.locator('#task-type-slug').fill(slug);
-  await page.locator('#task-type-sort-order').fill('9999');
   await page.locator('#add-task-type-btn').click();
 
   const row = page.locator('.task-type-admin-row').filter({ hasText: slug });

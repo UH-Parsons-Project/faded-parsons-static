@@ -83,15 +83,20 @@ test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
   await page.locator('#task-type-slug').fill(slug);
   await page.locator('#add-task-type-btn').click();
 
-  const row = page.locator('.task-type-admin-row').filter({ hasText: slug });
+  const row = page.locator('.task-type-admin-row').filter({
+    has: page.locator(`input[aria-label="Label for ${slug}"]`),
+  });
   await expect(row).toBeVisible();
+  await expect(row.locator('.task-type-slug')).toHaveCount(0);
 
   const updatedLabel = `${label} Updated`;
   await row.locator('input[type="text"]').fill(updatedLabel);
   await row.locator('input[type="checkbox"]').uncheck();
   await row.locator('button', { hasText: 'Save' }).click();
 
-  const updatedRow = page.locator('.task-type-admin-row').filter({ hasText: slug });
+  const updatedRow = page.locator('.task-type-admin-row').filter({
+    has: page.locator(`input[aria-label="Label for ${slug}"]`),
+  });
   await expect(updatedRow).toHaveClass(/is-inactive/);
   await expect(updatedRow.locator('input[type="text"]')).toHaveValue(updatedLabel);
 });

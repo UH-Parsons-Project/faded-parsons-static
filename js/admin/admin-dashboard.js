@@ -339,11 +339,6 @@ function renderTaskTypes(taskTypes) {
 		labelInput.maxLength = 100;
 		labelInput.setAttribute('aria-label', `Label for ${taskType.slug}`);
 		labelGroup.appendChild(labelInput);
-
-		const slug = document.createElement('small');
-		slug.className = 'text-muted task-type-slug';
-		slug.textContent = taskType.slug;
-		labelGroup.appendChild(slug);
 		fields.appendChild(labelGroup);
 
 		const activeLabel = document.createElement('label');

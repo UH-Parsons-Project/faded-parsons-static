@@ -144,12 +144,6 @@
   min-width: 0;
 }
 
-.task-type-slug {
-  display: block;
-  margin: 0.15rem 0.25rem 0;
-  font-family: var(--mono);
-}
-
 .task-type-active-control {
   margin: 0;
   white-space: nowrap;

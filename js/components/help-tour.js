@@ -191,7 +191,7 @@ function getTourStepsForPath(pathname) {
 				popover: {
 					title: 'Fill-in-the-Blanks',
 					description:
-						'This exercise contains faded blocks! You will need to click on these blank input fields and type the correct code to complete the block.',
+						'Some exercises contain faded blocks! You will need to click on these blank input fields and type the correct code to complete the block.',
 					side: 'top',
 				},
 			});

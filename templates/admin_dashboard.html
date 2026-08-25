@@ -168,51 +168,36 @@
 
     </div>
 
-    <!-- Task Type Management Section -->
-    <div class="border-top pt-4 mt-4">
-      <div class="section-divider-title mb-3">
-        <i class="fas fa-tags"></i> Task Type Tags
+    <!-- Task Tags Management Section -->
+    <section class="task-tags-section border-top pt-4 mt-4" aria-labelledby="task-tags-title">
+      <div class="task-tags-header">
+        <div>
+          <h2 id="task-tags-title" class="task-tags-title">Task tags</h2>
+          <p class="task-tags-description">Manage the tags teachers can assign to tasks.</p>
+        </div>
+        <button type="button" class="task-tags-add-button" id="add-task-type-btn">+ Add tag</button>
       </div>
 
-      <div class="row">
-        <div class="col-md-5 mb-3 mb-md-0">
-          <div class="card admin-card h-100">
-            <div class="card-body">
-              <h5 class="card-title">Add Task Type</h5>
-              <p class="card-text text-muted small">Add a learning objective that teachers can select for new tasks.</p>
+      <div id="task-type-status" class="task-tags-feedback" role="status" aria-live="polite"></div>
 
-              <div class="form-group">
-                <label for="task-type-label" class="small">Display name</label>
-                <input type="text" class="form-control form-control-sm" id="task-type-label" placeholder="e.g. Recursion" maxlength="100">
-              </div>
-
-              <div class="form-group">
-                <label for="task-type-slug" class="small">Value (optional)</label>
-                <input type="text" class="form-control form-control-sm" id="task-type-slug" placeholder="Generated from display name" maxlength="50">
-                <small class="form-text text-muted">This stable value is stored on tasks.</small>
-              </div>
-
-              <button type="button" class="btn btn-primary btn-sm btn-block" id="add-task-type-btn">
-                <i class="fas fa-plus"></i> Add Task Type
-              </button>
-              <div id="task-type-status" class="small mt-2" role="status"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-7">
-          <div class="card admin-card h-100">
-            <div class="card-body">
-              <h5 class="card-title">Existing Task Types</h5>
-              <p class="card-text text-muted small">Edit labels or deactivate tags that should no longer be used.</p>
-              <div id="task-types-list" class="task-types-list">
-                <div class="text-muted small">Loading task types...</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="task-tags-table-wrapper">
+        <table class="task-tags-table">
+          <thead>
+            <tr>
+              <th scope="col">Tag</th>
+              <th scope="col" class="task-tags-count-column">Used in tasks</th>
+              <th scope="col">Status</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="task-types-list">
+            <tr>
+              <td colspan="4" class="task-tags-table-message">Loading tags...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </section>
 
     <!-- Token Management Section -->
     <div class="border-top pt-4 mt-4">
@@ -275,6 +260,25 @@
       </div>
     </div>
 
+  </div>
+
+  <div id="task-tag-modal" class="admin-modal-overlay" hidden>
+    <div class="admin-modal task-tag-modal" role="dialog" aria-modal="true" aria-labelledby="task-tag-modal-title">
+      <div class="task-tag-modal-header">
+        <h5 id="task-tag-modal-title">Add tag</h5>
+        <button type="button" class="task-tag-modal-close" id="task-tag-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <p id="task-tag-modal-description">Add a tag teachers can assign to tasks.</p>
+      <div class="form-group mb-3">
+        <label for="task-tag-name">Tag name</label>
+        <input type="text" class="form-control" id="task-tag-name" maxlength="100" autocomplete="off">
+      </div>
+      <div id="task-tag-modal-status" class="task-tags-feedback mb-3" role="alert" aria-live="polite"></div>
+      <div class="admin-modal-actions">
+        <button type="button" class="btn btn-outline-secondary" id="task-tag-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="task-tag-save">Add tag</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/js/admin/admin-dashboard.js"></script>

@@ -73,30 +73,31 @@ test('admin dashboard shows stats and can create a registration token', async ({
 
 test('admin can add, edit and deactivate a task type tag', async ({ page }) => {
   await page.goto('/admin-dashboard');
-  await page.waitForSelector('#task-types-list .task-type-admin-row', { timeout: 10000 });
+  await page.waitForSelector('#task-types-list .task-tag-row', { timeout: 10000 });
 
   const unique = Date.now();
-  const slug = `e2e-task-tag-${unique}`;
   const label = `E2E Task Tag ${unique}`;
 
-  await page.locator('#task-type-label').fill(label);
-  await page.locator('#task-type-slug').fill(slug);
-  await page.locator('#add-task-type-btn').click();
+  await page.getByRole('button', { name: '+ Add tag' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add tag' })).toBeVisible();
+  await page.locator('#task-tag-name').fill(label);
+  await page.getByRole('button', { name: 'Add tag', exact: true }).last().click();
 
-  const row = page.locator('.task-type-admin-row').filter({
-    has: page.locator(`input[aria-label="Label for ${slug}"]`),
-  });
+  const row = page.locator('.task-tag-row').filter({ hasText: label });
   await expect(row).toBeVisible();
-  await expect(row.locator('.task-type-slug')).toHaveCount(0);
+  await expect(row.locator('input')).toHaveCount(0);
+  await expect(row.locator('.task-tag-status-badge')).toHaveText('Active');
 
   const updatedLabel = `${label} Updated`;
-  await row.locator('input[type="text"]').fill(updatedLabel);
-  await row.locator('input[type="checkbox"]').uncheck();
-  await row.locator('button', { hasText: 'Save' }).click();
+  await row.getByRole('button', { name: `More actions for ${label}` }).click();
+  await page.getByRole('menuitem', { name: 'Edit tag' }).click();
+  await expect(page.getByRole('dialog', { name: 'Edit tag' })).toBeVisible();
+  await page.locator('#task-tag-name').fill(updatedLabel);
+  await page.getByRole('button', { name: 'Save change' }).click();
 
-  const updatedRow = page.locator('.task-type-admin-row').filter({
-    has: page.locator(`input[aria-label="Label for ${slug}"]`),
-  });
-  await expect(updatedRow).toHaveClass(/is-inactive/);
-  await expect(updatedRow.locator('input[type="text"]')).toHaveValue(updatedLabel);
+  const updatedRow = page.locator('.task-tag-row').filter({ hasText: updatedLabel });
+  await expect(updatedRow).toBeVisible();
+  await updatedRow.getByRole('button', { name: `More actions for ${updatedLabel}` }).click();
+  await page.getByRole('menuitem', { name: 'Deactivate tag' }).click();
+  await expect(updatedRow.locator('.task-tag-status-badge')).toHaveText('Inactive');
 });

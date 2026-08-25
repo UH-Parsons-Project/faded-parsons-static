@@ -38,6 +38,10 @@ class TaskTypeResponse(BaseModel):
     created_at: str
 
 
+class AdminTaskTypeResponse(TaskTypeResponse):
+    task_count: int = 0
+
+
 class CreateTaskTypeRequest(BaseModel):
     label: str
     slug: str | None = None

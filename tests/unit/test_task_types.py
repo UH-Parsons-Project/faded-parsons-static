@@ -67,6 +67,7 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     assert update_response.status_code == 200
     assert update_response.json()["is_active"] is False
     assert update_response.json()["label"] == "Exceptions"
+    assert update_response.json()["slug"] == created["slug"]
 
     active_response = await client.get(
         "/api/task-types", headers=_auth(test_teacher.username)
@@ -79,6 +80,52 @@ async def test_admin_can_create_update_and_deactivate_task_type(
     )
     assert delete_response.status_code == 200
     assert delete_response.json()["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_admin_task_type_list_includes_real_usage_counts(
+    client, db_session, test_teacher
+):
+    await _make_admin(test_teacher, db_session)
+    algorithms = TaskType(slug="algorithms", label="Algorithms", is_active=True)
+    arithmetic = TaskType(slug="arithmetic", label="Arithmetic", is_active=False)
+    db_session.add_all([
+        algorithms,
+        arithmetic,
+        Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Algorithms one",
+            task_instructions="Instructions",
+            task_type="algorithms",
+            code_blocks={},
+            correct_solution={},
+        ),
+        Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Algorithms two",
+            task_instructions="Instructions",
+            task_type="ALGORITHMS",
+            code_blocks={},
+            correct_solution={},
+        ),
+        Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Arithmetic one",
+            task_instructions="Instructions",
+            task_type="arithmetic",
+            code_blocks={},
+            correct_solution={},
+        ),
+    ])
+    await db_session.commit()
+
+    response = await client.get(
+        "/api/admin/task-types", headers=_auth(test_teacher.username)
+    )
+
+    assert response.status_code == 200
+    counts = {item["slug"]: item["task_count"] for item in response.json()}
+    assert counts == {"algorithms": 2, "arithmetic": 1}
 
 
 @pytest.mark.asyncio

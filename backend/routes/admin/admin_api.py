@@ -13,11 +13,11 @@ from ...database import get_db
 from ...models import RegistrationToken, TaskSet, TaskType, Teacher, Student, TaskAttempt, StudentTaskSetEnrollment, StudentTaskEnrollment, TaskSetItem, Parsons, ModelAnswer
 from ...pydantic import (
     CreateTaskTypeRequest,
+    AdminTaskTypeResponse,
     TaskSetResponse,
     CreateRegistrationTokenRequest,
     RegistrationTokenResponse,
     RegistrationTokenListItem,
-    TaskTypeResponse,
     UpdateTaskTypeRequest,
     UserActivityResponse,
     UserActivityStats,
@@ -53,29 +53,36 @@ class AdminPasswordRequest(BaseModel):
     admin_password: str
 
 
-def _task_type_response(task_type: TaskType) -> TaskTypeResponse:
-    return TaskTypeResponse(
+def _task_type_response(task_type: TaskType, task_count: int = 0) -> AdminTaskTypeResponse:
+    return AdminTaskTypeResponse(
         id=task_type.id,
         slug=task_type.slug,
         label=task_type.label,
         is_active=task_type.is_active,
         created_at=task_type.created_at.isoformat(),
+        task_count=task_count,
     )
 
 
-@router.get("/api/admin/task-types", response_model=list[TaskTypeResponse])
+@router.get("/api/admin/task-types", response_model=list[AdminTaskTypeResponse])
 async def list_task_types(
     current_user: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """List all task type tags, including inactive legacy tags."""
     result = await db.execute(
-        select(TaskType).order_by(TaskType.label)
+        select(TaskType, func.count(Parsons.id).label("task_count"))
+        .outerjoin(
+            Parsons,
+            func.lower(Parsons.task_type) == func.lower(TaskType.slug),
+        )
+        .group_by(TaskType.id)
+        .order_by(TaskType.label)
     )
-    return [_task_type_response(task_type) for task_type in result.scalars().all()]
+    return [_task_type_response(task_type, task_count) for task_type, task_count in result.all()]
 
 
-@router.post("/api/admin/task-types", response_model=TaskTypeResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/api/admin/task-types", response_model=AdminTaskTypeResponse, status_code=status.HTTP_201_CREATED)
 async def create_task_type(
     request: CreateTaskTypeRequest,
     current_user: AdminUser,
@@ -124,7 +131,7 @@ async def create_task_type(
     return _task_type_response(task_type)
 
 
-@router.patch("/api/admin/task-types/{task_type_id}", response_model=TaskTypeResponse)
+@router.patch("/api/admin/task-types/{task_type_id}", response_model=AdminTaskTypeResponse)
 async def update_task_type(
     task_type_id: int,
     request: UpdateTaskTypeRequest,
@@ -158,10 +165,15 @@ async def update_task_type(
 
     await db.commit()
     await db.refresh(task_type)
-    return _task_type_response(task_type)
+    task_count_result = await db.execute(
+        select(func.count(Parsons.id)).where(
+            func.lower(Parsons.task_type) == func.lower(task_type.slug)
+        )
+    )
+    return _task_type_response(task_type, task_count_result.scalar_one())
 
 
-@router.delete("/api/admin/task-types/{task_type_id}", response_model=TaskTypeResponse)
+@router.delete("/api/admin/task-types/{task_type_id}", response_model=AdminTaskTypeResponse)
 async def deactivate_task_type(
     task_type_id: int,
     current_user: AdminUser,
@@ -176,7 +188,12 @@ async def deactivate_task_type(
     task_type.is_active = False
     await db.commit()
     await db.refresh(task_type)
-    return _task_type_response(task_type)
+    task_count_result = await db.execute(
+        select(func.count(Parsons.id)).where(
+            func.lower(Parsons.task_type) == func.lower(task_type.slug)
+        )
+    )
+    return _task_type_response(task_type, task_count_result.scalar_one())
 
 
 @router.post("/api/admin/registration-tokens", response_model=RegistrationTokenResponse)

@@ -108,6 +108,7 @@ class StudentInTaskSetResponse(BaseModel):
     completed_tasks: int
     task_completion_flags: list[int]
     task_attempts: list[int]
+    task_started_flags: list[int] = []
 
 
 class StudentTaskAttemptResponse(BaseModel):
@@ -117,6 +118,7 @@ class StudentTaskAttemptResponse(BaseModel):
     attempts: int
     success_count: int
     last_attempt_at: str
+    has_started: bool = False
 
 
 class StudentTaskStatisticsResponse(BaseModel):

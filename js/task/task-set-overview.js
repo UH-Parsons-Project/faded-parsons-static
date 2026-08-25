@@ -548,8 +548,9 @@ function renderListHeader(taskSet, tasks, students) {
 		const completedActive = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden && st.task_completion_flags?.[index] ? 1 : 0);
 		}, 0);
-		const attemptedActive = tasks.reduce((sum, task, index) => {
-			return sum + (!task.is_hidden && st.task_attempts?.[index] > 0 ? 1 : 0);
+		const startedActive = tasks.reduce((sum, task, index) => {
+			const isStarted = st.task_started_flags?.[index] === 1 || st.task_attempts?.[index] > 0;
+			return sum + (!task.is_hidden && isStarted ? 1 : 0);
 		}, 0);
 		const activeAttempts = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden ? (st.task_attempts?.[index] ?? 0) : 0);
@@ -557,7 +558,7 @@ function renderListHeader(taskSet, tasks, students) {
 
 		return {
 			completedActive,
-			attemptedActive,
+			startedActive,
 			activeAttempts
 		};
 	});
@@ -571,8 +572,8 @@ function renderListHeader(taskSet, tasks, students) {
 
 	// Distribution: fully done / in progress / not started
 	const fullyDone = studentStats.filter(s => taskCount > 0 && s.completedActive >= taskCount).length;
-	const inProgress = studentStats.filter(s => taskCount > 0 && s.attemptedActive > 0 && s.completedActive < taskCount).length;
-	const notStarted = studentStats.filter(s => taskCount === 0 || s.attemptedActive === 0).length;
+	const inProgress = studentStats.filter(s => taskCount > 0 && s.startedActive > 0 && s.completedActive < taskCount).length;
+	const notStarted = studentStats.filter(s => taskCount === 0 || s.startedActive === 0).length;
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
@@ -623,8 +624,8 @@ function renderListHeader(taskSet, tasks, students) {
 			<div class="dist-bar-wrap">
 				<div class="dist-bar-label">Student Progression</div>
 				<div class="dist-bar">
-					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
-					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
+					<div class="dist-bar-seg done"        style="width:${donePct}%"></div>
+					<div class="dist-bar-seg in-progress" style="width:${progPct}%"></div>
 				</div>
 				<div class="dist-bar-legend">
 					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
@@ -920,18 +921,18 @@ async function loadTaskStats(tasks, taskSet, enrolledCount) {
 		const completed  = s.students_completed ?? 0;
 		const attempted  = Math.max(0, (s.students_attempted ?? 0) - completed);
 		const total      = enrolledCount || 1;
-		const notStarted = Math.max(0, total - completed - attempted);
+		const notStarted = s.students_not_started ?? Math.max(0, enrolledCount - completed - attempted);
 		const donePct    = (completed / total * 100).toFixed(1);
 		const progPct    = (attempted / total * 100).toFixed(1);
 
 		el.innerHTML = `
 			<div class="task-stat-bar">
-				<div class="task-stat-bar-seg done"     style="width:${donePct}%"></div>
-				<div class="task-stat-bar-seg progress" style="width:${progPct}%"></div>
+				<div class="task-stat-bar-seg done"        style="width:${donePct}%"></div>
+				<div class="task-stat-bar-seg in-progress" style="width:${progPct}%"></div>
 			</div>
 			<div class="task-stat-counts">
 				<span class="tsc done"><span class="tsc-dot done"></span>${completed} done</span>
-				${attempted > 0 ? `<span class="tsc progress"><span class="tsc-dot progress"></span>${attempted} in progress</span>` : ''}
+				${attempted > 0 ? `<span class="tsc in-progress"><span class="tsc-dot in-progress"></span>${attempted} in progress</span>` : ''}
 				<span class="tsc not-started"><span class="tsc-dot not-started"></span>${notStarted} not started</span>
 			</div>
 		`;

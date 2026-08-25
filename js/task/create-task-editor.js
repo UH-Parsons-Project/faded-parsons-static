@@ -218,13 +218,30 @@ initBurgerMenu();
 
     const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
     const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
-    previewParsonsWidget.init(cleanPreviewRepr);
+
+    let fullPreviewRepr = cleanPreviewRepr;
+    if (!isOrderOnly) {
+      fullPreviewRepr = (fullPreviewRepr ? fullPreviewRepr.trimEnd() + '\n' : '') +
+        "print('DEBUG:', !BLANK)\n" +
+        "print('DEBUG:', !BLANK)\n" +
+        "# !BLANK\n" +
+        "# !BLANK";
+    }
+
+    previewParsonsWidget.init(fullPreviewRepr);
 
     const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
+
+    // Shuffle starter source blocks for student preview
+    for (let index = previewSourceIds.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [previewSourceIds[index], previewSourceIds[randomIndex]] = [previewSourceIds[randomIndex], previewSourceIds[index]];
+    }
+
     previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
 
     modal.classList.add('open');

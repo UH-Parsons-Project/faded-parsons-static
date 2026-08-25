@@ -374,6 +374,38 @@ test.describe('Task Creation - Evaluation Modes (unit_test, stdout, order_only)'
     // Open Preview and verify faded input text box (input.text-box) is rendered in student view
     await page.locator('#preview-student-view').click();
     await expect(page.locator('#student-preview-modal')).toBeVisible();
-    await expect(page.locator('#student-preview-modal input.text-box')).toBeVisible();
+    await expect(page.locator('#student-preview-modal input.text-box').first()).toBeVisible();
+  });
+
+  // --------------------------------------------------------------------------
+  // 7. Teacher Shuffling Notice & Preview Distractor Alignment
+  // --------------------------------------------------------------------------
+  test('teacher shuffling notice and preview distractor blocks alignment', async ({ page }) => {
+    await page.goto('/create-task');
+
+    const taskCode = 'def hello():\n    print("hello")';
+    const taskTests = 'hello()';
+    const blocksRepr = 'def hello(): #0given\n    print("hello") #1given';
+
+    await page.locator('#task-code').fill(taskCode);
+    await page.locator('#task-tests').fill(taskTests);
+
+    await page.evaluate(({ taskCode, blocksRepr }) => {
+      sessionStorage.setItem('create_task_builder_blocks', blocksRepr);
+      sessionStorage.setItem('create_task_builder_blocks_source', taskCode);
+    }, { taskCode, blocksRepr });
+
+    await page.locator('#submit-task').click();
+    await page.waitForURL(/\/create-task-editor/, { timeout: 10000 });
+
+    // Verify the teacher info banner about student block shuffling and extra distractors is visible
+    await expect(page.locator('.alert-info', { hasText: 'Student View Shuffling & Extra Blocks:' })).toBeVisible();
+
+    // Open Student Preview and check that DEBUG and comment (#) distractor blocks exist
+    await page.locator('#preview-student-view').click();
+    await expect(page.locator('#student-preview-modal')).toBeVisible();
+
+    const previewSourceBlocks = page.locator('#preview-source-sortable ul li');
+    await expect(previewSourceBlocks.filter({ hasText: 'DEBUG' })).toHaveCount(2);
   });
 });

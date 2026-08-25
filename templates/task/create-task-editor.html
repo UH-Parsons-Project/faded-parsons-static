@@ -94,7 +94,7 @@
           <div class="guide-content" id="problem-guide-content">
             <div class="guide-steps">
             <ol class="steps-list">
-              <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left.</li>
+              <li>Drag only the blocks that should be in the model answer to the right column. Leave distractors on the left. Note: starter blocks are automatically shuffled for students, and extra distractor blocks (comments and debug prints) are added for code-executing tasks.</li>
               <li>Optionally <strong>double-click</strong> any right-column block to pin it as pre-given for students &mdash; it will start in their solution area. Pinned blocks show a blue pin (&#128204;) and blue highlight.</li>
               <li>Use <strong>+ Add Custom Block</strong> to add a new custom code block.</li>
               <li>Write or verify tests in the <strong>Tests</strong> area and click <strong>Run Tests</strong> before saving.</li>
@@ -151,6 +151,12 @@
             </div>
           </div>
           <div class="card-body">
+            <div class="alert alert-info d-flex align-items-center mb-3" style="background-color: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; border-radius: 6px; padding: 0.45rem 0.85rem; font-size: 0.84rem; line-height: 1.35;">
+              <i class="fas fa-info-circle mr-2" style="color: #0284c7; flex-shrink: 0;"></i>
+              <div>
+                <strong>Student View Shuffling & Extra Blocks:</strong> Code blocks are automatically shuffled for students. For code-executing tasks, two comment (<code>#</code>) and two <code>print('DEBUG:', ...)</code> distractor blocks are also added.
+              </div>
+            </div>
             <div id="source-sortable" class="sortable-code starter"></div>
             <div id="solution-sortable" class="sortable-code solution"></div>
             <div style="clear: both;"></div>

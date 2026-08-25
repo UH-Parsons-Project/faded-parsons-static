@@ -8,6 +8,7 @@ import bcrypt
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from . import config
 from .database import Base
 
 
@@ -17,15 +18,17 @@ def utc_now() -> datetime:
 
 
 class Teacher(Base):
-    """Teacher user model."""
+    """Teacher account model."""
 
     __tablename__ = "teachers"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
@@ -34,8 +37,9 @@ class Teacher(Base):
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
+        rounds = 4 if config.TEST_MODE else 12
         self.password_hash = bcrypt.hashpw(
-            password.encode("utf-8"), bcrypt.gensalt()
+            password.encode("utf-8"), bcrypt.gensalt(rounds=rounds)
         ).decode("utf-8")
 
     def verify_password(self, password: str) -> bool:
@@ -162,8 +166,9 @@ class Student(Base):
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
+        rounds = 4 if config.TEST_MODE else 12
         self.password_hash = bcrypt.hashpw(
-            password.encode("utf-8"), bcrypt.gensalt()
+            password.encode("utf-8"), bcrypt.gensalt(rounds=rounds)
         ).decode("utf-8")
 
     def verify_password(self, password: str) -> bool:

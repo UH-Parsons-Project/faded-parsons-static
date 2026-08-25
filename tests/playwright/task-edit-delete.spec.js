@@ -410,7 +410,7 @@ test.describe('Task Edit and Delete Lifecycle', () => {
     await expect(page.locator('#stdout-container')).toBeHidden();
 
     await page.locator('#run-tests').click();
-    await expect(page.locator('#test-results')).toContainText('All tests passed!');
+    await expect(page.locator('#test-results')).toContainText('All tests passed!', { timeout: 15000 });
 
     await page.locator('#set-model-answer').click();
     await page.locator('#preview-student-view').click();

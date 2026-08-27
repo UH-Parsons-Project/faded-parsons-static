@@ -79,25 +79,16 @@
 .left-col { display: flex; flex-direction: column; gap: 1.25rem; }
 .right-col { position: sticky; top: calc(80px + 1rem); display: flex; flex-direction: column; gap: 1.25rem; }
 
-/* ── Card ────────────────────────────────────────────── */
-.card {
-  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
-}
-.card-header {
-  padding: .9rem 1.4rem; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; cursor: pointer;
-  user-select: none;
-}
+/* ── Card additions ──────────────────────────────────── */
+.card-header { cursor: pointer; user-select: none; }
 .card-header.static { cursor: default; }
-.card-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); white-space: nowrap; }
 .card-header-right { display: flex; align-items: center; gap: .65rem; }
 .card-count { font-size: 0.75rem; font-weight: 700; background: var(--bg); border: 1px solid var(--border); padding: .1rem .5rem; border-radius: 2rem; color: var(--text-muted); }
 .chevron { font-size: 0.75rem; color: var(--text-muted); transition: transform .2s; }
 .chevron.open { transform: rotate(180deg); }
-.card-body { padding: 1.25rem 1.4rem; }
 .card-body.collapsed { display: none; }
-
 /* ── Attempt list ────────────────────────────────────── */
+/* ── Card additions ──────────────────────────────────── */
 .attempt-list { display: flex; flex-direction: column; gap: .75rem; }
 .attempt-item {
   border: 1px solid var(--border); border-radius: 8px;

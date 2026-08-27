@@ -19,7 +19,7 @@
 .mistake-code { background: #f8f9fa; padding: 1rem; border-radius: 4px; border-left: 4px solid #dc3545; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: .9rem; line-height: 1.5; margin: 0; }
 .mistake-code code { background: transparent; padding: 0; color: #212529; white-space: pre; }
 
-.task-set-item {
+.task_set-content .task-set-item {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 2px solid #dee2e6;
@@ -32,12 +32,12 @@
   align-items: flex-start;
   gap: 1.5rem;
 }
-.task-set-item:hover {
+.task_set-content .task-set-item:hover {
   border-color: #007bff;
   box-shadow: 0 4px 8px rgba(0,123,255,.2);
   transform: translateY(-2px);
 }
-.task-set-title {
+.task_set-content .task-set-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: .5rem;
@@ -52,12 +52,12 @@
   display: inline-block;
   border: 1px solid #dee2e6;
 }
-.task-set-meta {
+.task_set-content .task-set-meta {
   font-size: .875rem;
   color: #676e75;
   line-height: 1.5;
 }
-.task-set-description {
+.task_set-content .task-set-description {
   margin-top: .5rem;
   padding: .6rem .8rem;
   background: #f9f9f9;

@@ -10,11 +10,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/css/teacher-dashboard.css">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/components/action-buttons.css">
+  <link rel="stylesheet" href="/css/teacher/teacher-dashboard.css">
 
-  <link rel="stylesheet" href="/css/task-details.css">
-  <link rel="stylesheet" href="/css/task-set-overview.css">
-  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
+  <link rel="stylesheet" href="/css/task/task-details.css">
+  <link rel="stylesheet" href="/css/task/task-set-overview.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
 </head>
 
 <body>
@@ -40,13 +42,13 @@
 
     <!-- Action buttons toolbar -->
     <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap" style="gap: 0.75rem;">
-      <a href="#" id="action-edit-task" class="btn btn-outline-success action-bar-btn" style="display: none;">
+      <a href="#" id="action-edit-task" class="btn btn-outline-success action-bar-btn action-btn" style="display: none;">
         <i class="fas fa-pen"></i> Edit Task
       </a>
       <a href="#" id="action-run-task" target="_blank" class="btn btn-primary action-bar-btn">
         <i class="fas fa-play"></i> Solve as Student
       </a>
-      <a href="#" id="action-stats-task" class="btn btn-outline-primary action-bar-btn">
+      <a href="#" id="action-stats-task" class="btn btn-outline-primary action-bar-btn action-btn">
         <i class="fas fa-chart-line"></i> View Statistics
       </a>
     </div>

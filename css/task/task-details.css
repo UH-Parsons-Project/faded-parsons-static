@@ -270,6 +270,20 @@ pre.code-display {
   text-decoration: none !important;
 }
 
+.action-bar-btn:link,
+.action-bar-btn:visited,
+.action-bar-btn:hover,
+.action-bar-btn:focus {
+  text-decoration: none !important;
+}
+
+.action-bar-btn.btn-primary:link,
+.action-bar-btn.btn-primary:visited,
+.action-bar-btn.btn-primary:hover,
+.action-bar-btn.btn-primary:focus {
+  color: #fff;
+}
+
 .action-bar-btn:hover {
   transform: translateY(-1px);
 }

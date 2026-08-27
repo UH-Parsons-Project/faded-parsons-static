@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/base/main.css">
     <link rel="stylesheet" href="/js-parsons/parsons.css">
-    <link rel="stylesheet" href="/css/create-task.css">
+    <link rel="stylesheet" href="/css/task/create-task.css">
 </head>
 <body>
     {% include 'common/nav-teacher.html' %}
@@ -288,8 +288,9 @@ Eat the pie</code></pre>
     </main>
 
     <script type="module">
-        import { initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
+        import { initSignedInAs, initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
 
+        initSignedInAs();
         initProtectedPage('/');
         initBurgerMenu();
     </script>

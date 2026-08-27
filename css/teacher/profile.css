@@ -1,3 +1,17 @@
+.profile-page .card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.profile-page .card-title {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .info-label {
   font-size: 0.875rem;
   color: #64748b;

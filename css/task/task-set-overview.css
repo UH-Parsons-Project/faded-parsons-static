@@ -250,6 +250,7 @@
   white-space: nowrap;
 }
 .meta-badge:empty { display: none; }
+.task-set-opening-active { color: var(--green); }
 .meta-badge-missing {
   background: var(--amber-light, #fef3c7);
   border: 1px dashed var(--amber, #d97706);

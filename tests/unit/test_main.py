@@ -1435,6 +1435,20 @@ class TestAdditionalProblemsetAndTaskSetApis:
         assert r.status_code == 400
         assert "Invalid expiration date format" in r.json()["detail"]
 
+    async def test_create_task_set_rejects_opening_after_expiration(self, client, test_teacher):
+        r = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json={
+                "title": "Date Order Set",
+                "opens_at": "2027-01-02T00:00:00Z",
+                "expires_at": "2027-01-01T00:00:00Z",
+                "task_ids": [],
+            },
+        )
+        assert r.status_code == 400
+        assert "Opening date must be before or equal to expiration date" in r.json()["detail"]
+
     async def test_create_task_set_success_with_tasks(self, client, test_teacher, task, db_session):
         second = Parsons(
             created_by_teacher_id=test_teacher.id,
@@ -1587,6 +1601,34 @@ class TestCreateProblemApi:
         )
         assert clear_res.status_code == 200
         assert clear_res.json()["opens_at"] is None
+
+    async def test_update_task_set_dates_rejects_invalid_order(self, client, test_teacher, task):
+        res = await client.post(
+            "/api/create_task_set",
+            headers=_auth(test_teacher.username),
+            json={
+                "title": "Update Date Order Set",
+                "opens_at": "2027-01-01T00:00:00Z",
+                "expires_at": "2027-01-10T00:00:00Z",
+                "task_ids": [task.id],
+            },
+        )
+        assert res.status_code == 200
+        task_set_id = res.json()["id"]
+
+        expires_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/expires_at",
+            headers=_auth(test_teacher.username),
+            json={"expires_at": "2026-12-31T00:00:00Z"},
+        )
+        assert expires_res.status_code == 400
+
+        opens_res = await client.patch(
+            f"/api/my_sets/{task_set_id}/opens_at",
+            headers=_auth(test_teacher.username),
+            json={"opens_at": "2027-01-11T00:00:00Z"},
+        )
+        assert opens_res.status_code == 400
 
     async def test_student_access_blocked_before_opens_at(self, client, test_teacher, task, db_session):
         payload = {

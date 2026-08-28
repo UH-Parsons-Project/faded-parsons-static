@@ -20,6 +20,18 @@ export function formatDateTime(isoString) {
     return date.toLocaleString();
 }
 
+export function formatDateTimeWithoutSeconds(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleString([], {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export function showError(message) {
     const errorEl = document.getElementById('error-message');
     if (errorEl) {

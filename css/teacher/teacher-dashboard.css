@@ -204,6 +204,8 @@
   line-height: 1.6;
 }
 .task-set-meta i { margin-right: .25rem; }
+.task-set-opening-active { color: var(--green); }
+.task-set-expiring-soon { color: #e67e22; }
 .task-set-description {
   font-size: .875rem;
   color: var(--text-muted);

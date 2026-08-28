@@ -404,18 +404,27 @@ async function removeViewer(teacherId) {
 function buildOpeningInnerHTML(taskSet, isOwner) {
 	if (taskSet.opens_at) {
 		const isNotOpenYet = new Date(taskSet.opens_at) > new Date();
-		const style = isNotOpenYet ? ' style="color:#2980b9; font-weight:bold;"' : '';
 		const icon = 'fas fa-calendar-alt';
 		const label = isNotOpenYet ? 'Opens' : 'Opened';
+		const openingClass = isNotOpenYet ? '' : ' class="task-set-opening-active"';
 		const editBtn = isOwner
 			? ` <button id="edit-opening-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit opening date"><i class="fas fa-pencil-alt"></i></button>`
 			: '';
-		return `<span class="meta-badge"><span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
+		return `<span class="meta-badge"><span${openingClass}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
 	}
 	if (isOwner) {
 		return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
 	}
 	return '';
+}
+
+function validateTaskSetDateOrder(opensAt, expiresAt) {
+	if (!opensAt || !expiresAt || new Date(opensAt) <= new Date(expiresAt)) {
+		return true;
+	}
+
+	window.alert('Opening Date cannot be later than Expiration Date. Please set new times.');
+	return false;
 }
 
 function setupOpeningEdit(taskSet, isOwner) {
@@ -430,6 +439,8 @@ function setupOpeningEdit(taskSet, isOwner) {
 	}
 
 	async function saveOpening(isoValueOrNull) {
+		if (!validateTaskSetDateOrder(isoValueOrNull, taskSet.expires_at)) return;
+
 		try {
 			const res = await fetch(`/api/my_sets/${setId}/opens_at`, {
 				method: 'PATCH',
@@ -497,6 +508,8 @@ function setupExpiryEdit(taskSet, isOwner) {
 	}
 
 	async function saveExpiry(isoValueOrNull) {
+		if (!validateTaskSetDateOrder(taskSet.opens_at, isoValueOrNull)) return;
+
 		try {
 			const res = await fetch(`/api/my_sets/${setId}/expires_at`, {
 				method: 'PATCH',

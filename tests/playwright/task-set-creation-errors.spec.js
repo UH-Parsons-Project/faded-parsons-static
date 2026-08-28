@@ -231,4 +231,42 @@ test.describe('Task Set Creation Validation & Features', () => {
     // 8. Verify student page displays task set not open page
     await expect(page.locator('body')).toContainText('This task set is not open', { timeout: 10000 });
   });
+
+  test('does not create a task set when the opening date is after the expiration date', async ({ page }) => {
+    const unique = Date.now();
+    const teacherUsername = `teacher_date_order_${unique}`;
+    const teacherEmail = `teacher_date_order_${unique}@example.com`;
+
+    await registerTeacher(page, teacherUsername, teacherEmail, 'password123');
+    await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+    await loginTeacher(page, teacherUsername, 'password123');
+    await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
+    await page.goto('/create-task-set');
+    await page.waitForURL(/\/create-task-set$/, { timeout: 10000 });
+
+    await page.locator('#task-set-title').fill(`Invalid Date Set ${unique}`);
+    await page.waitForSelector('.task-item', { timeout: 10000 });
+    await page.locator('.task-item').first().click();
+    await page.locator('#opening-date').fill('2027-01-02T12:00');
+    await page.locator('#expiration-date').fill('2027-01-01T12:00');
+
+    let createRequestSent = false;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/api/create_task_set')) {
+        createRequestSent = true;
+      }
+    });
+    const alertMessage = page.waitForEvent('dialog').then(async (dialog) => {
+      expect(dialog.type()).toBe('alert');
+      expect(dialog.message()).toBe(
+        'Opening Date is set later than Expiration Date. Please set new times.'
+      );
+      await dialog.accept();
+    });
+    await page.locator('#create-task-set-form button[type="submit"]').click();
+
+    await alertMessage;
+    expect(page.url()).toContain('/create-task-set');
+    expect(createRequestSent).toBe(false);
+  });
 });

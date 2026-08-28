@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response
@@ -104,6 +104,27 @@ def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
             detail=f"task_type is required and must be one of: {allowed}",
         )
     return normalized
+
+
+def _validate_task_set_dates(opens_at: datetime | None, expires_at: datetime | None) -> None:
+    if not opens_at or not expires_at:
+        return
+
+    normalized_opens_at = (
+        opens_at.replace(tzinfo=timezone.utc)
+        if opens_at.tzinfo is None
+        else opens_at.astimezone(timezone.utc)
+    )
+    normalized_expires_at = (
+        expires_at.replace(tzinfo=timezone.utc)
+        if expires_at.tzinfo is None
+        else expires_at.astimezone(timezone.utc)
+    )
+    if normalized_opens_at > normalized_expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Opening date must be before or equal to expiration date",
+        )
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])
@@ -421,6 +442,8 @@ async def create_task_set(
                 detail="Invalid expiration date format"
             )
 
+    _validate_task_set_dates(opens_at, expires_at)
+
     base_slug = generate_slug(request.title)
     unique_link_code = base_slug
     suffix = 1
@@ -486,9 +509,11 @@ async def update_task_set_expires_at(
 
     if request.expires_at:
         try:
-            task_set.expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
+            expires_at = datetime.fromisoformat(request.expires_at.replace('Z', '+00:00'))
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
+        _validate_task_set_dates(task_set.opens_at, expires_at)
+        task_set.expires_at = expires_at
     else:
         task_set.expires_at = None
 
@@ -509,9 +534,11 @@ async def update_task_set_opens_at(
 
     if request.opens_at:
         try:
-            task_set.opens_at = datetime.fromisoformat(request.opens_at.replace('Z', '+00:00'))
+            opens_at = datetime.fromisoformat(request.opens_at.replace('Z', '+00:00'))
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date format")
+        _validate_task_set_dates(opens_at, task_set.expires_at)
+        task_set.opens_at = opens_at
     else:
         task_set.opens_at = None
 

@@ -255,6 +255,66 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 	}
 }
 
+function setupInitialEventsExport(taskSet, tasks) {
+	const button = document.getElementById('download-initial-events-btn');
+	const list = document.getElementById('initial-events-task-list');
+	const confirmButton = document.getElementById('confirm-initial-events-btn');
+	if (!button || !list || !confirmButton) return;
+
+	list.innerHTML = tasks.map((task) => `
+		<label class="custom-control custom-checkbox mb-2 d-block">
+			<input type="checkbox" class="custom-control-input initial-events-task" value="${task.id}" checked>
+			<span class="custom-control-label">${escapeHtml(task.title)}${task.is_hidden ? ' (inactive)' : ''}</span>
+		</label>
+	`).join('');
+
+	const updateState = () => {
+		confirmButton.disabled = !list.querySelector('.initial-events-task:checked');
+	};
+	list.addEventListener('change', updateState);
+	button.addEventListener('click', () => {
+		updateState();
+		$('#initial-events-modal').modal('show');
+	});
+	confirmButton.addEventListener('click', async () => {
+		const taskIds = [...list.querySelectorAll('.initial-events-task:checked')].map(input => Number(input.value));
+		if (!taskIds.length) return;
+		confirmButton.disabled = true;
+		confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing';
+		try {
+			const response = await fetch(`/api/my_sets/${encodeURIComponent(taskSet.id)}/initial-events-export`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ task_ids: taskIds }),
+			});
+			if (!response.ok) {
+				const error = await response.json().catch(() => ({}));
+				throw new Error(error.detail || 'Failed to generate export');
+			}
+			const blob = await response.blob();
+			const disposition = response.headers.get('Content-Disposition') || '';
+			const filename = disposition.match(/filename="([^"]+)"/)?.[1] || 'initial-events-data.zip';
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+			$('#initial-events-modal').modal('hide');
+		} catch (error) {
+			console.error('Error generating initial events export:', error);
+			alert(error.message || 'Failed to generate initial events export.');
+		} finally {
+			confirmButton.disabled = false;
+			confirmButton.innerHTML = '<i class="fas fa-download"></i> Download ZIP';
+			updateState();
+		}
+	});
+}
+
 function setupViewerSharing() {
 	const input = document.getElementById('viewer-identifier');
 	const addBtn = document.getElementById('add-viewer-btn');
@@ -647,6 +707,9 @@ function renderListHeader(taskSet, tasks, students) {
 					<button id="download-task-set-teacher-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
 						<i class="fas fa-download"></i> Student data
 					</button>
+					<button id="download-initial-events-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
+						<i class="fas fa-download"></i> Initial events data
+					</button>
 				</div>
 				<div style="margin-top:.4rem; display:flex;">
 					${deleteHTML}
@@ -723,6 +786,7 @@ function renderListHeader(taskSet, tasks, students) {
 	document.getElementById('download-task-set-teacher-csv-btn')?.addEventListener('click', () => {
 		downloadStudentCompletionCsv(taskSet, tasks, students);
 	});
+	setupInitialEventsExport(taskSet, tasks);
 
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');

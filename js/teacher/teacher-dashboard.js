@@ -222,7 +222,7 @@ function createMyTaskCard(task) {
 	if (task.editable) {
 		const editBtn = document.createElement('a');
 		editBtn.href = `/create-task-editor?task_id=${task.id}`;
-		editBtn.className = 'btn btn-sm btn-outline-success';
+		editBtn.className = 'btn btn-sm btn-outline-success action-btn';
 		editBtn.innerHTML = '<i class="fas fa-pen"></i> Edit';
 		actions.appendChild(editBtn);
 
@@ -251,7 +251,7 @@ function createMyTaskCard(task) {
 
 	const statsBtn = document.createElement('a');
 	statsBtn.href = `/task-statistics?id=${task.id}`;
-	statsBtn.className = 'btn btn-sm btn-outline-primary';
+	statsBtn.className = 'btn btn-sm btn-outline-primary action-btn';
 	statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>Global Statistics';
 	actions.appendChild(statsBtn);
 

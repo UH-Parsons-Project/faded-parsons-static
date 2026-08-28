@@ -230,6 +230,10 @@ class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
 
 
+class InitialEventsExportRequest(BaseModel):
+    task_ids: list[int] = Field(default_factory=list)
+
+
 class UpdateExpiresAtRequest(BaseModel):
     expires_at: str | None = None
 

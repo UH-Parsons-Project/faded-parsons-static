@@ -2,50 +2,49 @@
 
 .user-group-section {
   background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
   border: 1px solid var(--border);
   border-left: 3px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .user-group-section h3 {
+  margin-bottom: 1.25rem;
+  color: var(--text);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text);
-  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: .5rem;
 }
-
 .user-group-section h3 i {
   color: var(--brand-dark);
 }
 
 .stat-mini-card {
-  background: var(--bg);
+  background: var(--card);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
   border-radius: var(--radius);
   padding: 1rem;
   text-align: center;
   box-shadow: var(--shadow);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow .15s, border-color .15s;
 }
-
 .stat-mini-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--brand-dark);
 }
 
 .stat-mini-card .label {
-  font-size: 0.82rem;
+  font-size: .82rem;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 0.35rem;
+  margin-bottom: .35rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: .04em;
 }
 
 .stat-mini-card .value {
@@ -55,10 +54,17 @@
   color: var(--brand-text);
 }
 
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  gap: 1.5rem;
   margin-top: 1rem;
 }
 
@@ -69,7 +75,7 @@
 }
 
 .chart-container {
-  background: var(--bg);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
@@ -77,32 +83,37 @@
   box-shadow: var(--shadow);
 }
 
-.chart-container h6 {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 1rem;
+.chart-container canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 .admin-card {
   background: var(--card);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  border-left: 3px solid var(--brand);
+  transition: box-shadow .15s, border-color .15s;
 }
-
+.admin-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-dark);
+}
+.admin-card .card-body {
+  padding: 1.5rem;
+}
 .admin-card .card-title {
+  color: var(--text);
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text);
 }
 
 .tokens-list {
-  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.5rem;
+  background: var(--bg);
+  padding: .5rem;
 }
 
 .section-divider-title {

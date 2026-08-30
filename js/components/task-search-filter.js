@@ -1,6 +1,35 @@
 import { escapeHtml } from '../utils/ui-utils.js';
 import { isPrivateTask } from './privacy-badge.js';
 
+export const DEFAULT_TAGS = [
+    'algorithms',
+    'arithmetic',
+    'booleans',
+    'classes',
+    'comprehensions',
+    'conditionals',
+    'debugging',
+    'dictionaries',
+    'exceptions',
+    'files',
+    'functions',
+    'imports',
+    'input',
+    'lists',
+    'loops',
+    'other',
+    'printing',
+    'recursion',
+    'searching',
+    'sets',
+    'sorting',
+    'strings',
+    'testing',
+    'tuples',
+    'typecasting',
+    'variables',
+];
+
 export class TaskSearchFilter {
     constructor(containerId, options = {}) {
         this.container = typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
@@ -17,8 +46,10 @@ export class TaskSearchFilter {
             selectedTags: new Set()
         };
 
-        this.allTags = new Set();
+        this.allTags = new Set(options.allTags || DEFAULT_TAGS);
+        this.tagsWithTasks = new Set();
         this.render();
+        this.renderTags();
         this.setupListeners();
     }
 
@@ -32,15 +63,34 @@ export class TaskSearchFilter {
     updateTeacher(teacherId, username) {
         this.currentTeacherId = teacherId;
         this.currentTeacherUsername = username;
+        this.extractTags();
+        this.renderTags();
         this.applyFilters();
     }
 
     extractTags() {
-        this.allTags.clear();
+        this.allTags = new Set(DEFAULT_TAGS);
+        this.tagsWithTasks = new Set();
         this.allTasks.forEach(task => {
+            const creatorUsername = (task.creator_username || '').toLowerCase();
+            const ownTask = this.isOwnTask(task, creatorUsername);
+
+            if (isPrivateTask(task) && !ownTask) {
+                return;
+            }
+
             const tag = (task.task_type || 'normal').toLowerCase();
-            if (tag) this.allTags.add(tag);
+            if (tag) {
+                this.allTags.add(tag);
+                this.tagsWithTasks.add(tag);
+            }
         });
+
+        for (const tag of this.activeFilters.selectedTags) {
+            if (!this.tagsWithTasks.has(tag)) {
+                this.activeFilters.selectedTags.delete(tag);
+            }
+        }
     }
 
     render() {
@@ -132,11 +182,16 @@ export class TaskSearchFilter {
 
         let html = '';
         tags.forEach(tag => {
-            const isChecked = this.activeFilters.selectedTags.has(tag) ? 'checked' : '';
+            const hasTasks = this.tagsWithTasks.has(tag);
+            const isChecked = hasTasks && this.activeFilters.selectedTags.has(tag) ? 'checked' : '';
+            const isDisabled = hasTasks ? '' : 'disabled';
+            const textMuted = hasTasks ? '' : 'text-muted';
+            const disabledStyle = hasTasks ? '' : 'style="opacity: 0.6; pointer-events: none;"';
+
             html += `
-                <div class="custom-control custom-checkbox mb-2">
-                    <input type="checkbox" class="custom-control-input tag-checkbox" id="tag-${escapeHtml(tag)}" value="${escapeHtml(tag)}" ${isChecked}>
-                    <label class="custom-control-label" for="tag-${escapeHtml(tag)}">${escapeHtml(tag)}</label>
+                <div class="custom-control custom-checkbox mb-2" ${disabledStyle}>
+                    <input type="checkbox" class="custom-control-input tag-checkbox" id="tag-${escapeHtml(tag)}" value="${escapeHtml(tag)}" ${isChecked} ${isDisabled}>
+                    <label class="custom-control-label ${textMuted}" for="tag-${escapeHtml(tag)}">${escapeHtml(tag)}</label>
                 </div>
             `;
         });
@@ -202,7 +257,7 @@ export class TaskSearchFilter {
         });
 
         this.applyTagsBtn.addEventListener('click', () => {
-            const tagCheckboxes = this.container.querySelectorAll('.tag-checkbox');
+            const tagCheckboxes = this.container.querySelectorAll('.tag-checkbox:not(:disabled)');
             this.activeFilters.selectedTags.clear();
             tagCheckboxes.forEach(cb => {
                 if (cb.checked) {

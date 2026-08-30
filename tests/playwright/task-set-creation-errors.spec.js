@@ -147,6 +147,66 @@ test.describe('Task Set Creation Validation & Features', () => {
     await expect(page.locator('#task-selector')).toContainText('No tasks available');
   });
 
+  test('displays all tags in search filter with tags having no tasks disabled and grayed out', async ({ page }) => {
+    const unique = Date.now();
+    const teacherUsername = `teacher_tags_${unique}`;
+    const teacherEmail = `teacher_tags_${unique}@example.com`;
+    const teacherPassword = 'password123';
+
+    // 1. Register and login teacher
+    await registerTeacher(page, teacherUsername, teacherEmail, teacherPassword);
+    await page.waitForSelector('#alert-placeholder .alert-success', { timeout: 10000 });
+    await loginTeacher(page, teacherUsername, teacherPassword);
+    await page.waitForURL(/\/teacher-dashboard$/, { timeout: 10000 });
+
+    // 2. Go to create task set page
+    await page.goto('/create-task-set');
+    await page.waitForURL(/\/create-task-set$/, { timeout: 10000 });
+
+    // 3. Wait for available tasks to load
+    await page.waitForSelector('.task-item', { timeout: 10000 });
+
+    // 4. Open task filter panel
+    await page.locator('.task-filter-toggle').click();
+
+    // 5. Open tags dropdown
+    await page.locator('#tagsDropdown').click();
+    await expect(page.locator('#tags-list')).toBeVisible();
+
+    // 6. Verify all 26 default tags are present
+    const tagCheckboxes = page.locator('#tags-list .tag-checkbox');
+    const count = await tagCheckboxes.count();
+    expect(count).toBeGreaterThanOrEqual(26);
+
+    // 7. Check that tags with no existing tasks are disabled and grayed out
+    const disabledCheckboxes = page.locator('#tags-list .tag-checkbox:disabled');
+    const disabledCount = await disabledCheckboxes.count();
+    expect(disabledCount).toBeGreaterThan(0);
+
+    // Verify disabled tag labels have text-muted class
+    const disabledLabels = page.locator('#tags-list .custom-control:has(.tag-checkbox:disabled) label');
+    const firstDisabledLabel = disabledLabels.first();
+    await expect(firstDisabledLabel).toHaveClass(/text-muted/);
+
+    // 8. If there are enabled tags, verify selecting one filters the task list
+    const enabledCheckboxes = page.locator('#tags-list .tag-checkbox:not(:disabled)');
+    const enabledCount = await enabledCheckboxes.count();
+    if (enabledCount > 0) {
+      const tagValue = await enabledCheckboxes.first().getAttribute('value');
+      await enabledCheckboxes.first().check();
+      await page.locator('#apply-tags-btn').click();
+
+      // Verify filtered tasks only contain tasks matching the tag
+      const filteredTasks = page.locator('.task-item');
+      const filteredCount = await filteredTasks.count();
+      expect(filteredCount).toBeGreaterThan(0);
+      for (let i = 0; i < filteredCount; i++) {
+        const itemType = await filteredTasks.nth(i).locator('.task-item-type').textContent();
+        expect(itemType?.toLowerCase()).toContain(tagValue?.toLowerCase());
+      }
+    }
+  });
+
   test('handles teacher sharing with valid email and shows correct error for invalid inputs', async ({ page }) => {
     const unique = Date.now();
     const password = 'password123';

@@ -94,20 +94,21 @@ html, body {
   margin-bottom: 1.25rem;
 }
 .card-header {
-  padding: .9rem 1.4rem;
+  padding: 1rem 1.4rem;
   border-bottom: 1px solid var(--border);
-  background: var(--card);
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 .card-title {
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--text-muted);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 .card-title strong {
   font-weight: 800;

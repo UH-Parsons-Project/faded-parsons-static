@@ -173,14 +173,26 @@
     color: #0f172a;
 }
 
-.secondary-btn:hover {
-    background: #d6dde8;
+.editor-toolbar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.eval-mode-group {
+    margin-bottom: 0;
+    max-width: 400px;
+    flex: 1 1 280px;
 }
 
 .shortcut-note {
-	margin: 0 0 1rem 0.3rem;
+    margin: 0 0 0.35rem 0;
     font-size: 0.85rem;
     color: var(--hint-color);
+    text-align: right;
 }
 
 /* Guide & Examples Section */

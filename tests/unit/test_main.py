@@ -1647,3 +1647,10 @@ class TestCreateProblemApi:
         student_res = await client.get(f"/{test_teacher.username}/set/{unique_code}")
         assert student_res.status_code == 200
         assert "This task set is not open" in student_res.text
+
+
+class TestContactPages:
+    async def test_contact_page(self, client):
+        res = await client.get("/contact")
+        assert res.status_code == 200
+        assert "Contact" in res.text

@@ -86,8 +86,21 @@
 
 /* Student problem and test results */
 .student-problem-page { padding-bottom: 30px; }
+.top-info-card { display: flex; flex-direction: column; }
 .top-info-card .card-header, .test-results-card .card-header { min-height: 64px; display: flex; align-items: center; }
 .top-info-card .card-header h3, .top-info-card .card-header h4, .test-results-card .card-header h4 { margin: 0; }
+.top-info-card .card-body { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-between; }
+.demo-info-note {
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border: 1.5px dashed #64b5f6;
+  background-color: #f0f7ff;
+  border-radius: 6px;
+  color: #1e3a8a;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
 .starter { width: 40%; }
 .solution { width: 58%; margin-left: 2%; }
 .test-results-card { display: flex; flex-direction: column; overflow: hidden; }

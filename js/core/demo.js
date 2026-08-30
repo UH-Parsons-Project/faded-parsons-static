@@ -166,7 +166,7 @@ probEl = document.createElement('problem-element');
 probEl.setAttribute('name', 'demo-greet');
 probEl.setAttribute(
 	'taskInstructions',
-	'<strong>greet</strong> returns a greeting string. If the name is empty, it returns "Hello, stranger!". Otherwise, it returns "Hello, " followed by the name and "!".'
+	'<div><strong>greet</strong> returns a greeting string. If the name is empty, it returns "Hello, stranger!". Otherwise, it returns "Hello, " followed by the name and "!".</div><div class="demo-info-note"><em>You might not yet be familiar with all the programming concepts seen in this example. Do not worry if you can not solve the problem quite yet! You can still get familiar with the exercise area by just trying moving the blocks and running the tests.</em></div>'
 );
 probEl.setAttribute(
 	'description',

@@ -611,7 +611,7 @@ initBurgerMenu();
       warningBox.innerHTML = `
         <div class="alert alert-success mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #10b981; background-color: #ecfdf5; color: #065f46;">
           <i class="fas fa-users mr-2" style="color: #10b981;"></i>
-          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students. Please note that since others can use this task, it will remain active in the system even if your account is later removed.
+          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students. Please note that since others can use this task, it will remain active in the system even if your account is later removed. Other instructors won't have any access to your student data despite using the same public task in their own task sets.
         </div>
       `;
     }

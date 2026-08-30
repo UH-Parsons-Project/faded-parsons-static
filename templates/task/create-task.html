@@ -198,15 +198,16 @@ Eat the pie</code></pre>
         </section>
 
         <form id="create-task-form">
-            <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
-
-            <div class="form-group mb-4" style="max-width: 400px;">
-                <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
-                <select id="eval-type" class="form-control">
-                    <option value="unit_test" selected>Function Unit Tests (Default)</option>
-                    <option value="stdout">Console Output (print)</option>
-                    <option value="order_only">Order Only (Non-code / Conceptual)</option>
-                </select>
+            <div class="editor-toolbar-top">
+                <div class="form-group eval-mode-group">
+                    <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
+                    <select id="eval-type" class="form-control">
+                        <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                        <option value="stdout">Console Output (print)</option>
+                        <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                    </select>
+                </div>
+                <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
             </div>
 
             <div class="editor-grid">

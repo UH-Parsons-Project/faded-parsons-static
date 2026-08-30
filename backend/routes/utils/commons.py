@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import TaskSetItem
+from ... import config
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -100,7 +101,12 @@ def set_no_cache_headers(response):
 
 
 def render_template(template_name: str, request: Request, status_code: int = 200, headers: dict | None = None):
-    response = templates.TemplateResponse(request=request, name=template_name, status_code=status_code)
+    response = templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        status_code=status_code,
+        context={"saml_enabled": config.SAML_ENABLED},
+    )
     set_no_cache_headers(response)
     if headers:
         for k, v in headers.items():

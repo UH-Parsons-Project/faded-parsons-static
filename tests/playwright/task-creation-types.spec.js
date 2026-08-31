@@ -191,9 +191,11 @@ test.describe('Task Creation - Evaluation Modes (unit_test, stdout, order_only)'
     await expect(page.locator('#stdout-tests-input')).toHaveValue(driverCalls);
     await expect(page.locator('#expected-output-input')).toHaveValue(expectedOutput);
 
-    // Run tests and verify stdout match success
+    // Run tests and verify stdout match success, including the driver values used for the checks.
     await page.locator('#run-tests').click();
     await expect(page.locator('#test-results')).toContainText('Output matched perfectly!', { timeout: 30000 });
+    await expect(page.locator('#test-results')).toContainText('Test input', { timeout: 30000 });
+    await expect(page.locator('#test-results')).toContainText('hello("Emily")', { timeout: 30000 });
   });
 
   // --------------------------------------------------------------------------

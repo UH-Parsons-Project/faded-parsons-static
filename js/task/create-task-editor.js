@@ -1306,11 +1306,13 @@ initBurgerMenu();
           }
         } else if (evalType === 'stdout') {
           const expectedNorm = expectedOutput.replace(/\r\n/g, '\n').trim();
+          const driverCalls = (stdoutTestsInput ? stdoutTestsInput.value : '').replace(/\r\n/g, '\n').trim();
+          const inputBlock = driverCalls ? `\n\nTest input:\n${driverCalls}` : '';
           if (output === expectedNorm) {
-            renderTestResult('pass', `Output matched perfectly!\n\nOutput:\n${output}`);
+            renderTestResult('pass', `Output matched perfectly!${inputBlock}\n\nOutput:\n${output}`);
             testsPassed = true;
           } else {
-            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedNorm}\n\nGot:\n${output}`);
+            renderTestResult('fail', `Output did not match.${inputBlock}\n\nExpected:\n${expectedNorm}\n\nGot:\n${output}`);
             testsPassed = false;
           }
         }

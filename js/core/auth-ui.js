@@ -354,6 +354,17 @@ export async function initProtectedPage(loginPageUrl = '/') {
 		return;
 	}
 
+	// Show the authenticated navbar state so the burger menu becomes visible.
+	const userInfo = document.getElementById('user-info');
+	if (userInfo) {
+		userInfo.style.display = 'flex';
+	}
+
+	const loginForm = document.getElementById('login-form');
+	if (loginForm) {
+		loginForm.style.display = 'none';
+	}
+
 	// Update username in nav if element exists
 	const userNameElement = document.getElementById('user-name');
 	if (userNameElement) {

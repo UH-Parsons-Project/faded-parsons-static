@@ -294,7 +294,7 @@ initBurgerMenu();
       }
       const match = trimmed.match(/^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/);
       if (match) {
-        return match[2];
+        return match[2].replace(/_/g, ' ');
       }
     }
     return 'custom_task';

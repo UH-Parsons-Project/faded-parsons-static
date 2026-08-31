@@ -289,16 +289,42 @@ export class ProblemElement extends LitElement {
 		}
 	};
 
+	isToolBlock = (block) => {
+		if (!block) return false;
+		const id = block.id;
+		const line = this.parsonsWidget?.getLineById?.(id);
+		const code = line?.code || line?.orig || '';
+		const text = block.textContent || '';
+		const html = block.innerHTML || '';
+
+		if (code.includes('DEBUG') || text.includes('DEBUG') || html.includes('DEBUG')) {
+			return true;
+		}
+		if (
+			code.startsWith('# <input') ||
+			code.startsWith('# !BLANK') ||
+			code.trim() === '#' ||
+			(text.trim().startsWith('#') && block.querySelector('input')) ||
+			html.includes('# <input')
+		) {
+			return true;
+		}
+		return false;
+	};
+
 	shuffleStarterList = (starterList) => {
 		if (!starterList) return;
 
 		const blocks = Array.from(starterList.children);
-		for (let index = blocks.length - 1; index > 0; index -= 1) {
+		const regularBlocks = blocks.filter((block) => !this.isToolBlock(block));
+		const toolBlocks = blocks.filter((block) => this.isToolBlock(block));
+
+		for (let index = regularBlocks.length - 1; index > 0; index -= 1) {
 			const randomIndex = Math.floor(Math.random() * (index + 1));
-			[blocks[index], blocks[randomIndex]] = [blocks[randomIndex], blocks[index]];
+			[regularBlocks[index], regularBlocks[randomIndex]] = [regularBlocks[randomIndex], regularBlocks[index]];
 		}
 
-		for (const block of blocks) {
+		for (const block of [...regularBlocks, ...toolBlocks]) {
 			starterList.appendChild(block);
 		}
 	};

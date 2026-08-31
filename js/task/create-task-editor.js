@@ -236,13 +236,28 @@ initBurgerMenu();
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
 
+    const isToolLine = (lineId) => {
+      const line = previewParsonsWidget.getLineById(lineId);
+      if (!line) return false;
+      const code = line.code || line.orig || '';
+      return (
+        code.includes('DEBUG') ||
+        code.startsWith('# <input') ||
+        code.startsWith('# !BLANK') ||
+        code.trim() === '#'
+      );
+    };
+
+    const regularSourceIds = previewSourceIds.filter((id) => !isToolLine(id));
+    const toolSourceIds = previewSourceIds.filter((id) => isToolLine(id));
+
     // Shuffle starter source blocks for student preview
-    for (let index = previewSourceIds.length - 1; index > 0; index -= 1) {
+    for (let index = regularSourceIds.length - 1; index > 0; index -= 1) {
       const randomIndex = Math.floor(Math.random() * (index + 1));
-      [previewSourceIds[index], previewSourceIds[randomIndex]] = [previewSourceIds[randomIndex], previewSourceIds[index]];
+      [regularSourceIds[index], regularSourceIds[randomIndex]] = [regularSourceIds[randomIndex], regularSourceIds[index]];
     }
 
-    previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
+    previewParsonsWidget.createHTMLFromLists(previewSolutionIds, [...regularSourceIds, ...toolSourceIds]);
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');

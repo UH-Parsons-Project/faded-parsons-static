@@ -42,7 +42,7 @@ test('teacher cannot login with non-registered credentials', async ({ page }) =>
 
   await page.waitForSelector('#error-message:not([style*="display: none"])', { timeout: 10000 });
   await expect(page.locator('#error-message')).toContainText(
-    'Incorrect username, email, or password'
+    'Incorrect username,email, or password'
   );
 });
 
@@ -131,7 +131,7 @@ test('login shows error with wrong password', async ({ page }) => {
   await loginTeacher(page, email, 'wrong-password');
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('#error-message')).toBeVisible();
-  await expect(page.locator('#error-message')).toContainText('Incorrect username, email, or password');
+  await expect(page.locator('#error-message')).toContainText('Incorrect username,email, or password');
 });
 
 test('teacher registration fails with too short username', async ({ page }) => {

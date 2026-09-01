@@ -35,7 +35,12 @@ export function formatDateTimeWithoutSeconds(isoString) {
 export function showError(message) {
     const errorEl = document.getElementById('error-message');
     if (errorEl) {
-        errorEl.textContent = message;
+        const escapedMessage = escapeHtml(message);
+        const formattedMessage = escapedMessage === escapeHtml('Incorrect username, email, or password')
+            ? 'Incorrect username,<br>email, or password'
+            : escapedMessage;
+
+        errorEl.innerHTML = formattedMessage;
         errorEl.style.display = 'block';
     } else {
         alert(message);

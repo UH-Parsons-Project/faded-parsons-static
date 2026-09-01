@@ -114,7 +114,7 @@ export class TaskSearchFilter {
 
                         <div class="d-flex flex-wrap" style="gap: 2rem;">
                             <div class="filter-scopes mb-3 flex-grow-1">
-                                <label class="filter-scope-label font-weight-bold">Search in:</label>
+                                <label class="filter-scope-label font-weight-bold">Search only in:</label>
                                 <div class="scope-checkboxes d-flex flex-wrap gap-3">
                                     <div class="custom-control custom-checkbox mr-3">
                                         <input type="checkbox" class="custom-control-input filter-scope" id="scope-title" value="title">
@@ -136,7 +136,7 @@ export class TaskSearchFilter {
                             </div>
 
                             <div class="filter-tags-section mb-3" style="min-width: 200px; flex: 1;">
-                                <label class="filter-scope-label font-weight-bold">Filter by Tags:</label>
+                                <label class="filter-scope-label font-weight-bold">Filter by tag:</label>
                                 <div class="dropdown" id="tags-dropdown-container">
                                     <button class="btn btn-outline-secondary dropdown-toggle w-100 text-left d-flex justify-content-between align-items-center" type="button" id="tagsDropdown" aria-haspopup="true" aria-expanded="false">
                                         <span id="tags-dropdown-text">Select Tags...</span>

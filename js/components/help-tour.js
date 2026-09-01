@@ -270,9 +270,9 @@ function getTourStepsForPath(pathname) {
 			{
 				element: '#global-stats-btn',
 				popover: {
-					title: 'Global Statistics',
+					title: 'Task Database',
 					description:
-						'Access all public tasks, view global statistics and find the right tasks for your own task sets.',
+						'Access all public tasks, view statistics and find the right tasks for your own task sets.',
 					side: 'bottom',
 				},
 			},
@@ -888,15 +888,15 @@ function getTourStepsForPath(pathname) {
 		return steps;
 	}
 
-	// Global Statistics Tour
+	// Task Database Tour
 	if (pathname.startsWith('/global-statistics')) {
 		const steps = [
 			{
 				element: '.page-header',
 				popover: {
-					title: 'All Tasks & Global Statistics',
+					title: 'Task Database',
 					description:
-						'Welcome to the All Tasks & Global Statistics page! Here you can search and filter all public exercises, preview tasks, and view their anonymous global statistics.',
+						'Welcome to the Task Database page! Here you can search and filter all public exercises, preview tasks, and view their anonymous global statistics.',
 					side: 'bottom',
 				},
 			},

@@ -11,7 +11,6 @@ const profileUsernameEl = document.getElementById('profile-username');
 const profileCreatedEl = document.getElementById('profile-created');
 const profileEmailEl = document.getElementById('profile-email');
 const enrolledSetsContainer = document.getElementById('enrolled-sets-container');
-const backToSetsBtn = document.getElementById('back-to-sets');
 
 const changeEmailForm = document.getElementById('change-email-form');
 const emailAlertPlaceholder = document.getElementById('email-alert-placeholder');
@@ -20,6 +19,12 @@ const changePasswordForm = document.getElementById('change-password-form');
 const passwordAlertPlaceholder = document.getElementById(
 	'password-alert-placeholder'
 );
+const backButton = document.getElementById('page-back-btn');
+
+if (backButton) {
+	const lastTaskSetUrl = localStorage.getItem('last_task_set_url');
+	backButton.href = lastTaskSetUrl || '/';
+}
 
 let taskSetNavigationModal = null;
 let taskSetNavigationKeyHandler = null;
@@ -200,16 +205,8 @@ async function loadProfile() {
 		// Save student name fallback in local storage
 		localStorage.setItem('nickname', data.username);
 
-		// Setup back button and navbar link
+		// Keep profile navigation focused on the active task-set context when available.
 		const lastSetUrl = localStorage.getItem('last_task_set_url') || '/';
-		const backBtn = document.getElementById('back-btn');
-		if (backBtn) {
-			backBtn.href = lastSetUrl;
-		}
-		if (backToSetsBtn) {
-			backToSetsBtn.href = lastSetUrl;
-			backToSetsBtn.style.display = 'inline-block';
-		}
 		const profileLink = document.getElementById('profile-link');
 		if (profileLink) {
 			profileLink.href = lastSetUrl;

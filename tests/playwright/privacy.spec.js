@@ -70,7 +70,7 @@ test('task privacy toggle: private task visible to owner, hidden from other teac
   await page.locator('#add-to-problem-list').click();
   await page.waitForURL(/\/teacher-dashboard$/, { timeout: 20000 });
 
-  // Go to All Tasks & Global Statistics and verify owner sees the task
+  // Go to Task Database and verify owner sees the task
   await page.goto('/global-statistics');
   await page.waitForSelector('#problems-list', { timeout: 10000 });
   await expect(page.locator('.task-set-title', { hasText: title })).toBeVisible();

@@ -25,7 +25,7 @@ async def _render_teacher_page(request: Request, db: AsyncSession, template_name
 async def exercise_list(
     request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await _render_teacher_page(request, db, "statistic/global-statistics.html")
+    return await _render_teacher_page(request, db, "statistic/task-database.html")
 
 
 

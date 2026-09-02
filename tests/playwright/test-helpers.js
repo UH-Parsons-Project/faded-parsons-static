@@ -122,7 +122,10 @@ export async function createTaskSet(
     await taskItems[index].click();
   }
 
-  await page.locator('#create-task-set-form button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
+    page.locator('#create-task-set-form button[type="submit"]').click(),
+  ]);
 }
 
 export async function createTaskSetWithTasks(page, taskSetTitle, studentDescription, teacherDescription, taskNames) {
@@ -136,7 +139,10 @@ export async function createTaskSetWithTasks(page, taskSetTitle, studentDescript
     await page.locator('.task-item', { has: page.locator('.task-item-title', { hasText: name }) }).click();
   }
 
-  await page.locator('#create-task-set-form button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(/\/teacher-dashboard/, { timeout: 15000 }),
+    page.locator('#create-task-set-form button[type="submit"]').click(),
+  ]);
 }
 
 export async function registerStudent(page, username, email, password = 'password123') {

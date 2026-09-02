@@ -112,28 +112,29 @@ export class ProblemElement extends LitElement {
 		return html`
 
 			<!-- Main Content Row -->
-			<div class="row mt-3 align-items-start">
+			<div class="row mt-3 flex-grow-1 align-items-stretch problem-main-row">
 				<!-- Left column: Problem statement + Parsons widget -->
 				<div class="col-12 col-lg-9 mb-4 mb-lg-0 d-flex flex-column" ${ref(this.leftColumnRef)}>
-					<div class="card top-info-card mb-3">
+					<div class="card top-info-card problem-statement-card mb-3">
 						<div class="card-header">
 							<h3>Problem Statement</h3>
 						</div>
 						<div class="card-body">${unsafeHTML(this.taskInstructions)}</div>
 					</div>
 
-					<div class="card flex-grow-1" ${ref(this.taskCardRef)}>
-						<div class="card-body">
-							<div
-								${ref(this.starterRef)}
-								class="sortable-code starter"
-							></div>
-							<div
-								${ref(this.solutionRef)}
-								class="sortable-code solution"
-							></div>
-							<div style="clear:both"></div>
-							<div class="row float-right">
+					<div class="card flex-grow-1 parsons-task-card" ${ref(this.taskCardRef)}>
+						<div class="card-body d-flex flex-column">
+							<div class="parsons-sortable-container d-flex flex-grow-1">
+								<div
+									${ref(this.starterRef)}
+									class="sortable-code starter"
+								></div>
+								<div
+									${ref(this.solutionRef)}
+									class="sortable-code solution"
+								></div>
+							</div>
+							<div class="row float-right mt-auto pt-3">
 								<div class="col-sm-12">
 									<span style="margin-right: 8px">
 										${this.runStatus &&
@@ -336,20 +337,9 @@ export class ProblemElement extends LitElement {
 			return;
 		}
 
-		const problemCard = leftCol.querySelector('.card.top-info-card');
-		const guidanceCard = rightCol.querySelector('.card.guidance-details');
-
-		// Reset heights to auto first to get natural sizes
-		if (problemCard) problemCard.style.height = 'auto';
-		if (guidanceCard) guidanceCard.style.height = 'auto';
-
-		// Only sync height on large screens where they are side-by-side
+		// Only sync column height on large screens where they are side-by-side.
+		// Problem statement height remains completely independent and stable.
 		if (window.innerWidth >= 992) {
-			if (problemCard && guidanceCard && guidanceCard.open) {
-				const maxHeight = Math.max(problemCard.offsetHeight, guidanceCard.offsetHeight);
-				problemCard.style.height = `${maxHeight}px`;
-				guidanceCard.style.height = `${maxHeight}px`;
-			}
 			rightCol.style.height = `${leftCol.offsetHeight}px`;
 		} else {
 			rightCol.style.height = 'auto';

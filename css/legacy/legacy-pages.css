@@ -90,13 +90,90 @@
 .test-details-line-fail { color: #c82333; font-weight: 600; }
 
 /* Student problem and test results */
-.student-problem-page { padding-bottom: 30px; }
+.student-problem-page {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 30px;
+}
+#problem-wrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+problem-element {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.problem-main-row {
+  flex: 1 1 auto;
+  align-items: stretch;
+}
 .top-info-card { display: flex; flex-direction: column; }
 .top-info-card .card-header, .test-results-card .card-header { min-height: 64px; display: flex; align-items: center; }
 .top-info-card .card-header h3, .top-info-card .card-header h4, .test-results-card .card-header h4 { margin: 0; }
 .top-info-card .card-body { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-between; }
+.problem-statement-card,
+problem-element .col-lg-9 .top-info-card {
+  min-height: 200px;
+}
+.problem-statement-card .card-body {
+  justify-content: flex-start;
+}
+@media (max-width: 991.98px) {
+  .problem-statement-card,
+  problem-element .col-lg-9 .top-info-card {
+    min-height: 160px;
+  }
+}
+.parsons-task-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+}
+.parsons-task-card > .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+.parsons-sortable-container {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 260px;
+}
+.parsons-sortable-container .sortable-code.starter {
+  float: none;
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+}
+.parsons-sortable-container .sortable-code.solution {
+  float: none;
+  width: 58%;
+  margin-left: 2%;
+  display: flex;
+  flex-direction: column;
+}
+.parsons-sortable-container .sortable-code ul {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+.parsons-task-card .row.float-right {
+  float: none;
+  margin-left: 0;
+  margin-right: 0;
+  justify-content: flex-end;
+}
+.parsons-task-card .row.float-right .col-sm-12 {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-left: 0;
+  padding-right: 0;
+}
 .demo-info-note {
-  margin-top: auto;
+  margin-top: 1.25rem;
   padding: 0.75rem 1rem;
   border: 1.5px dashed #64b5f6;
   background-color: #f0f7ff;
@@ -108,7 +185,7 @@
 }
 .starter { width: 40%; }
 .solution { width: 58%; margin-left: 2%; }
-.test-results-card { display: flex; flex-direction: column; overflow: hidden; }
+.test-results-card { display: flex; flex-direction: column; overflow: hidden; min-height: 320px; }
 .test-results-card > .card-body { display: flex; flex-direction: column; flex: 1 1 auto; height: 100%; min-height: 0; overflow-y: auto; }
 .guidance-summary { cursor: pointer; position: relative; list-style: none; outline: none; }
 .guidance-summary::-webkit-details-marker { display: none; }

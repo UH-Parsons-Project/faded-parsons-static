@@ -1405,8 +1405,9 @@ initBurgerMenu();
       return;
     }
 
-    const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
-    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
+    const currentSolutionCode = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || currentSolutionCode;
+    const solutionCodeWithBlanks = finalModelAnswerCode || currentSolutionCode;
     const parsonsRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
     const problemData = {
       taskTitle,

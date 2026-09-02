@@ -40,6 +40,16 @@ body {
   background: var(--bg);
 }
 
+#error-message {
+  display: block;
+  max-width: 16rem;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: left;
+}
+
 footer[style*="background:#f5f7fa"] {
   margin-top: auto !important;
 }

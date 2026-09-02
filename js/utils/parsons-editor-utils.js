@@ -14,14 +14,15 @@ export function buildReprFromBlocks(taskData) {
     const answerLine = answerLines[solutionLineIndex] || '';
     let blankValues = '';
 
-    if (solutionLine.replace(/!BLANK/g, '___') === indentedCode) {
+    const normalizedSolutionLine = solutionLine.replace(/!BLANK/g, '___');
+    if (normalizedSolutionLine === indentedCode) {
       solutionLineIndex += 1;
-      if (solutionLine.includes('!BLANK') && answerLine) {
-        const segments = solutionLine.trim().split('!BLANK');
+      if (normalizedSolutionLine.includes('___') && answerLine) {
+        const segments = normalizedSolutionLine.trim().split('___');
         const escapedSegments = segments.map((segment) => segment.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
         const match = answerLine.trim().match(new RegExp(`^${escapedSegments.join('(.*?)')}$`));
         if (match) {
-          blankValues = match.slice(1).map((value) => ` #blank${value}`).join('');
+          blankValues = match.slice(1).map((value) => ` #blank${value}#`).join('');
         }
       }
     }

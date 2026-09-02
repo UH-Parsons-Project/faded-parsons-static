@@ -200,7 +200,7 @@ initBurgerMenu();
       writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
     }
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
-    const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
+    const previewModelAnswerText = sanitizeBlankInputMarkup(modelAnswerCode || '') || getSolutionCodeWithBlanks();
     previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
 
     previewSource.innerHTML = '';

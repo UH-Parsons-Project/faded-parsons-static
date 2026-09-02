@@ -5,7 +5,16 @@
 (function initCreateTaskPage() {
   const TASK_CODE_DRAFT_KEY = 'create_task_draft_code';
   const TASK_TESTS_DRAFT_KEY = 'create_task_draft_tests';
+  const TASK_STDOUT_CALLS_DRAFT_KEY = 'create_task_draft_stdout_calls';
   let editTaskId = null;
+
+  function clearTaskDraftStorage() {
+    [localStorage, sessionStorage].forEach((storage) => {
+      Object.keys(storage)
+        .filter((key) => key.startsWith('create_task_'))
+        .forEach((key) => storage.removeItem(key));
+    });
+  }
 
   function getCursorPositionDetails(text, index) {
     const safeIndex = Math.max(0, Math.min(index, text.length));
@@ -90,16 +99,16 @@
   }
 
   function setupEditorBehavior(textarea, statusElement, storageKey) {
-    const saved = localStorage.getItem(storageKey);
+    const saved = sessionStorage.getItem(storageKey);
     if (saved) {
       textarea.value = saved;
     }
 
     if (storageKey === TASK_CODE_DRAFT_KEY) {
-      const preservedCode = sessionStorage.getItem('preserved_task_code');
+      const preservedCode = sessionStorage.getItem('create_task_preserved_code');
       if (preservedCode) {
         textarea.value = preservedCode;
-        sessionStorage.removeItem('preserved_task_code');
+        sessionStorage.removeItem('create_task_preserved_code');
       }
     }
 
@@ -134,7 +143,7 @@
     });
 
     textarea.addEventListener('input', () => {
-      localStorage.setItem(storageKey, textarea.value);
+      sessionStorage.setItem(storageKey, textarea.value);
       autoResize(textarea);
       updateCaretStatus(textarea, statusElement);
     });
@@ -381,18 +390,61 @@
       evalTypeInput.dispatchEvent(new Event('change'));
     }
 
+    let draftPayload = null;
+    try {
+      const rawDraft = sessionStorage.getItem('create_task_draft_payload');
+      if (rawDraft) {
+        draftPayload = JSON.parse(rawDraft);
+      }
+    } catch (e) {
+      draftPayload = null;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const taskIdParam = params.get('task_id');
     if (taskIdParam) {
       editTaskId = parseInt(taskIdParam, 10);
-      localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-      localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_CODE_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+      sessionStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
     }
 
     setupEditorBehavior(taskCodeInput, taskCodeStatus, TASK_CODE_DRAFT_KEY);
     setupEditorBehavior(taskTestsInput, taskTestsStatus, TASK_TESTS_DRAFT_KEY);
     if (taskStdoutCallsInput && taskStdoutCallsStatus) {
-      setupEditorBehavior(taskStdoutCallsInput, taskStdoutCallsStatus, 'create_task_draft_stdout_calls');
+      setupEditorBehavior(taskStdoutCallsInput, taskStdoutCallsStatus, TASK_STDOUT_CALLS_DRAFT_KEY);
+    }
+
+    if (draftPayload && !taskIdParam) {
+      if (draftPayload.evalType && evalTypeInput) {
+        evalTypeInput.value = draftPayload.evalType;
+        evalTypeInput.dispatchEvent(new Event('change'));
+      }
+      if (draftPayload.evalType === 'stdout') {
+        if (draftPayload.expectedOutput !== undefined) {
+          taskTestsInput.value = draftPayload.expectedOutput;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+        if (draftPayload.taskTests !== undefined && taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = draftPayload.taskTests;
+          taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        }
+      } else if (draftPayload.evalType === 'unit_test') {
+        if (draftPayload.taskTests !== undefined) {
+          taskTestsInput.value = draftPayload.taskTests;
+          taskTestsInput.dispatchEvent(new Event('input'));
+        }
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          localStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
+        }
+      } else if (draftPayload.evalType === 'order_only') {
+        taskTestsInput.value = '';
+        if (taskStdoutCallsInput) {
+          taskStdoutCallsInput.value = '';
+          localStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
+        }
+      }
     }
 
     clearButtons.forEach((button) => {
@@ -411,15 +463,13 @@
 
     if (clearDraftsBtn) {
       clearDraftsBtn.addEventListener('click', () => {
-        localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-        localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
-        localStorage.removeItem('create_task_draft_stdout_calls');
         taskCodeInput.value = '';
         taskTestsInput.value = '';
         if (taskStdoutCallsInput) taskStdoutCallsInput.value = '';
         taskCodeInput.dispatchEvent(new Event('input'));
         taskTestsInput.dispatchEvent(new Event('input'));
         if (taskStdoutCallsInput) taskStdoutCallsInput.dispatchEvent(new Event('input'));
+        clearTaskDraftStorage();
         taskCodeInput.focus();
       });
     }
@@ -432,6 +482,7 @@
         if (!confirmed) {
           return;
         }
+        clearTaskDraftStorage();
         window.location.href = '/teacher-dashboard';
       });
     }
@@ -470,10 +521,11 @@
         };
 
         sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
-        sessionStorage.setItem('preserved_task_code', taskCode);
+        sessionStorage.setItem('create_task_preserved_code', taskCode);
 
-        localStorage.removeItem(TASK_CODE_DRAFT_KEY);
-        localStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_CODE_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_TESTS_DRAFT_KEY);
+        sessionStorage.removeItem(TASK_STDOUT_CALLS_DRAFT_KEY);
         window.location.href = '/create-task-editor';
       } catch (error) {
         console.error('Task creation failed:', error);
@@ -481,7 +533,7 @@
       }
     });
 
-    if (editTaskId && !localStorage.getItem(TASK_CODE_DRAFT_KEY)) {
+    if (editTaskId && !sessionStorage.getItem(TASK_CODE_DRAFT_KEY)) {
       loadEditData(editTaskId, taskCodeInput, taskTestsInput);
     }
   }

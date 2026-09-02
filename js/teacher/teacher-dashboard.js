@@ -8,17 +8,16 @@ initProtectedPage('/');
 initSignedInAs();
 initBurgerMenu();
 
+function clearTaskDraftStorage() {
+	[localStorage, sessionStorage].forEach((storage) => {
+		Object.keys(storage)
+			.filter((key) => key.startsWith('create_task_'))
+			.forEach((key) => storage.removeItem(key));
+	});
+}
+
 // Clear any draft states from the task creator when loading the dashboard
-sessionStorage.removeItem('create_task_draft_payload');
-sessionStorage.removeItem('create_task_builder_blocks');
-sessionStorage.removeItem('create_task_builder_blocks_source');
-sessionStorage.removeItem('create_task_builder_meta');
-sessionStorage.removeItem('create_task_builder_meta_source');
-sessionStorage.removeItem('create_task_builder_model_answer');
-sessionStorage.removeItem('create_task_builder_model_answer_repr');
-sessionStorage.removeItem('create_task_builder_model_answer_source');
-sessionStorage.removeItem('create_task_builder_model_answer_updated_at');
-sessionStorage.removeItem('preserved_task_code');
+clearTaskDraftStorage();
 
 // Load user info
 const userNameEl = document.getElementById('user-name');
@@ -277,6 +276,7 @@ function renderMyTasks(tasks) {
 	createBtn.href = '/create-task';
 	createBtn.className = 'section-create-btn';
 	createBtn.innerHTML = '<i class="fas fa-plus"></i> New Task';
+	createBtn.addEventListener('click', clearTaskDraftStorage);
 
 	sectionHeader.appendChild(heading);
 	sectionHeader.appendChild(createBtn);

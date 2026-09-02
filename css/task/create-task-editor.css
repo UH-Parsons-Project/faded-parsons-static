@@ -289,12 +289,15 @@ html, body {
 }
 
 #source-sortable li,
-#solution-sortable li {
+#solution-sortable li,
+#preview-source-sortable li,
+#preview-solution-sortable li {
   position: relative;
   padding-right: 28px;
 }
 
-#solution-sortable li {
+#solution-sortable li,
+#preview-solution-sortable li {
   padding-right: 54px;
 }
 
@@ -325,7 +328,9 @@ html, body {
 }
 
 #source-sortable li:hover .block-delete-btn,
-#solution-sortable li:hover .block-delete-btn {
+#solution-sortable li:hover .block-delete-btn,
+#preview-source-sortable li:hover .block-delete-btn,
+#preview-solution-sortable li:hover .block-delete-btn {
   opacity: 1;
 }
 
@@ -334,7 +339,8 @@ html, body {
   background: rgba(239, 68, 68, 0.12);
 }
 
-#solution-sortable li.student-given .block-delete-btn {
+#solution-sortable li.student-given .block-delete-btn,
+#preview-solution-sortable li.student-given .block-delete-btn {
   right: 28px;
 }
 
@@ -365,11 +371,13 @@ html, body {
   content: '\1F4CC';
 }
 
-#solution-sortable li.student-given .given-toggle-btn {
+#solution-sortable li.student-given .given-toggle-btn,
+#preview-solution-sortable li.student-given .given-toggle-btn {
   opacity: 1;
 }
 
-#solution-sortable li.student-given {
+#solution-sortable li.student-given,
+#preview-solution-sortable li.student-given {
   border-left: 3px solid #2563eb;
   background: #eff6ff;
 }
@@ -386,7 +394,9 @@ html, body {
 }
 
 #source-sortable ul,
-#solution-sortable ul {
+#solution-sortable ul,
+#preview-source-sortable ul,
+#preview-solution-sortable ul {
   min-height: 230px;
   border-radius: 8px;
   padding: 0.5rem;
@@ -396,7 +406,8 @@ html, body {
   box-sizing: border-box;
 }
 
-#solution-sortable ul {
+#solution-sortable ul,
+#preview-solution-sortable ul {
   background: #fffdeb;
 }
 

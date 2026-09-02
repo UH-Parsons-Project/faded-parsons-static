@@ -1,6 +1,5 @@
 import { escapeHtml } from '../utils/ui-utils.js';
-
-let previewParsonsWidget = null;
+import { buildReprFromBlocks, renderParsonsBoard } from '../utils/parsons-editor-utils.js';
 
 /**
  * Open interactive task preview in modal
@@ -13,6 +12,11 @@ export async function openTaskPreview(taskListItem) {
 			throw new Error('Failed to load task details');
 		}
 		const task = await response.json();
+		const modelAnswerResponse = await fetch(`/api/problems/${taskListItem.id}/model-answer`, { credentials: 'include' });
+		if (modelAnswerResponse.ok) {
+			const modelAnswerData = await modelAnswerResponse.json();
+			task.model_answer = modelAnswerData.model_answer || '';
+		}
 
 		const modal = document.getElementById('student-preview-modal');
 		const previewTaskTitle = document.getElementById('preview-task-title');
@@ -51,6 +55,10 @@ export async function openTaskPreview(taskListItem) {
 		previewTaskTitle.innerHTML = escapeHtml(task.title || '').replace(/\n/g, '<br>');
 		previewStartIntro.innerHTML = escapeHtml(startIntro).replace(/\n/g, '<br>');
 		previewText.innerHTML = problemStatement;
+		const previewTaskType = document.getElementById('preview-task-type');
+		if (previewTaskType) {
+			previewTaskType.textContent = task.task_type ? `Task tag: ${task.task_type}` : 'Task tag not selected yet.';
+		}
 
 		const writtenTestsRow = previewWrittenTests?.closest('.row') || previewWrittenTests?.closest('.card');
 		if (writtenTestsRow) {
@@ -63,61 +71,15 @@ export async function openTaskPreview(taskListItem) {
 			previewModelAnswer.textContent = modelAnswerCode.trim() || 'No model answer set yet.';
 		}
 
-		previewSource.innerHTML = '';
-		previewSolution.innerHTML = '';
-
-		if (window.ParsonsWidget) {
-			previewParsonsWidget = new window.ParsonsWidget({
-				sortableId: previewSolution,
-				trashId: previewSource,
-				max_wrong_lines: 10,
-				feedback_cb: false,
-				can_indent: true,
-				lang: 'en',
-			});
-
-			previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
-
-			const blocks = task.code_blocks?.blocks || [];
-			const solutionCode = (task.correct_solution?.solution_code || '').replace(/\r\n/g, '\n');
-			const modelAnswer = (task.model_answer || '').replace(/\r\n/g, '\n');
-			const INDENT = '    ';
-
-			const solLinesList = solutionCode.split('\n').map((l) => l.trimRight());
-			const ansLinesList = modelAnswer.split('\n').map((l) => l.trimRight());
-
-			const solLines = solLinesList.map((solLine, idx) => ({
-				solLine,
-				ansLine: ansLinesList[idx] || '',
-				matched: false,
-			}));
-
-			const previewRepr = blocks.map((block) => {
-				const codeWithBlanks = block.code.replace(/___/g, '!BLANK');
-				const indented = INDENT.repeat(block.indent) + block.code;
-
-				const matchItem = solLines.find((item) => {
-					if (item.matched) return false;
-					return item.solLine.replace(/!BLANK/g, '___') === indented;
-				});
-
-				if (matchItem) {
-					matchItem.matched = true;
-				}
-
-				return codeWithBlanks;
-			}).join('\n');
-
-			previewParsonsWidget.init(previewRepr);
-
-			const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
-			const previewSolutionSet = new Set(previewSolutionIds);
-			const previewSourceIds = previewParsonsWidget.modified_lines
-				.filter((line) => !previewSolutionSet.has(line.id))
-				.map((line) => line.id);
-
-			previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
-		}
+		const previewRepr = buildReprFromBlocks(task);
+		renderParsonsBoard(previewRepr, {
+			sourceSortable: previewSource,
+			solutionSortable: previewSolution,
+			ParsonsWidgetCtor: window.ParsonsWidget,
+			can_indent: true,
+			idPrefix: 'preview-sortable-codeline',
+			useStudentGiven: true,
+		});
 
 		modal.classList.add('open');
 		modal.setAttribute('aria-hidden', 'false');

@@ -351,9 +351,9 @@ test.describe('Task Creation - Evaluation Modes (unit_test, stdout, order_only)'
   test('faded blocks (!BLANK) and custom distractor block addition', async ({ page }) => {
     await page.goto('/create-task');
 
-    const taskCode = 'total = !BLANK';
-    const taskTests = 'assert total == 10';
-    const blocksRepr = 'total = !BLANK #0given';
+    const taskCode = 'if !BLANK :';
+    const taskTests = 'assert True';
+    const blocksRepr = 'if !BLANK : #0given #blankvalue with spaces#';
 
     await page.locator('#task-code').fill(taskCode);
     await page.locator('#task-tests').fill(taskTests);
@@ -376,7 +376,11 @@ test.describe('Task Creation - Evaluation Modes (unit_test, stdout, order_only)'
     // Open Preview and verify faded input text box (input.text-box) is rendered in student view
     await page.locator('#preview-student-view').click();
     await expect(page.locator('#student-preview-modal')).toBeVisible();
-    await expect(page.locator('#student-preview-modal input.text-box').first()).toBeVisible();
+    const previewBlank = page.locator('#student-preview-modal input.text-box').first();
+    await expect(previewBlank).toBeVisible();
+    await expect(previewBlank).toHaveValue('value with spaces');
+    await expect(page.locator('#student-preview-modal li').filter({ hasText: 'oninput' })).toHaveCount(0);
+    await expect(page.locator('#student-preview-modal li').filter({ hasText: 'style="width' })).toHaveCount(0);
   });
 
   // --------------------------------------------------------------------------

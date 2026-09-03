@@ -208,7 +208,7 @@ initBurgerMenu();
       writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
     }
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
-    const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
+    const previewModelAnswerText = sanitizeBlankInputMarkup(modelAnswerCode || '') || getSolutionCodeWithBlanks();
     previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
 
     previewSource.innerHTML = '';
@@ -225,7 +225,7 @@ initBurgerMenu();
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
     const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
-    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr);
 
     let fullPreviewRepr = cleanPreviewRepr;
     if (!isOrderOnly) {
@@ -1413,8 +1413,9 @@ initBurgerMenu();
       return;
     }
 
-    const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
-    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
+    const currentSolutionCode = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || currentSolutionCode;
+    const solutionCodeWithBlanks = finalModelAnswerCode || currentSolutionCode;
     const parsonsRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
     const problemData = {
       taskTitle,

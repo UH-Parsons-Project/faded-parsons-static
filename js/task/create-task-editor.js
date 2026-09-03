@@ -217,7 +217,7 @@ initBurgerMenu();
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
     const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
-    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr);
 
     let fullPreviewRepr = cleanPreviewRepr;
     if (!isOrderOnly) {

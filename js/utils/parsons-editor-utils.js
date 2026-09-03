@@ -120,7 +120,7 @@ export function buildCustomRepr(parsonsWidget, normalizeSourceCode = (s) => s, g
     let reprLine = `${lineText} #${indent}given`;
     const blankValues = typeof getLineInputValues === 'function' ? getLineInputValues(line.id) : [];
     if (blankValues.length) {
-      reprLine += blankValues.map((value) => ` #blank${value}`).join('');
+      reprLine += blankValues.map((value) => ` #blank${value}#`).join('');
     }
     if (line.studentGiven) {
       reprLine += ' #preplace';

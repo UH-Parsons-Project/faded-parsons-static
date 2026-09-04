@@ -68,6 +68,23 @@ spec:
             httpGet:
               path: /
               port: 8000
+
+        - name: shibboleth-proxy
+          image: quay.io/tike/ohtu-faded-parsons-shibboleth:staging
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: shibboleth-credentials
+              mountPath: /etc/shibboleth/credentials
+              readOnly: true
+            - name: shibboleth-metadata-certificate
+              mountPath: /etc/shibboleth/metadata
+              readOnly: true
+            - name: shibboleth-cache
+              mountPath: /var/cache/shibboleth
+            - name: shibboleth-log
+              mountPath: /var/log/shibboleth
       volumes:
         - name: saml-certificates
           secret:
@@ -81,3 +98,25 @@ spec:
           secret:
             secretName: saml-idp-certificate-staging
             optional: true
+        - name: shibboleth-credentials
+          secret:
+            secretName: cert-and-private-key
+            items:
+              - key: shib.key
+                path: signing-key.pem
+              - key: shib.crt
+                path: signing-cert.pem
+              - key: shib.key
+                path: encryption-key.pem
+              - key: shib.crt
+                path: encryption-cert.pem
+        - name: shibboleth-metadata-certificate
+          secret:
+            secretName: shibboleth-metadata-certificate
+            items:
+              - key: sign-login.helsinki.fi-v2.pem
+                path: sign-login.helsinki.fi-v2.pem
+        - name: shibboleth-cache
+          emptyDir: {}
+        - name: shibboleth-log
+          emptyDir: {}

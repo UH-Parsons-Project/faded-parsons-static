@@ -24,17 +24,8 @@ ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw.split(",") if o.strip()]
 # Cookies — set to true in production (requires HTTPS)
 COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
-# Optional Haka/SAML service-provider login.
+# Optional Haka login through a Shibboleth SP.
 SAML_ENABLED = os.getenv("SAML_ENABLED", "false").lower() == "true"
 SAML_TEST_PAGE_ENABLED = os.getenv("SAML_TEST_PAGE_ENABLED", "false").lower() == "true"
-SAML_SP_ENTITY_ID = os.getenv("SAML_SP_ENTITY_ID", "")
-SAML_SP_ACS_URL = os.getenv("SAML_SP_ACS_URL", "")
-SAML_SP_SLS_URL = os.getenv("SAML_SP_SLS_URL", "")
-SAML_IDP_ENTITY_ID = os.getenv("SAML_IDP_ENTITY_ID", "")
-SAML_IDP_SSO_URL = os.getenv("SAML_IDP_SSO_URL", "")
-SAML_IDP_X509_CERT_PATH = os.getenv("SAML_IDP_X509_CERT_PATH", "")
-SAML_SP_CERT_PATH = os.getenv("SAML_SP_CERT_PATH", "")
-SAML_SP_PRIVATE_KEY_PATH = os.getenv("SAML_SP_PRIVATE_KEY_PATH", "")
-SAML_SIGN_AUTHN_REQUESTS = os.getenv("SAML_SIGN_AUTHN_REQUESTS", "true").lower() == "true"
-SAML_EMAIL_ATTRIBUTE = os.getenv("SAML_EMAIL_ATTRIBUTE", "urn:oid:0.9.2342.19200300.100.1.3")
+SAML_EMAIL_ATTRIBUTE = os.getenv("SAML_EMAIL_ATTRIBUTE", "mail")
 SAML_USERNAME_ATTRIBUTE = os.getenv("SAML_USERNAME_ATTRIBUTE", "uid")

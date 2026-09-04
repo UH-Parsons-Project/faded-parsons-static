@@ -1,27 +1,19 @@
-# HY SAML login
+# HY login through Shibboleth
 
-SAML needs two certificate roles:
+Shibboleth is the SAML service provider for this application. It owns the
+SAML endpoints and passes the authenticated identity to FastAPI. The
+application does not create AuthnRequests or process SAML POST responses.
 
-- **SP certificate and private key:** this application signs AuthnRequests. Register only the public certificate with the HY/SP registry. Keep the private key in an OpenShift Secret.
-- **IdP certificate:** HY provides this public certificate. The application uses it to verify signed SAML responses.
+The Shibboleth SP must be installed in front of Uvicorn and protect the
+application login route. It must forward these values as request headers:
 
-The SP certificate is separate from the HTTPS certificate on the web route.
+- `Shib-Session-ID`
+- `mail` (or the configured `SAML_EMAIL_ATTRIBUTE`)
+- `uid` (or the configured `SAML_USERNAME_ATTRIBUTE`)
 
-## Generate an SP certificate
-
-Run locally in a private directory. Do not commit the directory or private key:
-
-```bash
-mkdir -p saml-private
-openssl req -new -x509 -newkey rsa:3072 -nodes \
-  -keyout saml-private/sp.key \
-  -out saml-private/sp.crt \
-  -days 1095 \
-  -subj '/CN=Parsons Code Lab SAML SP'
-chmod 600 saml-private/sp.key
-```
-
-Give `saml-private/sp.crt` to the SP registry. Never give out `sp.key`.
+Only the trusted Shibboleth proxy may reach the application directly. The
+proxy must remove client-supplied copies of these headers before adding its
+own values.
 
 ## Register the SP
 
@@ -29,63 +21,34 @@ Production:
 
 ```text
 Entity ID: https://parsonscodelab.web.helsinki.fi/sp
-ACS:       https://parsonscodelab.web.helsinki.fi/auth/saml/acs
-Metadata:  https://parsonscodelab.web.helsinki.fi/auth/saml/metadata
+ACS:       https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/SAML2/POST
+Metadata:  https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/Metadata
+Logout:    https://parsonscodelab.web.helsinki.fi/Shibboleth.sso/Logout
 ```
 
 Staging:
 
 ```text
 Entity ID: https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/sp
-ACS:       https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/auth/saml/acs
-Metadata:  https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/auth/saml/metadata
+ACS:       https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/SAML2/POST
+Metadata:  https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/Metadata
+Logout:    https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/Logout
 ```
 
-Ask HY/Haka administration for the IdP `entityID`, SSO URL, signing certificate,
-and exact email and username attribute names.
+Register the entity ID and the three Shibboleth endpoints with the HY/SP
+registry. The metadata, ACS, and logout entries must be Shibboleth endpoint
+types, not FastAPI routes. The Shibboleth configuration and its SP
+certificate/private key are managed by the platform deployment, not by this
+application container.
 
-For the supplied HY metadata, the IdP values are:
-
-```text
-SAML_IDP_ENTITY_ID=https://login.helsinki.fi/shibboleth
-SAML_IDP_SSO_URL=https://login.helsinki.fi/idp/profile/SAML2/Redirect/SSO
-```
-
-The signed metadata document is:
-
-```text
-https://login.helsinki.fi/metadata/sign-hy-metadata-v2.xml
-```
-
-The certificate at
-`https://login.helsinki.fi/metadata/sc/sign-login.helsinki.fi-v2.pem`
-verifies the signature on that metadata document. It is **not** the IdP
-assertion-signing certificate and it is **not** the SP certificate. For
-`idp.crt`, use the certificate under the metadata's `KeyDescriptor
-use="signing"` element, or ask HY/Haka administration for the current IdP
-assertion-signing certificate.
-
-## Store credentials in OpenShift
-
-The deployment mounts the existing `cert-and-private-key` Secret at `/etc/saml`.
-Its `shib.crt` and `shib.key` keys become `sp.crt` and `sp.key`. The HY IdP
-certificate is mounted separately at `/etc/saml/idp`.
+## Configure OpenShift
 
 ```bash
-oc -n timed-parsons create secret generic saml-idp-certificate-staging \
-  --from-file=idp.crt=PATH_TO_HY_IDP_ASSERTION_SIGNING_CERTIFICATE
-
 oc -n timed-parsons create secret generic saml-config-staging \
   --from-literal=SAML_ENABLED=true \
   --from-literal=SAML_TEST_PAGE_ENABLED=true \
-  --from-literal=SAML_SIGN_AUTHN_REQUESTS=true \
-  --from-literal=SAML_SP_ENTITY_ID='https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/sp' \
-  --from-literal=SAML_SP_ACS_URL='https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/auth/saml/acs' \
-  --from-literal=SAML_IDP_ENTITY_ID='REPLACE_WITH_HY_IDP_ENTITY_ID' \
-  --from-literal=SAML_IDP_SSO_URL='REPLACE_WITH_HY_SSO_URL' \
-  --from-literal=SAML_IDP_X509_CERT_PATH=/etc/saml/idp/idp.crt \
-  --from-literal=SAML_SP_CERT_PATH=/etc/saml/sp.crt \
-  --from-literal=SAML_SP_PRIVATE_KEY_PATH=/etc/saml/sp.key
+  --from-literal=SAML_EMAIL_ATTRIBUTE=mail \
+  --from-literal=SAML_USERNAME_ATTRIBUTE=uid
 ```
 
 Create equivalent production Secrets with production URLs and names. Restart
@@ -106,7 +69,45 @@ The unlinked test page is available only when both `SAML_ENABLED=true` and
 
 It is not linked from the normal navigation and has `noindex` metadata. Open
 the page, start HY login, and verify the redirect to `/teacher-dashboard`.
-Before that, open `/auth/saml/metadata` and verify that the XML contains the
-registered SP certificate.
+Before that, open `/Shibboleth.sso/Metadata` and verify that the XML contains
+the registered SP entity ID and certificate.
 
-The SAML implementation is disabled unless `SAML_ENABLED=true`.
+The Shibboleth login integration is disabled unless `SAML_ENABLED=true`.
+
+## Build the OpenShift proxy image
+
+The Apache/Shibboleth proxy is built separately from the application image and
+runs as a sidecar. Build and push it to the image registry used by the staging
+Deployment:
+
+```bash
+docker build -f apache/Dockerfile \
+  -t quay.io/tike/ohtu-faded-parsons-shibboleth:staging apache
+docker push quay.io/tike/ohtu-faded-parsons-shibboleth:staging
+```
+
+The existing `cert-and-private-key` Secret is used for the Shibboleth SP
+credentials. Its `shib.crt` and `shib.key` values are mounted as both the
+signing and encryption credentials. Separate signing and encryption pairs are
+recommended for a later hardening step.
+
+```bash
+oc -n timed-parsons create secret generic shibboleth-metadata-certificate \
+  --from-file=sign-login.helsinki.fi-v2.pem=PATH_TO_HY_METADATA_SIGNING_CERTIFICATE
+```
+
+The private keys must never be committed or included in the Docker build
+context. Apply the staging manifests only after the image and Secrets exist:
+
+```bash
+oc apply -f manifest/staging/deployment.yaml
+oc apply -f manifest/staging/services.yaml
+oc apply -f manifest/staging/routes.yaml
+oc -n timed-parsons rollout status deployment/faded-parsons-staging
+```
+
+Check the proxy before testing login:
+
+```bash
+curl -fsS https://faded-parsons-staging-timed-parsons.apps.ocp-test-0.k8s.it.helsinki.fi/Shibboleth.sso/Metadata
+```

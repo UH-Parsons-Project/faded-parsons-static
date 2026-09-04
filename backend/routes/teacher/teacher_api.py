@@ -4,7 +4,7 @@ import secrets
 
 # Third-party
 from fastapi import APIRouter, Depends, Response, HTTPException, status, Request
-from fastapi.responses import RedirectResponse, Response as FastAPIResponse
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,49 +18,21 @@ from ... import config
 from ...pydantic import Token, UserInfo, TeacherLookupResponse
 from ..utils.commons import validate_registration_basic, ensure_unique_user
 from ...rate_limit import limiter, check_brute_force, record_failed_attempt, clear_failed_attempts
-from ...saml_auth import require_saml, saml_request, _settings
+from ...saml_auth import require_saml, shibboleth_identity, shibboleth_login_url
 
 router = APIRouter()
 
 
 @router.get("/auth/saml/login")
-async def saml_login(request: Request):
+async def saml_login(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     require_saml()
-    auth = await saml_request(request)
-    return RedirectResponse(auth.login())
-
-
-@router.get("/auth/saml/metadata")
-async def saml_metadata():
-    require_saml()
-    from onelogin.saml2.settings import OneLogin_Saml2_Settings
-
-    settings = OneLogin_Saml2_Settings(settings=_settings())
-    metadata = settings.get_sp_metadata()
-    errors = settings.validate_metadata(metadata)
-    if errors:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid SAML metadata")
-    return FastAPIResponse(content=metadata, media_type="application/samlmetadata+xml")
-
-
-@router.post("/auth/saml/acs")
-async def saml_acs(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
-    require_saml()
-    auth = await saml_request(request)
-    try:
-        auth.process_response()
-    except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid SAML response") from exc
-    if not auth.is_authenticated():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="SAML login failed")
-
-    attributes = auth.get_attributes()
-    email_values = attributes.get(config.SAML_EMAIL_ATTRIBUTE, [])
-    username_values = attributes.get(config.SAML_USERNAME_ATTRIBUTE, [])
-    email = (email_values[0] if email_values else auth.get_nameid()).strip().lower()
-    username = (username_values[0] if username_values else email.split("@", 1)[0]).strip()
-    if "@" not in email:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SAML response has no valid email")
+    identity = shibboleth_identity(request)
+    if identity is None:
+        return RedirectResponse(shibboleth_login_url())
+    email, username = identity
 
     result = await db.execute(select(Teacher).where(Teacher.email.ilike(email)))
     user = result.scalar_one_or_none()

@@ -80,6 +80,7 @@ class TaskSetTaskResponse(BaseModel):
     is_hidden: bool = False
     is_public: bool = True
     is_faded: bool = False
+    require_indentation: bool = True
 
 
 class ProblemSetInfoResponse(BaseModel):

@@ -574,7 +574,7 @@ class TestListTasks:
             description='{"description": "Not visible to others."}',
             task_type="python",
             code_blocks={"blocks": []},
-            correct_solution={"solution": []},
+            correct_solution={"solution": [], "require_indentation": True},
             is_public=False,
         )
         db_session.add(other_private)
@@ -711,7 +711,7 @@ class TestGetProblemsetTasks:
                     {"id": "block_2", "code": "print(___)", "indent": 0, "faded": True, "given": False},
                 ]
             },
-            correct_solution={"solution": []},
+            correct_solution={"solution": [], "require_indentation": True},
             is_public=True,
         )
         db_session.add(task)
@@ -724,6 +724,35 @@ class TestGetProblemsetTasks:
         r = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
         assert r.status_code == 200
         assert r.json()[0]["is_faded"] is True
+
+    async def test_task_set_tasks_do_not_report_regular_movable_blocks_as_faded(
+        self, client, db_session, test_teacher, task_set
+    ):
+        task = Parsons(
+            created_by_teacher_id=test_teacher.id,
+            title="Regular Parsons Task",
+            description="Arrange the blocks.",
+            task_instructions="Arrange the blocks",
+            task_type="normal",
+            code_blocks={
+                "blocks": [
+                    {"id": "block_1", "code": "print('hello')", "indent": 0, "given": False},
+                    {"id": "block_2", "code": "print('world')", "indent": 0, "given": False},
+                ]
+            },
+            correct_solution={"solution": [], "require_indentation": False},
+            is_public=True,
+        )
+        db_session.add(task)
+        await db_session.commit()
+        await db_session.refresh(task)
+
+        db_session.add(TaskSetItem(task_set_id=task_set.id, task_id=task.id))
+        await db_session.commit()
+
+        r = await client.get(f"/api/my_sets/{task_set.unique_link_code}/tasks")
+        assert r.status_code == 200
+        assert r.json()[0]["is_faded"] is False
 
 
 # ---------------------------------------------------------------------------

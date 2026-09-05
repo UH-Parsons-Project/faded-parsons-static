@@ -10,8 +10,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/css/task-statistics.css">
-  <link rel="stylesheet" href="/css/embossed-btn.css?v=4">
+  <link rel="stylesheet" href="/css/base/main.css">
+  <link rel="stylesheet" href="/css/statistics/task-statistics.css">
+  <link rel="stylesheet" href="/js-parsons/parsons.css">
+  <link rel="stylesheet" href="/css/task/create-task-editor.css">
+  <link rel="stylesheet" href="/css/components/embossed-btn.css?v=4">
 </head>
 
 <body>
@@ -67,6 +70,7 @@
         <i class="fas fa-arrow-left"></i> Back
       </a>
     </div>
+    <div class="header-badge">Exercise Analytics</div>
     <div style="display: flex; align-items: flex-start; justify-content: space-between; width: 100%;">
       <div>
         <div class="taskset-chip" id="taskset-chip">
@@ -78,12 +82,14 @@
           <div class="page-title" id="exercise-name">—</div>
           <div id="exercise-private-badge"></div>
         </div>
+        <button class="secondary-btn task-statistics-preview-btn" id="preview-task-statistics-btn" type="button">
+          <i class="fas fa-eye"></i> Preview
+        </button>
       </div>
       <div class="page-header-right">
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Toggle student overview">
           <i class="fas fa-users"></i> Students
         </button>
-        <div class="header-badge">Exercise Analytics</div>
       </div>
     </div>
   </div>
@@ -316,7 +322,29 @@
   </div><!-- /page-content -->
   </div><!-- /page-layout -->
 
+  <div id="student-preview-modal" class="student-preview-modal" aria-hidden="true">
+    <div class="student-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="student-preview-title">
+      <div class="student-preview-header">
+        <h4 id="student-preview-title" class="mb-0">Preview</h4>
+        <button id="close-student-preview" type="button" class="student-preview-close" aria-label="Close preview">&times;</button>
+      </div>
+      <div class="student-preview-body">
+        <div class="row mt-3"><div class="col-sm-12"><div class="card"><div class="card-header"><h3 class="mb-0">Task Name</h3></div><div class="card-body" id="preview-task-title"></div></div></div></div>
+        <div class="row mt-3"><div class="col-sm-12"><div class="card"><div class="card-header"><h3 class="mb-0">Start Page Intro</h3></div><div class="card-body" id="preview-start-intro"></div></div></div></div>
+        <div class="row mt-3"><div class="col-sm-12"><div class="card"><div class="card-header"><h3 class="mb-0">Problem Statement</h3></div><div class="card-body" id="preview-problem-text"></div></div></div></div>
+        <div class="row mt-3"><div class="col-sm-12"><div class="card"><div class="card-header"><h3 class="mb-0">Task Tag</h3></div><div class="card-body" id="preview-task-type"></div></div></div></div>
+        <div class="row mt-4"><div class="col-sm-12"><div class="card"><div class="card-body"><div id="preview-source-sortable" class="sortable-code starter"></div><div id="preview-solution-sortable" class="sortable-code solution"></div><div style="clear: both;"></div></div></div></div></div>
+        <div class="row mt-4"><div class="col-sm-12"><div class="card"><div class="card-header"><h4 class="mb-0">Written Tests</h4></div><div class="card-body preview-code-block" id="preview-written-tests">No tests written yet.</div></div></div></div>
+        <div class="row mt-4"><div class="col-sm-12"><div class="card"><div class="card-header"><h4 class="mb-0">Model Answer</h4></div><div class="card-body preview-code-block" id="preview-model-answer">No model answer set yet.</div></div></div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="/js/lib/jquery.ui.touch-punch.js"></script>
+  <script src="/js-parsons/parsons.js"></script>
   <script type="module" src="/js/statistics/task-statistics.js"></script>
 
 {% include 'common/footer.html' %}

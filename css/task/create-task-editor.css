@@ -1,75 +1,6 @@
-
-:root {
-  --brand:        #a8b4f7;
-  --brand-dark:   #7b8df0;
-  --brand-text:   #2d3a8c;
-  --green:        #15803d;
-  --green-light:  #dcfce7;
-  --red:          #dc2626;
-  --red-light:    #fee2e2;
-  --blue:         #2563eb;
-  --blue-light:   #dbeafe;
-  --amber:        #d97706;
-  --amber-light:  #fef3c7;
-  --gray:         #94a3b8;
-  --text:         #1e293b;
-  --text-muted:   #5f6b7a;
-  --bg:           oklch(97.5% 0.008 262);
-  --card:         #ffffff;
-  --border:       #e2e8f0;
-  --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 12px rgba(0,0,0,0.08);
-  --radius:       10px;
-  --font:         'DM Sans', system-ui, sans-serif;
-  --mono:         'JetBrains Mono', monospace;
-}
-
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-}
-
 html, body {
   height: auto;
 }
-
-/* ── Navbar ──────────────────────────────────────────── */
-.navbar {
-  background-color: var(--brand) !important;
-  display: flex !important;
-  align-items: center !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1030 !important;
-  height: 80px !important;
-  min-height: 80px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  box-sizing: border-box !important;
-  font-family: var(--font);
-}
-.navbar-logo { height: 64px; width: auto; display: block; }
-.navbar > a { display: inline-flex; align-items: center; height: 100%; }
-
-.navbar-burger-menu { position: relative; display: inline-block; }
-.navbar-burger-toggle {
-  background: none; border: none; font-size: 1.5rem; color: #333;
-  cursor: pointer; padding: .25rem .5rem; display: flex; align-items: center;
-}
-.navbar-burger-toggle:hover { color: #0056b3; }
-.navbar-burger-dropdown {
-  display: none; position: absolute; right: 0; top: 100%;
-  background: white; border: 1px solid #dee2e6; border-radius: .25rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,.15); min-width: 200px; z-index: 1001; margin-top: .5rem;
-}
-.navbar-burger-dropdown.show { display: block; }
-.navbar-burger-item {
-  display: flex; align-items: center; gap: .5rem;
-  padding: .75rem 1rem; color: #333; text-decoration: none;
-  transition: background-color .2s, color .2s;
-}
-.navbar-burger-item:hover { background-color: #f8f9fa; color: #0056b3; }
 
 .navbar .btn { font-family: var(--font); }
 
@@ -163,20 +94,21 @@ html, body {
   margin-bottom: 1.25rem;
 }
 .card-header {
-  padding: .9rem 1.4rem;
+  padding: 1rem 1.4rem;
   border-bottom: 1px solid var(--border);
-  background: var(--card);
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 .card-title {
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  color: var(--text-muted);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 .card-title strong {
   font-weight: 800;
@@ -357,12 +289,15 @@ html, body {
 }
 
 #source-sortable li,
-#solution-sortable li {
+#solution-sortable li,
+#preview-source-sortable li,
+#preview-solution-sortable li {
   position: relative;
   padding-right: 28px;
 }
 
-#solution-sortable li {
+#solution-sortable li,
+#preview-solution-sortable li {
   padding-right: 54px;
 }
 
@@ -393,7 +328,9 @@ html, body {
 }
 
 #source-sortable li:hover .block-delete-btn,
-#solution-sortable li:hover .block-delete-btn {
+#solution-sortable li:hover .block-delete-btn,
+#preview-source-sortable li:hover .block-delete-btn,
+#preview-solution-sortable li:hover .block-delete-btn {
   opacity: 1;
 }
 
@@ -402,7 +339,8 @@ html, body {
   background: rgba(239, 68, 68, 0.12);
 }
 
-#solution-sortable li.student-given .block-delete-btn {
+#solution-sortable li.student-given .block-delete-btn,
+#preview-solution-sortable li.student-given .block-delete-btn {
   right: 28px;
 }
 
@@ -433,11 +371,13 @@ html, body {
   content: '\1F4CC';
 }
 
-#solution-sortable li.student-given .given-toggle-btn {
+#solution-sortable li.student-given .given-toggle-btn,
+#preview-solution-sortable li.student-given .given-toggle-btn {
   opacity: 1;
 }
 
-#solution-sortable li.student-given {
+#solution-sortable li.student-given,
+#preview-solution-sortable li.student-given {
   border-left: 3px solid #2563eb;
   background: #eff6ff;
 }
@@ -454,7 +394,9 @@ html, body {
 }
 
 #source-sortable ul,
-#solution-sortable ul {
+#solution-sortable ul,
+#preview-source-sortable ul,
+#preview-solution-sortable ul {
   min-height: 230px;
   border-radius: 8px;
   padding: 0.5rem;
@@ -464,7 +406,8 @@ html, body {
   box-sizing: border-box;
 }
 
-#solution-sortable ul {
+#solution-sortable ul,
+#preview-solution-sortable ul {
   background: #fffdeb;
 }
 

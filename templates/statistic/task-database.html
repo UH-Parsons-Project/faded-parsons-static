@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<title>Global Statistics - Parsons Code Lab</title>
+		<title>Task Database - Parsons Code Lab</title>
 		<link
 			rel="stylesheet"
 			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
@@ -16,13 +16,14 @@
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 		<link rel="stylesheet" href="/js-parsons/parsons.css" />
-		<link rel="stylesheet" href="/css/teacher-dashboard.css" />
-		<link rel="stylesheet" href="/css/global-statistics.css" />
+		<link rel="stylesheet" href="/css/base/main.css" />
+		<link rel="stylesheet" href="/css/teacher/teacher-dashboard.css" />
+		<link rel="stylesheet" href="/css/statistics/global-statistics.css" />
 	</head>
 	<body>
 		{% include 'common/nav-teacher.html' %}
 		<div class="page-header">
-			<div class="page-title">All Tasks & Global Statistics</div>
+			<div class="page-title">Task Database</div>
 			<div class="page-subtitle">Browse tasks, view details, and favorite exercises to build task sets</div>
 		</div>
 		<div class="dashboard-main">
@@ -54,7 +55,7 @@
 			</div>
 		</div>
 	</div>
-	<script type="module" src="/js/task/all-tasks.js"></script>
+	<script type="module" src="/js/task/task-database.js"></script>
 	{% include 'common/footer.html' %}
 </body>
 </html>

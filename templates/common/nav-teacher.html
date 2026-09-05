@@ -14,6 +14,8 @@
       <input class="form-control mr-2" type="text" id="username" placeholder="Username or email" aria-label="Username or email" required>
       <input class="form-control mr-2" type="password" id="password" placeholder="Password" aria-label="Password" required>
       <button class="btn btn-outline-dark btn-sm mr-2" id="login-btn" type="submit">Login</button>
+      <a class="btn btn-outline-dark btn-sm mr-2" id="forgot-password-btn" href="/contact">Forgot password?</a>
+      {% if saml_enabled %}<a class="btn btn-outline-dark btn-sm mr-2" href="/auth/saml/login" id="saml-login-btn">HY Login</a>{% endif %}
       <button class="btn btn-outline-dark btn-sm mr-2" id="register-btn" type="button">Register</button>
       <a class="btn btn-outline-dark btn-sm mr-2" id="instructions-btn" href="/instructions">Instructions</a>
     </form>
@@ -28,7 +30,7 @@
         </button>
         <div class="navbar-burger-dropdown" id="navbar-burger-dropdown">
           <a href="/global-statistics" class="navbar-burger-item">
-            <i class="fas fa-chart-bar"></i> All Tasks & Global Statistics
+            <i class="fas fa-database"></i> Task Database
           </a>
           <a href="/teacher-dashboard" class="navbar-burger-item">
             <i class="fas fa-chalkboard-teacher"></i> My Dashboard
@@ -38,6 +40,9 @@
           </a>
           <a href="/teacher/profile" class="navbar-burger-item">
             <i class="fas fa-cog"></i> Profile Settings
+          </a>
+          <a href="#" class="navbar-burger-item" id="start-tour-menu-item">
+            <i class="fas fa-question-circle"></i> Start Page Tour
           </a>
           <a href="#" class="navbar-burger-item text-danger" id="logout-btn" style="border-top: 1px solid #eee; margin-top: 0.5rem; padding-top: 0.5rem;">
             <i class="fas fa-sign-out-alt"></i> Logout

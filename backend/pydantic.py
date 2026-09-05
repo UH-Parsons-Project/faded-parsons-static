@@ -80,6 +80,7 @@ class TaskSetTaskResponse(BaseModel):
     is_hidden: bool = False
     is_public: bool = True
     is_faded: bool = False
+    require_indentation: bool = True
 
 
 class ProblemSetInfoResponse(BaseModel):
@@ -108,6 +109,7 @@ class StudentInTaskSetResponse(BaseModel):
     completed_tasks: int
     task_completion_flags: list[int]
     task_attempts: list[int]
+    task_started_flags: list[int] = []
 
 
 class StudentTaskAttemptResponse(BaseModel):
@@ -117,6 +119,7 @@ class StudentTaskAttemptResponse(BaseModel):
     attempts: int
     success_count: int
     last_attempt_at: str
+    has_started: bool = False
 
 
 class StudentTaskStatisticsResponse(BaseModel):
@@ -226,6 +229,10 @@ class CreateTaskSetRequest(BaseModel):
 
 class UpdateTaskSetTasksRequest(BaseModel):
     task_ids: list[int]
+
+
+class InitialEventsExportRequest(BaseModel):
+    task_ids: list[int] = Field(default_factory=list)
 
 
 class UpdateExpiresAtRequest(BaseModel):

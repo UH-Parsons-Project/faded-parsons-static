@@ -6,6 +6,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...teacher_auth import get_current_user
+from ...saml_auth import require_saml
+from ... import config
 from ...database import get_db
 from ..utils.commons import require_session_or_redirect, render_template
 
@@ -25,6 +27,16 @@ async def _render_teacher_page(request: Request, db: AsyncSession, template_name
 async def index(request: Request):
     """Serve the main index page."""
     return render_template("teacher/index.html", request)
+
+
+@router.get("/internal/saml-test", response_class=HTMLResponse)
+async def saml_test_page(request: Request):
+    """Serve the unlinked SAML integration test page when SAML is enabled."""
+    require_saml()
+    if not config.SAML_TEST_PAGE_ENABLED:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return render_template("teacher/saml-test.html", request)
 
 
 @router.get("/teacher-dashboard", response_class=HTMLResponse)

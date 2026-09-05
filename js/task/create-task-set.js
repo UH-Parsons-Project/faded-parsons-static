@@ -481,7 +481,6 @@ function setupFormSubmission() {
     const title = document.getElementById('task-set-title').value.trim();
     const studentDescription = document.getElementById('student-description').value.trim();
     const teacherDescription = document.getElementById('teacher-description').value.trim();
-    // eslint-disable-next-line no-unused-vars
     const openingDate = document.getElementById('opening-date')?.value || null;
     const expirationDate = document.getElementById('expiration-date').value || null;
 
@@ -493,7 +492,12 @@ function setupFormSubmission() {
     }
 
     if (selectedTaskIds.length === 0) {
-      showError('Please select at least one task');
+      window.alert('Please select at least one task before creating the task set.');
+      return;
+    }
+
+    if (openingDate && expirationDate && new Date(openingDate) > new Date(expirationDate)) {
+      window.alert('Opening Date is set later than Expiration Date. Please set new times.');
       return;
     }
 
@@ -513,6 +517,7 @@ function setupFormSubmission() {
           title,
           student_description: studentDescription || null,
           teacher_description: teacherDescription || null,
+          opens_at: openingDate ? new Date(openingDate).toISOString() : null,
           expires_at: expirationDate ? new Date(expirationDate).toISOString() : null,
           task_ids: selectedTaskIds
         })

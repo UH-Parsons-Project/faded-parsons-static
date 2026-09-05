@@ -1,116 +1,3 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --brand:        #a8b4f7;
-  --brand-dark:   #7b8df0;
-  --brand-text:   #2d3a8c;
-  --green:        #16a34a;
-  --green-light:  #dcfce7;
-  --red:          #dc2626;
-  --amber:        #d97706;
-  --gray:         #94a3b8;
-  --text:         #1e293b;
-  --text-muted:   #5f6b7a;
-  --bg:           #ffffff;
-  --card:         #ffffff;
-  --border:       #e2e8f0;
-  --shadow:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 12px rgba(0,0,0,0.08);
-  --radius:       10px;
-  --font:         'DM Sans', system-ui, sans-serif;
-  --mono:         'JetBrains Mono', monospace;
-}
-
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-size: 15px;
-}
-
-footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
-
-/* ── Navbar ──────────────────────────────────────────── */
-.navbar {
-  background-color: var(--brand) !important;
-  display: flex !important;
-  align-items: center !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1030 !important;
-  height: 80px !important;
-  min-height: 80px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  box-sizing: border-box !important;
-}
-.navbar-logo { height: 64px; width: auto; display: block; }
-.navbar > a { display: inline-flex; align-items: center; height: 100%; }
-
-/* Burger Menu Styles (copied from main.css to ensure teacher pages have dropdown styling) */
-.navbar-burger-menu {
-  position: relative;
-  display: inline-block;
-}
-
-.navbar-burger-toggle {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #333;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  display: flex;
-  align-items: center;
-  transition: color 0.2s ease;
-}
-
-.navbar-burger-toggle:hover {
-  color: #0056b3;
-}
-
-.navbar-burger-dropdown {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 0.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
-  z-index: 1001;
-  margin-top: 0.5rem;
-}
-
-.navbar-burger-dropdown.show {
-  display: block;
-}
-
-.navbar-burger-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  color: #333;
-  text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.navbar-burger-item:hover {
-  background-color: #f8f9fa;
-  color: #0056b3;
-}
-
-.navbar-burger-item i {
-  font-size: 0.9rem;
-}
-
-
-
 /* ── Content width constraint ────────────────────────── */
 .page-header,
 .dashboard-main {
@@ -227,7 +114,21 @@ footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
   transition: background .15s;
   white-space: nowrap;
 }
-.section-create-btn:hover { background: #15803d; color: #fff; text-decoration: none; }
+#task-sets-container .section-create-btn,
+#your-tasks-container .section-create-btn {
+  background-color: #16a34a;
+}
+.section-create-btn:link,
+.section-create-btn:visited,
+.section-create-btn:hover,
+.section-create-btn:focus {
+  color: #fff;
+  text-decoration: none;
+}
+.section-create-btn:hover,
+.section-create-btn:focus {
+  background: #15803d;
+}
 
 /* ── Section headings ────────────────────────────────── */
 .task-set-section { margin-bottom: 1.5rem; }
@@ -303,6 +204,8 @@ footer[style*="background:#f5f7fa"] { margin-top: auto !important; }
   line-height: 1.6;
 }
 .task-set-meta i { margin-right: .25rem; }
+.task-set-opening-active { color: var(--green); }
+.task-set-expiring-soon { color: #e67e22; }
 .task-set-description {
   font-size: .875rem;
   color: var(--text-muted);
@@ -386,7 +289,14 @@ a.btn-success.btn-block:hover {
   box-shadow: var(--shadow);
   white-space: nowrap;
 }
-.nav-link-btn:hover {
+.nav-link-btn:link,
+.nav-link-btn:visited {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.nav-link-btn:hover,
+.nav-link-btn:focus {
   background: var(--bg);
   border-color: var(--gray);
   color: var(--text);

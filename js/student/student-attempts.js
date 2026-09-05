@@ -174,12 +174,16 @@ function createAttemptItem(attempt) {
 		statusIcon = '<i class="fas fa-check-circle sa-icon-success"></i><span class="sa-status-label"> Success</span>';
 	} else if (attempt.attempts > 0) {
 		statusIcon = '<i class="fas fa-times-circle sa-icon-failed"></i><span class="sa-status-label"> Failed</span>';
+	} else if (attempt.has_started) {
+		statusIcon = '<i class="fas fa-clock sa-icon-in-progress" style="color:var(--amber);"></i><span class="sa-status-label" style="color:var(--amber);"> In progress</span>';
 	} else {
 		statusIcon = '<i class="fas fa-circle sa-icon-not-started" style="font-size: 0.75em; vertical-align: middle;"></i><span class="sa-status-label text-muted"> Not started</span>';
 	}
 
 	if (attempt.attempts > 0 && attempt.last_attempt_at) {
 		lastAttemptText = `<i class="far fa-clock"></i> Last attempt: ${formatDateTime(attempt.last_attempt_at)}`;
+	} else if (attempt.has_started) {
+		lastAttemptText = `<i class="far fa-clock"></i> Started (no attempts yet)`;
 	} else {
 		lastAttemptText = `<i class="far fa-clock"></i> Not attempted yet`;
 	}
@@ -241,7 +245,7 @@ Promise.all([
 		}
 
 		const attempts = await attemptsResponse.json();
-		const attemptedTasks = attempts.filter(attempt => attempt.attempts > 0).length;
+		const startedTasks = attempts.filter(attempt => attempt.has_started || attempt.attempts > 0).length;
 		const completedTasks = attempts.filter(attempt => attempt.success_count > 0).length;
 
 		let totalTasks = attempts.length;
@@ -259,7 +263,7 @@ Promise.all([
 		}
 
 		const isOwner = localStorage.getItem('username') === ownerUsername;
-		renderHeader(studentUsername, completedTasks, attemptedTasks, totalTasks, taskSetName, isOwner);
+		renderHeader(studentUsername, completedTasks, startedTasks, totalTasks, taskSetName, isOwner);
 		renderAttempts(attempts);
 	})
 	.catch(err => {

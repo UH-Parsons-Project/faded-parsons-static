@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/base/main.css">
     <link rel="stylesheet" href="/js-parsons/parsons.css">
-    <link rel="stylesheet" href="/css/create-task.css">
+    <link rel="stylesheet" href="/css/task/create-task.css">
 </head>
 <body>
     {% include 'common/nav-teacher.html' %}
@@ -198,15 +198,16 @@ Eat the pie</code></pre>
         </section>
 
         <form id="create-task-form">
-            <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
-
-            <div class="form-group mb-4" style="max-width: 400px;">
-                <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
-                <select id="eval-type" class="form-control">
-                    <option value="unit_test" selected>Function Unit Tests (Default)</option>
-                    <option value="stdout">Console Output (print)</option>
-                    <option value="order_only">Order Only (Non-code / Conceptual)</option>
-                </select>
+            <div class="editor-toolbar-top">
+                <div class="form-group eval-mode-group">
+                    <label for="eval-type" class="font-weight-bold">Evaluation Mode</label>
+                    <select id="eval-type" class="form-control">
+                        <option value="unit_test" selected>Function Unit Tests (Default)</option>
+                        <option value="stdout">Console Output (print)</option>
+                        <option value="order_only">Order Only (Non-code / Conceptual)</option>
+                    </select>
+                </div>
+                <p class="shortcut-note">Shortcuts: <code>Tab</code> = indent, <code>Shift + Tab</code> = unindent, <code>Cmd/Ctrl + Enter</code> = submit.</p>
             </div>
 
             <div class="editor-grid">
@@ -288,8 +289,9 @@ Eat the pie</code></pre>
     </main>
 
     <script type="module">
-        import { initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
+        import { initSignedInAs, initProtectedPage, initBurgerMenu } from "/js/core/auth-ui.js";
 
+        initSignedInAs();
         initProtectedPage('/');
         initBurgerMenu();
     </script>

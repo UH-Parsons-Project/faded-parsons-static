@@ -69,21 +69,7 @@ function pipeCell(value, width) {
 }
 
 function isTaskFaded(task) {
-	if (task?.is_faded === true) {
-		return true;
-	}
-
-	const blocks = task?.code_blocks?.blocks;
-	if (Array.isArray(blocks)) {
-		// If any block is explicitly faded, or if there are movable (non-preplaced)
-		// blocks (i.e. blocks without `given: true`), consider the task faded.
-		const hasFadedBlock = blocks.some((block) => block && block.faded === true);
-		if (hasFadedBlock) return true;
-		const hasMovable = blocks.some((block) => block && !block.given);
-		if (hasMovable) return true;
-	}
-
-	return task?.task_type === 'Faded' || task?.task_type === 'faded';
+	return task?.require_indentation === true;
 }
 
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {
@@ -255,6 +241,66 @@ async function downloadStudentCompletionCsv(taskSet, tasks, students) {
 	}
 }
 
+function setupInitialEventsExport(taskSet, tasks) {
+	const button = document.getElementById('download-initial-events-btn');
+	const list = document.getElementById('initial-events-task-list');
+	const confirmButton = document.getElementById('confirm-initial-events-btn');
+	if (!button || !list || !confirmButton) return;
+
+	list.innerHTML = tasks.map((task) => `
+		<label class="custom-control custom-checkbox mb-2 d-block">
+			<input type="checkbox" class="custom-control-input initial-events-task" value="${task.id}" checked>
+			<span class="custom-control-label">${escapeHtml(task.title)}${task.is_hidden ? ' (inactive)' : ''}</span>
+		</label>
+	`).join('');
+
+	const updateState = () => {
+		confirmButton.disabled = !list.querySelector('.initial-events-task:checked');
+	};
+	list.addEventListener('change', updateState);
+	button.addEventListener('click', () => {
+		updateState();
+		$('#initial-events-modal').modal('show');
+	});
+	confirmButton.addEventListener('click', async () => {
+		const taskIds = [...list.querySelectorAll('.initial-events-task:checked')].map(input => Number(input.value));
+		if (!taskIds.length) return;
+		confirmButton.disabled = true;
+		confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing';
+		try {
+			const response = await fetch(`/api/my_sets/${encodeURIComponent(taskSet.id)}/initial-events-export`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ task_ids: taskIds }),
+			});
+			if (!response.ok) {
+				const error = await response.json().catch(() => ({}));
+				throw new Error(error.detail || 'Failed to generate export');
+			}
+			const blob = await response.blob();
+			const disposition = response.headers.get('Content-Disposition') || '';
+			const filename = disposition.match(/filename="([^"]+)"/)?.[1] || 'initial-events-data.zip';
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+			$('#initial-events-modal').modal('hide');
+		} catch (error) {
+			console.error('Error generating initial events export:', error);
+			alert(error.message || 'Failed to generate initial events export.');
+		} finally {
+			confirmButton.disabled = false;
+			confirmButton.innerHTML = '<i class="fas fa-download"></i> Download ZIP';
+			updateState();
+		}
+	});
+}
+
 function setupViewerSharing() {
 	const input = document.getElementById('viewer-identifier');
 	const addBtn = document.getElementById('add-viewer-btn');
@@ -404,18 +450,27 @@ async function removeViewer(teacherId) {
 function buildOpeningInnerHTML(taskSet, isOwner) {
 	if (taskSet.opens_at) {
 		const isNotOpenYet = new Date(taskSet.opens_at) > new Date();
-		const style = isNotOpenYet ? ' style="color:#2980b9; font-weight:bold;"' : '';
 		const icon = 'fas fa-calendar-alt';
 		const label = isNotOpenYet ? 'Opens' : 'Opened';
+		const openingClass = isNotOpenYet ? '' : ' class="task-set-opening-active"';
 		const editBtn = isOwner
 			? ` <button id="edit-opening-btn" type="button" class="btn btn-sm btn-link p-0 ml-1" style="font-size:.8rem;vertical-align:baseline;color:inherit;" title="Edit opening date"><i class="fas fa-pencil-alt"></i></button>`
 			: '';
-		return `<span class="meta-badge"><span${style}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
+		return `<span class="meta-badge"><span${openingClass}><i class="${icon}"></i> ${label} ${escapeHtml(formatDateTime(taskSet.opens_at))}</span>${editBtn}</span>`;
 	}
 	if (isOwner) {
 		return `<button id="edit-opening-btn" type="button" class="meta-badge meta-badge-missing"><i class="fas fa-calendar-alt"></i> Set opening date</button>`;
 	}
 	return '';
+}
+
+function validateTaskSetDateOrder(opensAt, expiresAt) {
+	if (!opensAt || !expiresAt || new Date(opensAt) <= new Date(expiresAt)) {
+		return true;
+	}
+
+	window.alert('Opening Date cannot be later than Expiration Date. Please set new times.');
+	return false;
 }
 
 function setupOpeningEdit(taskSet, isOwner) {
@@ -430,6 +485,8 @@ function setupOpeningEdit(taskSet, isOwner) {
 	}
 
 	async function saveOpening(isoValueOrNull) {
+		if (!validateTaskSetDateOrder(isoValueOrNull, taskSet.expires_at)) return;
+
 		try {
 			const res = await fetch(`/api/my_sets/${setId}/opens_at`, {
 				method: 'PATCH',
@@ -497,6 +554,8 @@ function setupExpiryEdit(taskSet, isOwner) {
 	}
 
 	async function saveExpiry(isoValueOrNull) {
+		if (!validateTaskSetDateOrder(taskSet.opens_at, isoValueOrNull)) return;
+
 		try {
 			const res = await fetch(`/api/my_sets/${setId}/expires_at`, {
 				method: 'PATCH',
@@ -548,8 +607,9 @@ function renderListHeader(taskSet, tasks, students) {
 		const completedActive = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden && st.task_completion_flags?.[index] ? 1 : 0);
 		}, 0);
-		const attemptedActive = tasks.reduce((sum, task, index) => {
-			return sum + (!task.is_hidden && st.task_attempts?.[index] > 0 ? 1 : 0);
+		const startedActive = tasks.reduce((sum, task, index) => {
+			const isStarted = st.task_started_flags?.[index] === 1 || st.task_attempts?.[index] > 0;
+			return sum + (!task.is_hidden && isStarted ? 1 : 0);
 		}, 0);
 		const activeAttempts = tasks.reduce((sum, task, index) => {
 			return sum + (!task.is_hidden ? (st.task_attempts?.[index] ?? 0) : 0);
@@ -557,7 +617,7 @@ function renderListHeader(taskSet, tasks, students) {
 
 		return {
 			completedActive,
-			attemptedActive,
+			startedActive,
 			activeAttempts
 		};
 	});
@@ -571,8 +631,8 @@ function renderListHeader(taskSet, tasks, students) {
 
 	// Distribution: fully done / in progress / not started
 	const fullyDone = studentStats.filter(s => taskCount > 0 && s.completedActive >= taskCount).length;
-	const inProgress = studentStats.filter(s => taskCount > 0 && s.attemptedActive > 0 && s.completedActive < taskCount).length;
-	const notStarted = studentStats.filter(s => taskCount === 0 || s.attemptedActive === 0).length;
+	const inProgress = studentStats.filter(s => taskCount > 0 && s.startedActive > 0 && s.completedActive < taskCount).length;
+	const notStarted = studentStats.filter(s => taskCount === 0 || s.startedActive === 0).length;
 	const donePct   = studentCount > 0 ? (fullyDone   / studentCount * 100).toFixed(1) : 0;
 	const progPct   = studentCount > 0 ? (inProgress  / studentCount * 100).toFixed(1) : 0;
 
@@ -623,8 +683,8 @@ function renderListHeader(taskSet, tasks, students) {
 			<div class="dist-bar-wrap">
 				<div class="dist-bar-label">Student Progression</div>
 				<div class="dist-bar">
-					<div class="dist-bar-seg done"     style="width:${donePct}%"></div>
-					<div class="dist-bar-seg progress" style="width:${progPct}%"></div>
+					<div class="dist-bar-seg done"        style="width:${donePct}%"></div>
+					<div class="dist-bar-seg in-progress" style="width:${progPct}%"></div>
 				</div>
 				<div class="dist-bar-legend">
 					<span class="dist-legend-item"><span class="dist-legend-dot" style="background:var(--green)"></span>${fullyDone} completed</span>
@@ -645,6 +705,9 @@ function renderListHeader(taskSet, tasks, students) {
 					</button>
 					<button id="download-task-set-teacher-csv-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
 						<i class="fas fa-download"></i> Student data
+					</button>
+					<button id="download-initial-events-btn" type="button" class="btn btn-sm taskset-action-btn-csv" style="font-weight:600;font-size:.8rem;display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;flex:1;justify-content:center;">
+						<i class="fas fa-download"></i> Initial events data
 					</button>
 				</div>
 				<div style="margin-top:.4rem; display:flex;">
@@ -722,6 +785,7 @@ function renderListHeader(taskSet, tasks, students) {
 	document.getElementById('download-task-set-teacher-csv-btn')?.addEventListener('click', () => {
 		downloadStudentCompletionCsv(taskSet, tasks, students);
 	});
+	setupInitialEventsExport(taskSet, tasks);
 
 	const copyBtn = document.getElementById('copy-btn');
 	const linkCode = document.getElementById('link-code');
@@ -920,18 +984,18 @@ async function loadTaskStats(tasks, taskSet, enrolledCount) {
 		const completed  = s.students_completed ?? 0;
 		const attempted  = Math.max(0, (s.students_attempted ?? 0) - completed);
 		const total      = enrolledCount || 1;
-		const notStarted = Math.max(0, total - completed - attempted);
+		const notStarted = s.students_not_started ?? Math.max(0, enrolledCount - completed - attempted);
 		const donePct    = (completed / total * 100).toFixed(1);
 		const progPct    = (attempted / total * 100).toFixed(1);
 
 		el.innerHTML = `
 			<div class="task-stat-bar">
-				<div class="task-stat-bar-seg done"     style="width:${donePct}%"></div>
-				<div class="task-stat-bar-seg progress" style="width:${progPct}%"></div>
+				<div class="task-stat-bar-seg done"        style="width:${donePct}%"></div>
+				<div class="task-stat-bar-seg in-progress" style="width:${progPct}%"></div>
 			</div>
 			<div class="task-stat-counts">
 				<span class="tsc done"><span class="tsc-dot done"></span>${completed} done</span>
-				${attempted > 0 ? `<span class="tsc progress"><span class="tsc-dot progress"></span>${attempted} in progress</span>` : ''}
+				${attempted > 0 ? `<span class="tsc in-progress"><span class="tsc-dot in-progress"></span>${attempted} in progress</span>` : ''}
 				<span class="tsc not-started"><span class="tsc-dot not-started"></span>${notStarted} not started</span>
 			</div>
 		`;

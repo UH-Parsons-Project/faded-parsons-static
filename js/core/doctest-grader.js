@@ -440,21 +440,23 @@ export function prepareCode(submittedCode, codeHeader, teacherTests = '', evalTy
 	};
 }
 
-export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '') {
+export function processTestResults(outputStr, customErrorRules = [], evalType = 'unit_test', expectedOutput = '', teacherTests = '') {
 	if (evalType === 'stdout') {
 		const actualOutput = outputStr.replace(/\r\n/g, '\n').trim();
 		const expectedNorm = (expectedOutput || '').replace(/\r\n/g, '\n').trim();
+		const testInput = (teacherTests || '').replace(/\r\n/g, '\n').trim();
+		const testInputBlock = testInput ? `\n\nTest input:\n${testInput}` : '';
 		if (actualOutput === expectedNorm) {
 			return {
 				status: 'pass',
 				header: `Output matched expected output!`,
-				details: `✅ Passed\n\nOutput:\n${actualOutput}`
+				details: `✅ Passed${testInputBlock}\n\nOutput:\n${actualOutput}`
 			};
 		} else {
 			return {
 				status: 'fail',
 				header: `Output did not match expected output.`,
-				details: `❌ Failed\n\nExpected:\n${expectedNorm}\n\nGot:\n${actualOutput}`
+				details: `❌ Failed${testInputBlock}\n\nExpected:\n${expectedNorm}\n\nGot:\n${actualOutput}`
 			};
 		}
 	}

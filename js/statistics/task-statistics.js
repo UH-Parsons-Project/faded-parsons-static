@@ -1,9 +1,16 @@
 import { initSignedInAs, initProtectedPage, initBurgerMenu } from '../core/auth-ui.js';
 import { createPrivateBadge, isPrivateTask } from '../components/privacy-badge.js';
 import { escapeHtml, formatTime } from '../utils/ui-utils.js';
+import { openTaskPreview, setupPreviewModalClose } from '../task/task-preview.js';
 initSignedInAs();
 initProtectedPage('/');
 initBurgerMenu();
+setupPreviewModalClose();
+
+const previewTaskButton = document.getElementById('preview-task-statistics-btn');
+if (previewTaskButton) {
+	previewTaskButton.addEventListener('click', () => openTaskPreview({ id: taskId }));
+}
 
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');

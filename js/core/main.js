@@ -413,7 +413,7 @@ async function handleSubmit(submittedCode, reprCode, studentOrder, moves, edits,
 
 			// Process results or errors
 			if (typeof results === 'string') {
-				testResults = processTestResults(results, customErrorRules, evalType, expectedOutput);
+				testResults = processTestResults(results, customErrorRules, evalType, expectedOutput, teacherTests);
 			} else {
 				testResults = processTestError(error, testResults.startLine, customErrorRules);
 			}

@@ -61,6 +61,14 @@ initBurgerMenu();
   let hasOpenedStudentPreview = false;
   let testsPassed = false;
 
+  function clearTaskDraftStorage() {
+    [localStorage, sessionStorage].forEach((storage) => {
+      Object.keys(storage)
+        .filter((key) => key.startsWith('create_task_'))
+        .forEach((key) => storage.removeItem(key));
+    });
+  }
+
   function updateAddToListState() {
     const addToListBtn = document.getElementById('add-to-problem-list');
     const evalTypeInput = document.getElementById('eval-type');
@@ -200,7 +208,7 @@ initBurgerMenu();
       writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
     }
     previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
-    const previewModelAnswerText = getSolutionCodeWithBlanks() || sanitizeBlankInputMarkup(modelAnswerCode || '');
+    const previewModelAnswerText = sanitizeBlankInputMarkup(modelAnswerCode || '') || getSolutionCodeWithBlanks();
     previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
 
     previewSource.innerHTML = '';
@@ -217,15 +225,47 @@ initBurgerMenu();
     previewParsonsWidget.id_prefix = 'preview-sortable-codeline';
 
     const previewRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode) || modelAnswerRepr;
-    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr).replace(/\s?#blank[^#\s]*#?/gi, '');
-    previewParsonsWidget.init(cleanPreviewRepr);
+    const cleanPreviewRepr = normalizeBlankMarkup(previewRepr);
+
+    let fullPreviewRepr = cleanPreviewRepr;
+    if (!isOrderOnly) {
+      fullPreviewRepr = (fullPreviewRepr ? fullPreviewRepr.trimEnd() + '\n' : '') +
+        "print('DEBUG:', !BLANK)\n" +
+        "print('DEBUG:', !BLANK)\n" +
+        "# !BLANK\n" +
+        "# !BLANK";
+    }
+
+    previewParsonsWidget.init(fullPreviewRepr);
 
     const previewSolutionIds = previewParsonsWidget.studentGiven ? previewParsonsWidget.studentGiven.map((line) => line.id) : [];
     const previewSolutionSet = new Set(previewSolutionIds);
     const previewSourceIds = previewParsonsWidget.modified_lines
       .filter((line) => !previewSolutionSet.has(line.id))
       .map((line) => line.id);
-    previewParsonsWidget.createHTMLFromLists(previewSolutionIds, previewSourceIds);
+
+    const isToolLine = (lineId) => {
+      const line = previewParsonsWidget.getLineById(lineId);
+      if (!line) return false;
+      const code = line.code || line.orig || '';
+      return (
+        code.includes('DEBUG') ||
+        code.startsWith('# <input') ||
+        code.startsWith('# !BLANK') ||
+        code.trim() === '#'
+      );
+    };
+
+    const regularSourceIds = previewSourceIds.filter((id) => !isToolLine(id));
+    const toolSourceIds = previewSourceIds.filter((id) => isToolLine(id));
+
+    // Shuffle starter source blocks for student preview
+    for (let index = regularSourceIds.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [regularSourceIds[index], regularSourceIds[randomIndex]] = [regularSourceIds[randomIndex], regularSourceIds[index]];
+    }
+
+    previewParsonsWidget.createHTMLFromLists(previewSolutionIds, [...regularSourceIds, ...toolSourceIds]);
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -277,7 +317,7 @@ initBurgerMenu();
       }
       const match = trimmed.match(/^(def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/);
       if (match) {
-        return match[2];
+        return match[2].replace(/_/g, ' ');
       }
     }
     return 'custom_task';
@@ -594,7 +634,7 @@ initBurgerMenu();
       warningBox.innerHTML = `
         <div class="alert alert-success mb-0" role="alert" style="font-size: 0.88rem; line-height: 1.5; border-left: 5px solid #10b981; background-color: #ecfdf5; color: #065f46;">
           <i class="fas fa-users mr-2" style="color: #10b981;"></i>
-          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students. Please note that since others can use this task, it will remain active in the system even if your account is later removed.
+          <strong>Public Task (Recommended):</strong> Keeping tasks public is preferred as it helps enhance the experience of other teachers and students. Please note that since others can use this task, it will remain active in the system even if your account is later removed. Other instructors won't have any access to your student data despite using the same public task in their own task sets.
         </div>
       `;
     }
@@ -804,7 +844,7 @@ initBurgerMenu();
       preferredSourceCode,
       modelAnswerCode,
       draftPayload?.taskCode || '',
-      localStorage.getItem('create_task_draft_code') || '',
+      sessionStorage.getItem('create_task_draft_code') || '',
       sessionStorage.getItem(MODEL_ANSWER_KEY) || '',
     ].filter(Boolean);
 
@@ -1289,11 +1329,13 @@ initBurgerMenu();
           }
         } else if (evalType === 'stdout') {
           const expectedNorm = expectedOutput.replace(/\r\n/g, '\n').trim();
+          const driverCalls = (stdoutTestsInput ? stdoutTestsInput.value : '').replace(/\r\n/g, '\n').trim();
+          const inputBlock = driverCalls ? `\n\nTest input:\n${driverCalls}` : '';
           if (output === expectedNorm) {
-            renderTestResult('pass', `Output matched perfectly!\n\nOutput:\n${output}`);
+            renderTestResult('pass', `Output matched perfectly!${inputBlock}\n\nOutput:\n${output}`);
             testsPassed = true;
           } else {
-            renderTestResult('fail', `Output did not match.\n\nExpected:\n${expectedNorm}\n\nGot:\n${output}`);
+            renderTestResult('fail', `Output did not match.${inputBlock}\n\nExpected:\n${expectedNorm}\n\nGot:\n${output}`);
             testsPassed = false;
           }
         }
@@ -1371,8 +1413,9 @@ initBurgerMenu();
       return;
     }
 
-    const solutionCodeWithBlanks = getSolutionCodeWithBlanks();
-    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || solutionCodeWithBlanks;
+    const currentSolutionCode = getSolutionCodeWithBlanks();
+    const finalModelAnswerCode = sanitizeBlankInputMarkup(modelAnswerCode) || currentSolutionCode;
+    const solutionCodeWithBlanks = finalModelAnswerCode || currentSolutionCode;
     const parsonsRepr = buildCustomRepr(parsonsWidget, normalizeSourceCode, getLineInputValues);
     const problemData = {
       taskTitle,
@@ -1407,6 +1450,7 @@ initBurgerMenu();
           if (editTaskId && finalModelAnswerCode) {
             await persistModelAnswerToServer(finalModelAnswerCode);
           }
+          clearTaskDraftStorage();
           alert(editTaskId ? 'Task updated successfully!' : 'Task successfully created!');
           window.location.href = '/teacher-dashboard';
         } else {
@@ -1442,22 +1486,45 @@ initBurgerMenu();
 
   function saveCodeToSession() {
     const testsInput = document.getElementById('tests-input');
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    const evalTypeInput = document.getElementById('eval-type');
+    const evalType = evalTypeInput ? evalTypeInput.value : (draftPayload?.evalType || 'unit_test');
     const solutionList = document.querySelector('#solution-sortable ul');
     const hasSolutionBlocks = Boolean(solutionList && solutionList.children.length > 0);
     const currentCode = hasSolutionBlocks && parsonsWidget
       ? parsonsWidget.solutionCode()
       : (draftPayload?.taskCode || '');
-    const currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
     const currentTaskType = getTaskTypeValue();
 
-    localStorage.setItem('create_task_draft_code', currentCode);
-    localStorage.setItem('create_task_draft_tests', currentTests);
+    sessionStorage.setItem('create_task_draft_code', currentCode);
+
+    let currentTests = '';
+    let currentExpectedOutput = '';
+
+    if (evalType === 'stdout') {
+      currentExpectedOutput = expectedOutputInput ? expectedOutputInput.value : (draftPayload?.expectedOutput || '');
+      const currentStdoutCalls = stdoutTestsInput ? stdoutTestsInput.value : (draftPayload?.taskTests || '');
+      currentTests = currentStdoutCalls;
+      sessionStorage.setItem('create_task_draft_tests', currentExpectedOutput);
+      sessionStorage.setItem('create_task_draft_stdout_calls', currentStdoutCalls);
+    } else if (evalType === 'order_only') {
+      currentTests = '';
+      sessionStorage.setItem('create_task_draft_tests', '');
+      sessionStorage.removeItem('create_task_draft_stdout_calls');
+    } else {
+      currentTests = testsInput ? testsInput.value : (draftPayload?.taskTests || '');
+      sessionStorage.setItem('create_task_draft_tests', currentTests);
+      sessionStorage.removeItem('create_task_draft_stdout_calls');
+    }
 
     if (draftPayload) {
       const updatedDraft = {
         ...draftPayload,
         taskCode: currentCode,
         taskTests: currentTests,
+        expectedOutput: currentExpectedOutput,
+        evalType: evalType,
         taskType: currentTaskType,
         savedAt: new Date().toISOString(),
       };
@@ -1554,11 +1621,34 @@ initBurgerMenu();
     const descriptionInput = document.getElementById('problem-description');
     const startDescriptionInput = document.getElementById('start-description');
     const testsInput = document.getElementById('tests-input');
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    const evalTypeInput = document.getElementById('eval-type');
     const visibilityInput = document.getElementById('task-visibility-public');
     const taskTypeInput = document.getElementById('task-type');
     const runBtn = document.getElementById('run-tests');
     const setModelAnswerBtn = document.getElementById('set-model-answer');
     const allowIndentCheckbox = document.getElementById('allow-indent');
+
+    function getActiveTestsForSession() {
+      const currentEvalType = evalTypeInput ? evalTypeInput.value : 'unit_test';
+      if (currentEvalType === 'stdout') {
+        return stdoutTestsInput ? stdoutTestsInput.value : '';
+      }
+      return testsInput ? testsInput.value : '';
+    }
+
+    function saveCurrentMetadata() {
+      saveMetaToSession(
+        taskTitleInput?.value || '',
+        descriptionInput?.value || '',
+        startDescriptionInput?.value || '',
+        getActiveTestsForSession(),
+        customErrorMessagesInput?.value || '',
+        getVisibilityValue(),
+        getTaskTypeValue()
+      );
+    }
 
     if (allowIndentCheckbox) {
       allowIndentCheckbox.addEventListener('change', (e) => {
@@ -1606,6 +1696,7 @@ initBurgerMenu();
         if (!confirmed) {
           return;
         }
+        clearTaskDraftStorage();
         window.location.href = '/teacher-dashboard';
       });
     }
@@ -1615,14 +1706,7 @@ initBurgerMenu();
         if (!confirm('Are you sure you want to clear all blocks? This cannot be undone.')) {
           return;
         }
-        sessionStorage.removeItem(BLOCKS_KEY);
-        sessionStorage.removeItem(BLOCKS_SOURCE_KEY);
-        sessionStorage.removeItem(META_KEY);
-        sessionStorage.removeItem(META_SOURCE_KEY);
-        sessionStorage.removeItem(MODEL_ANSWER_KEY);
-        sessionStorage.removeItem(MODEL_ANSWER_REPR_KEY);
-        sessionStorage.removeItem(MODEL_ANSWER_SOURCE_KEY);
-        sessionStorage.removeItem(MODEL_ANSWER_UPDATED_AT_KEY);
+        clearTaskDraftStorage();
         modelAnswerCode = '';
         modelAnswerRepr = '';
         modelAnswerUpdatedAt = '';
@@ -1635,8 +1719,13 @@ initBurgerMenu();
         const descriptionInput = document.getElementById('problem-description');
         const startDescriptionInput = document.getElementById('start-description');
         const testsInput = document.getElementById('tests-input');
+        const stdoutTestsInput = document.getElementById('stdout-tests-input');
+        const expectedOutputInput = document.getElementById('expected-output-input');
         const customErrorMessagesInput = document.getElementById('custom-error-messages');
         const taskTitleInput = document.getElementById('task-title');
+        const evalTypeInput = document.getElementById('eval-type');
+        const currentEvalType = evalTypeInput ? evalTypeInput.value : (draftPayload?.evalType || 'unit_test');
+
         if (taskTitleInput) {
           taskTitleInput.value = extractDefaultTitleFromCode(draftPayload?.taskCode || '');
         }
@@ -1646,11 +1735,14 @@ initBurgerMenu();
         if (startDescriptionInput) {
           startDescriptionInput.value = '';
         }
-        if (testsInput) {
-          testsInput.value = draftPayload?.taskTests || '';
-        }
-        if (customErrorMessagesInput) {
-          customErrorMessagesInput.value = draftPayload?.customErrorMessages || '';
+        if (currentEvalType === 'stdout') {
+          if (testsInput) testsInput.value = '';
+          if (stdoutTestsInput) stdoutTestsInput.value = draftPayload?.taskTests || '';
+          if (expectedOutputInput) expectedOutputInput.value = draftPayload?.expectedOutput || '';
+        } else {
+          if (testsInput) testsInput.value = draftPayload?.taskTests || '';
+          if (stdoutTestsInput) stdoutTestsInput.value = '';
+          if (expectedOutputInput) expectedOutputInput.value = '';
         }
         if (customErrorMessagesInput) {
           customErrorMessagesInput.value = '';
@@ -1711,64 +1803,60 @@ initBurgerMenu();
       });
     }
 
-    if (taskTitleInput && descriptionInput && startDescriptionInput && testsInput) {
+    if (taskTitleInput && descriptionInput && startDescriptionInput) {
       taskTitleInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(
-          taskTitleInput.value,
-          descriptionInput.value,
-          startDescriptionInput.value,
-          testsInput.value,
-          customErrorMessagesInput.value,
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         updateAddToListState();
       });
 
       descriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(
-          taskTitleInput.value,
-          descriptionInput.value,
-          startDescriptionInput.value,
-          testsInput.value,
-          customErrorMessagesInput.value,
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         updateAddToListState();
       });
 
       startDescriptionInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(
-          taskTitleInput.value,
-          descriptionInput.value,
-          startDescriptionInput.value,
-          testsInput.value,
-          customErrorMessagesInput.value,
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         updateAddToListState();
       });
+    }
 
+    if (testsInput) {
       testsInput.addEventListener('input', () => {
         hasOpenedStudentPreview = false;
         invalidateTestStatus('Tests were modified. Please run tests again.');
-        saveMetaToSession(
-          taskTitleInput.value,
-          descriptionInput.value,
-          startDescriptionInput.value,
-          testsInput.value,
-          customErrorMessagesInput.value,
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         if (draftPayload) {
           draftPayload.taskTests = testsInput.value;
-          sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload));
+        }
+        updateAddToListState();
+      });
+    }
+
+    if (stdoutTestsInput) {
+      stdoutTestsInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Function calls were modified. Please run tests again.');
+        saveCurrentMetadata();
+        if (draftPayload) {
+          draftPayload.taskTests = stdoutTestsInput.value;
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload));
+        }
+        updateAddToListState();
+      });
+    }
+
+    if (expectedOutputInput) {
+      expectedOutputInput.addEventListener('input', () => {
+        hasOpenedStudentPreview = false;
+        invalidateTestStatus('Expected output was modified. Please run tests again.');
+        saveCurrentMetadata();
+        if (draftPayload) {
+          draftPayload.expectedOutput = expectedOutputInput.value;
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload));
         }
         updateAddToListState();
       });
@@ -1777,18 +1865,10 @@ initBurgerMenu();
     if (taskTypeInput) {
       taskTypeInput.addEventListener('change', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(
-          taskTitleInput?.value || '',
-          descriptionInput?.value || '',
-          startDescriptionInput?.value || '',
-          testsInput?.value || '',
-          customErrorMessagesInput?.value || '',
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         if (draftPayload) {
           draftPayload.taskType = getTaskTypeValue();
-          sessionStorage.setItem('create_task_draft_payload', JSON.stringify(draftPayload));
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload));
         }
         updateAddToListState();
       });
@@ -1797,15 +1877,7 @@ initBurgerMenu();
     if (visibilityInput) {
       visibilityInput.addEventListener('change', () => {
         hasOpenedStudentPreview = false;
-        saveMetaToSession(
-          taskTitleInput?.value || '',
-          descriptionInput?.value || '',
-          startDescriptionInput?.value || '',
-          testsInput?.value || '',
-          customErrorMessagesInput?.value || '',
-          getVisibilityValue(),
-          getTaskTypeValue()
-        );
+        saveCurrentMetadata();
         updateVisibilityWarning();
         updateAddToListState();
       });
@@ -1917,8 +1989,14 @@ initBurgerMenu();
       if (examplesInput) examplesInput.value = meta.examples !== undefined && meta.examples !== '' ? meta.examples : (instructions.examples || '');
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || taskData.description || '';
       const stdoutTestsInput = document.getElementById('stdout-tests-input');
-      if (testsInput) testsInput.value = meta.tests || teacherTests || '';
-      if (stdoutTestsInput) stdoutTestsInput.value = meta.tests || teacherTests || '';
+      const taskEvalType = taskData.correct_solution?.eval_type || 'unit_test';
+      if (taskEvalType === 'stdout') {
+        if (stdoutTestsInput) stdoutTestsInput.value = meta.tests || teacherTests || '';
+        if (testsInput) testsInput.value = '';
+      } else {
+        if (testsInput) testsInput.value = meta.tests || teacherTests || '';
+        if (stdoutTestsInput) stdoutTestsInput.value = '';
+      }
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || taskData.correct_solution?.custom_error_messages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(taskData.task_type);
       if (visibilityInput) {
@@ -2022,8 +2100,14 @@ initBurgerMenu();
       const examplesInput = document.getElementById('examples-input');
       if (examplesInput) examplesInput.value = instructions.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = apiTaskData.description || '';
-      if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
-      if (stdoutTestsInput) stdoutTestsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
+      const fetchedEvalType = draft.evalType || apiTaskData?.correct_solution?.eval_type || 'unit_test';
+      if (fetchedEvalType === 'stdout') {
+        if (stdoutTestsInput) stdoutTestsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
+        if (testsInput) testsInput.value = '';
+      } else {
+        if (testsInput) testsInput.value = apiTaskData.correct_solution?.teacher_tests || draft.taskTests || '';
+        if (stdoutTestsInput) stdoutTestsInput.value = '';
+      }
       if (customErrorMessagesInput) customErrorMessagesInput.value = apiTaskData.correct_solution?.custom_error_messages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData.task_type || draft.taskType);
       const savedAnswer = apiTaskData.model_answer || apiTaskData.correct_solution?.solution_code || '';
@@ -2036,8 +2120,14 @@ initBurgerMenu();
       const examplesInput = document.getElementById('examples-input');
       if (examplesInput) examplesInput.value = meta.examples || '';
       if (startDescriptionInput) startDescriptionInput.value = meta.startDescription || '';
-      if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
-      if (stdoutTestsInput) stdoutTestsInput.value = draft.taskTests || meta.tests || '';
+      const normalEvalType = draft.evalType || apiTaskData?.correct_solution?.eval_type || 'unit_test';
+      if (normalEvalType === 'stdout') {
+        if (stdoutTestsInput) stdoutTestsInput.value = draft.taskTests || meta.tests || '';
+        if (testsInput) testsInput.value = '';
+      } else {
+        if (testsInput) testsInput.value = draft.taskTests || meta.tests || '';
+        if (stdoutTestsInput) stdoutTestsInput.value = '';
+      }
 
       if (customErrorMessagesInput) customErrorMessagesInput.value = meta.customErrorMessages || '';
       if (taskTypeInput) taskTypeInput.value = normalizeTaskTypeValue(apiTaskData?.task_type || draft.taskType);

@@ -21,4 +21,13 @@ test.describe('Static & Information Pages E2E', () => {
     await expect(page).toHaveURL(/\/contact$/);
     await expect(page.locator('body')).not.toBeEmpty();
   });
+
+  test('forgot password button on login form redirects to contact page', async ({ page }) => {
+    await page.goto('/');
+    const forgotPasswordLink = page.locator('#login-form #forgot-password-btn');
+    await expect(forgotPasswordLink).toBeVisible();
+    await forgotPasswordLink.click();
+    await expect(page).toHaveURL(/\/contact$/);
+    await expect(page.locator('h1')).toHaveText('Contact');
+  });
 });

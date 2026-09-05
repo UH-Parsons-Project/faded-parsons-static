@@ -257,13 +257,7 @@ async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncS
 
     tasks_payload = []
     for task, is_hidden in rows:
-        blocks = task.code_blocks or {}
-        block_list = blocks.get("blocks") if isinstance(blocks, dict) else None
-        is_faded = False
-        if isinstance(block_list, list):
-            is_faded = any(bool(block.get("faded")) for block in block_list if isinstance(block, dict))
-            if not is_faded:
-                is_faded = any(not bool(block.get("given")) for block in block_list if isinstance(block, dict))
+        solution = task.correct_solution if isinstance(task.correct_solution, dict) else {}
 
         tasks_payload.append(
             TaskSetTaskResponse(
@@ -273,7 +267,8 @@ async def get_task_set_tasks(code: str, response: Response, db: Annotated[AsyncS
                 created_at=task.created_at.isoformat(),
                 is_hidden=is_hidden,
                 is_public=task.is_public,
-                is_faded=is_faded,
+                is_faded=bool(solution.get("require_indentation", True)),
+                require_indentation=bool(solution.get("require_indentation", True)),
             )
         )
 

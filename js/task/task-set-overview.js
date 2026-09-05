@@ -69,21 +69,7 @@ function pipeCell(value, width) {
 }
 
 function isTaskFaded(task) {
-	if (task?.is_faded === true) {
-		return true;
-	}
-
-	const blocks = task?.code_blocks?.blocks;
-	if (Array.isArray(blocks)) {
-		// If any block is explicitly faded, or if there are movable (non-preplaced)
-		// blocks (i.e. blocks without `given: true`), consider the task faded.
-		const hasFadedBlock = blocks.some((block) => block && block.faded === true);
-		if (hasFadedBlock) return true;
-		const hasMovable = blocks.some((block) => block && !block.given);
-		if (hasMovable) return true;
-	}
-
-	return task?.task_type === 'Faded' || task?.task_type === 'faded';
+	return task?.require_indentation === true;
 }
 
 function buildTaskSetCsv(tasks, taskStats, totalStudents) {

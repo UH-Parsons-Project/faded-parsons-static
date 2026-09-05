@@ -13,11 +13,13 @@
         lifetime="28800"
         timeout="3600"
         relayState="ss:mem"
+        handlerURL="/Shibboleth.sso"
         checkAddress="false"
         handlerSSL="true"
         cookieProps="https">
       <SSO entityID="https://login.helsinki.fi/shibboleth">SAML2</SSO>
       <Logout>SAML2 Local</Logout>
+            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
     </Sessions>
 
     <Errors supportContact="REPLACE_WITH_SUPPORT_EMAIL@helsinki.fi"/>

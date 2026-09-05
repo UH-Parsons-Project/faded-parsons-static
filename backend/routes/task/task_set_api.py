@@ -49,61 +49,6 @@ from ..utils.commons import (
 )
 
 router = APIRouter()
-ALLOWED_TASK_TYPES = {
-    "algorithms",
-    "arithmetic",
-    "booleans",
-    "classes",
-    "comprehensions",
-    "conditionals",
-    "debugging",
-    "dictionaries",
-    "exceptions",
-    "files",
-    "functions",
-    "imports",
-    "input",
-    "lists",
-    "loops",
-    "other",
-    "printing",
-    "recursion",
-    "searching",
-    "sets",
-    "sorting",
-    "strings",
-    "testing",
-    "tuples",
-    "typecasting",
-    "variables",
-}
-
-
-def _normalize_task_type(task_type: str | None) -> str:
-    return (task_type or "").strip().lower()
-
-
-def _resolve_task_type(task_type: str | None, has_faded: bool) -> str:
-    normalized = _normalize_task_type(task_type)
-    if not normalized:
-        return "Faded" if has_faded else "normal"
-
-    if normalized in ALLOWED_TASK_TYPES:
-        return normalized
-
-    if normalized == "normal":
-        return "normal"
-
-    if normalized == "faded":
-        return "Faded"
-
-    if normalized not in ALLOWED_TASK_TYPES:
-        allowed = ", ".join(sorted(ALLOWED_TASK_TYPES))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"task_type is required and must be one of: {allowed}",
-        )
-    return normalized
 
 
 @router.get("/api/my_sets", response_model=list[TaskSetResponse])

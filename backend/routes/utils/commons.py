@@ -160,7 +160,7 @@ async def ensure_unique_user(db: AsyncSession, model, username: str, email: str,
         stmt = select(model).where((model.username == username) | (model.email == email))
     else:
         stmt = select(model).where(model.email == email)
-        
+
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
     if existing:

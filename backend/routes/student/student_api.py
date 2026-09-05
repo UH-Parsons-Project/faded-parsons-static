@@ -3,11 +3,9 @@ import secrets
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from ...teacher_auth import CurrentUser
 from ...pydantic import SubmitTestResultRequest, RecordExitRequest, EnterTaskResponse, StartTaskResponse, TaskResponse, StudentTaskResponse
 from ...database import get_db
@@ -59,7 +57,6 @@ async def _resolve_task_context(db: AsyncSession, unique_link_code: str, task_id
     task_set = await get_task_set_by_code_or_404(db, TaskSet, unique_link_code)
     await verify_task_in_set_or_404(db, task_set, task_id, visible_only=True)
     return task_set, task_id
-
 
 
 @router.get("/api/student/me")
@@ -147,7 +144,7 @@ async def get_student_profile(
                 "enrolled_at": row.enrolled_at.isoformat() if row.enrolled_at else "",
                 "task_count": task_count,
                 "completed_tasks": completed_tasks,
-                "is_completed": task_count > 0 and completed_tasks >= task_count,
+                "is_completed": completed_tasks >= task_count > 0,
             }
         )
 
@@ -251,7 +248,6 @@ async def get_task_set_info(
         "title": task_set.title,
         "teacher": teacher.username
     }
-
 
 
 @router.post("/api/sets/{unique_link_code}/join")
@@ -471,8 +467,7 @@ async def get_task_for_student_set(
             detail=f"Task with id {resolved_task_id} not found",
         )
 
-    # If the student has a successful attempt, include their latest
-    # submitted_order so the frontend can restore the solved arrangement.
+
     submitted_order = None
     if student_session:
         attempt_stmt = (
@@ -725,14 +720,12 @@ async def submit_test_result(
     await db.flush()
     await db.refresh(new_attempt)
 
-    # Persist final arrangement for successful attempts so students can later
-    # review their solved arrangement.
+
     if result.success and result.arrangement:
         try:
             new_attempt.submitted_order = result.arrangement
             await db.flush()
         except Exception:
-            # Don't fail the whole request if submitted_order can't be stored
             pass
 
     if result.moves:
@@ -916,7 +909,7 @@ async def get_task_moves(
                     "indent": block.get("indent", 0),
                 })
                 draggable_index += 1
-        # Debug lines come before given blocks in the widget's modified_lines
+
         for debug in DEBUG_LINES:
             block_id = f"sortable-codeline{draggable_index}"
             block_code_map[block_id] = debug["code"]

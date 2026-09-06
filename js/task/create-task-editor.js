@@ -173,7 +173,6 @@ initBurgerMenu();
     const previewTaskType = document.getElementById('preview-task-type');
     const previewSource = document.getElementById('preview-source-sortable');
     const previewSolution = document.getElementById('preview-solution-sortable');
-    const previewWrittenTests = document.getElementById('preview-written-tests');
     const previewModelAnswer = document.getElementById('preview-model-answer');
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
@@ -182,7 +181,7 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
 
-    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewTaskType || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
+    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewTaskType || !previewSource || !previewSolution || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
       return;
     }
 
@@ -202,12 +201,67 @@ initBurgerMenu();
     previewTaskType.textContent = taskType ? `Task tag: ${taskType}` : 'Task tag not selected yet.';
 
     const evalTypeInput = document.getElementById('eval-type');
-    const isOrderOnly = evalTypeInput?.value === 'order_only';
-    const writtenTestsRow = previewWrittenTests.closest('.row') || previewWrittenTests.closest('.card');
-    if (writtenTestsRow) {
-      writtenTestsRow.style.display = isOrderOnly ? 'none' : '';
+    const evalType = evalTypeInput?.value || 'unit_test';
+    const isOrderOnly = evalType === 'order_only';
+    
+    const previewEvalTitle = document.getElementById('preview-eval-title');
+    const previewEvalBody = document.getElementById('preview-eval-body');
+    const stdoutTestsInput = document.getElementById('stdout-tests-input');
+    const expectedOutputInput = document.getElementById('expected-output-input');
+    
+    if (previewEvalTitle && previewEvalBody) {
+      previewEvalBody.innerHTML = '';
+      
+      if (evalType === 'unit_test') {
+        previewEvalTitle.innerHTML = 'Function Unit Tests';
+        const pre = document.createElement('pre');
+        pre.className = 'code-display';
+        pre.style.cssText = 'border-radius: 0; border: none; margin: 0; padding: 1.25rem;';
+        pre.textContent = testsInput?.value.trim() || 'No unit tests configured.';
+        previewEvalBody.appendChild(pre);
+        
+      } else if (evalType === 'stdout') {
+        previewEvalTitle.innerHTML = 'Console Output Evaluation';
+        const paddingDiv = document.createElement('div');
+        paddingDiv.className = 'p-3';
+        
+        const driverLabel = document.createElement('h6');
+        driverLabel.className = 'font-weight-bold mb-2';
+        driverLabel.textContent = 'Function Calls / Driver Code';
+        paddingDiv.appendChild(driverLabel);
+        
+        const driverPre = document.createElement('pre');
+        driverPre.className = 'code-display mb-3';
+        driverPre.style.cssText = 'border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 1rem; padding: 1.25rem;';
+        driverPre.textContent = stdoutTestsInput?.value.trim() || 'No driver code configured.';
+        paddingDiv.appendChild(driverPre);
+        
+        const outputLabel = document.createElement('h6');
+        outputLabel.className = 'font-weight-bold mb-2';
+        outputLabel.textContent = 'Expected Output';
+        paddingDiv.appendChild(outputLabel);
+        
+        const outputPre = document.createElement('pre');
+        outputPre.className = 'code-display mb-0';
+        outputPre.style.cssText = 'border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; color: #0f172a; margin-bottom: 0; padding: 1.25rem;';
+        outputPre.textContent = expectedOutputInput?.value.trim() || 'No expected output configured.';
+        paddingDiv.appendChild(outputPre);
+        
+        previewEvalBody.appendChild(paddingDiv);
+        
+      } else if (evalType === 'order_only') {
+        previewEvalTitle.innerHTML = 'Order Only (Conceptual)';
+        const paddingDiv = document.createElement('div');
+        paddingDiv.className = 'p-3';
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-info mb-0';
+        alertDiv.innerHTML = '<i class="fas fa-info-circle mr-2"></i> Conceptual task. No code execution or tests are required.';
+        paddingDiv.appendChild(alertDiv);
+        
+        previewEvalBody.appendChild(paddingDiv);
+      }
     }
-    previewWrittenTests.textContent = testsInput?.value.trim() || 'No tests written yet.';
     const previewModelAnswerText = sanitizeBlankInputMarkup(modelAnswerCode || '') || getSolutionCodeWithBlanks();
     previewModelAnswer.textContent = previewModelAnswerText || 'No model answer set yet.';
 

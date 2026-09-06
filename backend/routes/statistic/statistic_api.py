@@ -1,3 +1,4 @@
+# pylint: disable=unused-variable
 import json
 from datetime import datetime, timezone
 from typing import Annotated
@@ -303,7 +304,7 @@ async def get_student_task_statistics(
                 seconds = (first_event_time_naive - started_at_naive).total_seconds()
                 if seconds >= 0:
                     thinking_time = {"seconds": seconds}
-                    
+
                     on_page_secs = 0.0
                     for s in task_sessions:
                         s_entered = s.entered_at.replace(tzinfo=None)
@@ -430,7 +431,7 @@ async def get_taskset_tasks_statistics(
     task_set = task_set_result.scalar_one_or_none()
     if not task_set:
         raise HTTPException(status_code=404, detail="Not found")
-    
+
     await require_task_set_view_access(task_set, current_user, db)
 
     stmt = select(TaskSetItem.task_id).where(
@@ -438,7 +439,7 @@ async def get_taskset_tasks_statistics(
         (TaskSetItem.is_hidden == False)
     )
     task_ids = (await db.execute(stmt)).scalars().all()
-    
+
     results = {}
     for t_id in task_ids:
         try:
@@ -673,7 +674,7 @@ async def get_task_statistics(
             secs = (first_event_time_naive - started_at_naive).total_seconds()
             if 0 <= secs < 3600:  # ignore implausible values
                 thinking_values.append(secs)
-                
+
                 # On-page thinking time: sum of active sessions prior to first event
                 on_page_secs = 0.0
                 slist = sessions_by_enrollment.get(enrollment.id, [])
@@ -710,7 +711,7 @@ async def get_task_statistics(
         slist = sessions_by_enrollment.get(enrollment_id, [])
         exits = max(0, len(slist) - 1)
         page_exits_list.append(exits)
-        
+
     median_page_exits = 0.0
     min_page_exits = min(page_exits_list) if page_exits_list else None
     max_page_exits = max(page_exits_list) if page_exits_list else None

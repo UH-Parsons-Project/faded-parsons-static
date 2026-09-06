@@ -239,14 +239,22 @@ def load_task_file(task_name: str) -> Dict[str, Any] | None:
         task_type = yaml_data.get("task_type") or yaml_data.get("tag")
         if not task_type:
             desc_lower = description.lower()
-            if "loop" in desc_lower: task_type = "loops"
-            elif "if-" in desc_lower or "conditional" in desc_lower: task_type = "conditionals"
-            elif "math" in desc_lower or "arithmetic" in desc_lower: task_type = "arithmetic"
-            elif "list" in desc_lower: task_type = "lists"
-            elif "comparison" in desc_lower or "boolean" in desc_lower: task_type = "booleans"
-            elif "string" in desc_lower: task_type = "strings"
-            elif "function" in desc_lower: task_type = "functions"
-            elif "dictionar" in desc_lower: task_type = "dictionaries"
+            if "loop" in desc_lower:
+                task_type = "loops"
+            elif "if-" in desc_lower or "conditional" in desc_lower:
+                task_type = "conditionals"
+            elif "math" in desc_lower or "arithmetic" in desc_lower:
+                task_type = "arithmetic"
+            elif "list" in desc_lower:
+                task_type = "lists"
+            elif "comparison" in desc_lower or "boolean" in desc_lower:
+                task_type = "booleans"
+            elif "string" in desc_lower:
+                task_type = "strings"
+            elif "function" in desc_lower:
+                task_type = "functions"
+            elif "dictionar" in desc_lower:
+                task_type = "dictionaries"
             else: task_type = "other"
 
         # Get test function name

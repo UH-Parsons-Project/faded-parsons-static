@@ -173,7 +173,6 @@ initBurgerMenu();
     const previewTaskType = document.getElementById('preview-task-type');
     const previewSource = document.getElementById('preview-source-sortable');
     const previewSolution = document.getElementById('preview-solution-sortable');
-    const previewWrittenTests = document.getElementById('preview-written-tests');
     const previewModelAnswer = document.getElementById('preview-model-answer');
     const taskTitleInput = document.getElementById('task-title');
     const descriptionInput = document.getElementById('problem-description');
@@ -182,7 +181,7 @@ initBurgerMenu();
     const testsInput = document.getElementById('tests-input');
     const ParsonsWidgetCtor = window.ParsonsWidget;
 
-    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewTaskType || !previewSource || !previewSolution || !previewWrittenTests || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
+    if (!modal || !previewTaskTitle || !previewStartIntro || !previewText || !previewTaskType || !previewSource || !previewSolution || !previewModelAnswer || !parsonsWidget || !ParsonsWidgetCtor) {
       return;
     }
 
